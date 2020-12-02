@@ -5,6 +5,8 @@ namespace Drupal\Core\Database\Driver\pgsql;
 use Drupal\Core\Database\Database;
 use Drupal\Core\Database\Query\Insert as QueryInsert;
 
+// cSpell:ignore nextval setval
+
 /**
  * @ingroup database
  * @{
@@ -20,7 +22,7 @@ class Insert extends QueryInsert {
       return NULL;
     }
 
-    $stmt = $this->connection->prepareQuery((string) $this);
+    $stmt = $this->connection->prepareStatement((string) $this, $this->queryOptions);
 
     // Fetch the list of blobs and sequences used on that table.
     $table_information = $this->connection->schema()->queryTableInformation($this->table);
@@ -35,13 +37,13 @@ class Insert extends QueryInsert {
           fwrite($blobs[$blob_count], $insert_values[$idx]);
           rewind($blobs[$blob_count]);
 
-          $stmt->bindParam(':db_insert_placeholder_' . $max_placeholder++, $blobs[$blob_count], \PDO::PARAM_LOB);
+          $stmt->getClientStatement()->bindParam(':db_insert_placeholder_' . $max_placeholder++, $blobs[$blob_count], \PDO::PARAM_LOB);
 
           // Pre-increment is faster in PHP than increment.
           ++$blob_count;
         }
         else {
-          $stmt->bindParam(':db_insert_placeholder_' . $max_placeholder++, $insert_values[$idx]);
+          $stmt->getClientStatement()->bindParam(':db_insert_placeholder_' . $max_placeholder++, $insert_values[$idx]);
         }
       }
       // Check if values for a serial field has been passed.
@@ -78,7 +80,7 @@ class Insert extends QueryInsert {
       // the foreach statement assigns the element to the existing reference.
       $arguments = $this->fromQuery->getArguments();
       foreach ($arguments as $key => $value) {
-        $stmt->bindParam($key, $arguments[$key]);
+        $stmt->getClientStatement()->bindParam($key, $arguments[$key]);
       }
     }
 

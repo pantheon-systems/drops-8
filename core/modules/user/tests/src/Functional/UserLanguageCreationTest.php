@@ -45,13 +45,13 @@ class UserLanguageCreationTest extends BrowserTestBase {
     $edit = [
       'language_interface[enabled][language-url]' => TRUE,
     ];
-    $this->drupalPostForm('admin/config/regional/language/detection', $edit, t('Save settings'));
-    $this->assertText(t('Language detection configuration saved.'), 'Set language negotiation.');
+    $this->drupalPostForm('admin/config/regional/language/detection', $edit, 'Save settings');
+    $this->assertText('Language detection configuration saved.', 'Set language negotiation.');
 
     // Check if the language selector is available on admin/people/create and
     // set to the currently active language.
     $this->drupalGet($langcode . '/admin/people/create');
-    $this->assertOptionSelected("edit-preferred-langcode", $langcode, 'Global language set in the language selector.');
+    $this->assertTrue($this->assertSession()->optionExists("edit-preferred-langcode", $langcode)->isSelected());
 
     // Create a user with the admin/people/create form and check if the correct
     // language is set.
@@ -63,7 +63,7 @@ class UserLanguageCreationTest extends BrowserTestBase {
       'pass[pass2]' => $username,
     ];
 
-    $this->drupalPostForm($langcode . '/admin/people/create', $edit, t('Create new account'));
+    $this->drupalPostForm($langcode . '/admin/people/create', $edit, 'Create new account');
 
     $user = user_load_by_name($username);
     $this->assertEqual($user->getPreferredLangcode(), $langcode, 'New user has correct preferred language set.');
@@ -73,7 +73,7 @@ class UserLanguageCreationTest extends BrowserTestBase {
     $this->drupalLogout();
 
     $this->drupalGet($langcode . '/user/register');
-    $this->assertNoFieldByName('language[fr]', 'Language selector is not accessible.');
+    $this->assertSession()->fieldNotExists('language[fr]');
 
     $username = $this->randomMachineName(10);
     $edit = [
@@ -81,7 +81,7 @@ class UserLanguageCreationTest extends BrowserTestBase {
       'mail' => $this->randomMachineName(4) . '@example.com',
     ];
 
-    $this->drupalPostForm($langcode . '/user/register', $edit, t('Create new account'));
+    $this->drupalPostForm($langcode . '/user/register', $edit, 'Create new account');
 
     $user = user_load_by_name($username);
     $this->assertEqual($user->getPreferredLangcode(), $langcode, 'New user has correct preferred language set.');
@@ -93,7 +93,7 @@ class UserLanguageCreationTest extends BrowserTestBase {
 
     $this->drupalLogin($admin_user);
     $this->drupalGet($user_edit);
-    $this->assertOptionSelected("edit-preferred-langcode", $langcode, 'Language selector is accessible and correct language is selected.');
+    $this->assertTrue($this->assertSession()->optionExists("edit-preferred-langcode", $langcode)->isSelected());
 
     // Set passRaw so we can log in the new user.
     $user->passRaw = $this->randomMachineName(10);
@@ -102,11 +102,11 @@ class UserLanguageCreationTest extends BrowserTestBase {
       'pass[pass2]' => $user->passRaw,
     ];
 
-    $this->drupalPostForm($user_edit, $edit, t('Save'));
+    $this->drupalPostForm($user_edit, $edit, 'Save');
 
     $this->drupalLogin($user);
     $this->drupalGet($user_edit);
-    $this->assertOptionSelected("edit-preferred-langcode", $langcode, 'Language selector is accessible and correct language is selected.');
+    $this->assertTrue($this->assertSession()->optionExists("edit-preferred-langcode", $langcode)->isSelected());
   }
 
 }

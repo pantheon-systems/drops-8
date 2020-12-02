@@ -47,9 +47,9 @@ class BlockFormInBlockTest extends BrowserTestBase {
 
     // Make sure that we're currently still on /test-page after submitting the
     // form.
-    $this->drupalPostForm(NULL, $form_values, t('Submit'));
-    $this->assertUrl('test-page');
-    $this->assertText(t('Your email address is @email', ['@email' => 'test@example.com']));
+    $this->submitForm($form_values, 'Submit');
+    $this->assertSession()->addressEquals('test-page');
+    $this->assertText('Your email address is test@example.com');
 
     // Go to a different page and see if the block is enabled there as well.
     $this->drupalGet('test-render-title');
@@ -59,13 +59,13 @@ class BlockFormInBlockTest extends BrowserTestBase {
     // Make sure that submitting the form didn't redirect us to the first page
     // we submitted the form from after submitting the form from
     // /test-render-title.
-    $this->drupalPostForm(NULL, $form_values, t('Submit'));
-    $this->assertUrl('test-render-title');
-    $this->assertText(t('Your email address is @email', ['@email' => 'test@example.com']));
+    $this->submitForm($form_values, 'Submit');
+    $this->assertSession()->addressEquals('test-render-title');
+    $this->assertText('Your email address is test@example.com');
   }
 
   /**
-   * Test the actual placeholders
+   * Test the actual placeholders.
    */
   public function testPlaceholders() {
     $this->drupalGet('test-multiple-forms');

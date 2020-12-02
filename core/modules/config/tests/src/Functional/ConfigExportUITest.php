@@ -48,19 +48,17 @@ class ConfigExportUITest extends BrowserTestBase {
   public function testExport() {
     // Verify the export page with export submit button is available.
     $this->drupalGet('admin/config/development/configuration/full/export');
-    $this->assertFieldById('edit-submit', t('Export'));
+    $this->assertSession()->buttonExists('Export');
 
     // Submit the export form and verify response. This will create a file in
     // temporary directory with the default name config.tar.gz.
-    $this->drupalPostForm('admin/config/development/configuration/full/export', [], t('Export'));
+    $this->drupalPostForm('admin/config/development/configuration/full/export', [], 'Export');
     $this->assertSession()->statusCodeEquals(200);
 
     // Test if header contains file name with hostname and timestamp.
     $request = \Drupal::request();
     $hostname = str_replace('.', '-', $request->getHttpHost());
-    $header_content_disposition = $this->drupalGetHeader('content-disposition');
-    $header_match = (boolean) preg_match('/attachment; filename="config-' . preg_quote($hostname) . '-\d{4}-\d{2}-\d{2}-\d{2}-\d{2}\.tar\.gz"/', $header_content_disposition);
-    $this->assertTrue($header_match, "Header with filename matches the expected format.");
+    $this->assertSession()->responseHeaderMatches('content-disposition', '/attachment; filename="config-' . preg_quote($hostname) . '-\d{4}-\d{2}-\d{2}-\d{2}-\d{2}\.tar\.gz"/');
 
     // Extract the archive and verify it's not empty.
     $file_system = \Drupal::service('file_system');
@@ -69,7 +67,7 @@ class ConfigExportUITest extends BrowserTestBase {
     $file_path = $temp_directory . '/config.tar.gz';
     $archiver = new Tar($file_path);
     $archive_contents = $archiver->listContents();
-    $this->assert(!empty($archive_contents), 'Downloaded archive file is not empty.');
+    $this->assertNotEmpty($archive_contents, 'Downloaded archive file is not empty.');
 
     // Prepare the list of config files from active storage, see
     // \Drupal\config\Controller\ConfigController::downloadExport().
@@ -91,7 +89,7 @@ class ConfigExportUITest extends BrowserTestBase {
 
     // Check the single export form doesn't have "form-required" elements.
     $this->drupalGet('admin/config/development/configuration/single/export');
-    $this->assertNoRaw('js-form-required form-required', 'No form required fields are found.');
+    $this->assertNoRaw('js-form-required form-required');
 
     // Ensure the temporary file is not available to users without the
     // permission.

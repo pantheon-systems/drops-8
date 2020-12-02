@@ -3,7 +3,6 @@
 namespace Drupal\views\Plugin\views\filter;
 
 use Drupal\Core\Database\Connection;
-use Drupal\Core\Database\Query\Condition;
 use Drupal\Core\Form\FormStateInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -200,7 +199,7 @@ class StringFilter extends FilterPluginBase {
   }
 
   /**
-   * Build strings from the operators() for 'select' options
+   * Build strings from the operators() for 'select' options.
    */
   public function operatorOptions($which = 'title') {
     $options = [];
@@ -242,7 +241,7 @@ class StringFilter extends FilterPluginBase {
   }
 
   /**
-   * Provide a simple textfield for equality
+   * Provide a simple textfield for equality.
    */
   protected function valueForm(&$form, FormStateInterface $form_state) {
     // We have to make some choices when creating this as an exposed
@@ -330,7 +329,7 @@ class StringFilter extends FilterPluginBase {
   }
 
   protected function opContainsWord($field) {
-    $where = $this->operator == 'word' ? new Condition('OR') : new Condition('AND');
+    $where = $this->operator == 'word' ? $this->query->getConnection()->condition('OR') : $this->query->getConnection()->condition('AND');
 
     // Don't filter on empty strings.
     if (empty($this->value)) {

@@ -95,7 +95,7 @@ class SearchPageRoutes implements ContainerInjectionInterface {
         '/search/' . $entity->getPath() . '/help',
         [
           '_controller' => 'Drupal\search\Controller\SearchController::searchHelp',
-          '_title' => 'Search help',
+          '_title' => 'About searching',
           'entity' => $entity_id,
         ],
         [
@@ -110,6 +110,10 @@ class SearchPageRoutes implements ContainerInjectionInterface {
           ],
         ]
       );
+      if ($entity->getPlugin()->usesAdminTheme()) {
+        $routes["search.view_$entity_id"]->setOption('_admin_route', TRUE);
+        $routes["search.help_$entity_id"]->setOption('_admin_route', TRUE);
+      }
     }
     return $routes;
   }

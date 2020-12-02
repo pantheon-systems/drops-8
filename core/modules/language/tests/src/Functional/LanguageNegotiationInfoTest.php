@@ -38,7 +38,7 @@ class LanguageNegotiationInfoTest extends BrowserTestBase {
       'administer modules',
     ]);
     $this->drupalLogin($admin_user);
-    $this->drupalPostForm('admin/config/regional/language/add', ['predefined_langcode' => 'it'], t('Add language'));
+    $this->drupalPostForm('admin/config/regional/language/add', ['predefined_langcode' => 'it'], 'Add language');
   }
 
   /**
@@ -104,7 +104,7 @@ class LanguageNegotiationInfoTest extends BrowserTestBase {
       $test_type . '[enabled][' . $test_method_id . ']' => TRUE,
       $test_type . '[configurable]' => TRUE,
     ];
-    $this->drupalPostForm('admin/config/regional/language/detection', $edit, t('Save settings'));
+    $this->drupalPostForm('admin/config/regional/language/detection', $edit, 'Save settings');
 
     // Alter language negotiation info to remove interface language negotiation
     // method.
@@ -115,18 +115,19 @@ class LanguageNegotiationInfoTest extends BrowserTestBase {
     $negotiation = $this->config('language.types')->get('negotiation.' . $type . '.enabled');
     $this->assertFalse(isset($negotiation[$interface_method_id]), 'Interface language negotiation method removed from the stored settings.');
 
+    // Check that the interface language negotiation method is unavailable.
     $this->drupalGet('admin/config/regional/language/detection');
-    $this->assertNoFieldByName($form_field, NULL, 'Interface language negotiation method unavailable.');
+    $this->assertSession()->fieldNotExists($form_field);
 
     // Check that type-specific language negotiation methods can be assigned
     // only to the corresponding language types.
     foreach ($this->languageManager()->getLanguageTypes() as $type) {
       $form_field = $type . '[enabled][test_language_negotiation_method_ts]';
       if ($type == $test_type) {
-        $this->assertFieldByName($form_field, NULL, new FormattableMarkup('Type-specific test language negotiation method available for %type.', ['%type' => $type]));
+        $this->assertSession()->fieldExists($form_field);
       }
       else {
-        $this->assertNoFieldByName($form_field, NULL, new FormattableMarkup('Type-specific test language negotiation method unavailable for %type.', ['%type' => $type]));
+        $this->assertSession()->fieldNotExists($form_field);
       }
     }
 
@@ -159,8 +160,8 @@ class LanguageNegotiationInfoTest extends BrowserTestBase {
     $this->assertFalse(isset($negotiation[$test_method_id]), 'The disabled test language negotiation method is not part of the content language negotiation settings.');
 
     // Check that configuration page presents the correct options and settings.
-    $this->assertNoRaw(t('Test language detection'), 'No test language type configuration available.');
-    $this->assertNoRaw(t('This is a test language negotiation method'), 'No test language negotiation method available.');
+    $this->assertNoRaw(t('Test language detection'));
+    $this->assertNoRaw(t('This is a test language negotiation method'));
   }
 
   /**
@@ -187,15 +188,15 @@ class LanguageNegotiationInfoTest extends BrowserTestBase {
 
     // Editing config.
     $edit = [$test_type . '[configurable]' => TRUE];
-    $this->drupalPostForm('admin/config/regional/language/detection', $edit, t('Save settings'));
+    $this->drupalPostForm('admin/config/regional/language/detection', $edit, 'Save settings');
     $this->assertTrue($this->isLanguageTypeConfigurable($test_type), 'Language type is now configurable.');
 
     // After installing another module, the config should be the same.
-    $this->drupalPostForm('admin/modules', ['modules[test_module][enable]' => 1], t('Install'));
+    $this->drupalPostForm('admin/modules', ['modules[test_module][enable]' => 1], 'Install');
     $this->assertTrue($this->isLanguageTypeConfigurable($test_type), 'Language type is still configurable.');
 
     // After uninstalling the other module, the config should be the same.
-    $this->drupalPostForm('admin/modules/uninstall', ['uninstall[test_module]' => 1], t('Uninstall'));
+    $this->drupalPostForm('admin/modules/uninstall', ['uninstall[test_module]' => 1], 'Uninstall');
     $this->assertTrue($this->isLanguageTypeConfigurable($test_type), 'Language type is still configurable.');
   }
 

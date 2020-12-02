@@ -103,18 +103,18 @@ class SearchLanguageTest extends BrowserTestBase {
   public function testLanguages() {
     // Add predefined language.
     $edit = ['predefined_langcode' => 'fr'];
-    $this->drupalPostForm('admin/config/regional/language/add', $edit, t('Add language'));
+    $this->drupalPostForm('admin/config/regional/language/add', $edit, 'Add language');
     $this->assertText('French', 'Language added successfully.');
 
     // Now we should have languages displayed.
     $this->drupalGet('search/node');
-    $this->assertText(t('Languages'), 'Languages displayed to choose from.');
-    $this->assertText(t('English'), 'English is a possible choice.');
-    $this->assertText(t('French'), 'French is a possible choice.');
+    $this->assertText('Languages', 'Languages displayed to choose from.');
+    $this->assertText('English', 'English is a possible choice.');
+    $this->assertText('French', 'French is a possible choice.');
 
     // Ensure selecting no language does not make the query different.
     $this->drupalPostForm('search/node', [], 'edit-submit--2');
-    $this->assertUrl(Url::fromRoute('search.view_node_search', [], ['query' => ['keys' => ''], 'absolute' => TRUE])->toString(), [], 'Correct page redirection, no language filtering.');
+    $this->assertSession()->addressEquals(Url::fromRoute('search.view_node_search', [], ['query' => ['keys' => '']]));
 
     // Pick French and ensure it is selected.
     $edit = ['language[fr]' => TRUE];
@@ -139,13 +139,13 @@ class SearchLanguageTest extends BrowserTestBase {
     // Change the default language and delete English.
     $path = 'admin/config/regional/language';
     $this->drupalGet($path);
-    $this->assertFieldChecked('edit-site-default-language-en', 'Default language updated.');
+    $this->assertSession()->checkboxChecked('edit-site-default-language-en');
     $edit = [
       'site_default_language' => 'fr',
     ];
-    $this->drupalPostForm($path, $edit, t('Save configuration'));
-    $this->assertNoFieldChecked('edit-site-default-language-en', 'Default language updated.');
-    $this->drupalPostForm('admin/config/regional/language/delete/en', [], t('Delete'));
+    $this->drupalPostForm($path, $edit, 'Save configuration');
+    $this->assertSession()->checkboxNotChecked('edit-site-default-language-en');
+    $this->drupalPostForm('admin/config/regional/language/delete/en', [], 'Delete');
   }
 
 }

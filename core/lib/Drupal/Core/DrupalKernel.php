@@ -4,6 +4,7 @@ namespace Drupal\Core;
 
 use Composer\Autoload\ClassLoader;
 use Drupal\Component\Assertion\Handle;
+use Drupal\Component\EventDispatcher\Event;
 use Drupal\Component\FileCache\FileCacheFactory;
 use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Cache\DatabaseBackend;
@@ -573,7 +574,7 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
     // Sanitize the request.
     $request = RequestSanitizer::sanitize(
       $request,
-      (array) Settings::get(RequestSanitizer::SANITIZE_WHITELIST, []),
+      (array) Settings::get(RequestSanitizer::SANITIZE_INPUT_SAFE_KEYS, []),
       (bool) Settings::get(RequestSanitizer::SANITIZE_LOG, FALSE)
     );
 
@@ -952,7 +953,7 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
     // Allow other parts of the codebase to react on container initialization in
     // subrequest.
     if (!empty($subrequest)) {
-      $this->container->get('event_dispatcher')->dispatch(self::CONTAINER_INITIALIZE_SUBREQUEST_FINISHED);
+      $this->container->get('event_dispatcher')->dispatch(new Event(), self::CONTAINER_INITIALIZE_SUBREQUEST_FINISHED);
     }
 
     // If needs dumping flag was set, dump the container.
@@ -982,9 +983,6 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
     if ($app_root === NULL) {
       $app_root = static::guessApplicationRoot();
     }
-
-    // Include our bootstrap file.
-    require_once $app_root . '/core/includes/bootstrap.inc';
 
     // Enforce E_STRICT, but allow users to set levels not part of E_STRICT.
     error_reporting(E_STRICT | E_ALL);
@@ -1353,7 +1351,7 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
   }
 
   /**
-   * Gets a http kernel from the container
+   * Gets a http kernel from the container.
    *
    * @return \Symfony\Component\HttpKernel\HttpKernelInterface
    */

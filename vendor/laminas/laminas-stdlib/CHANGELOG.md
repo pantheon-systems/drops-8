@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file, in reverse chronological order by release.
 
+## 3.3.0 - 2020-08-25
+
+### Added
+
+- [#9](https://github.com/laminas/laminas-stdlib/pull/9) adds support for the upcoming PHP 8.0 release.
+
+### Changed
+
+- Nothing.
+
+### Deprecated
+
+- Nothing.
+
+### Removed
+
+- [#10](https://github.com/laminas/laminas-stdlib/pull/10) removes support for PHP versions prior to PHP 7.3.
+
+### Fixed
+
+- Nothing.
+
 ## 3.2.1 - 2018-08-28
 
 ### Added

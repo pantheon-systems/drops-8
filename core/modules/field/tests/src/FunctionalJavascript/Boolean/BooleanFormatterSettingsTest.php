@@ -112,10 +112,10 @@ class BooleanFormatterSettingsTest extends WebDriverTestBase {
     foreach ($settings as $values) {
       // Set up the field settings.
       $this->drupalGet('admin/structure/types/manage/' . $this->bundle . '/fields/node.' . $this->bundle . '.' . $this->fieldName);
-      $this->drupalPostForm(NULL, [
+      $this->submitForm([
         'settings[on_label]' => $values[0],
         'settings[off_label]' => $values[1],
-      ], t('Save settings'));
+      ], 'Save settings');
 
       // Open the Manage Display page and trigger the field settings form.
       $this->drupalGet('admin/structure/types/manage/' . $this->bundle . '/display');

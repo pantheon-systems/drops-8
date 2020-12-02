@@ -48,7 +48,7 @@ class HtmlTag extends RenderElement {
    * {@inheritdoc}
    */
   public function getInfo() {
-    $class = get_class($this);
+    $class = static::class;
     return [
       '#pre_render' => [
         [$class, 'preRenderConditionalComments'],
@@ -149,6 +149,8 @@ class HtmlTag extends RenderElement {
     if ($browsers['IE'] === TRUE && $browsers['!IE']) {
       return $element;
     }
+
+    @trigger_error('Support for IE Conditional Comments is deprecated in drupal:9.1.0 and is removed from drupal:10.0.0. See https://www.drupal.org/node/3102997', E_USER_DEPRECATED);
 
     // Determine the conditional comment expression for Internet Explorer to
     // evaluate.

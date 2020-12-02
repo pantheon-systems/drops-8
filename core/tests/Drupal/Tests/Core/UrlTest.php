@@ -14,7 +14,7 @@ use Drupal\Core\GeneratedUrl;
 use Drupal\Core\Routing\RouteMatch;
 use Drupal\Core\Url;
 use Drupal\Tests\UnitTestCase;
-use Symfony\Cmf\Component\Routing\RouteObjectInterface;
+use Drupal\Core\Routing\RouteObjectInterface;
 use Symfony\Component\HttpFoundation\ParameterBag;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Exception\InvalidParameterException;
@@ -33,7 +33,7 @@ class UrlTest extends UnitTestCase {
   protected $container;
 
   /**
-   * The URL generator
+   * The URL generator.
    *
    * @var \Drupal\Core\Routing\UrlGeneratorInterface|\PHPUnit\Framework\MockObject\MockObject
    */
@@ -551,7 +551,7 @@ class UrlTest extends UnitTestCase {
   }
 
   /**
-   * Data provider for testing entity URIs
+   * Data provider for testing entity URIs.
    */
   public function providerTestEntityUris() {
     return [
@@ -653,7 +653,7 @@ class UrlTest extends UnitTestCase {
   }
 
   /**
-   * Data provider for testing string entity URIs
+   * Data provider for testing string entity URIs.
    */
   public function providerTestToUriStringForEntity() {
     return [

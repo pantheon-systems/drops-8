@@ -16,11 +16,11 @@ use Drupal\Core\Extension\ExtensionDiscovery;
 use Drupal\Core\Language\Language;
 use Drupal\Core\Site\Settings;
 use Drupal\Core\Test\TestDatabase;
-use Drupal\Tests\AssertHelperTrait;
 use Drupal\Tests\ConfigTestTrait;
 use Drupal\Tests\RandomGeneratorTrait;
+use Drupal\Tests\PhpUnitCompatibilityTrait;
 use Drupal\Tests\TestRequirementsTrait;
-use Drupal\Tests\Traits\PHPUnit8Warnings;
+use Drupal\Tests\Traits\PhpUnitWarnings;
 use Drupal\TestTools\Comparator\MarkupInterfaceComparator;
 use PHPUnit\Framework\Exception;
 use PHPUnit\Framework\TestCase;
@@ -28,8 +28,9 @@ use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\HttpFoundation\Request;
 use org\bovigo\vfs\vfsStream;
 use org\bovigo\vfs\visitor\vfsStreamPrintVisitor;
-use Symfony\Cmf\Component\Routing\RouteObjectInterface;
+use Drupal\Core\Routing\RouteObjectInterface;
 use Symfony\Component\Routing\Route;
+use Symfony\Bridge\PhpUnit\ExpectDeprecationTrait;
 
 /**
  * Base class for functional integration tests.
@@ -76,11 +77,12 @@ abstract class KernelTestBase extends TestCase implements ServiceProviderInterfa
 
   use AssertLegacyTrait;
   use AssertContentTrait;
-  use AssertHelperTrait;
   use RandomGeneratorTrait;
   use ConfigTestTrait;
   use TestRequirementsTrait;
-  use PHPUnit8Warnings;
+  use PhpUnitWarnings;
+  use PhpUnitCompatibilityTrait;
+  use ExpectDeprecationTrait;
 
   /**
    * {@inheritdoc}
@@ -256,8 +258,6 @@ abstract class KernelTestBase extends TestCase implements ServiceProviderInterfa
 
     $this->classLoader = require $this->root . '/autoload.php';
 
-    require_once $this->root . '/core/includes/bootstrap.inc';
-
     // Set up virtual filesystem.
     Database::addConnectionInfo('default', 'test-runner', $this->getDatabaseConnectionInfo()['default']);
     $test_db = new TestDatabase();
@@ -270,7 +270,7 @@ abstract class KernelTestBase extends TestCase implements ServiceProviderInterfa
     drupal_valid_test_ua($this->databasePrefix);
 
     $settings = [
-      'hash_salt' => get_class($this),
+      'hash_salt' => static::class,
       'file_public_path' => $this->siteDirectory . '/files',
       // Disable Twig template caching/dumping.
       'twig_cache' => FALSE,
@@ -334,7 +334,7 @@ abstract class KernelTestBase extends TestCase implements ServiceProviderInterfa
     // Add this test class as a service provider.
     $GLOBALS['conf']['container_service_providers']['test'] = $this;
 
-    $modules = self::getModulesToEnable(get_class($this));
+    $modules = self::getModulesToEnable(static::class);
 
     // Bootstrap the kernel. Do not use createFromRequest() to retain Settings.
     $kernel = new DrupalKernel('testing', $this->classLoader, FALSE);
@@ -568,7 +568,7 @@ abstract class KernelTestBase extends TestCase implements ServiceProviderInterfa
    *   An array of config object names that are excluded from schema checking.
    */
   protected function getConfigSchemaExclusions() {
-    $class = get_class($this);
+    $class = static::class;
     $exceptions = [];
     while ($class) {
       if (property_exists($class, 'configSchemaCheckerExclusions')) {
@@ -709,6 +709,13 @@ abstract class KernelTestBase extends TestCase implements ServiceProviderInterfa
     }
     $tables = (array) $tables;
     foreach ($tables as $table) {
+      // The tables key_value and key_value_expire are lazy loaded and therefore
+      // no longer have to be created with the installSchema() method.
+      // @see https://www.drupal.org/node/3143286
+      if ($module === 'system' && in_array($table, ['key_value', 'key_value_expire'])) {
+        @trigger_error('Installing the tables key_value and key_value_expire with the method KernelTestBase::installSchema() is deprecated in drupal:9.1.0 and is removed from drupal:10.0.0. The tables are now lazy loaded and therefore will be installed automatically when used. See https://www.drupal.org/node/3143286', E_USER_DEPRECATED);
+        continue;
+      }
       $schema = drupal_get_module_schema($module, $table);
       if (empty($schema)) {
         throw new \LogicException("$module module does not define a schema for table '$table'.");
@@ -950,7 +957,7 @@ abstract class KernelTestBase extends TestCase implements ServiceProviderInterfa
     // Modules have been collected in reverse class hierarchy order; modules
     // defined by base classes should be sorted first. Then, merge the results
     // together.
-    $modules = array_reverse($modules);
+    $modules = array_values(array_reverse($modules));
     return call_user_func_array('array_merge_recursive', $modules);
   }
 

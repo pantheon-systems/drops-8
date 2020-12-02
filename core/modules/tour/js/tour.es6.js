@@ -3,7 +3,7 @@
  * Attaches behaviors for the Tour module's toolbar tab.
  */
 
-(function($, Backbone, Drupal, document) {
+(function ($, Backbone, Drupal, document) {
   const queryString = decodeURI(window.location.search);
 
   /**
@@ -188,7 +188,7 @@
        * Gets the tour.
        *
        * @return {jQuery}
-       *   A jQuery element pointing to a `<ol>` containing tour items.
+       *   A jQuery element pointing to an `<ol>` containing tour items.
        */
       _getTour() {
         return this.model.get('tour');
@@ -216,7 +216,7 @@
        * http://example.com/foo?tips=bar
        *
        * @param {jQuery} $tour
-       *   A jQuery element pointing to a `<ol>` containing tour items.
+       *   A jQuery element pointing to an `<ol>` containing tour items.
        * @param {jQuery} $document
        *   A jQuery element pointing to the document within which the elements
        *   should be sought.
@@ -226,7 +226,7 @@
       _removeIrrelevantTourItems($tour, $document) {
         let removals = false;
         const tips = /tips=([^&]+)/.exec(queryString);
-        $tour.find('li').each(function() {
+        $tour.find('li').each(function () {
           const $this = $(this);
           const itemId = $this.attr('data-id');
           const itemClass = $this.attr('data-class');
@@ -259,14 +259,12 @@
           $tour
             .find('li')
             // Rebuild the progress data.
-            .each(function(index) {
+            .each(function (index) {
               const progress = Drupal.t('!tour_item of !total', {
                 '!tour_item': index + 1,
                 '!total': total,
               });
-              $(this)
-                .find('.tour-progress')
-                .text(progress);
+              $(this).find('.tour-progress').text(progress);
             })
             // Update the last item to have "End tour" as the button.
             .eq(-1)

@@ -62,7 +62,8 @@ class EditorAdminTest extends BrowserTestBase {
     $roles_pos = strpos($raw_content, 'Roles');
     $editor_pos = strpos($raw_content, 'Text editor');
     $filters_pos = strpos($raw_content, 'Enabled filters');
-    $this->assertTrue($roles_pos < $editor_pos && $editor_pos < $filters_pos, '"Text Editor" select appears in the correct location of the text format configuration UI.');
+    $this->assertGreaterThan($roles_pos, $editor_pos);
+    $this->assertLessThan($filters_pos, $editor_pos);
 
     // Verify the <select>.
     $select = $this->xpath('//select[@name="editor[editor]"]');
@@ -72,7 +73,7 @@ class EditorAdminTest extends BrowserTestBase {
     $this->assertCount(1, $select_is_disabled, 'The Text Editor select is disabled.');
     $this->assertCount(1, $options, 'The Text Editor select has only one option.');
     $this->assertTrue(($options[0]->getText()) === 'None', 'Option 1 in the Text Editor select is "None".');
-    $this->assertRaw('This option is disabled because no modules that provide a text editor are currently enabled.', 'Description for select present that tells users to install a text editor module.');
+    $this->assertRaw('This option is disabled because no modules that provide a text editor are currently enabled.');
   }
 
   /**
@@ -85,14 +86,14 @@ class EditorAdminTest extends BrowserTestBase {
     $edit = $this->selectUnicornEditor();
     // Configure Unicorn Editor's setting to another value.
     $edit['editor[settings][ponies_too]'] = FALSE;
-    $this->drupalPostForm(NULL, $edit, t('Save configuration'));
+    $this->submitForm($edit, 'Save configuration');
     $this->verifyUnicornEditorConfiguration('filtered_html', FALSE);
 
     // Switch back to 'None' and check the Unicorn Editor's settings are gone.
     $edit = [
       'editor[editor]' => '',
     ];
-    $this->drupalPostForm(NULL, $edit, 'Configure');
+    $this->submitForm($edit, 'Configure');
     $unicorn_setting = $this->xpath('//input[@name="editor[settings][ponies_too]" and @type="checkbox" and @checked]');
     $this->assertCount(0, $unicorn_setting, "Unicorn Editor's settings form is no longer present.");
   }
@@ -136,7 +137,7 @@ class EditorAdminTest extends BrowserTestBase {
     $node->body->format = 'monoceros';
     $node->save();
 
-    // Log in as an user able to use both formats and edit nodes of created type.
+    // Log in as a user able to use both formats and edit nodes of created type.
     $account = $this->drupalCreateUser($permissions);
     $this->drupalLogin($account);
 
@@ -153,6 +154,23 @@ class EditorAdminTest extends BrowserTestBase {
     // Edit again the node.
     $this->drupalGet('node/' . $node->id() . '/edit');
     $this->assertRaw($text);
+  }
+
+  /**
+   * Tests switching text editor to none does not throw a TypeError.
+   */
+  public function testSwitchEditorToNone() {
+    $this->enableUnicornEditor();
+    $this->drupalLogin($this->adminUser);
+    $this->drupalGet('admin/config/content/formats/manage/filtered_html');
+    $edit = $this->selectUnicornEditor();
+
+    // Switch editor to 'None'.
+    $edit = [
+      'editor[editor]' => '',
+    ];
+    $this->submitForm($edit, 'Configure');
+    $this->submitForm($edit, 'Save configuration');
   }
 
   /**
@@ -173,7 +191,7 @@ class EditorAdminTest extends BrowserTestBase {
       'format' => $format_id,
     ];
     $edit += $this->selectUnicornEditor();
-    $this->drupalPostForm(NULL, $edit, t('Save configuration'));
+    $this->submitForm($edit, 'Save configuration');
   }
 
   /**
@@ -203,13 +221,13 @@ class EditorAdminTest extends BrowserTestBase {
     $this->assertTrue(($options[1]->getText()) === 'Unicorn Editor', 'Option 2 in the Text Editor select is "Unicorn Editor".');
     $this->assertTrue($options[0]->hasAttribute('selected'), 'Option 1 ("None") is selected.');
     // Ensure the none option is selected.
-    $this->assertNoRaw('This option is disabled because no modules that provide a text editor are currently enabled.', 'Description for select absent that tells users to install a text editor module.');
+    $this->assertNoRaw('This option is disabled because no modules that provide a text editor are currently enabled.');
 
     // Select the "Unicorn Editor" editor and click the "Configure" button.
     $edit = [
       'editor[editor]' => 'unicorn',
     ];
-    $this->drupalPostForm(NULL, $edit, 'Configure');
+    $this->submitForm($edit, 'Configure');
     $unicorn_setting = $this->xpath('//input[@name="editor[settings][ponies_too]" and @type="checkbox" and @checked]');
     $this->assertCount(1, $unicorn_setting, "Unicorn Editor's settings form is present.");
 

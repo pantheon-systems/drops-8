@@ -27,12 +27,12 @@ class InstallerLanguagePageTest extends InstallerTestBase {
     // Check that all predefined languages show up with their native names.
     $this->visitInstaller();
     foreach (LanguageManager::getStandardLanguageList() as $langcode => $names) {
-      $this->assertOption('edit-langcode', $langcode);
+      $this->assertSession()->optionExists('edit-langcode', $langcode);
       $this->assertRaw('>' . $names[1] . '<');
     }
 
     // Check that our custom one shows up with the file name indicated language.
-    $this->assertOption('edit-langcode', 'xoxo');
+    $this->assertSession()->optionExists('edit-langcode', 'xoxo');
     $this->assertRaw('>xoxo<');
 
     parent::setUpLanguage();
@@ -42,7 +42,7 @@ class InstallerLanguagePageTest extends InstallerTestBase {
    * Confirms that the installation succeeded.
    */
   public function testInstalled() {
-    $this->assertUrl('user/1');
+    $this->assertSession()->addressEquals('user/1');
     $this->assertSession()->statusCodeEquals(200);
   }
 

@@ -145,7 +145,8 @@ class EntityRevisionsTest extends BrowserTestBase {
       }
 
       // Check that the fields and properties contain new content.
-      $this->assertTrue($entity->revision_id->value > $legacy_revision_id, new FormattableMarkup('%entity_type: Revision ID changed.', ['%entity_type' => $entity_type]));
+      // Verify that the revision ID changed.
+      $this->assertGreaterThan($legacy_revision_id, $entity->revision_id->value);
       $this->assertNotEqual($entity->name->value, $legacy_name, new FormattableMarkup('%entity_type: Name changed.', ['%entity_type' => $entity_type]));
       $this->assertNotEqual($entity->translatable_test_field->value, $legacy_text, new FormattableMarkup('%entity_type: Text changed.', ['%entity_type' => $entity_type]));
     }
@@ -177,8 +178,8 @@ class EntityRevisionsTest extends BrowserTestBase {
     // Confirm the correct revision text appears in the edit form.
     $entity = $storage->load($entity->id->value);
     $this->drupalGet($entity_type . '/manage/' . $entity->id->value . '/edit');
-    $this->assertFieldById('edit-name-0-value', $entity->name->value, new FormattableMarkup('%entity_type: Name matches in UI.', ['%entity_type' => $entity_type]));
-    $this->assertFieldById('edit-translatable-test-field-0-value', $entity->translatable_test_field->value, new FormattableMarkup('%entity_type: Text matches in UI.', ['%entity_type' => $entity_type]));
+    $this->assertSession()->fieldValueEquals('edit-name-0-value', $entity->name->value);
+    $this->assertSession()->fieldValueEquals('edit-translatable-test-field-0-value', $entity->translatable_test_field->value);
   }
 
   /**

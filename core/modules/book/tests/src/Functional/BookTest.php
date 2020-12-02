@@ -22,6 +22,7 @@ class BookTest extends BrowserTestBase {
    * @var array
    */
   protected static $modules = [
+    'content_moderation',
     'book',
     'block',
     'node_access_test',
@@ -36,14 +37,14 @@ class BookTest extends BrowserTestBase {
   /**
    * A user with permission to view a book and access printer-friendly version.
    *
-   * @var object
+   * @var \Drupal\user\UserInterface
    */
   protected $webUser;
 
   /**
    * A user with permission to create and edit books and to administer blocks.
    *
-   * @var object
+   * @var \Drupal\user\UserInterface
    */
   protected $adminUser;
 
@@ -71,6 +72,7 @@ class BookTest extends BrowserTestBase {
       'create book content',
       'edit own book content',
       'add content to books',
+      'view own unpublished content',
     ]);
     $this->webUser = $this->drupalCreateUser([
       'access printer-friendly version',
@@ -91,6 +93,7 @@ class BookTest extends BrowserTestBase {
       'node test view',
       'administer content types',
       'administer site configuration',
+      'view any unpublished content',
     ]);
   }
 
@@ -145,8 +148,8 @@ class BookTest extends BrowserTestBase {
 
     // Log in as a user with access to the book outline and save the form.
     $this->drupalLogin($this->adminUser);
-    $this->drupalPostForm('admin/structure/book/' . $book->id(), [], t('Save book pages'));
-    $this->assertText(t('Updated book @book.', ['@book' => $book->label()]));
+    $this->drupalPostForm('admin/structure/book/' . $book->id(), [], 'Save book pages');
+    $this->assertText('Updated book ' . $book->label() . '.');
   }
 
   /**
@@ -173,7 +176,7 @@ class BookTest extends BrowserTestBase {
 
     // Check the presence of expected cache tags.
     $this->drupalGet('node/add/book');
-    $this->assertCacheTag('config:book.settings');
+    $this->assertSession()->responseHeaderContains('X-Drupal-Cache-Tags', 'config:book.settings');
 
     /*
      * Add Node 5 under Node 3.
@@ -198,7 +201,7 @@ class BookTest extends BrowserTestBase {
     $other_book = $this->createBookNode('new');
     $node = $this->createBookNode($book->id());
     $edit = ['book[bid]' => $other_book->id()];
-    $this->drupalPostForm('node/' . $node->id() . '/edit', $edit, t('Save'));
+    $this->drupalPostForm('node/' . $node->id() . '/edit', $edit, 'Save');
 
     $this->drupalLogout();
     $this->drupalLogin($this->webUser);
@@ -214,6 +217,14 @@ class BookTest extends BrowserTestBase {
     $this->drupalLogin($this->bookAuthor);
     $book = $this->createBookNode('new');
     $book->save();
+
+    // Confirm that an unpublished book page has the 'Add child page' link.
+    $this->drupalGet('node/' . $nodes[4]->id());
+    $this->assertSession()->linkExists('Add child page');
+    $nodes[4]->setUnPublished();
+    $nodes[4]->save();
+    $this->drupalGet('node/' . $nodes[4]->id());
+    $this->assertSession()->linkExists('Add child page');
   }
 
   /**
@@ -231,14 +242,14 @@ class BookTest extends BrowserTestBase {
     // Make sure each part of the book is there.
     foreach ($nodes as $node) {
       $this->assertText($node->label(), 'Node title found in printer friendly version.');
-      $this->assertRaw($node->body->processed, 'Node body found in printer friendly version.');
+      $this->assertRaw($node->body->processed);
     }
 
     // Make sure we can't export an unsupported format.
     $this->drupalGet('book/export/foobar/' . $this->book->id());
     $this->assertSession()->statusCodeEquals(404);
 
-    // Make sure we get a 404 on a not existing book node.
+    // Make sure we get a 404 on a non-existent book node.
     $this->drupalGet('book/export/html/123');
     $this->assertSession()->statusCodeEquals(404);
 
@@ -247,7 +258,7 @@ class BookTest extends BrowserTestBase {
 
     // Load the book and verify there is no printer-friendly version link.
     $this->drupalGet('node/' . $this->book->id());
-    $this->assertSession()->linkNotExists(t('Printer-friendly version'), 'Anonymous user is not shown link to printer-friendly version.');
+    $this->assertSession()->linkNotExists('Printer-friendly version', 'Anonymous user is not shown link to printer-friendly version.');
 
     // Try getting the URL directly, and verify it fails.
     $this->drupalGet('book/export/html/' . $this->book->id());
@@ -273,8 +284,8 @@ class BookTest extends BrowserTestBase {
     // Give anonymous users the permission 'node test view'.
     $edit = [];
     $edit[RoleInterface::ANONYMOUS_ID . '[node test view]'] = TRUE;
-    $this->drupalPostForm('admin/people/permissions/' . RoleInterface::ANONYMOUS_ID, $edit, t('Save permissions'));
-    $this->assertText(t('The changes have been saved.'), "Permission 'node test view' successfully assigned to anonymous users.");
+    $this->drupalPostForm('admin/people/permissions/' . RoleInterface::ANONYMOUS_ID, $edit, 'Save permissions');
+    $this->assertText('The changes have been saved.', "Permission 'node test view' successfully assigned to anonymous users.");
 
     // Test correct display of the block.
     $nodes = $this->createBook();
@@ -282,6 +293,31 @@ class BookTest extends BrowserTestBase {
     $this->assertText($block->label(), 'Book navigation block is displayed.');
     $this->assertText($this->book->label(), new FormattableMarkup('Link to book root (@title) is displayed.', ['@title' => $nodes[0]->label()]));
     $this->assertNoText($nodes[0]->label(), 'No links to individual book pages are displayed.');
+
+    // Ensure that an unpublished node does not appear in the navigation for a
+    // user without access. By unpublishing a parent page, child pages should
+    // not appear in the navigation. The node_access_test module is disabled
+    // since it interferes with this logic.
+
+    /** @var \Drupal\Core\Extension\ModuleInstaller $installer */
+    $installer = \Drupal::service('module_installer');
+    $installer->uninstall(['node_access_test']);
+    node_access_rebuild();
+
+    $nodes[0]->setUnPublished();
+    $nodes[0]->save();
+
+    // Verify the user does not have access to the unpublished node.
+    $this->assertFalse($nodes[0]->access('view', $this->webUser));
+
+    // Verify the unpublished book page does not appear in the navigation.
+    $this->drupalLogin($this->webUser);
+    $this->drupalGet($nodes[0]->toUrl());
+    $this->assertSession()->statusCodeEquals(403);
+    $this->drupalGet($this->book->toUrl());
+    $this->assertSession()->responseNotContains($nodes[0]->getTitle());
+    $this->assertSession()->responseNotContains($nodes[1]->getTitle());
+    $this->assertSession()->responseNotContains($nodes[2]->getTitle());
   }
 
   /**
@@ -317,25 +353,23 @@ class BookTest extends BrowserTestBase {
     $this->drupalGet($nodes[0]->toUrl('edit-form'));
     // Since Node 0 has children 2 levels deep, nodes 10 and 11 should not
     // appear in the selector.
-    $this->assertNoOption('edit-book-pid', $nodes[10]->id());
-    $this->assertNoOption('edit-book-pid', $nodes[11]->id());
+    $this->assertSession()->optionNotExists('edit-book-pid', $nodes[10]->id());
+    $this->assertSession()->optionNotExists('edit-book-pid', $nodes[11]->id());
     // Node 9 should be available as an option.
-    $this->assertOption('edit-book-pid', $nodes[9]->id());
+    $this->assertSession()->optionExists('edit-book-pid', $nodes[9]->id());
 
     // Get a shallow set of options.
     /** @var \Drupal\book\BookManagerInterface $manager */
     $manager = $this->container->get('book.manager');
     $options = $manager->getTableOfContents($book->id(), 3);
+    // Verify that all expected option keys are present.
     $expected_nids = [$book->id(), $nodes[0]->id(), $nodes[1]->id(), $nodes[2]->id(), $nodes[3]->id(), $nodes[6]->id(), $nodes[4]->id()];
-    $this->assertEqual(count($options), count($expected_nids));
-    $diff = array_diff($expected_nids, array_keys($options));
-    $this->assertTrue(empty($diff), 'Found all expected option keys');
+    $this->assertEquals($expected_nids, array_keys($options));
     // Exclude Node 3.
     $options = $manager->getTableOfContents($book->id(), 3, [$nodes[3]->id()]);
+    // Verify that expected option keys are present after excluding Node 3.
     $expected_nids = [$book->id(), $nodes[0]->id(), $nodes[1]->id(), $nodes[2]->id(), $nodes[4]->id()];
-    $this->assertEqual(count($options), count($expected_nids));
-    $diff = array_diff($expected_nids, array_keys($options));
-    $this->assertTrue(empty($diff), 'Found all expected option keys after excluding Node 3');
+    $this->assertEquals($expected_nids, array_keys($options));
   }
 
   /**
@@ -348,8 +382,8 @@ class BookTest extends BrowserTestBase {
     // Give anonymous users the permission 'node test view'.
     $edit = [];
     $edit[RoleInterface::ANONYMOUS_ID . '[node test view]'] = TRUE;
-    $this->drupalPostForm('admin/people/permissions/' . RoleInterface::ANONYMOUS_ID, $edit, t('Save permissions'));
-    $this->assertText(t('The changes have been saved.'), "Permission 'node test view' successfully assigned to anonymous users.");
+    $this->drupalPostForm('admin/people/permissions/' . RoleInterface::ANONYMOUS_ID, $edit, 'Save permissions');
+    $this->assertText('The changes have been saved.', "Permission 'node test view' successfully assigned to anonymous users.");
 
     // Create a book.
     $this->createBook();
@@ -383,7 +417,7 @@ class BookTest extends BrowserTestBase {
     $this->assertSession()->statusCodeEquals(403);
 
     // Ensure that a child book node can be deleted.
-    $this->drupalPostForm('node/' . $nodes[4]->id() . '/outline/remove', $edit, t('Remove'));
+    $this->drupalPostForm('node/' . $nodes[4]->id() . '/outline/remove', $edit, 'Remove');
     $node_storage->resetCache([$nodes[4]->id()]);
     $node4 = $node_storage->load($nodes[4]->id());
     $this->assertTrue(empty($node4->book), 'Deleting child book node properly allowed.');
@@ -395,7 +429,7 @@ class BookTest extends BrowserTestBase {
     // Delete all child book nodes and retest top-level node deletion.
     $node_storage->delete($nodes);
 
-    $this->drupalPostForm('node/' . $this->book->id() . '/outline/remove', $edit, t('Remove'));
+    $this->drupalPostForm('node/' . $this->book->id() . '/outline/remove', $edit, 'Remove');
     $node_storage->resetCache([$this->book->id()]);
     $node = $node_storage->load($this->book->id());
     $this->assertTrue(empty($node->book), 'Deleting childless top-level book node properly allowed.');
@@ -406,7 +440,7 @@ class BookTest extends BrowserTestBase {
     $this->drupalGet($this->book->toUrl('delete-form'));
     $this->assertRaw(t('%title is part of a book outline, and has associated child pages. If you proceed with deletion, the child pages will be relocated automatically.', ['%title' => $this->book->label()]));
     // Delete parent, and visit a child page.
-    $this->drupalPostForm($this->book->toUrl('delete-form'), [], t('Delete'));
+    $this->drupalPostForm($this->book->toUrl('delete-form'), [], 'Delete');
     $this->drupalGet($nodes[0]->toUrl());
     $this->assertSession()->statusCodeEquals(200);
     $this->assertText($nodes[0]->label());
@@ -429,17 +463,18 @@ class BookTest extends BrowserTestBase {
     // Create new node not yet a book.
     $empty_book = $this->drupalCreateNode(['type' => 'book']);
     $this->drupalGet('node/' . $empty_book->id() . '/outline');
-    $this->assertSession()->linkNotExists(t('Book outline'), 'Book Author is not allowed to outline');
+    $this->assertSession()->linkNotExists('Book outline', 'Book Author is not allowed to outline');
 
     $this->drupalLogin($this->adminUser);
     $this->drupalGet('node/' . $empty_book->id() . '/outline');
     $this->assertRaw(t('Book outline'));
-    $this->assertOptionSelected('edit-book-bid', 0, 'Node does not belong to a book');
-    $this->assertSession()->linkNotExists(t('Remove from book outline'));
+    // Verify that the node does not belong to a book.
+    $this->assertTrue($this->assertSession()->optionExists('edit-book-bid', 0)->isSelected());
+    $this->assertSession()->linkNotExists('Remove from book outline');
 
     $edit = [];
     $edit['book[bid]'] = '1';
-    $this->drupalPostForm('node/' . $empty_book->id() . '/outline', $edit, t('Add to book outline'));
+    $this->drupalPostForm('node/' . $empty_book->id() . '/outline', $edit, 'Add to book outline');
     $node = \Drupal::entityTypeManager()->getStorage('node')->load($empty_book->id());
     // Test the book array.
     $this->assertEqual($node->book['nid'], $empty_book->id());
@@ -462,7 +497,7 @@ class BookTest extends BrowserTestBase {
     $node = $this->drupalCreateNode(['type' => 'book']);
     $edit = [];
     $edit['book[bid]'] = $node->id();
-    $this->drupalPostForm('node/' . $node->id() . '/edit', $edit, t('Save'));
+    $this->drupalPostForm('node/' . $node->id() . '/edit', $edit, 'Save');
     $node = \Drupal::entityTypeManager()->getStorage('node')->load($node->id());
 
     // Test the book array.
@@ -474,7 +509,7 @@ class BookTest extends BrowserTestBase {
 
     // Test the form itself.
     $this->drupalGet('node/' . $node->id() . '/edit');
-    $this->assertOptionSelected('edit-book-bid', $node->id());
+    $this->assertTrue($this->assertSession()->optionExists('edit-book-bid', $node->id())->isSelected());
   }
 
   /**
@@ -484,14 +519,14 @@ class BookTest extends BrowserTestBase {
     $book_manager = \Drupal::service('book.manager');
 
     // Mock a link for a new book.
-    $link = ['nid' => 1, 'has_children' => 0, 'original_bid' => 0, 'parent_depth_limit' => 8, 'pid' => 0, 'weight' => 0, 'bid' => 1];
+    $link = ['nid' => 1, 'has_children' => 0, 'original_bid' => 0, 'pid' => 0, 'weight' => 0, 'bid' => 0];
     $new = TRUE;
 
     // Save the link.
     $return = $book_manager->saveBookLink($link, $new);
 
     // Add the link defaults to $link so we have something to compare to the return from saveBookLink().
-    $link += $book_manager->getLinkDefaults($link['nid']);
+    $link = $book_manager->getLinkDefaults($link['nid']);
 
     // Test the return from saveBookLink.
     $this->assertEqual($return, $link);
@@ -501,16 +536,54 @@ class BookTest extends BrowserTestBase {
    * Tests the listing of all books.
    */
   public function testBookListing() {
-    // Create a new book.
-    $this->createBook();
+    // Uninstall 'node_access_test' as this interferes with the test.
+    \Drupal::service('module_installer')->uninstall(['node_access_test']);
 
-    // Must be a user with 'node test view' permission since node_access_test is installed.
-    $this->drupalLogin($this->webUser);
+    // Create a new book.
+    $nodes = $this->createBook();
 
     // Load the book page and assert the created book title is displayed.
     $this->drupalGet('book');
 
     $this->assertText($this->book->label(), 'The book title is displayed on the book listing page.');
+
+    // Unpublish the top book page and confirm that the created book title is
+    // not displayed for anonymous.
+    $this->book->setUnpublished();
+    $this->book->save();
+
+    $this->drupalGet('book');
+    $this->assertSession()->pageTextNotContains($this->book->label());
+
+    // Publish the top book page and unpublish a page in the book and confirm
+    // that the created book title is displayed for anonymous.
+    $this->book->setPublished();
+    $this->book->save();
+    $nodes[0]->setUnpublished();
+    $nodes[0]->save();
+
+    $this->drupalGet('book');
+    $this->assertSession()->pageTextContains($this->book->label());
+
+    // Unpublish the top book page and confirm that the created book title is
+    // displayed for user which has 'view own unpublished content' permission.
+    $this->drupalLogin($this->bookAuthor);
+    $this->book->setUnpublished();
+    $this->book->save();
+
+    $this->drupalGet('book');
+    $this->assertSession()->pageTextContains($this->book->label());
+
+    // Ensure the user doesn't see the book if they don't own it.
+    $this->book->setOwner($this->webUser)->save();
+    $this->drupalGet('book');
+    $this->assertSession()->pageTextNotContains($this->book->label());
+
+    // Confirm that the created book title is displayed for user which has
+    // 'view any unpublished content' permission.
+    $this->drupalLogin($this->adminUser);
+    $this->drupalGet('book');
+    $this->assertSession()->pageTextContains($this->book->label());
   }
 
   /**
@@ -518,7 +591,7 @@ class BookTest extends BrowserTestBase {
    */
   public function testAdminBookListing() {
     // Create a new book.
-    $this->createBook();
+    $nodes = $this->createBook();
 
     // Load the book page and assert the created book title is displayed.
     $this->drupalLogin($this->adminUser);
@@ -531,7 +604,7 @@ class BookTest extends BrowserTestBase {
    */
   public function testAdminBookNodeListing() {
     // Create a new book.
-    $this->createBook();
+    $nodes = $this->createBook();
     $this->drupalLogin($this->adminUser);
 
     // Load the book page list and assert the created book title is displayed
@@ -541,6 +614,29 @@ class BookTest extends BrowserTestBase {
 
     $elements = $this->xpath('//table//ul[@class="dropbutton"]/li/a');
     $this->assertEqual($elements[0]->getText(), 'View', 'View link is found from the list.');
+    $this->assertEquals(count($nodes), count($elements), 'All the book pages are displayed on the book outline page.');
+
+    // Unpublish a book in the hierarchy.
+    $nodes[0]->setUnPublished();
+    $nodes[0]->save();
+
+    // Node should still appear on the outline for admins.
+    $this->drupalGet('admin/structure/book/' . $this->book->id());
+    $elements = $this->xpath('//table//ul[@class="dropbutton"]/li/a');
+    $this->assertEquals(count($nodes), count($elements), 'All the book pages are displayed on the book outline page.');
+
+    // Saving a book page not as the current version shouldn't effect the book.
+    $old_title = $nodes[1]->getTitle();
+    $new_title = $this->randomGenerator->name();
+    $nodes[1]->isDefaultRevision(FALSE);
+    $nodes[1]->setNewRevision(TRUE);
+    $nodes[1]->setTitle($new_title);
+    $nodes[1]->save();
+    $this->drupalGet('admin/structure/book/' . $this->book->id());
+    $elements = $this->xpath('//table//ul[@class="dropbutton"]/li/a');
+    $this->assertEquals(count($nodes), count($elements), 'All the book pages are displayed on the book outline page.');
+    $this->assertSession()->responseNotContains($new_title);
+    $this->assertSession()->responseContains($old_title);
   }
 
   /**
@@ -596,11 +692,19 @@ class BookTest extends BrowserTestBase {
 
     // Unpublish book node.
     $edit = ['status[value]' => FALSE];
-    $this->drupalPostForm('node/' . $this->book->id() . '/edit', $edit, t('Save'));
+    $this->drupalPostForm('node/' . $this->book->id() . '/edit', $edit, 'Save');
 
     // Test node page.
     $this->drupalGet('node/' . $this->book->id());
     $this->assertText($this->book->label(), 'Unpublished book with "Show block only on book pages" book navigation settings.');
+  }
+
+  /**
+   * Tests that the book settings form can be saved without error.
+   */
+  public function testSettingsForm() {
+    $this->drupalLogin($this->adminUser);
+    $this->drupalPostForm('admin/structure/book/settings', [], 'Save configuration');
   }
 
 }

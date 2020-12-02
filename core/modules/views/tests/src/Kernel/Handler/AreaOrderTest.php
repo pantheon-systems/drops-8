@@ -57,7 +57,6 @@ class AreaOrderTest extends ViewsKernelTestBase {
    * Tests the order of the handlers.
    */
   public function testAreaOrder() {
-    $renderer = $this->container->get('renderer');
     $view = Views::getView('test_area_order');
     $renderable = $view->buildRenderable();
     $output = $this->render($renderable);
@@ -70,7 +69,7 @@ class AreaOrderTest extends ViewsKernelTestBase {
 
     // Make sure "powered" is before "branding", so it reflects the position
     // in the configuration, and not the weight of the blocks.
-    $this->assertTrue($position_powered < $position_branding, 'Block bartik-powered is positioned before block bartik-branding');
+    $this->assertLessThan($position_branding, $position_powered);
   }
 
 }

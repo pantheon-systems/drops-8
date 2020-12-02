@@ -104,7 +104,7 @@ class LinkWidget extends WidgetBase {
    * @see static::getUriAsDisplayableString()
    */
   protected static function getUserEnteredStringAsUri($string) {
-    // By default, assume the entered string is an URI.
+    // By default, assume the entered string is a URI.
     $uri = trim($string);
 
     // Detect entity autocomplete string, map to 'entity:' URI.
@@ -142,7 +142,7 @@ class LinkWidget extends WidgetBase {
     $uri = static::getUserEnteredStringAsUri($element['#value']);
     $form_state->setValueForElement($element, $uri);
 
-    // If getUserEnteredStringAsUri() mapped the entered value to a 'internal:'
+    // If getUserEnteredStringAsUri() mapped the entered value to an 'internal:'
     // URI , ensure the raw value begins with '/', '?' or '#'.
     // @todo '<front>' is valid input for BC reasons, may be removed by
     //   https://www.drupal.org/node/2421941
@@ -191,7 +191,7 @@ class LinkWidget extends WidgetBase {
       // However, if it is inaccessible to the current user, do not display it
       // to them.
       '#default_value' => (!$item->isEmpty() && (\Drupal::currentUser()->hasPermission('link to any page') || $item->getUrl()->access())) ? static::getUriAsDisplayableString($item->uri) : NULL,
-      '#element_validate' => [[get_called_class(), 'validateUriElement']],
+      '#element_validate' => [[static::class, 'validateUriElement']],
       '#maxlength' => 2048,
       '#required' => $element['#required'],
       '#link_type' => $this->getFieldSetting('link_type'),
@@ -216,12 +216,12 @@ class LinkWidget extends WidgetBase {
     // element prefix and description.
     if (!$this->supportsExternalLinks()) {
       $element['uri']['#field_prefix'] = rtrim(Url::fromRoute('<front>', [], ['absolute' => TRUE])->toString(), '/');
-      $element['uri']['#description'] = $this->t('This must be an internal path such as %add-node. You can also start typing the title of a piece of content to select it. Enter %front to link to the front page. Enter %nolink to display link text only.', ['%add-node' => '/node/add', '%front' => '<front>', '%nolink' => '<nolink>']);
+      $element['uri']['#description'] = $this->t('This must be an internal path such as %add-node. You can also start typing the title of a piece of content to select it. Enter %front to link to the front page. Enter %nolink to display link text only. Enter %button to display keyboard-accessible link text only.', ['%add-node' => '/node/add', '%front' => '<front>', '%nolink' => '<nolink>', '%button' => 'route:<button>']);
     }
     // If the field is configured to allow both internal and external links,
     // show a useful description.
     elseif ($this->supportsExternalLinks() && $this->supportsInternalLinks()) {
-      $element['uri']['#description'] = $this->t('Start typing the title of a piece of content to select it. You can also enter an internal path such as %add-node or an external URL such as %url. Enter %front to link to the front page. Enter %nolink to display link text only.', ['%front' => '<front>', '%add-node' => '/node/add', '%url' => 'http://example.com', '%nolink' => '<nolink>']);
+      $element['uri']['#description'] = $this->t('Start typing the title of a piece of content to select it. You can also enter an internal path such as %add-node or an external URL such as %url. Enter %front to link to the front page. Enter %nolink to display link text only. Enter %button to display keyboard-accessible link text only.', ['%front' => '<front>', '%add-node' => '/node/add', '%url' => 'http://example.com', '%nolink' => '<nolink>', '%button' => 'route:<button>']);
     }
     // If the field is configured to allow only external links, show a useful
     // description.
@@ -245,8 +245,8 @@ class LinkWidget extends WidgetBase {
     // Validate that title field is filled out (regardless of uri) when it is a
     // required field.
     if (!$this->isDefaultValueWidget($form_state) && $this->getFieldSetting('title') === DRUPAL_REQUIRED) {
-      $element['#element_validate'][] = [get_called_class(), 'validateTitleElement'];
-      $element['#element_validate'][] = [get_called_class(), 'validateTitleNoLink'];
+      $element['#element_validate'][] = [static::class, 'validateTitleElement'];
+      $element['#element_validate'][] = [static::class, 'validateTitleNoLink'];
 
       if (!$element['title']['#required']) {
         // Make title required on the front-end when URI filled-in.
@@ -268,7 +268,7 @@ class LinkWidget extends WidgetBase {
     // Ensure that a URI is always entered when an optional title field is
     // submitted.
     if (!$this->isDefaultValueWidget($form_state) && $this->getFieldSetting('title') == DRUPAL_OPTIONAL) {
-      $element['#element_validate'][] = [get_called_class(), 'validateTitleNoLink'];
+      $element['#element_validate'][] = [static::class, 'validateTitleNoLink'];
     }
 
     // Exposing the attributes array in the widget is left for alternate and more

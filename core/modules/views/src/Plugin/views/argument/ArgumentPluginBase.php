@@ -163,7 +163,7 @@ abstract class ArgumentPluginBase extends HandlerBase implements CacheableDepend
 
     $argument_text = $this->view->display_handler->getArgumentText();
 
-    $form['#pre_render'][] = [get_class($this), 'preRenderMoveArgumentOptions'];
+    $form['#pre_render'][] = [static::class, 'preRenderMoveArgumentOptions'];
 
     $form['description'] = [
       '#markup' => $argument_text['description'],
@@ -764,7 +764,7 @@ abstract class ArgumentPluginBase extends HandlerBase implements CacheableDepend
   }
 
   /**
-   * Default action: empty
+   * Default action: empty.
    *
    * If an argument was expected and was not given, in this case, display
    * the view's empty text
@@ -1034,7 +1034,7 @@ abstract class ArgumentPluginBase extends HandlerBase implements CacheableDepend
   }
 
   /**
-   * Set the input for this argument
+   * Set the input for this argument.
    *
    * @return TRUE if it successfully validates; FALSE if it does not.
    */

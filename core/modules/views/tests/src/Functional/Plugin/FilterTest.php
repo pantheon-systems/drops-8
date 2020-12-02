@@ -155,18 +155,17 @@ class FilterTest extends ViewTestBase {
    * exposed filter.
    */
   public function testInOperatorSelectAllOptions() {
-    $view = Views::getView('test_filter_in_operator_ui');
     $row['row[type]'] = 'fields';
-    $this->drupalPostForm('admin/structure/views/nojs/display/test_filter_in_operator_ui/default/row', $row, t('Apply'));
+    $this->drupalPostForm('admin/structure/views/nojs/display/test_filter_in_operator_ui/default/row', $row, 'Apply');
     $field['name[node_field_data.nid]'] = TRUE;
-    $this->drupalPostForm('admin/structure/views/nojs/add-handler/test_filter_in_operator_ui/default/field', $field, t('Add and configure fields'));
-    $this->drupalPostForm('admin/structure/views/nojs/handler/test_filter_in_operator_ui/default/field/nid', [], t('Apply'));
+    $this->drupalPostForm('admin/structure/views/nojs/add-handler/test_filter_in_operator_ui/default/field', $field, 'Add and configure fields');
+    $this->drupalPostForm('admin/structure/views/nojs/handler/test_filter_in_operator_ui/default/field/nid', [], 'Apply');
     $edit['options[value][all]'] = TRUE;
     $edit['options[value][article]'] = TRUE;
     $edit['options[value][page]'] = TRUE;
-    $this->drupalPostForm('admin/structure/views/nojs/handler/test_filter_in_operator_ui/default/filter/type', $edit, t('Apply'));
-    $this->drupalPostForm('admin/structure/views/view/test_filter_in_operator_ui/edit/default', [], t('Save'));
-    $this->drupalPostForm(NULL, [], t('Update preview'));
+    $this->drupalPostForm('admin/structure/views/nojs/handler/test_filter_in_operator_ui/default/filter/type', $edit, 'Apply');
+    $this->drupalPostForm('admin/structure/views/view/test_filter_in_operator_ui/edit/default', [], 'Save');
+    $this->submitForm([], 'Update preview');
     $this->assertNoText('An illegal choice has been detected.');
   }
 
@@ -177,41 +176,41 @@ class FilterTest extends ViewTestBase {
 
     $this->drupalGet('test_filter_in_operator_ui');
     $this->assertSession()->statusCodeEquals(200);
-    $this->assertOption('edit-nid-op', '<');
-    $this->assertOption('edit-nid-op', '<=');
-    $this->assertOption('edit-nid-op', '=');
-    $this->assertNoOption('edit-nid-op', '>');
-    $this->assertNoOption('edit-nid-op', '>=');
+    $this->assertSession()->optionExists('edit-nid-op', '<');
+    $this->assertSession()->optionExists('edit-nid-op', '<=');
+    $this->assertSession()->optionExists('edit-nid-op', '=');
+    $this->assertSession()->optionNotExists('edit-nid-op', '>');
+    $this->assertSession()->optionNotExists('edit-nid-op', '>=');
 
     // Because there are not operators that use the min and max fields, those
     // fields should not be in the exposed form.
-    $this->assertFieldById('edit-nid-value');
-    $this->assertNoFieldById('edit-nid-min');
-    $this->assertNoFieldById('edit-nid-max');
+    $this->assertSession()->fieldExists('edit-nid-value');
+    $this->assertSession()->fieldNotExists('edit-nid-min');
+    $this->assertSession()->fieldNotExists('edit-nid-max');
 
     $edit = [];
     $edit['options[operator]'] = '>';
     $edit['options[expose][operator_list][]'] = ['>', '>=', 'between'];
-    $this->drupalPostForm('admin/structure/views/nojs/handler/test_filter_in_operator_ui/default/filter/nid', $edit, t('Apply'));
-    $this->drupalPostForm('admin/structure/views/view/test_filter_in_operator_ui/edit/default', [], t('Save'));
+    $this->drupalPostForm('admin/structure/views/nojs/handler/test_filter_in_operator_ui/default/filter/nid', $edit, 'Apply');
+    $this->drupalPostForm('admin/structure/views/view/test_filter_in_operator_ui/edit/default', [], 'Save');
 
     $this->drupalGet('test_filter_in_operator_ui');
     $this->assertSession()->statusCodeEquals(200);
-    $this->assertNoOption('edit-nid-op', '<');
-    $this->assertNoOption('edit-nid-op', '<=');
-    $this->assertNoOption('edit-nid-op', '=');
-    $this->assertOption('edit-nid-op', '>');
-    $this->assertOption('edit-nid-op', '>=');
+    $this->assertSession()->optionNotExists('edit-nid-op', '<');
+    $this->assertSession()->optionNotExists('edit-nid-op', '<=');
+    $this->assertSession()->optionNotExists('edit-nid-op', '=');
+    $this->assertSession()->optionExists('edit-nid-op', '>');
+    $this->assertSession()->optionExists('edit-nid-op', '>=');
 
-    $this->assertFieldById('edit-nid-value');
-    $this->assertFieldById('edit-nid-min');
-    $this->assertFieldById('edit-nid-max');
+    $this->assertSession()->fieldExists('edit-nid-value');
+    $this->assertSession()->fieldExists('edit-nid-min');
+    $this->assertSession()->fieldExists('edit-nid-max');
 
     // Set the default to an excluded operator.
     $edit = [];
     $edit['options[operator]'] = '=';
     $edit['options[expose][operator_list][]'] = ['<', '>'];
-    $this->drupalPostForm('admin/structure/views/nojs/handler/test_filter_in_operator_ui/default/filter/nid', $edit, t('Apply'));
+    $this->drupalPostForm('admin/structure/views/nojs/handler/test_filter_in_operator_ui/default/filter/nid', $edit, 'Apply');
     $this->assertText('You selected the "Is equal to" operator as the default value but is not included in the list of limited operators.');
   }
 

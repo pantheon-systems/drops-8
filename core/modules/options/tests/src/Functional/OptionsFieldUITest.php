@@ -2,7 +2,6 @@
 
 namespace Drupal\Tests\options\Functional;
 
-use Drupal\Component\Render\FormattableMarkup;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\Tests\field\Functional\FieldTestBase;
@@ -318,8 +317,9 @@ class OptionsFieldUITest extends FieldTestBase {
    */
   public function assertAllowedValuesInput($input_string, $result, $message) {
     $edit = ['settings[allowed_values]' => $input_string];
-    $this->drupalPostForm($this->adminPath, $edit, t('Save field settings'));
-    $this->assertNoRaw('&amp;lt;', 'The page does not have double escaped HTML tags.');
+    $this->drupalPostForm($this->adminPath, $edit, 'Save field settings');
+    // Verify that the page does not have double escaped HTML tags.
+    $this->assertNoRaw('&amp;lt;');
 
     if (is_string($result)) {
       $this->assertText($result, $message);
@@ -346,14 +346,14 @@ class OptionsFieldUITest extends FieldTestBase {
         0|$off",
     ];
 
-    $this->drupalPostForm($this->adminPath, $edit, t('Save field settings'));
-    $this->assertText(new FormattableMarkup('Updated field @field_name field settings.', ['@field_name' => $this->fieldName]), "The 'On' and 'Off' form fields work for boolean fields.");
+    $this->drupalPostForm($this->adminPath, $edit, 'Save field settings');
+    $this->assertText('Updated field ' . $this->fieldName . ' field settings.', "The 'On' and 'Off' form fields work for boolean fields.");
 
     // Select a default value.
     $edit = [
       $this->fieldName => '1',
     ];
-    $this->drupalPostForm('node/' . $node->id() . '/edit', $edit, t('Save'));
+    $this->drupalPostForm('node/' . $node->id() . '/edit', $edit, 'Save');
 
     // Check the node page and see if the values are correct.
     $file_formatters = ['list_default', 'list_key'];
@@ -362,7 +362,7 @@ class OptionsFieldUITest extends FieldTestBase {
         "fields[$this->fieldName][type]" => $formatter,
         "fields[$this->fieldName][region]" => 'content',
       ];
-      $this->drupalPostForm('admin/structure/types/manage/' . $this->typeName . '/display', $edit, t('Save'));
+      $this->drupalPostForm('admin/structure/types/manage/' . $this->typeName . '/display', $edit, 'Save');
       $this->drupalGet('node/' . $node->id());
 
       if ($formatter == 'list_default') {

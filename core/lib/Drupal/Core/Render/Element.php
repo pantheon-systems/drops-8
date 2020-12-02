@@ -56,7 +56,7 @@ class Element {
   /**
    * Identifies the children of an element array, optionally sorted by weight.
    *
-   * The children of a element array are those key/value pairs whose key does
+   * The children of an element array are those key/value pairs whose key does
    * not start with a '#'. See drupal_render() for details.
    *
    * @param array $elements
@@ -166,9 +166,9 @@ class Element {
    * @param array $map
    *   An associative array whose keys are element property names and whose
    *   values are the HTML attribute names to set on the corresponding
-   *   property; e.g., array('#propertyname' => 'attributename'). If both names
-   *   are identical except for the leading '#', then an attribute name value is
-   *   sufficient and no property name needs to be specified.
+   *   property; e.g., array('#property_name' => 'attribute_name'). If both
+   *   names are identical except for the leading '#', then an attribute name
+   *   value is sufficient and no property name needs to be specified.
    */
   public static function setAttributes(array &$element, array $map) {
     foreach ($map as $property => $attribute) {

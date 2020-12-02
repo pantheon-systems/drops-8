@@ -33,12 +33,12 @@ class FilterNumericWebTest extends UITestBase {
     $path = 'test_view-path';
     $this->drupalPostForm('admin/structure/views/view/test_view/edit', [], 'Add Page');
     $this->drupalPostForm('admin/structure/views/nojs/display/test_view/page_1/path', ['path' => $path], 'Apply');
-    $this->drupalPostForm(NULL, [], t('Save'));
+    $this->submitForm([], 'Save');
 
-    $this->drupalPostForm('admin/structure/views/nojs/add-handler/test_view/default/filter', ['name[views_test_data.age]' => TRUE], t('Add and configure @handler', ['@handler' => t('filter criteria')]));
+    $this->drupalPostForm('admin/structure/views/nojs/add-handler/test_view/default/filter', ['name[views_test_data.age]' => TRUE], 'Add and configure filter criteria');
 
-    $this->drupalPostForm(NULL, [], t('Expose filter'));
-    $this->drupalPostForm(NULL, [], t('Grouped filters'));
+    $this->submitForm([], 'Expose filter');
+    $this->submitForm([], 'Grouped filters');
 
     $edit = [];
     $edit['options[group_info][group_items][1][title]'] = 'Old';
@@ -52,14 +52,14 @@ class FilterNumericWebTest extends UITestBase {
     $edit['options[group_info][group_items][3][value][min]'] = 26;
     $edit['options[group_info][group_items][3][value][max]'] = 28;
 
-    $this->drupalPostForm(NULL, $edit, t('Apply'));
+    $this->submitForm($edit, 'Apply');
 
     $this->drupalGet('admin/structure/views/nojs/handler/test_view/default/filter/age');
     foreach ($edit as $name => $value) {
-      $this->assertFieldByName($name, $value);
+      $this->assertSession()->fieldValueEquals($name, $value);
     }
 
-    $this->drupalPostForm('admin/structure/views/view/test_view', [], t('Save'));
+    $this->drupalPostForm('admin/structure/views/view/test_view', [], 'Save');
     $this->assertConfigSchemaByName('views.view.test_view');
 
     // Test that the exposed filter works as expected.
@@ -69,7 +69,7 @@ class FilterNumericWebTest extends UITestBase {
     $this->assertText('Ringo');
     $this->assertText('George');
     $this->assertText('Meredith');
-    $this->drupalPostForm(NULL, ['age' => '2'], 'Apply');
+    $this->submitForm(['age' => '2'], 'Apply');
     $this->assertText('John');
     $this->assertText('Paul');
     $this->assertNoText('Ringo');
@@ -78,11 +78,11 @@ class FilterNumericWebTest extends UITestBase {
 
     // Change the filter to a single filter to test the schema when the operator
     // is not exposed.
-    $this->drupalPostForm('admin/structure/views/nojs/handler/test_view/default/filter/age', [], t('Single filter'));
+    $this->drupalPostForm('admin/structure/views/nojs/handler/test_view/default/filter/age', [], 'Single filter');
     $edit = [];
     $edit['options[value][value]'] = 25;
-    $this->drupalPostForm(NULL, $edit, t('Apply'));
-    $this->drupalPostForm('admin/structure/views/view/test_view', [], t('Save'));
+    $this->submitForm($edit, 'Apply');
+    $this->drupalPostForm('admin/structure/views/view/test_view', [], 'Save');
     $this->assertConfigSchemaByName('views.view.test_view');
 
     // Test that the filter works as expected.
@@ -92,7 +92,7 @@ class FilterNumericWebTest extends UITestBase {
     $this->assertNoText('Ringo');
     $this->assertNoText('George');
     $this->assertNoText('Meredith');
-    $this->drupalPostForm(NULL, ['age' => '26'], t('Apply'));
+    $this->submitForm(['age' => '26'], 'Apply');
     $this->assertNoText('John');
     $this->assertText('Paul');
     $this->assertNoText('Ringo');
@@ -108,16 +108,39 @@ class FilterNumericWebTest extends UITestBase {
     $edit['options[operator]'] = 'between';
     $edit['options[value][min]'] = 26;
     $edit['options[value][max]'] = 28;
-    $this->drupalPostForm(NULL, $edit, t('Apply'));
-    $this->drupalPostForm('admin/structure/views/view/test_view', [], t('Save'));
+    $this->submitForm($edit, 'Apply');
+    $this->drupalPostForm('admin/structure/views/view/test_view', [], 'Save');
     $this->assertConfigSchemaByName('views.view.test_view');
 
-    $this->drupalPostForm(NULL, [], t('Update preview'));
-    // Check the max field label.
-    $this->assertRaw('<label for="edit-age-max">And</label>', 'Max field label found');
-    $this->assertRaw('<label for="edit-age-min">Age between</label>', 'Min field label found');
+    $this->submitForm([], 'Update preview');
+    // Check the field (wrapper) label.
+    $this->assertSession()->elementTextContains('css', 'fieldset#edit-age-wrapper legend', 'Age between');
+    // Check the min/max labels.
+    $min_element_label = $this->xpath('//fieldset[contains(@id, "edit-age-wrapper")]//label[contains(@for, "edit-age-min") and contains(text(), "Min")]');
+    $this->assertCount(1, $min_element_label);
+    $max_element_label = $this->xpath('//fieldset[contains(@id, "edit-age-wrapper")]//label[contains(@for, "edit-age-max") and contains(text(), "Max")]');
+    $this->assertCount(1, $max_element_label);
     // Check that the description is shown in the right place.
-    $this->assertEqual(trim($this->cssSelect('.form-item-age-min .description')[0]->getText()), 'Description of the exposed filter');
+    $this->assertEquals(trim($this->cssSelect('#edit-age-wrapper--description')[0]->getText()), 'Description of the exposed filter');
+
+    // Change to an operation that only requires one form element ('>').
+    $this->drupalGet('admin/structure/views/nojs/handler/test_view/default/filter/age');
+    $edit = [];
+    $edit['options[expose][label]'] = 'Age greater than';
+    $edit['options[expose][description]'] = 'Description of the exposed filter';
+    $edit['options[operator]'] = '>';
+    $edit['options[value][value]'] = 1000;
+    $this->submitForm($edit, 'Apply');
+    $this->drupalPostForm('admin/structure/views/view/test_view', [], 'Save');
+    $this->assertConfigSchemaByName('views.view.test_view');
+
+    $this->submitForm([], 'Update preview');
+
+    // Make sure the label is visible and that there's no fieldset wrapper.
+    $label = $this->xpath('//label[contains(@for, "edit-age") and contains(text(), "Age greater than")]');
+    $this->assertCount(1, $label);
+    $fieldset = $this->xpath('//fieldset[contains(@id, "edit-age-wrapper")]');
+    $this->assertEmpty($fieldset);
   }
 
 }

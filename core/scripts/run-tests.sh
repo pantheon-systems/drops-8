@@ -149,7 +149,7 @@ if ($args['clean']) {
 }
 
 if (!Composer::upgradePHPUnitCheck(Version::id())) {
-  simpletest_script_print_error("PHPUnit testing framework version 7 or greater is required when running on PHP 7.3 or greater. Run the command 'composer run-script drupal-phpunit-upgrade' in order to fix this.");
+  simpletest_script_print_error("PHPUnit testing framework version 9 or greater is required when running on PHP 7.4 or greater. Run the command 'composer run-script drupal-phpunit-upgrade' in order to fix this.");
   exit(SIMPLETEST_SCRIPT_EXIT_FAILURE);
 }
 
@@ -908,9 +908,9 @@ function simpletest_script_command($test_id, $test_class) {
 /**
  * Removes all remnants of a test runner.
  *
- * In case a (e.g., fatal) error occurs after the test site has been fully setup
- * and the error happens in many tests, the environment that executes the tests
- * can easily run out of memory or disk space. This function ensures that all
+ * In case a fatal error occurs after the test site has been fully setup and
+ * the error happens in many tests, the environment that executes the tests can
+ * easily run out of memory or disk space. This function ensures that all
  * created resources are properly cleaned up after every executed test.
  *
  * This clean-up only exists in this script, since SimpleTest module itself does

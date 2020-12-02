@@ -51,31 +51,31 @@ class WizardTest extends WizardTestBase {
 
     // Just triggering the saving should automatically choose a proper row
     // plugin.
-    $this->drupalPostForm('admin/structure/views/add', $view, t('Save and edit'));
-    $this->assertUrl('admin/structure/views/view/' . $view['id'], [], 'Make sure the view saving was successful and the browser got redirected to the edit page.');
+    $this->drupalPostForm('admin/structure/views/add', $view, 'Save and edit');
+    // Verify that the view saving was successful and the browser got redirected
+    // to the edit page.
+    $this->assertSession()->addressEquals('admin/structure/views/view/' . $view['id']);
 
     // If we update the type first we should get a selection of comment valid
     // row plugins as the select field.
 
     $this->drupalGet('admin/structure/views/add');
-    $this->drupalPostForm('admin/structure/views/add', $view, t('Update "of type" choice'));
+    $this->drupalPostForm('admin/structure/views/add', $view, 'Update "of type" choice');
 
     // Check for available options of the row plugin.
-    $xpath = $this->constructFieldXpath('name', 'page[style][row_plugin]');
-    $fields = $this->xpath($xpath);
-    $options = [];
-    foreach ($fields as $field) {
-      $items = $field->findAll('xpath', 'option');
-      foreach ($items as $item) {
-        $options[] = $item->getValue();
-      }
-    }
     $expected_options = ['entity:comment', 'fields'];
-    $this->assertEqual($options, $expected_options);
+    $items = $this->getSession()->getPage()->findField('page[style][row_plugin]')->findAll('xpath', 'option');
+    $actual_options = [];
+    foreach ($items as $item) {
+      $actual_options[] = $item->getValue();
+    }
+    $this->assertEquals($expected_options, $actual_options);
 
     $view['id'] = strtolower($this->randomMachineName(16));
-    $this->drupalPostForm(NULL, $view, t('Save and edit'));
-    $this->assertUrl('admin/structure/views/view/' . $view['id'], [], 'Make sure the view saving was successful and the browser got redirected to the edit page.');
+    $this->submitForm($view, 'Save and edit');
+    // Verify that the view saving was successful and the browser got redirected
+    // to the edit page.
+    $this->assertSession()->addressEquals('admin/structure/views/view/' . $view['id']);
 
     $user = $this->drupalCreateUser(['access comments']);
     $this->drupalLogin($user);

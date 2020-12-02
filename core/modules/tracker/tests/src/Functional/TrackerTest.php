@@ -91,7 +91,7 @@ class TrackerTest extends BrowserTestBase {
     $this->drupalGet('activity');
     $this->assertNoText($unpublished->label(), 'Unpublished node does not show up in the tracker listing.');
     $this->assertText($published->label(), 'Published node shows up in the tracker listing.');
-    $this->assertSession()->linkExists(t('My recent content'), 0, 'User tab shows up on the global tracker page.');
+    $this->assertSession()->linkExists('My recent content', 0, 'User tab shows up on the global tracker page.');
 
     // Assert cache contexts, specifically the pager and node access contexts.
     $this->assertCacheContexts(['languages:language_interface', 'route', 'theme', 'url.query_args:' . MainContentViewSubscriber::WRAPPER_FORMAT, 'url.query_args.pagers:0', 'user.node_grants:view', 'user']);
@@ -170,7 +170,7 @@ class TrackerTest extends BrowserTestBase {
       'subject[0][value]' => $this->randomMachineName(),
       'comment_body[0][value]' => $this->randomMachineName(20),
     ];
-    $this->drupalPostForm('comment/reply/node/' . $other_published_my_comment->id() . '/comment', $comment, t('Save'));
+    $this->drupalPostForm('comment/reply/node/' . $other_published_my_comment->id() . '/comment', $comment, 'Save');
 
     $this->drupalGet('user/' . $this->user->id() . '/activity');
     $this->assertNoText($unpublished->label(), "Unpublished nodes do not show up in the user's tracker listing.");
@@ -212,7 +212,7 @@ class TrackerTest extends BrowserTestBase {
     $this->assertSession()->linkNotExists($unpublished->label());
     // Verify that title and tab title have been set correctly.
     $this->assertText('Activity', 'The user activity tab has the name "Activity".');
-    $this->assertTitle($this->user->getAccountName() . ' | Drupal');
+    $this->assertSession()->titleEquals($this->user->getAccountName() . ' | Drupal');
 
     // Verify that unpublished comments are removed from the tracker.
     $admin_user = $this->drupalCreateUser([
@@ -221,7 +221,7 @@ class TrackerTest extends BrowserTestBase {
       'access user profiles',
     ]);
     $this->drupalLogin($admin_user);
-    $this->drupalPostForm('comment/1/edit', ['status' => CommentInterface::NOT_PUBLISHED], t('Save'));
+    $this->drupalPostForm('comment/1/edit', ['status' => CommentInterface::NOT_PUBLISHED], 'Save');
     $this->drupalGet('user/' . $this->user->id() . '/activity');
     $this->assertNoText($other_published_my_comment->label(), 'Unpublished comments are not counted on the tracker listing.');
 
@@ -230,12 +230,12 @@ class TrackerTest extends BrowserTestBase {
     Cache::invalidateTags(['rendered']);
     \Drupal::state()->set('user_hooks_test_user_format_name_alter', TRUE);
     $this->drupalGet('user/' . $this->user->id() . '/activity');
-    $this->assertEscaped('<em>' . $this->user->id() . '</em>');
+    $this->assertSession()->assertEscaped('<em>' . $this->user->id() . '</em>');
 
     \Drupal::state()->set('user_hooks_test_user_format_name_alter_safe', TRUE);
     Cache::invalidateTags(['rendered']);
     $this->drupalGet('user/' . $this->user->id() . '/activity');
-    $this->assertNoEscaped('<em>' . $this->user->id() . '</em>');
+    $this->assertSession()->assertNoEscaped('<em>' . $this->user->id() . '</em>');
     $this->assertRaw('<em>' . $this->user->id() . '</em>');
   }
 
@@ -267,7 +267,7 @@ class TrackerTest extends BrowserTestBase {
       'comment_body[0][value]' => $this->randomMachineName(20),
     ];
     sleep(1);
-    $this->drupalPostForm('comment/reply/node/' . $node->id() . '/comment', $comment, t('Save'));
+    $this->drupalPostForm('comment/reply/node/' . $node->id() . '/comment', $comment, 'Save');
     // Reload the node so that comment.module's hook_node_load()
     // implementation can set $node->last_comment_timestamp for the freshly
     // posted comment.
@@ -312,7 +312,7 @@ class TrackerTest extends BrowserTestBase {
       'subject[0][value]' => $this->randomMachineName(),
       'comment_body[0][value]' => $this->randomMachineName(20),
     ];
-    $this->drupalPostForm('comment/reply/node/' . $node_one->id() . '/comment', $comment, t('Save'));
+    $this->drupalPostForm('comment/reply/node/' . $node_one->id() . '/comment', $comment, 'Save');
 
     // If the comment is posted in the same second as the last one then Drupal
     // can't tell the difference, so we wait one second here.
@@ -323,7 +323,7 @@ class TrackerTest extends BrowserTestBase {
       'subject[0][value]' => $this->randomMachineName(),
       'comment_body[0][value]' => $this->randomMachineName(20),
     ];
-    $this->drupalPostForm('comment/reply/node/' . $node_two->id() . '/comment', $comment, t('Save'));
+    $this->drupalPostForm('comment/reply/node/' . $node_two->id() . '/comment', $comment, 'Save');
 
     // We should at this point have in our tracker for otherUser:
     // 1. node_two
@@ -343,7 +343,7 @@ class TrackerTest extends BrowserTestBase {
       'subject[0][value]' => $this->randomMachineName(),
       'comment_body[0][value]' => $this->randomMachineName(20),
     ];
-    $this->drupalPostForm('comment/reply/node/' . $node_one->id() . '/comment', $comment, t('Save'));
+    $this->drupalPostForm('comment/reply/node/' . $node_one->id() . '/comment', $comment, 'Save');
 
     // Switch back to the otherUser and assert that the order has swapped.
     $this->drupalLogin($this->otherUser);
@@ -355,7 +355,7 @@ class TrackerTest extends BrowserTestBase {
     $this->verbose($pattern);
     // Verify that the most recent comment on node appears at the top of
     // tracker.
-    $this->assertPattern($pattern);
+    $this->assertSession()->responseMatches($pattern);
   }
 
   /**
@@ -380,7 +380,7 @@ class TrackerTest extends BrowserTestBase {
       'subject[0][value]' => $this->randomMachineName(),
       'comment_body[0][value]' => $this->randomMachineName(20),
     ];
-    $this->drupalPostForm('comment/reply/node/' . $nodes[3]->id() . '/comment', $comment, t('Save'));
+    $this->drupalPostForm('comment/reply/node/' . $nodes[3]->id() . '/comment', $comment, 'Save');
 
     // Create an unpublished node.
     $unpublished = $this->drupalCreateNode([
@@ -423,7 +423,6 @@ class TrackerTest extends BrowserTestBase {
    */
   public function testTrackerAdminUnpublish() {
     \Drupal::service('module_installer')->install(['views']);
-    \Drupal::service('router.builder')->rebuild();
     $admin_user = $this->drupalCreateUser([
       'access content overview',
       'administer nodes',
@@ -444,10 +443,10 @@ class TrackerTest extends BrowserTestBase {
       'action' => 'node_unpublish_action',
       'node_bulk_form[0]' => $node->id(),
     ];
-    $this->drupalPostForm('admin/content', $edit, t('Apply to selected items'));
+    $this->drupalPostForm('admin/content', $edit, 'Apply to selected items');
 
     $this->drupalGet('activity');
-    $this->assertText(t('No content available.'), 'A node is displayed on the tracker listing pages.');
+    $this->assertText('No content available.', 'A node is displayed on the tracker listing pages.');
   }
 
   /**

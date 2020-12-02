@@ -12,13 +12,10 @@
 
 .accordion {
   color: #222330;
-  border: 1px solid rgba(216, 217, 224, 0.8);
+  border: 1px solid #dedfe4;
   border-radius: 2px;
   background-color: #fff;
-  box-shadow: 0
-2px
-4px
-rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .accordion__item {
@@ -42,14 +39,8 @@ rgba(0, 0, 0, 0.1);
   border-bottom-left-radius: 2px;
 }
 
-/**
- * Hide JS summary from the details polyfill to make it consistent with native
- * details elements.
- *
- * @todo Consider removing this after https://www.drupal.org/node/2493957 has
- *   been solved.
- */
-
 .accordion__item .claro-details__summary .summary {
-  display: none;
+  display: block;
+  color: #545560;
+  font-weight: normal;
 }

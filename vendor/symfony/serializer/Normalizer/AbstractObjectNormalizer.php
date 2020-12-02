@@ -115,7 +115,7 @@ abstract class AbstractObjectNormalizer extends AbstractNormalizer
             throw new InvalidArgumentException(sprintf('The "%s" given in the default context is not callable.', self::MAX_DEPTH_HANDLER));
         }
 
-        $this->defaultContext[self::EXCLUDE_FROM_CACHE_KEY] = [self::CIRCULAR_REFERENCE_LIMIT_COUNTERS];
+        $this->defaultContext[self::EXCLUDE_FROM_CACHE_KEY] = array_merge($this->defaultContext[self::EXCLUDE_FROM_CACHE_KEY] ?? [], [self::CIRCULAR_REFERENCE_LIMIT_COUNTERS]);
 
         $this->propertyTypeExtractor = $propertyTypeExtractor;
 
@@ -230,8 +230,9 @@ abstract class AbstractObjectNormalizer extends AbstractNormalizer
                 throw new RuntimeException(sprintf('The type "%s" has no mapped class for the abstract object "%s".', $type, $class));
             }
 
-            $class = $mappedClass;
-            $reflectionClass = new \ReflectionClass($class);
+            if ($mappedClass !== $class) {
+                return $this->instantiateObject($data, $mappedClass, $context, new \ReflectionClass($mappedClass), $allowedAttributes, $format);
+            }
         }
 
         return parent::instantiateObject($data, $class, $context, $reflectionClass, $allowedAttributes, $format);
@@ -305,7 +306,7 @@ abstract class AbstractObjectNormalizer extends AbstractNormalizer
      */
     public function setMaxDepthHandler(?callable $handler): void
     {
-        @trigger_error(sprintf('The "%s()" method is deprecated since Symfony 4.2, use the "max_depth_handler" key of the context instead.', __METHOD__), E_USER_DEPRECATED);
+        @trigger_error(sprintf('The "%s()" method is deprecated since Symfony 4.2, use the "max_depth_handler" key of the context instead.', __METHOD__), \E_USER_DEPRECATED);
 
         $this->maxDepthHandler = $handler;
     }
@@ -359,7 +360,7 @@ abstract class AbstractObjectNormalizer extends AbstractNormalizer
             try {
                 $this->setAttributeValue($object, $attribute, $value, $format, $context);
             } catch (InvalidArgumentException $e) {
-                throw new NotNormalizableValueException(sprintf('Failed to denormalize attribute "%s" value for class "%s": ', $attribute, $type).$e->getMessage(), $e->getCode(), $e);
+                throw new NotNormalizableValueException(sprintf('Failed to denormalize attribute "%s" value for class "%s": '.$e->getMessage(), $attribute, $type), $e->getCode(), $e);
             }
         }
 
@@ -482,7 +483,7 @@ abstract class AbstractObjectNormalizer extends AbstractNormalizer
      */
     protected function denormalizeParameter(\ReflectionClass $class, \ReflectionParameter $parameter, $parameterName, $parameterData, array $context, $format = null)
     {
-        if (null === $this->propertyTypeExtractor || null === $this->propertyTypeExtractor->getTypes($class->getName(), $parameterName)) {
+        if ($parameter->isVariadic() || null === $this->propertyTypeExtractor || null === $this->propertyTypeExtractor->getTypes($class->getName(), $parameterName)) {
             return parent::denormalizeParameter($class, $parameter, $parameterName, $parameterData, $context, $format);
         }
 
@@ -594,7 +595,7 @@ abstract class AbstractObjectNormalizer extends AbstractNormalizer
         if (\func_num_args() >= 3) {
             $format = func_get_arg(2);
         } else {
-            @trigger_error(sprintf('Method "%s::%s()" will have a third "?string $format" argument in version 5.0; not defining it is deprecated since Symfony 4.3.', static::class, __FUNCTION__), E_USER_DEPRECATED);
+            @trigger_error(sprintf('Method "%s::%s()" will have a third "?string $format" argument in version 5.0; not defining it is deprecated since Symfony 4.3.', static::class, __FUNCTION__), \E_USER_DEPRECATED);
             $format = null;
         }
 

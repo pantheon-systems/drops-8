@@ -20,7 +20,7 @@ class UpdateManager implements UpdateManagerInterface {
   use StringTranslationTrait;
 
   /**
-   * The update settings
+   * The update settings.
    *
    * @var \Drupal\Core\Config\Config
    */
@@ -76,7 +76,7 @@ class UpdateManager implements UpdateManagerInterface {
   protected $moduleExtensionList;
 
   /**
-   * Constructs a UpdateManager.
+   * Constructs an UpdateManager.
    *
    * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
    *   The config factory.

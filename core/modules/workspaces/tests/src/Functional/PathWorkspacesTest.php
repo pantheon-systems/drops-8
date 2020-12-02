@@ -171,7 +171,7 @@ class PathWorkspacesTest extends BrowserTestBase {
       'status[value]' => TRUE,
       'path[0][alias]' => '/' . $this->randomMachineName(),
     ];
-    $this->drupalPostForm(NULL, $edit_translation, 'Save (this translation)');
+    $this->submitForm($edit_translation, 'Save (this translation)');
     // Confirm that the alias works.
     $this->drupalGet('ro' . $edit_translation['path[0][alias]']);
     $this->assertSession()->pageTextContains($edit_translation['body[0][value]']);
@@ -213,7 +213,7 @@ class PathWorkspacesTest extends BrowserTestBase {
     $edit_new_translation_draft = [
       'body[0][value]' => $this->randomMachineName(),
     ];
-    $this->drupalPostForm('ro/node/' . $default_node->id() . '/edit', $edit_new_translation_draft, t('Save (this translation)'));
+    $this->drupalPostForm('ro/node/' . $default_node->id() . '/edit', $edit_new_translation_draft, 'Save (this translation)');
     // Confirm that the new draft revision was created.
     $this->assertSession()->pageTextContains($edit_new_translation_draft['body[0][value]']);
 

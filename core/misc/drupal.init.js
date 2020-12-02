@@ -13,14 +13,14 @@ document.documentElement.className += ' js';
 
 (function (Drupal, drupalSettings) {
   var domReady = function domReady(callback) {
-    if (document.readyState !== 'loading') {
+    var listener = function listener() {
       callback();
-    } else {
-      var listener = function listener() {
-        callback();
-        document.removeEventListener('DOMContentLoaded', listener);
-      };
+      document.removeEventListener('DOMContentLoaded', listener);
+    };
 
+    if (document.readyState !== 'loading') {
+      setTimeout(callback, 0);
+    } else {
       document.addEventListener('DOMContentLoaded', listener);
     }
   };

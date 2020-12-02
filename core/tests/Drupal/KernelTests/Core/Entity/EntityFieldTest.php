@@ -206,7 +206,7 @@ class EntityFieldTest extends EntityKernelTestBase {
     $this->assertTrue(isset($entity->name[0]), new FormattableMarkup('%entity_type: Name string item is set.', ['%entity_type' => $entity_type]));
     $this->assertFalse(isset($entity->name[1]), new FormattableMarkup('%entity_type: Second name string item is not set as it does not exist', ['%entity_type' => $entity_type]));
     $this->assertTrue(isset($entity->name), new FormattableMarkup('%entity_type: Name field is set.', ['%entity_type' => $entity_type]));
-    $this->assertFalse(isset($entity->nameInvalid), new FormattableMarkup('%entity_type: Not existing field is not set.', ['%entity_type' => $entity_type]));
+    $this->assertFalse(isset($entity->nameInvalid), new FormattableMarkup('%entity_type: Non-existent field is not set.', ['%entity_type' => $entity_type]));
 
     unset($entity->name[0]);
     $this->assertFalse(isset($entity->name[0]), new FormattableMarkup('%entity_type: Name field item is not set.', ['%entity_type' => $entity_type]));
@@ -319,7 +319,7 @@ class EntityFieldTest extends EntityKernelTestBase {
     $this->assertTrue($entity->name[0]->isEmpty(), new FormattableMarkup('%entity_type: Name item is empty.', ['%entity_type' => $entity_type]));
     $this->assertTrue($entity->name->isEmpty(), new FormattableMarkup('%entity_type: Name field is empty.', ['%entity_type' => $entity_type]));
     $this->assertCount(1, $entity->name, new FormattableMarkup('%entity_type: Empty item is considered when counting.', ['%entity_type' => $entity_type]));
-    $this->assertEqual(count(iterator_to_array($entity->name->getIterator())), count($entity->name), new FormattableMarkup('%entity_type: Count matches iterator count.', ['%entity_type' => $entity_type]));
+    $this->assertCount(1, iterator_to_array($entity->name->getIterator()), new FormattableMarkup('%entity_type: Count matches iterator count.', ['%entity_type' => $entity_type]));
     $this->assertTrue($entity->name->getValue() === [0 => ['value' => NULL]], new FormattableMarkup('%entity_type: Name field value contains a NULL value.', ['%entity_type' => $entity_type]));
 
     // Test using filterEmptyItems().

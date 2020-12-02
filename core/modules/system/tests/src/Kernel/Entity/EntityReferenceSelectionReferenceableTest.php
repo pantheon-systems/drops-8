@@ -117,7 +117,7 @@ class EntityReferenceSelectionReferenceableTest extends KernelTestBase {
       $this->assertTrue(empty($referenceables[$this->bundle]));
     }
     else {
-      $this->assertSame(count($referenceables[$this->bundle]), $count_limited);
+      $this->assertCount($count_limited, $referenceables[$this->bundle]);
     }
 
     // Test returned items.
@@ -126,7 +126,7 @@ class EntityReferenceSelectionReferenceableTest extends KernelTestBase {
       // entity labels.
       // @see \Drupal\Core\Entity\EntityReferenceSelection\SelectionInterface::getReferenceableEntities()
       $item = is_string($item) ? Html::escape($item) : $item;
-      $this->assertContains($item, $referenceables[$this->bundle]);
+      $this->assertContainsEquals($item, $referenceables[$this->bundle]);
     }
 
     // Test ::countReferenceableEntities().

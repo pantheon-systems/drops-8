@@ -80,14 +80,14 @@ class LibraryDiscoveryTest extends UnitTestCase {
    * @covers ::getLibrariesByExtension
    */
   public function testGetLibrariesByExtension() {
-    $this->libraryDiscovery->getLibrariesbyExtension('test');
+    $this->libraryDiscovery->getLibrariesByExtension('test');
     // Verify that subsequent calls don't trigger hook_library_info_alter()
     // and hook_js_settings_alter() invocations, nor do they talk to the
     // collector again. This ensures that the alterations made by
     // hook_library_info_alter() and hook_js_settings_alter() implementations
     // are statically cached, as desired.
     $this->libraryDiscovery->getLibraryByName('test', 'test_1');
-    $this->libraryDiscovery->getLibrariesbyExtension('test');
+    $this->libraryDiscovery->getLibrariesByExtension('test');
   }
 
   /**
@@ -103,13 +103,13 @@ class LibraryDiscoveryTest extends UnitTestCase {
    * Tests getting a deprecated library.
    */
   public function testAssetLibraryDeprecation() {
-    $previous_error_handler = set_error_handler(function ($severity, $message, $file, $line, $context) use (&$previous_error_handler) {
+    $previous_error_handler = set_error_handler(function ($severity, $message, $file, $line) use (&$previous_error_handler) {
       // Convert deprecation error into a catchable exception.
       if ($severity === E_USER_DEPRECATED) {
         throw new \ErrorException($message, 0, $severity, $file, $line);
       }
       if ($previous_error_handler) {
-        return $previous_error_handler($severity, $message, $file, $line, $context);
+        return $previous_error_handler($severity, $message, $file, $line);
       }
     });
 

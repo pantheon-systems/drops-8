@@ -17,7 +17,7 @@
         "ext-SPL": "*",
         "ext-tokenizer": "*",
         "ext-xml": "*",
-        "php": ">=7.3",
+        "php": ">=7.3.0",
         "symfony/console": "^4.4",
         "symfony/dependency-injection": "^4.4",
         "symfony/event-dispatcher": "^4.4",
@@ -42,7 +42,7 @@
         "masterminds/html5": "^2.1",
         "symfony/psr-http-message-bridge": "^2.0",
         "laminas/laminas-diactoros": "^2.1",
-        "composer/semver": "^1.0",
+        "composer/semver": "^3.0",
         "asm89/stack-cors": "^1.1",
         "pear/archive_tar": "^1.4.11",
         "psr/log": "^1.0"
@@ -85,6 +85,7 @@
         "drupal/core-file-cache": "self.version",
         "drupal/core-file-security": "self.version",
         "drupal/core-filesystem": "self.version",
+        "drupal/core-front-matter": "self.version",
         "drupal/core-gettext": "self.version",
         "drupal/core-graph": "self.version",
         "drupal/core-http-foundation": "self.version",
@@ -131,6 +132,7 @@
         "drupal/migrate_drupal_multilingual": "self.version",
         "drupal/migrate_drupal_ui": "self.version",
         "drupal/node": "self.version",
+        "drupal/olivero": "self.version",
         "drupal/options": "self.version",
         "drupal/page_cache": "self.version",
         "drupal/path": "self.version",
@@ -196,7 +198,8 @@
             "lib/Drupal/Core/DrupalKernelInterface.php",
             "lib/Drupal/Core/Installer/InstallerRedirectTrait.php",
             "lib/Drupal/Core/Site/Settings.php"
-        ]
+        ],
+        "files": [ "includes/bootstrap.inc" ]
     },
     "config": {
         "preferred-install": "dist"

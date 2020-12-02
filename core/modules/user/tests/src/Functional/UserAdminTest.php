@@ -63,15 +63,15 @@ class UserAdminTest extends BrowserTestBase {
 
     // Test for existence of edit link in table.
     $link = $user_a->toLink(t('Edit'), 'edit-form', ['query' => ['destination' => $user_a->toUrl('collection')->toString()]])->toString();
-    $this->assertRaw($link, 'Found user A edit link on admin users page');
+    $this->assertRaw($link);
 
     // Test exposed filter elements.
     foreach (['user', 'role', 'permission', 'status'] as $field) {
-      $this->assertField("edit-$field", "$field exposed filter found.");
+      $this->assertSession()->fieldExists("edit-$field");
     }
     // Make sure the reduce duplicates element from the ManyToOneHelper is not
     // displayed.
-    $this->assertNoField('edit-reduce-duplicates', 'Reduce duplicates form element not found in exposed filters.');
+    $this->assertSession()->fieldNotExists('edit-reduce-duplicates');
 
     // Filter the users by name/email.
     $this->drupalGet('admin/people', ['query' => ['user' => $user_a->getAccountName()]]);
@@ -111,7 +111,7 @@ class UserAdminTest extends BrowserTestBase {
     $config
       ->set('notify.status_blocked', TRUE)
       ->save();
-    $this->drupalPostForm('admin/people', $edit, t('Apply to selected items'), [
+    $this->drupalPostForm('admin/people', $edit, 'Apply to selected items', [
       // Sort the table by username so that we know reliably which user will be
       // targeted with the blocking action.
       'query' => ['order' => 'name', 'sort' => 'asc'],
@@ -132,7 +132,7 @@ class UserAdminTest extends BrowserTestBase {
     $editunblock = [];
     $editunblock['action'] = 'user_unblock_user_action';
     $editunblock['user_bulk_form[4]'] = TRUE;
-    $this->drupalPostForm('admin/people', $editunblock, t('Apply to selected items'), [
+    $this->drupalPostForm('admin/people', $editunblock, 'Apply to selected items', [
       // Sort the table by username so that we know reliably which user will be
       // targeted with the blocking action.
       'query' => ['order' => 'name', 'sort' => 'asc'],
@@ -146,11 +146,11 @@ class UserAdminTest extends BrowserTestBase {
     $user_d = $this->drupalCreateUser([]);
     $user_storage->resetCache([$user_d->id()]);
     $account1 = $user_storage->load($user_d->id());
-    $this->drupalPostForm('user/' . $account1->id() . '/edit', ['status' => 0], t('Save'));
+    $this->drupalPostForm('user/' . $account1->id() . '/edit', ['status' => 0], 'Save');
     $user_storage->resetCache([$user_d->id()]);
     $account1 = $user_storage->load($user_d->id());
     $this->assertTrue($account1->isBlocked(), 'User D blocked');
-    $this->drupalPostForm('user/' . $account1->id() . '/edit', ['status' => TRUE], t('Save'));
+    $this->drupalPostForm('user/' . $account1->id() . '/edit', ['status' => TRUE], 'Save');
     $user_storage->resetCache([$user_d->id()]);
     $account1 = $user_storage->load($user_d->id());
     $this->assertTrue($account1->isActive(), 'User D unblocked');
@@ -168,7 +168,7 @@ class UserAdminTest extends BrowserTestBase {
     ]);
     $this->drupalLogin($admin_user);
     $this->drupalGet('admin/config/people/accounts');
-    $this->assertRaw('id="edit-mail-notification-address"', 'Notification Email address field exists');
+    $this->assertRaw('id="edit-mail-notification-address"');
     $this->drupalLogout();
 
     // Test custom user registration approval email address(es).
@@ -190,7 +190,7 @@ class UserAdminTest extends BrowserTestBase {
     $edit = [];
     $edit['name'] = $this->randomMachineName();
     $edit['mail'] = $edit['name'] . '@example.com';
-    $this->drupalPostForm('user/register', $edit, t('Create new account'));
+    $this->drupalPostForm('user/register', $edit, 'Create new account');
     $subject = 'Account details for ' . $edit['name'] . ' at ' . $system->get('name') . ' (pending admin approval)';
     // Ensure that admin notification mail is sent to the configured
     // Notification Email address.

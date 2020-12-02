@@ -2,7 +2,6 @@
 
 namespace Drupal\Tests\language\Functional;
 
-use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Core\Url;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\language\Entity\ConfigurableLanguage;
@@ -44,64 +43,65 @@ class LanguageConfigurationTest extends BrowserTestBase {
 
     // Check if the Default English language has no path prefix.
     $this->drupalGet('admin/config/regional/language/detection/url');
-    $this->assertFieldByXPath('//input[@name="prefix[en]"]', '', 'Default English has no path prefix.');
+    $this->assertSession()->fieldValueEquals("prefix[en]", '');
 
     // Check that Add language is a primary button.
     $this->drupalGet('admin/config/regional/language/add');
-    $this->assertFieldByXPath('//input[contains(@class, "button--primary")]', 'Add language', 'Add language is a primary button');
+    $button = $this->assertSession()->buttonExists('Add language');
+    $this->assertTrue($button->hasClass("button--primary"));
 
     // Add predefined language.
     $edit = [
       'predefined_langcode' => 'fr',
     ];
-    $this->drupalPostForm(NULL, $edit, 'Add language');
+    $this->submitForm($edit, 'Add language');
     $this->assertText('French');
-    $this->assertUrl(Url::fromRoute('entity.configurable_language.collection', [], ['absolute' => TRUE])->toString(), [], 'Correct page redirection.');
+    $this->assertSession()->addressEquals(Url::fromRoute('entity.configurable_language.collection'));
     // Langcode for Languages is always 'en'.
     $language = $this->config('language.entity.fr')->get();
     $this->assertEqual($language['langcode'], 'en');
 
     // Check if the Default English language has no path prefix.
     $this->drupalGet('admin/config/regional/language/detection/url');
-    $this->assertFieldByXPath('//input[@name="prefix[en]"]', '', 'Default English has no path prefix.');
+    $this->assertSession()->fieldValueEquals("prefix[en]", '');
     // Check if French has a path prefix.
     $this->drupalGet('admin/config/regional/language/detection/url');
-    $this->assertFieldByXPath('//input[@name="prefix[fr]"]', 'fr', 'French has a path prefix.');
+    $this->assertSession()->fieldValueEquals("prefix[fr]", 'fr');
 
     // Check if we can change the default language.
     $this->drupalGet('admin/config/regional/language');
-    $this->assertFieldChecked('edit-site-default-language-en', 'English is the default language.');
+    $this->assertSession()->checkboxChecked('edit-site-default-language-en');
 
     // Change the default language.
     $edit = [
       'site_default_language' => 'fr',
     ];
-    $this->drupalPostForm(NULL, $edit, t('Save configuration'));
+    $this->submitForm($edit, 'Save configuration');
     $this->rebuildContainer();
-    $this->assertFieldChecked('edit-site-default-language-fr', 'Default language updated.');
-    $this->assertUrl(Url::fromRoute('entity.configurable_language.collection', [], ['absolute' => TRUE, 'langcode' => 'fr'])->toString(), [], 'Correct page redirection.');
+    $this->assertSession()->checkboxChecked('edit-site-default-language-fr');
+    $this->assertSession()->addressEquals(Url::fromRoute('entity.configurable_language.collection', [], ['langcode' => 'fr']));
 
     // Check if a valid language prefix is added after changing the default
     // language.
     $this->drupalGet('admin/config/regional/language/detection/url');
-    $this->assertFieldByXPath('//input[@name="prefix[en]"]', 'en', 'A valid path prefix has been added to the previous default language.');
+    $this->assertSession()->fieldValueEquals("prefix[en]", 'en');
     // Check if French still has a path prefix.
     $this->drupalGet('admin/config/regional/language/detection/url');
-    $this->assertFieldByXPath('//input[@name="prefix[fr]"]', 'fr', 'French still has a path prefix.');
+    $this->assertSession()->fieldValueEquals("prefix[fr]", 'fr');
 
     // Check that prefix can be changed.
     $edit = [
       'prefix[fr]' => 'french',
     ];
-    $this->drupalPostForm(NULL, $edit, t('Save configuration'));
-    $this->assertFieldByXPath('//input[@name="prefix[fr]"]', 'french', 'French path prefix has changed.');
+    $this->submitForm($edit, 'Save configuration');
+    $this->assertSession()->fieldValueEquals("prefix[fr]", 'french');
 
     // Check that the prefix can be removed.
     $edit = [
       'prefix[fr]' => '',
     ];
-    $this->drupalPostForm(NULL, $edit, t('Save configuration'));
-    $this->assertNoText(t('The prefix may only be left blank for the selected detection fallback language.'), 'The path prefix can be removed for the default language');
+    $this->submitForm($edit, 'Save configuration');
+    $this->assertNoText('The prefix may only be left blank for the selected detection fallback language.', 'The path prefix can be removed for the default language');
 
     // Change default negotiation language.
     $this->config('language.negotiation')->set('selected_langcode', 'fr')->save();
@@ -110,19 +110,19 @@ class LanguageConfigurationTest extends BrowserTestBase {
     $edit = [
       'prefix[en]' => '',
     ];
-    $this->drupalPostForm(NULL, $edit, t('Save configuration'));
-    $this->assertText(t('The prefix may only be left blank for the selected detection fallback language.'));
+    $this->submitForm($edit, 'Save configuration');
+    $this->assertText('The prefix may only be left blank for the selected detection fallback language.');
 
     //  Check that prefix cannot be changed to contain a slash.
     $edit = [
       'prefix[en]' => 'foo/bar',
     ];
-    $this->drupalPostForm(NULL, $edit, t('Save configuration'));
-    $this->assertText(t('The prefix may not contain a slash.'), 'English prefix cannot be changed to contain a slash.');
+    $this->submitForm($edit, 'Save configuration');
+    $this->assertText('The prefix may not contain a slash.', 'English prefix cannot be changed to contain a slash.');
 
     // Remove English language and add a new Language to check if langcode of
     // Language entity is 'en'.
-    $this->drupalPostForm('admin/config/regional/language/delete/en', [], t('Delete'));
+    $this->drupalPostForm('admin/config/regional/language/delete/en', [], 'Delete');
     $this->rebuildContainer();
     $this->assertRaw(t('The %language (%langcode) language has been removed.', ['%language' => 'English', '%langcode' => 'en']));
 
@@ -198,10 +198,8 @@ class LanguageConfigurationTest extends BrowserTestBase {
     // Reset language list.
     \Drupal::languageManager()->reset();
     $max_configurable_language_weight = $this->getHighestConfigurableLanguageWeight();
-    $replacements = ['@event' => $state];
     foreach (\Drupal::languageManager()->getLanguages(LanguageInterface::STATE_LOCKED) as $locked_language) {
-      $replacements['%language'] = $locked_language->getName();
-      $this->assertTrue($locked_language->getWeight() > $max_configurable_language_weight, new FormattableMarkup('System language %language has higher weight than configurable languages @event', $replacements));
+      $this->assertGreaterThan($max_configurable_language_weight, $locked_language->getWeight(), sprintf('System language %s does not have higher weight than configurable languages %s', $locked_language->getName(), $state));
     }
   }
 

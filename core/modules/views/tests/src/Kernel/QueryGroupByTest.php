@@ -71,12 +71,12 @@ class QueryGroupByTest extends ViewsKernelTestBase {
 
     $types = [];
     foreach ($view->result as $item) {
-      // num_records is a alias for id.
+      // num_records is an alias for id.
       $types[$item->entity_test_name] = $item->num_records;
     }
 
-    $this->assertEqual($types['name1'], 4, 'Groupby the name: name1 returned the expected amount of results.');
-    $this->assertEqual($types['name2'], 3, 'Groupby the name: name2 returned the expected amount of results.');
+    $this->assertEquals(4, $types['name1']);
+    $this->assertEquals(3, $types['name2']);
   }
 
   /**
@@ -294,7 +294,7 @@ class QueryGroupByTest extends ViewsKernelTestBase {
   }
 
   /**
-   * Tests groupby with a field not existing on some bundle.
+   * Tests groupby with a non-existent field on some bundle.
    */
   public function testGroupByWithFieldsNotExistingOnBundle() {
     $field_storage = FieldStorageConfig::create([

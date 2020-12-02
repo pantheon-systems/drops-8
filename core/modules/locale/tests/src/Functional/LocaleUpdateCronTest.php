@@ -51,7 +51,7 @@ class LocaleUpdateCronTest extends LocaleUpdateBase {
 
     // Update translations using batch to ensure a clean test starting point.
     $this->drupalGet('admin/reports/translations/check');
-    $this->drupalPostForm('admin/reports/translations', [], t('Update translations'));
+    $this->drupalPostForm('admin/reports/translations', [], 'Update translations');
 
     // Store translation status for comparison.
     $initial_history = locale_translation_get_file_history();
@@ -74,7 +74,7 @@ class LocaleUpdateCronTest extends LocaleUpdateBase {
     $edit = [
       'update_interval_days' => 0,
     ];
-    $this->drupalPostForm('admin/config/regional/translate/settings', $edit, t('Save configuration'));
+    $this->drupalPostForm('admin/config/regional/translate/settings', $edit, 'Save configuration');
 
     // Execute locale cron tasks to add tasks to the queue.
     locale_cron();
@@ -89,7 +89,7 @@ class LocaleUpdateCronTest extends LocaleUpdateBase {
     $edit = [
       'update_interval_days' => 7,
     ];
-    $this->drupalPostForm('admin/config/regional/translate/settings', $edit, t('Save configuration'));
+    $this->drupalPostForm('admin/config/regional/translate/settings', $edit, 'Save configuration');
 
     // Execute locale cron tasks to add tasks to the queue.
     locale_cron();
@@ -119,8 +119,10 @@ class LocaleUpdateCronTest extends LocaleUpdateBase {
     $history = locale_translation_get_file_history();
     $initial = $initial_history['contrib_module_two']['de'];
     $current = $history['contrib_module_two']['de'];
-    $this->assertTrue($current->timestamp > $initial->timestamp, 'Timestamp is updated');
-    $this->assertTrue($current->last_checked > $initial->last_checked, 'Last checked is updated');
+    // Verify that the translation of contrib_module_one is imported and
+    // updated.
+    $this->assertGreaterThan($initial->timestamp, $current->timestamp);
+    $this->assertGreaterThan($initial->last_checked, $current->last_checked);
   }
 
 }

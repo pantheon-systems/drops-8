@@ -202,19 +202,19 @@ function system_requirements($phase) {
   }
 
   // Check if the PHP version is below what Drupal supports.
-  if (version_compare($phpversion, DRUPAL_MINIMUM_SUPPORTED_PHP) < 0) {
-    $requirements['php']['description'] = t('Your PHP installation is too old. Drupal requires at least PHP %version. It is recommended to upgrade to PHP version %recommended or higher for the best ongoing support. See <a href="http://php.net/supported-versions.php">PHP\'s version support documentation</a> and the <a href=":php_requirements">Drupal 8 PHP requirements handbook page</a> for more information.',
+  if (version_compare($phpversion, \Drupal::MINIMUM_SUPPORTED_PHP) < 0) {
+    $requirements['php']['description'] = t('Your PHP installation is too old. Drupal requires at least PHP %version. It is recommended to upgrade to PHP version %recommended or higher for the best ongoing support. See <a href="http://php.net/supported-versions.php">PHP\'s version support documentation</a> and the <a href=":php_requirements">Environment requirements of Drupal 9</a> page for more information.',
       [
-        '%version' => DRUPAL_MINIMUM_SUPPORTED_PHP,
-        '%recommended' => DRUPAL_RECOMMENDED_PHP,
-        ':php_requirements' => 'https://www.drupal.org/docs/8/system-requirements/php',
+        '%version' => \Drupal::MINIMUM_SUPPORTED_PHP,
+        '%recommended' => \Drupal::RECOMMENDED_PHP,
+        ':php_requirements' => 'https://www.drupal.org/docs/9/how-drupal-9-is-made-and-what-is-included/environment-requirements-of-drupal-9#s-php-version-requirement',
       ]
     );
     $requirements['php']['severity'] = REQUIREMENT_ERROR;
 
     // If the PHP version is also below the absolute minimum allowed, it's not
     // safe to continue with the requirements check.
-    if (version_compare($phpversion, DRUPAL_MINIMUM_PHP) < 0) {
+    if (version_compare($phpversion, \Drupal::MINIMUM_PHP) < 0) {
       return $requirements;
     }
     // Otherwise downgrade the error to a warning during updates. Even if there
@@ -235,8 +235,8 @@ function system_requirements($phase) {
   // For PHP versions that are still supported but no longer recommended,
   // inform users of what's recommended, allowing them to take action before it
   // becomes urgent.
-  elseif ($phase === 'runtime' && version_compare($phpversion, DRUPAL_RECOMMENDED_PHP) < 0) {
-    $requirements['php']['description'] = t('It is recommended to upgrade to PHP version %recommended or higher for the best ongoing support.  See <a href="http://php.net/supported-versions.php">PHP\'s version support documentation</a> and the <a href=":php_requirements">Drupal 8 PHP requirements handbook page</a> for more information.', ['%recommended' => DRUPAL_RECOMMENDED_PHP, ':php_requirements' => 'https://www.drupal.org/docs/8/system-requirements/php']);
+  elseif ($phase === 'runtime' && version_compare($phpversion, \Drupal::RECOMMENDED_PHP) < 0) {
+    $requirements['php']['description'] = t('It is recommended to upgrade to PHP version %recommended or higher for the best ongoing support.  See <a href="http://php.net/supported-versions.php">PHP\'s version support documentation</a> and the <a href=":php_requirements">Drupal 8 PHP requirements handbook page</a> for more information.', ['%recommended' => \Drupal::RECOMMENDED_PHP, ':php_requirements' => 'https://www.drupal.org/docs/8/system-requirements/php']);
     $requirements['php']['severity'] = REQUIREMENT_INFO;
   }
 
@@ -269,7 +269,7 @@ function system_requirements($phase) {
 
   if (!empty($missing_extensions)) {
     $description = t('Drupal requires you to enable the PHP extensions in the following list (see the <a href=":system_requirements">system requirements page</a> for more information):', [
-      ':system_requirements' => 'https://www.drupal.org/requirements',
+      ':system_requirements' => 'https://www.drupal.org/docs/system-requirements',
     ]);
 
     // We use twig inline_template to avoid twig's autoescape.
@@ -316,7 +316,7 @@ function system_requirements($phase) {
       $apcu_actual_size = format_size($memory_info['seg_size']);
       $apcu_recommended_size = '32 MB';
       $requirements['php_apcu']['value'] = t('Enabled (@size)', ['@size' => $apcu_actual_size]);
-      if (Bytes::toInt($apcu_actual_size) < Bytes::toInt($apcu_recommended_size)) {
+      if (Bytes::toNumber($apcu_actual_size) < Bytes::toNumber($apcu_recommended_size)) {
         $requirements['php_apcu']['severity'] = REQUIREMENT_WARNING;
         $requirements['php_apcu']['description'] = t('Depending on your configuration, Drupal can run with a @apcu_size APCu limit. However, a @apcu_default_size APCu limit (the default) or above is recommended, especially if your site uses additional custom or contributed modules.', [
           '@apcu_size' => $apcu_actual_size,
@@ -396,7 +396,7 @@ function system_requirements($phase) {
     $database_ok = extension_loaded('pdo');
     if (!$database_ok) {
       $pdo_message = t('Your web server does not appear to support PDO (PHP Data Objects). Ask your hosting provider if they support the native PDO extension. See the <a href=":link">system requirements</a> page for more information.', [
-        ':link' => 'https://www.drupal.org/requirements/pdo',
+        ':link' => 'https://www.drupal.org/docs/system-requirements/php-requirements#database',
       ]);
     }
     else {
@@ -405,7 +405,7 @@ function system_requirements($phase) {
       if (empty($drivers)) {
         $database_ok = FALSE;
         $pdo_message = t('Your web server does not appear to support any common PDO database extensions. Check with your hosting provider to see if they support PDO (PHP Data Objects) and offer any databases that <a href=":drupal-databases">Drupal supports</a>.', [
-          ':drupal-databases' => 'https://www.drupal.org/requirements/database',
+          ':drupal-databases' => 'https://www.drupal.org/docs/system-requirements/database-server-requirements',
         ]);
       }
       // Make sure the native PDO extension is available, not the older PEAR
@@ -413,7 +413,7 @@ function system_requirements($phase) {
       if (!defined('PDO::ATTR_DEFAULT_FETCH_MODE')) {
         $database_ok = FALSE;
         $pdo_message = t('Your web server seems to have the wrong version of PDO installed. Drupal requires the PDO extension from PHP core. This system has the older PECL version. See the <a href=":link">system requirements</a> page for more information.', [
-          ':link' => 'https://www.drupal.org/requirements/pdo#pecl',
+          ':link' => 'https://www.drupal.org/docs/system-requirements/php-requirements#database',
         ]);
       }
     }
@@ -463,16 +463,16 @@ function system_requirements($phase) {
     'value' => $memory_limit == -1 ? t('-1 (Unlimited)') : $memory_limit,
   ];
 
-  if (!Environment::checkMemoryLimit(DRUPAL_MINIMUM_PHP_MEMORY_LIMIT, $memory_limit)) {
+  if (!Environment::checkMemoryLimit(\Drupal::MINIMUM_PHP_MEMORY_LIMIT, $memory_limit)) {
     $description = [];
     if ($phase == 'install') {
-      $description['phase'] = t('Consider increasing your PHP memory limit to %memory_minimum_limit to help prevent errors in the installation process.', ['%memory_minimum_limit' => DRUPAL_MINIMUM_PHP_MEMORY_LIMIT]);
+      $description['phase'] = t('Consider increasing your PHP memory limit to %memory_minimum_limit to help prevent errors in the installation process.', ['%memory_minimum_limit' => \Drupal::MINIMUM_PHP_MEMORY_LIMIT]);
     }
     elseif ($phase == 'update') {
-      $description['phase'] = t('Consider increasing your PHP memory limit to %memory_minimum_limit to help prevent errors in the update process.', ['%memory_minimum_limit' => DRUPAL_MINIMUM_PHP_MEMORY_LIMIT]);
+      $description['phase'] = t('Consider increasing your PHP memory limit to %memory_minimum_limit to help prevent errors in the update process.', ['%memory_minimum_limit' => \Drupal::MINIMUM_PHP_MEMORY_LIMIT]);
     }
     elseif ($phase == 'runtime') {
-      $description['phase'] = t('Depending on your configuration, Drupal can run with a %memory_limit PHP memory limit. However, a %memory_minimum_limit PHP memory limit or above is recommended, especially if your site uses additional custom or contributed modules.', ['%memory_limit' => $memory_limit, '%memory_minimum_limit' => DRUPAL_MINIMUM_PHP_MEMORY_LIMIT]);
+      $description['phase'] = t('Depending on your configuration, Drupal can run with a %memory_limit PHP memory limit. However, a %memory_minimum_limit PHP memory limit or above is recommended, especially if your site uses additional custom or contributed modules.', ['%memory_limit' => $memory_limit, '%memory_minimum_limit' => \Drupal::MINIMUM_PHP_MEMORY_LIMIT]);
     }
 
     if (!empty($description['phase'])) {
@@ -649,7 +649,6 @@ function system_requirements($phase) {
     ];
   }
   if ($phase != 'install') {
-    $filesystem_config = \Drupal::config('system.file');
     $directories = [
       PublicStream::basePath(),
       // By default no private files directory is configured. For private files
@@ -1075,14 +1074,6 @@ function system_requirements($phase) {
     case 'mbstring.encoding_translation':
       $requirements['unicode']['description'] = t('Multibyte string input conversion in PHP is active and must be disabled. Check the php.ini <em>mbstring.encoding_translation</em> setting. Please refer to the <a href="http://php.net/mbstring">PHP mbstring documentation</a> for more information.');
       break;
-
-    case 'mbstring.http_input':
-      $requirements['unicode']['description'] = t('Multibyte string input conversion in PHP is active and must be disabled. Check the php.ini <em>mbstring.http_input</em> setting. Please refer to the <a href="http://php.net/mbstring">PHP mbstring documentation</a> for more information.');
-      break;
-
-    case 'mbstring.http_output':
-      $requirements['unicode']['description'] = t('Multibyte string output conversion in PHP is active and must be disabled. Check the php.ini <em>mbstring.http_output</em> setting. Please refer to the <a href="http://php.net/mbstring">PHP mbstring documentation</a> for more information.');
-      break;
   }
 
   if ($phase == 'runtime') {
@@ -1338,71 +1329,6 @@ function system_install() {
  * Implements hook_schema().
  */
 function system_schema() {
-  $schema['key_value'] = [
-    'description' => 'Generic key-value storage table. See the state system for an example.',
-    'fields' => [
-      'collection' => [
-        'description' => 'A named collection of key and value pairs.',
-        'type' => 'varchar_ascii',
-        'length' => 128,
-        'not null' => TRUE,
-        'default' => '',
-      ],
-      'name' => [
-        'description' => 'The key of the key-value pair. As KEY is a SQL reserved keyword, name was chosen instead.',
-        'type' => 'varchar_ascii',
-        'length' => 128,
-        'not null' => TRUE,
-        'default' => '',
-      ],
-      'value' => [
-        'description' => 'The value.',
-        'type' => 'blob',
-        'not null' => TRUE,
-        'size' => 'big',
-      ],
-    ],
-    'primary key' => ['collection', 'name'],
-  ];
-
-  $schema['key_value_expire'] = [
-    'description' => 'Generic key/value storage table with an expiration.',
-    'fields' => [
-      'collection' => [
-        'description' => 'A named collection of key and value pairs.',
-        'type' => 'varchar_ascii',
-        'length' => 128,
-        'not null' => TRUE,
-        'default' => '',
-      ],
-      'name' => [
-        // KEY is an SQL reserved word, so use 'name' as the key's field name.
-        'description' => 'The key of the key/value pair.',
-        'type' => 'varchar_ascii',
-        'length' => 128,
-        'not null' => TRUE,
-        'default' => '',
-      ],
-      'value' => [
-        'description' => 'The value of the key/value pair.',
-        'type' => 'blob',
-        'not null' => TRUE,
-        'size' => 'big',
-      ],
-      'expire' => [
-        'description' => 'The time since Unix epoch in seconds when this item expires. Defaults to the maximum possible time.',
-        'type' => 'int',
-        'not null' => TRUE,
-        'default' => 2147483647,
-      ],
-    ],
-    'primary key' => ['collection', 'name'],
-    'indexes' => [
-      'all' => ['name', 'collection', 'expire'],
-      'expire' => ['expire'],
-    ],
-  ];
-
   $schema['sequences'] = [
     'description' => 'Stores IDs.',
     'fields' => [

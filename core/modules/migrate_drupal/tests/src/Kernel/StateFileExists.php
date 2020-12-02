@@ -66,6 +66,7 @@ class StateFileExists extends MigrateDrupalTestBase {
     'options',
     'path',
     'rdf',
+    'responsive_image',
     'search',
     'shortcut',
     'statistics',
@@ -91,14 +92,14 @@ class StateFileExists extends MigrateDrupalTestBase {
     $this->enableModules($modules_to_enable);
 
     // Modules with a migrate_drupal.yml file.
-    $has_state_file = (new YamlDiscovery('migrate_drupal', array_map(function (&$value) {
+    $has_state_file = (new YamlDiscovery('migrate_drupal', array_map(function ($value) {
       return $value . '/migrations/state';
     }, $module_handler->getModuleDirectories())))->findAll();
 
     foreach ($this->stateFileRequired as $module) {
       $this->assertArrayHasKey($module, $has_state_file, sprintf("Module '%s' should have a migrate_drupal.yml file", $module));
     }
-    $this->assertEquals(count($this->stateFileRequired), count($has_state_file));
+    $this->assertSame(count($this->stateFileRequired), count($has_state_file));
   }
 
 }

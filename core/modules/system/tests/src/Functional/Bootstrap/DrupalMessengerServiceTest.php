@@ -35,27 +35,27 @@ class DrupalMessengerServiceTest extends BrowserTestBase {
     $this->assertRaw(t('Second message with <em>markup!</em> (not removed).'));
 
     // Ensure duplicate messages are handled as expected.
-    $this->assertUniqueText('Non Duplicated message');
-    $this->assertNoUniqueText('Duplicated message');
+    $this->assertSession()->pageTextMatchesCount(1, '/Non Duplicated message/');
+    $this->assertSession()->pageTextMatchesCount(3, '/Duplicated message/');
 
     // Ensure Markup objects are rendered as expected.
     $this->assertRaw('Markup with <em>markup!</em>');
-    $this->assertUniqueText('Markup with markup!');
+    $this->assertSession()->pageTextMatchesCount(1, '/Markup with markup!/');
     $this->assertRaw('Markup2 with <em>markup!</em>');
 
     // Ensure when the same message is of different types it is not duplicated.
-    $this->assertUniqueText('Non duplicate Markup / string.');
-    $this->assertNoUniqueText('Duplicate Markup / string.');
+    $this->assertSession()->pageTextMatchesCount(1, '$Non duplicate Markup / string.$');
+    $this->assertSession()->pageTextMatchesCount(2, '$Duplicate Markup / string.$');
 
     // Ensure that strings that are not marked as safe are escaped.
-    $this->assertEscaped('<em>This<span>markup will be</span> escaped</em>.');
+    $this->assertSession()->assertEscaped('<em>This<span>markup will be</span> escaped</em>.');
 
     // Ensure messages survive a container rebuild.
     $assert = $this->assertSession();
     $this->drupalLogin($this->rootUser);
     $edit = [];
     $edit["modules[help][enable]"] = TRUE;
-    $this->drupalPostForm('admin/modules', $edit, t('Install'));
+    $this->drupalPostForm('admin/modules', $edit, 'Install');
     $assert->pageTextContains('Help has been enabled');
     $assert->pageTextContains('system_test_preinstall_module called');
   }

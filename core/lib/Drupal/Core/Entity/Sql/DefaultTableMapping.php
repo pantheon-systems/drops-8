@@ -397,6 +397,15 @@ class DefaultTableMapping implements TableMappingInterface {
   /**
    * {@inheritdoc}
    */
+  public function getAllFieldTableNames($field_name) {
+    return array_keys(array_filter($this->fieldNames, function ($table_fields) use ($field_name) {
+      return in_array($field_name, $table_fields, TRUE);
+    }));
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function getColumnNames($field_name) {
     if (!isset($this->columnMapping[$field_name])) {
       $this->columnMapping[$field_name] = [];
@@ -466,7 +475,7 @@ class DefaultTableMapping implements TableMappingInterface {
   }
 
   /**
-   * Adds a extra columns for a table to the table mapping.
+   * Adds extra columns for a table to the table mapping.
    *
    * @param string $table_name
    *   The name of table to add the extra columns for.

@@ -10,6 +10,7 @@
   --color-whitesmoke-light: #fafbfd;
   --color-whitesmoke-o-40: rgba(243, 244, 249, 0.4);
   /* Secondary. */
+  --color-lightdiamond: #dedfe4;
   --color-lightgray: #d4d4d8;
   --color-lightgray-o-80: rgba(212, 212, 218, 0.8);
   --color-grayblue: #8e929c;
@@ -77,6 +78,10 @@
   --outline-size: 2px;
   --focus-outline: var(--outline-size) dotted transparent;
   --focus-box-shadow: 0 0 0 var(--focus-border-offset-size) var(--color-white), 0 0 0 calc(var(--focus-border-size) + var(--focus-border-offset-size)) var(--color-focus);
+  /**
+   * Shadows.
+   */
+  --shadow-z3: 0 14px 30px rgba(0, 0, 0, 0.1);
   /*
    * Inputs.
    */
@@ -102,6 +107,10 @@
   --input-padding-horizontal: calc(var(--space-m) - var(--input-border-size));
   --input-font-size: var(--font-size-base);
   --input-line-height: var(--space-l);
+  --input-padding-vertical--small: calc(var(--space-xs) - (var(--input-border-size) * 2));
+  --input-padding-horizontal--small: calc(var(--space-m) - var(--input-border-size));
+  --input-font-size--small: var(--font-size-xs);
+  --input-line-height--small: 1.3125rem;
   --input--extrasmall-padding-vertical: calc(0.15rem - var(--input-border-size));
   --input--extrasmall-padding-horizontal: calc(var(--space-xs) - var(--input-border-size));
   --input--extrasmall-font-size: var(--font-size-s);
@@ -112,7 +121,7 @@
    * Details.
    */
   --details-bg-color: rgba(243, 244, 249, 0.4);
-  --details-border-color: rgba(216, 217, 224, 0.8);
+  --details-border-color: var(--color-lightdiamond);
   --details-summary-shadow-color: var(--color-focus);
   --details-summary-focus-border-size: var(--focus-border-size);
   --details-desktop-wrapper-padding-start: calc(var(--space-m) + var(--space-s) + var(--space-xs));
@@ -124,6 +133,7 @@
   --details-bg-color-transition-duration: 0.12s;
   --details-box-shadow-transition-duration: 0.2s;
   --details-transform-transition-duration: 0.12s;
+  --details-line-height: 1.295rem;
   /**
    * Buttons.
    */
@@ -196,4 +206,26 @@
    * Breadcrumb.
    */
   --breadcrumb-height: 1.25rem;
+  /**
+    * Vertical Tabs.
+    */
+  --vertical-tabs-margin-vertical: var(--space-s);
+  --vertical-tabs-border-radius: var(--details-accordion-border-size-radius);
+  --vertical-tabs-shadow: var(--details-box-shadow);
+  --vertical-tabs-border-color: var(--details-border-color);
+  --vertical-tabs-border-size: 1px;
+  --vertical-tabs-border: var(--vertical-tabs-border-size) solid var(--vertical-tabs-border-color);
+  --vertical-tabs-menu-item-shadow-extraspace: 0.5rem;
+  --vertical-tabs-menu-item--top-margin: calc(var(--vertical-tabs-menu-item-shadow-extraspace) * -2);
+  --vertical-tabs-menu-item--right-margin: calc(var(--vertical-tabs-border-size) * -1);
+  --vertical-tabs-menu-item--bottom-margin: calc(var(--vertical-tabs-menu-item-shadow-extraspace) * -1);
+  --vertical-tabs-menu-item--left-margin: calc(var(--vertical-tabs-menu-item-shadow-extraspace) * -1);
+  --vertical-tabs-menu-separator-color: var(--color-lightgray);
+  --vertical-tabs-menu-separator-size: 1px;
+  --vertical-tabs-menu-width: 20em;
+  --vertical-tabs-pane-width: calc(100% - var(--vertical-tabs-menu-width));
+  --vertical-tabs-menu-link-focus-border-size: var(--details-summary-focus-border-size);
+  --vertical-tabs-menu-link--active-border-size: 4px;
+  --vertical-tabs-menu-link--active-border-color: var(--color-absolutezero);
+  --vertical-tabs-menu--z-index: 0;
 }

@@ -49,33 +49,33 @@ class TermLanguageTest extends TaxonomyTestBase {
     $edit = [
       'default_language[language_alterable]' => TRUE,
     ];
-    $this->drupalPostForm('admin/structure/taxonomy/manage/' . $this->vocabulary->id(), $edit, t('Save'));
+    $this->drupalPostForm('admin/structure/taxonomy/manage/' . $this->vocabulary->id(), $edit, 'Save');
 
     // Add a term.
     $this->drupalGet('admin/structure/taxonomy/manage/' . $this->vocabulary->id() . '/add');
     // Check that we have the language selector.
-    $this->assertField('edit-langcode-0-value', t('The language selector field was found on the page.'));
+    $this->assertSession()->fieldExists('edit-langcode-0-value');
     // Submit the term.
     $edit = [
       'name[0][value]' => $this->randomMachineName(),
       'langcode[0][value]' => 'aa',
     ];
-    $this->drupalPostForm(NULL, $edit, t('Save'));
+    $this->submitForm($edit, 'Save');
     $terms = taxonomy_term_load_multiple_by_name($edit['name[0][value]']);
     $term = reset($terms);
     $this->assertEqual($term->language()->getId(), $edit['langcode[0][value]'], 'The term contains the correct langcode.');
 
     // Check if on the edit page the language is correct.
     $this->drupalGet('taxonomy/term/' . $term->id() . '/edit');
-    $this->assertOptionSelected('edit-langcode-0-value', $edit['langcode[0][value]'], 'The term language was correctly selected.');
+    $this->assertTrue($this->assertSession()->optionExists('edit-langcode-0-value', $edit['langcode[0][value]'])->isSelected());
 
     // Change the language of the term.
     $edit['langcode[0][value]'] = 'bb';
-    $this->drupalPostForm('taxonomy/term/' . $term->id() . '/edit', $edit, t('Save'));
+    $this->drupalPostForm('taxonomy/term/' . $term->id() . '/edit', $edit, 'Save');
 
     // Check again that on the edit page the language is correct.
     $this->drupalGet('taxonomy/term/' . $term->id() . '/edit');
-    $this->assertOptionSelected('edit-langcode-0-value', $edit['langcode[0][value]'], 'The term language was correctly selected.');
+    $this->assertTrue($this->assertSession()->optionExists('edit-langcode-0-value', $edit['langcode[0][value]'])->isSelected());
   }
 
   public function testDefaultTermLanguage() {
@@ -85,20 +85,20 @@ class TermLanguageTest extends TaxonomyTestBase {
       'default_language[langcode]' => 'bb',
       'default_language[language_alterable]' => TRUE,
     ];
-    $this->drupalPostForm('admin/structure/taxonomy/manage/' . $this->vocabulary->id(), $edit, t('Save'));
+    $this->drupalPostForm('admin/structure/taxonomy/manage/' . $this->vocabulary->id(), $edit, 'Save');
     $this->drupalGet('admin/structure/taxonomy/manage/' . $this->vocabulary->id() . '/add');
-    $this->assertOptionSelected('edit-langcode-0-value', 'bb', 'The expected langcode was selected.');
+    $this->assertTrue($this->assertSession()->optionExists('edit-langcode-0-value', 'bb')->isSelected());
 
     // Make the default language of the terms to be the current interface.
     $edit = [
       'default_language[langcode]' => 'current_interface',
       'default_language[language_alterable]' => TRUE,
     ];
-    $this->drupalPostForm('admin/structure/taxonomy/manage/' . $this->vocabulary->id(), $edit, t('Save'));
+    $this->drupalPostForm('admin/structure/taxonomy/manage/' . $this->vocabulary->id(), $edit, 'Save');
     $this->drupalGet('aa/admin/structure/taxonomy/manage/' . $this->vocabulary->id() . '/add');
-    $this->assertOptionSelected('edit-langcode-0-value', 'aa', "The expected langcode, 'aa', was selected.");
+    $this->assertTrue($this->assertSession()->optionExists('edit-langcode-0-value', 'aa')->isSelected());
     $this->drupalGet('bb/admin/structure/taxonomy/manage/' . $this->vocabulary->id() . '/add');
-    $this->assertOptionSelected('edit-langcode-0-value', 'bb', "The expected langcode, 'bb', was selected.");
+    $this->assertTrue($this->assertSession()->optionExists('edit-langcode-0-value', 'bb')->isSelected());
 
     // Change the default language of the site and check if the default terms
     // language is still correctly selected.
@@ -107,9 +107,9 @@ class TermLanguageTest extends TaxonomyTestBase {
       'default_language[langcode]' => LanguageInterface::LANGCODE_SITE_DEFAULT,
       'default_language[language_alterable]' => TRUE,
     ];
-    $this->drupalPostForm('admin/structure/taxonomy/manage/' . $this->vocabulary->id(), $edit, t('Save'));
+    $this->drupalPostForm('admin/structure/taxonomy/manage/' . $this->vocabulary->id(), $edit, 'Save');
     $this->drupalGet('admin/structure/taxonomy/manage/' . $this->vocabulary->id() . '/add');
-    $this->assertOptionSelected('edit-langcode-0-value', 'cc', "The expected langcode, 'cc', was selected.");
+    $this->assertTrue($this->assertSession()->optionExists('edit-langcode-0-value', 'cc')->isSelected());
   }
 
   /**
@@ -120,7 +120,7 @@ class TermLanguageTest extends TaxonomyTestBase {
     $edit = [
       'default_language[language_alterable]' => TRUE,
     ];
-    $this->drupalPostForm('admin/structure/taxonomy/manage/' . $this->vocabulary->id(), $edit, t('Save'));
+    $this->drupalPostForm('admin/structure/taxonomy/manage/' . $this->vocabulary->id(), $edit, 'Save');
 
     // Add a term.
     $this->drupalGet('admin/structure/taxonomy/manage/' . $this->vocabulary->id() . '/add');
@@ -129,7 +129,7 @@ class TermLanguageTest extends TaxonomyTestBase {
       'name[0][value]' => $this->randomMachineName(),
       'langcode[0][value]' => 'aa',
     ];
-    $this->drupalPostForm(NULL, $edit, t('Save'));
+    $this->submitForm($edit, 'Save');
     $terms = taxonomy_term_load_multiple_by_name($edit['name[0][value]']);
     $term = reset($terms);
 
@@ -142,7 +142,7 @@ class TermLanguageTest extends TaxonomyTestBase {
 
     // Overview page in the other language shows the translated term
     $this->drupalGet('bb/admin/structure/taxonomy/manage/' . $this->vocabulary->id() . '/overview');
-    $this->assertPattern('|<a[^>]*>' . $translated_title . '</a>|');
+    $this->assertSession()->responseMatches('|<a[^>]*>' . $translated_title . '</a>|');
   }
 
 }

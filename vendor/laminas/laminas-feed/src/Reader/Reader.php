@@ -90,6 +90,24 @@ class Reader implements ReaderImportInterface
     ];
 
     /**
+     * Disable the ability to load external XML entities based on libxml version
+     *
+     * If we are using libxml < 2.9, unsafe XML entity loading must be
+     * disabled with a flag.
+     *
+     * If we are using libxml >= 2.9, XML entity loading is disabled by default.
+     *
+     * @return bool
+     */
+    public static function disableEntityLoader($flag = true)
+    {
+        if (LIBXML_VERSION < 20900) {
+            return libxml_disable_entity_loader($flag);
+        }
+        return $flag;
+    }
+
+    /**
      * Get the Feed cache
      *
      * @return CacheStorage
@@ -302,8 +320,9 @@ class Reader implements ReaderImportInterface
     /**
      * Import a feed from a string
      *
-     * @param  string $string
+     * @param string $string
      * @return Feed\FeedInterface
+     *
      * @throws Exception\InvalidArgumentException
      * @throws Exception\RuntimeException
      */
@@ -314,10 +333,10 @@ class Reader implements ReaderImportInterface
             throw new Exception\InvalidArgumentException('Only non empty strings are allowed as input');
         }
 
-        $libxmlErrflag = libxml_use_internal_errors(true);
-        $oldValue      = libxml_disable_entity_loader(true);
-        $dom           = new DOMDocument();
-        $status        = $dom->loadXML(trim($string));
+        $libxmlErrflag           = libxml_use_internal_errors(true);
+        $disableEntityLoaderFlag = self::disableEntityLoader();
+        $dom                     = new DOMDocument();
+        $status                  = $dom->loadXML(trim($string));
         foreach ($dom->childNodes as $child) {
             if ($child->nodeType === XML_DOCUMENT_TYPE_NODE) {
                 throw new Exception\InvalidArgumentException(
@@ -325,7 +344,7 @@ class Reader implements ReaderImportInterface
                 );
             }
         }
-        libxml_disable_entity_loader($oldValue);
+        self::disableEntityLoader($disableEntityLoaderFlag);
         libxml_use_internal_errors($libxmlErrflag);
 
         if (! $status) {
@@ -393,12 +412,12 @@ class Reader implements ReaderImportInterface
                 "Failed to access $uri, got response code " . $response->getStatusCode()
             );
         }
-        $responseHtml  = $response->getBody();
-        $libxmlErrflag = libxml_use_internal_errors(true);
-        $oldValue      = libxml_disable_entity_loader(true);
-        $dom           = new DOMDocument();
-        $status        = $dom->loadHTML(trim($responseHtml));
-        libxml_disable_entity_loader($oldValue);
+        $responseHtml            = $response->getBody();
+        $libxmlErrflag           = libxml_use_internal_errors(true);
+        $disableEntityLoaderFlag = self::disableEntityLoader();
+        $dom                     = new DOMDocument();
+        $status                  = $dom->loadHTML(trim($responseHtml));
+        self::disableEntityLoader($disableEntityLoaderFlag);
         libxml_use_internal_errors($libxmlErrflag);
         if (! $status) {
             // Build error message
@@ -435,9 +454,9 @@ class Reader implements ReaderImportInterface
         } elseif (is_string($feed) && ! empty($feed)) {
             ErrorHandler::start(E_NOTICE | E_WARNING);
             ini_set('track_errors', 1);
-            $oldValue = libxml_disable_entity_loader(true);
-            $dom      = new DOMDocument();
-            $status   = $dom->loadXML($feed);
+            $disableEntityLoaderFlag = self::disableEntityLoader();
+            $dom                     = new DOMDocument();
+            $status                  = $dom->loadXML($feed);
             foreach ($dom->childNodes as $child) {
                 if ($child->nodeType === XML_DOCUMENT_TYPE_NODE) {
                     throw new Exception\InvalidArgumentException(
@@ -445,7 +464,7 @@ class Reader implements ReaderImportInterface
                     );
                 }
             }
-            libxml_disable_entity_loader($oldValue);
+            self::disableEntityLoader($disableEntityLoaderFlag);
             ini_restore('track_errors');
             ErrorHandler::stop();
             if (! $status) {
@@ -546,6 +565,8 @@ class Reader implements ReaderImportInterface
 
     /**
      * Set plugin manager for use with Extensions
+     *
+     * @return void
      */
     public static function setExtensionManager(ExtensionManagerInterface $extensionManager)
     {

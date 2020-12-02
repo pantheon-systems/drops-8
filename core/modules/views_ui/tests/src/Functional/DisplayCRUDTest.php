@@ -19,7 +19,7 @@ class DisplayCRUDTest extends UITestBase {
   public static $testViews = ['test_display'];
 
   /**
-   * Modules to enable
+   * Modules to enable.
    *
    * @var array
    */
@@ -44,14 +44,14 @@ class DisplayCRUDTest extends UITestBase {
     $this->drupalGet($path_prefix);
 
     // Add a new display.
-    $this->drupalPostForm(NULL, [], 'Add Page');
-    $this->assertLinkByHref($path_prefix . '/page_1', 0, 'Make sure after adding a display the new display appears in the UI');
+    $this->submitForm([], 'Add Page');
+    $this->assertSession()->linkByHrefExists($path_prefix . '/page_1', 0, 'Make sure after adding a display the new display appears in the UI');
 
     $this->assertSession()->linkNotExists('Master*', 'Make sure the master display is not marked as changed.');
     $this->assertSession()->linkExists('Page*', 0, 'Make sure the added display is marked as changed.');
 
-    $this->drupalPostForm("admin/structure/views/nojs/display/{$view['id']}/page_1/path", ['path' => 'test/path'], t('Apply'));
-    $this->drupalPostForm(NULL, [], t('Save'));
+    $this->drupalPostForm("admin/structure/views/nojs/display/{$view['id']}/page_1/path", ['path' => 'test/path'], 'Apply');
+    $this->submitForm([], 'Save');
   }
 
   /**
@@ -61,15 +61,16 @@ class DisplayCRUDTest extends UITestBase {
     $view = $this->randomView();
     $path_prefix = 'admin/structure/views/view/' . $view['id'] . '/edit';
 
+    // Make sure there is no delete button on the default display.
     $this->drupalGet($path_prefix . '/default');
-    $this->assertNoFieldById('edit-displays-settings-settings-content-tab-content-details-top-actions-delete', 'Delete Page', 'Make sure there is no delete button on the default display.');
+    $this->assertSession()->buttonNotExists('edit-displays-settings-settings-content-tab-content-details-top-actions-delete');
 
     $this->drupalGet($path_prefix . '/page_1');
-    $this->assertFieldById('edit-displays-settings-settings-content-tab-content-details-top-actions-delete', 'Delete Page', 'Make sure there is a delete button on the page display.');
+    $this->assertSession()->buttonExists('edit-displays-settings-settings-content-tab-content-details-top-actions-delete');
 
     // Delete the page, so we can test the undo process.
     $this->drupalPostForm($path_prefix . '/page_1', [], 'Delete Page');
-    $this->assertFieldById('edit-displays-settings-settings-content-tab-content-details-top-actions-undo-delete', 'Undo delete of Page', 'Make sure there a undo button on the page display after deleting.');
+    $this->assertSession()->buttonExists('edit-displays-settings-settings-content-tab-content-details-top-actions-undo-delete');
     $element = $this->xpath('//a[contains(@href, :href) and contains(@class, :class)]', [':href' => $path_prefix . '/page_1', ':class' => 'views-display-deleted-link']);
     $this->assertTrue(!empty($element), 'Make sure the display link is marked as to be deleted.');
 
@@ -78,24 +79,24 @@ class DisplayCRUDTest extends UITestBase {
 
     // Undo the deleting of the display.
     $this->drupalPostForm($path_prefix . '/page_1', [], 'Undo delete of Page');
-    $this->assertNoFieldById('edit-displays-settings-settings-content-tab-content-details-top-actions-undo-delete', 'Undo delete of Page', 'Make sure there is no undo button on the page display after reverting.');
-    $this->assertFieldById('edit-displays-settings-settings-content-tab-content-details-top-actions-delete', 'Delete Page', 'Make sure there is a delete button on the page display after the reverting.');
+    $this->assertSession()->buttonNotExists('edit-displays-settings-settings-content-tab-content-details-top-actions-undo-delete');
+    $this->assertSession()->buttonExists('edit-displays-settings-settings-content-tab-content-details-top-actions-delete');
 
     // Now delete again and save the view.
     $this->drupalPostForm($path_prefix . '/page_1', [], 'Delete Page');
-    $this->drupalPostForm(NULL, [], t('Save'));
+    $this->submitForm([], 'Save');
 
-    $this->assertNoLinkByHref($path_prefix . '/page_1', 'Make sure there is no display tab for the deleted display.');
+    $this->assertSession()->linkByHrefNotExists($path_prefix . '/page_1', 'Make sure there is no display tab for the deleted display.');
 
     // Test deleting a display that has a modified machine name.
     $view = $this->randomView();
     $machine_name = 'new_machine_name';
     $path_prefix = 'admin/structure/views/view/' . $view['id'] . '/edit';
     $this->drupalPostForm("admin/structure/views/nojs/display/{$view['id']}/page_1/display_id", ['display_id' => $machine_name], 'Apply');
-    $this->drupalPostForm(NULL, [], 'Delete Page');
-    $this->drupalPostForm(NULL, [], t('Save'));
+    $this->submitForm([], 'Delete Page');
+    $this->submitForm([], 'Save');
     $this->assertSession()->statusCodeEquals(200);
-    $this->assertNoLinkByHref($path_prefix . '/new_machine_name', 'Make sure there is no display tab for the deleted display.');
+    $this->assertSession()->linkByHrefNotExists($path_prefix . '/new_machine_name', 'Make sure there is no display tab for the deleted display.');
   }
 
   /**
@@ -116,24 +117,25 @@ class DisplayCRUDTest extends UITestBase {
     $path = $view['page[path]'];
 
     $this->drupalGet($path_prefix);
-    $this->drupalPostForm(NULL, [], 'Duplicate Page');
-    $this->assertLinkByHref($path_prefix . '/page_2', 0, 'Make sure after duplicating the new display appears in the UI');
-    $this->assertUrl($path_prefix . '/page_2', [], 'The user got redirected to the new display.');
+    $this->submitForm([], 'Duplicate Page');
+    // Verify that the user got redirected to the new display.
+    $this->assertSession()->linkByHrefExists($path_prefix . '/page_2', 0, 'Make sure after duplicating the new display appears in the UI');
+    $this->assertSession()->addressEquals($path_prefix . '/page_2');
 
     // Set the title and override the css classes.
     $random_title = $this->randomMachineName();
     $random_css = $this->randomMachineName();
-    $this->drupalPostForm("admin/structure/views/nojs/display/{$view['id']}/page_2/title", ['title' => $random_title], t('Apply'));
-    $this->drupalPostForm("admin/structure/views/nojs/display/{$view['id']}/page_2/css_class", ['override[dropdown]' => 'page_2', 'css_class' => $random_css], t('Apply'));
+    $this->drupalPostForm("admin/structure/views/nojs/display/{$view['id']}/page_2/title", ['title' => $random_title], 'Apply');
+    $this->drupalPostForm("admin/structure/views/nojs/display/{$view['id']}/page_2/css_class", ['override[dropdown]' => 'page_2', 'css_class' => $random_css], 'Apply');
 
     // Duplicate as a different display type.
-    $this->drupalPostForm(NULL, [], 'Duplicate as Block');
-    $this->assertLinkByHref($path_prefix . '/block_1', 0, 'Make sure after duplicating the new display appears in the UI');
-    $this->assertUrl($path_prefix . '/block_1', [], 'The user got redirected to the new display.');
-    $this->assertText(t('Block settings'));
-    $this->assertNoText(t('Page settings'));
+    $this->submitForm([], 'Duplicate as Block');
+    $this->assertSession()->linkByHrefExists($path_prefix . '/block_1', 0, 'Make sure after duplicating the new display appears in the UI');
+    $this->assertSession()->addressEquals($path_prefix . '/block_1');
+    $this->assertText('Block settings');
+    $this->assertNoText('Page settings');
 
-    $this->drupalPostForm(NULL, [], t('Save'));
+    $this->submitForm([], 'Save');
     $view = Views::getView($view['id']);
     $view->initDisplay();
 
@@ -152,8 +154,8 @@ class DisplayCRUDTest extends UITestBase {
     // Test duplicating a display after changing the machine name.
     $view_id = $view->id();
     $this->drupalPostForm("admin/structure/views/nojs/display/$view_id/page_2/display_id", ['display_id' => 'page_new'], 'Apply');
-    $this->drupalPostForm(NULL, [], 'Duplicate as Block');
-    $this->drupalPostForm(NULL, [], t('Save'));
+    $this->submitForm([], 'Duplicate as Block');
+    $this->submitForm([], 'Save');
     $view = Views::getView($view_id);
     $view->initDisplay();
     $this->assertNotNull($view->displayHandlers->get('page_new'), 'The original display is saved with a changed id');

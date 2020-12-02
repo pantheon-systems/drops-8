@@ -114,7 +114,7 @@ class BookManager implements BookManagerInterface {
       // @todo: use route name for links, not system path.
       foreach ($book_links as $link) {
         $nid = $link['nid'];
-        if (isset($nodes[$nid]) && $nodes[$nid]->status) {
+        if (isset($nodes[$nid]) && $nodes[$nid]->access('view')) {
           $link['url'] = $nodes[$nid]->toUrl();
           $link['title'] = $nodes[$nid]->label();
           $link['type'] = $nodes[$nid]->bundle();
@@ -220,7 +220,7 @@ class BookManager implements BookManagerInterface {
       // The node can become a new book, if it is not one already.
       $options = [$nid => $this->t('- Create a new book -')] + $options;
     }
-    if (!$node->book['bid']) {
+    if (!$node->book['bid'] || $nid === 'new' || $node->book['original_bid'] === 0) {
       // The node is not currently in the hierarchy.
       $options = [0 => $this->t('- None -')] + $options;
     }
@@ -957,12 +957,10 @@ class BookManager implements BookManagerInterface {
 
       // @todo This should be actually filtering on the desired node status
       //   field language and just fall back to the default language.
-      $nids = \Drupal::entityQuery('node')
-        ->condition('nid', $nids, 'IN')
-        ->condition('status', 1)
-        ->execute();
+      $book_links = $this->bookOutlineStorage->loadMultiple($nids);
 
-      foreach ($nids as $nid) {
+      foreach ($book_links as $book_link) {
+        $nid = $book_link['nid'];
         foreach ($node_links[$nid] as $mlid => $link) {
           $node_links[$nid][$mlid]['access'] = TRUE;
         }
@@ -1002,19 +1000,14 @@ class BookManager implements BookManagerInterface {
    * {@inheritdoc}
    */
   public function bookLinkTranslate(&$link) {
-    $node = NULL;
-    // Access will already be set in the tree functions.
-    if (!isset($link['access'])) {
-      $node = $this->entityTypeManager->getStorage('node')->load($link['nid']);
-      $link['access'] = $node && $node->access('view');
-    }
+    // Check access via the api, since the query node_access tag doesn't check
+    // for unpublished nodes.
+    // @todo - load the nodes en-mass rather than individually.
+    // @see https://www.drupal.org/project/drupal/issues/2470896
+    $node = $this->entityTypeManager->getStorage('node')->load($link['nid']);
+    $link['access'] = $node && $node->access('view');
     // For performance, don't localize a link the user can't access.
     if ($link['access']) {
-      // @todo - load the nodes en-mass rather than individually.
-      if (!$node) {
-        $node = $this->entityTypeManager->getStorage('node')
-          ->load($link['nid']);
-      }
       // The node label will be the value for the current user's language.
       $link['title'] = $node->label();
       $link['options'] = [];

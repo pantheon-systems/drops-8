@@ -170,7 +170,8 @@ abstract class FileManagedUnitTestBase extends KernelTestBase {
     $file->save();
     // Write the record directly rather than using the API so we don't invoke
     // the hooks.
-    $this->assertTrue($file->id() > 0, 'The file was added to the database.', 'Create test file');
+    // Verify that the file was added to the database.
+    $this->assertGreaterThan(0, $file->id());
 
     \Drupal::state()->set('file_test.count_hook_invocations', TRUE);
     return $file;
@@ -196,6 +197,7 @@ abstract class FileManagedUnitTestBase extends KernelTestBase {
     if (!isset($filepath)) {
       // Prefix with non-latin characters to ensure that all file-related
       // tests work with international filenames.
+      // cSpell:disable-next-line
       $filepath = 'Файл для тестирования ' . $this->randomMachineName();
     }
     if (!isset($scheme)) {

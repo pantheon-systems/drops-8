@@ -214,12 +214,15 @@ abstract class InstallerTestBase extends BrowserTestBase {
 
   /**
    * Installer step: Select language.
+   *
+   * @see \Drupal\Core\Installer\Form\SelectLanguageForm
    */
   protected function setUpLanguage() {
     $edit = [
       'langcode' => $this->langcode,
     ];
-    $this->drupalPostForm(NULL, $edit, $this->translations['Save and continue']);
+    // The 'Select Language' step is always English.
+    $this->submitForm($edit, 'Save and continue');
   }
 
   /**
@@ -229,7 +232,7 @@ abstract class InstallerTestBase extends BrowserTestBase {
     $edit = [
       'profile' => $this->profile,
     ];
-    $this->drupalPostForm(NULL, $edit, $this->translations['Save and continue']);
+    $this->submitForm($edit, $this->translations['Save and continue']);
   }
 
   /**
@@ -237,7 +240,7 @@ abstract class InstallerTestBase extends BrowserTestBase {
    */
   protected function setUpSettings() {
     $edit = $this->translatePostValues($this->parameters['forms']['install_settings_form']);
-    $this->drupalPostForm(NULL, $edit, $this->translations['Save and continue']);
+    $this->submitForm($edit, $this->translations['Save and continue']);
   }
 
   /**
@@ -257,7 +260,7 @@ abstract class InstallerTestBase extends BrowserTestBase {
    */
   protected function setUpSite() {
     $edit = $this->translatePostValues($this->parameters['forms']['install_configure_form']);
-    $this->drupalPostForm(NULL, $edit, $this->translations['Save and continue']);
+    $this->submitForm($edit, $this->translations['Save and continue']);
     // If we've got to this point the site is installed using the regular
     // installation workflow.
     $this->isInstalled = TRUE;

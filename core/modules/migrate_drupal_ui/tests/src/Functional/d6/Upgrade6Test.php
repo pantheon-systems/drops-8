@@ -4,7 +4,6 @@ namespace Drupal\Tests\migrate_drupal_ui\Functional\d6;
 
 use Drupal\node\Entity\Node;
 use Drupal\Tests\migrate_drupal_ui\Functional\MigrateUpgradeExecuteTestBase;
-use Drupal\user\Entity\User;
 
 /**
  * Tests Drupal 6 upgrade using the migrate UI.
@@ -30,6 +29,7 @@ class Upgrade6Test extends MigrateUpgradeExecuteTestBase {
     'book',
     'forum',
     'statistics',
+    'update',
   ];
 
   /**
@@ -82,11 +82,11 @@ class Upgrade6Test extends MigrateUpgradeExecuteTestBase {
       'contact_message' => 0,
       'configurable_language' => 5,
       'editor' => 2,
-      'field_config' => 95,
-      'field_storage_config' => 66,
+      'field_config' => 99,
+      'field_storage_config' => 70,
       'file' => 7,
       'filter_format' => 7,
-      'image_style' => 5,
+      'image_style' => 6,
       'language_content_settings' => 15,
       'node' => 18,
       // The 'book' module provides the 'book' node type, and the migration
@@ -101,7 +101,7 @@ class Upgrade6Test extends MigrateUpgradeExecuteTestBase {
       'path_alias' => 8,
       'taxonomy_term' => 15,
       'taxonomy_vocabulary' => 7,
-      'tour' => 5,
+      'tour' => 6,
       'user' => 7,
       'user_role' => 6,
       'menu_link_content' => 10,
@@ -138,48 +138,49 @@ class Upgrade6Test extends MigrateUpgradeExecuteTestBase {
    */
   protected function getAvailablePaths() {
     return [
-      'aggregator',
-      'block',
-      'book',
-      'comment',
-      'contact',
-      'content',
-      'date',
-      'email',
-      'filefield',
-      'filter',
-      'forum',
-      'i18nblocks',
-      'i18ncontent',
-      'i18nmenu',
-      'i18nprofile',
-      'i18nsync',
-      'imagecache',
-      'imagefield',
-      'menu',
-      'node',
-      'nodereference',
-      'optionwidgets',
-      'path',
-      'search',
-      'statistics',
-      'system',
-      'taxonomy',
-      'text',
-      'translation',
-      'upload',
-      'user',
-      'userreference',
+      'Aggregator',
+      'Block',
+      'Block translation',
+      'Book',
+      'Comment',
+      'Contact',
+      'Content',
+      'Content translation',
+      'Content type translation',
+      'Date',
+      'Email',
+      'FileField',
+      'Filter',
+      'Forum',
+      'ImageCache',
+      'ImageField',
+      'Menu',
+      'Menu translation',
+      'Node',
+      'Node Reference',
+      'Option Widgets',
+      'Path',
+      'Profile translation',
+      'Search',
+      'Statistics',
+      'Synchronize translations',
+      'System',
+      'Taxonomy',
+      'Text',
+      'Update status',
+      'Upload',
+      'User',
+      'User Reference',
       // Include modules that do not have an upgrade path and are enabled in the
       // source database'.
-      'date_api',
-      'date_timezone',
-      'event',
-      'imageapi',
-      'number',
-      'php',
-      'profile',
-      'variable_admin',
+      'Date API',
+      'Date Timezone',
+      'Event',
+      'ImageAPI',
+      'Number',
+      'PHP filter',
+      'Profile',
+      'Variable admin',
     ];
   }
 
@@ -188,11 +189,11 @@ class Upgrade6Test extends MigrateUpgradeExecuteTestBase {
    */
   protected function getMissingPaths() {
     return [
-      'i18n',
-      'i18ncck',
-      'i18nstrings',
-      'i18ntaxonomy',
-      'locale',
+      'CCK translation',
+      'Internationalization',
+      'Locale',
+      'String translation',
+      'Taxonomy translation',
     ];
   }
 
@@ -202,10 +203,9 @@ class Upgrade6Test extends MigrateUpgradeExecuteTestBase {
   public function testMigrateUpgradeExecute() {
     parent::testMigrateUpgradeExecute();
 
-    // Ensure migrated users can log in.
-    $user = User::load(2);
-    $user->passRaw = 'john.doe_pass';
-    $this->drupalLogin($user);
+    // Ensure a migrated user can log in.
+    $this->assertUserLogIn(2, 'john.doe_pass');
+
     $this->assertFollowUpMigrationResults();
   }
 

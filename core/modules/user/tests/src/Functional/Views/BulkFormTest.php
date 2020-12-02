@@ -41,18 +41,17 @@ class BulkFormTest extends UserTestBase {
     $this->drupalLogin($this->drupalCreateUser(['administer permissions']));
     $user_storage = $this->container->get('entity_type.manager')->getStorage('user');
 
-    // Create an user which actually can change users.
+    // Create a user which actually can change users.
     $this->drupalLogin($this->drupalCreateUser(['administer users']));
     $this->drupalGet('test-user-bulk-form');
-    $result = $this->cssSelect('#edit-action option');
-    $this->assertTrue(count($result) > 0);
+    $this->assertNotEmpty($this->cssSelect('#edit-action option'));
 
     // Test submitting the page with no selection.
     $edit = [
       'action' => 'user_block_user_action',
     ];
-    $this->drupalPostForm('test-user-bulk-form', $edit, t('Apply to selected items'));
-    $this->assertText(t('No users selected.'));
+    $this->drupalPostForm('test-user-bulk-form', $edit, 'Apply to selected items');
+    $this->assertText('No users selected.');
 
     // Assign a role to a user.
     $account = $user_storage->load($this->users[0]->id());
@@ -65,7 +64,7 @@ class BulkFormTest extends UserTestBase {
       'user_bulk_form[1]' => TRUE,
       'action' => 'user_add_role_action.' . $role,
     ];
-    $this->drupalPostForm(NULL, $edit, t('Apply to selected items'));
+    $this->submitForm($edit, 'Apply to selected items');
     // Re-load the user and check their roles.
     $user_storage->resetCache([$account->id()]);
     $account = $user_storage->load($account->id());
@@ -75,7 +74,7 @@ class BulkFormTest extends UserTestBase {
       'user_bulk_form[1]' => TRUE,
       'action' => 'user_remove_role_action.' . $role,
     ];
-    $this->drupalPostForm(NULL, $edit, t('Apply to selected items'));
+    $this->submitForm($edit, 'Apply to selected items');
     // Re-load the user and check their roles.
     $user_storage->resetCache([$account->id()]);
     $account = $user_storage->load($account->id());
@@ -83,17 +82,17 @@ class BulkFormTest extends UserTestBase {
 
     // Block a user using the bulk form.
     $this->assertTrue($account->isActive(), 'The user is not blocked.');
-    $this->assertRaw($account->label(), 'The user is found in the table.');
+    $this->assertRaw($account->label());
     $edit = [
       'user_bulk_form[1]' => TRUE,
       'action' => 'user_block_user_action',
     ];
-    $this->drupalPostForm(NULL, $edit, t('Apply to selected items'));
+    $this->submitForm($edit, 'Apply to selected items');
     // Re-load the user and check their status.
     $user_storage->resetCache([$account->id()]);
     $account = $user_storage->load($account->id());
     $this->assertTrue($account->isBlocked(), 'The user is blocked.');
-    $this->assertNoRaw($account->label(), 'The user is not found in the table.');
+    $this->assertNoRaw($account->label());
 
     // Remove the user status filter from the view.
     $view = Views::getView('test_user_bulk_form');
@@ -109,7 +108,7 @@ class BulkFormTest extends UserTestBase {
       'user_bulk_form[0]' => TRUE,
       'action' => 'user_block_user_action',
     ];
-    $this->drupalPostForm(NULL, $edit, t('Apply to selected items'));
+    $this->submitForm($edit, 'Apply to selected items');
     $anonymous_account = $user_storage->load(0);
     $this->assertTrue($anonymous_account->isBlocked(), 'Ensure the anonymous user got blocked.');
 
@@ -124,15 +123,15 @@ class BulkFormTest extends UserTestBase {
       'options[include_exclude]' => 'exclude',
       "options[selected_actions][$action_id]" => $action_id,
     ];
-    $this->drupalPostForm('admin/structure/views/nojs/handler/test_user_bulk_form/default/field/user_bulk_form', $edit, t('Apply'));
-    $this->drupalPostForm(NULL, [], t('Save'));
+    $this->drupalPostForm('admin/structure/views/nojs/handler/test_user_bulk_form/default/field/user_bulk_form', $edit, 'Apply');
+    $this->submitForm([], 'Save');
     $this->drupalGet('test-user-bulk-form');
-    $this->assertNoOption('edit-action', $action_id);
+    $this->assertSession()->optionNotExists('edit-action', $action_id);
     $edit['options[include_exclude]'] = 'include';
-    $this->drupalPostForm('admin/structure/views/nojs/handler/test_user_bulk_form/default/field/user_bulk_form', $edit, t('Apply'));
-    $this->drupalPostForm(NULL, [], t('Save'));
+    $this->drupalPostForm('admin/structure/views/nojs/handler/test_user_bulk_form/default/field/user_bulk_form', $edit, 'Apply');
+    $this->submitForm([], 'Save');
     $this->drupalGet('test-user-bulk-form');
-    $this->assertOption('edit-action', $action_id);
+    $this->assertSession()->optionExists('edit-action', $action_id);
   }
 
   /**

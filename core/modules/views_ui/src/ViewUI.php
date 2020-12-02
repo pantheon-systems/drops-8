@@ -16,7 +16,7 @@ use Drupal\Core\Session\AccountInterface;
 use Drupal\views\Plugin\views\query\Sql;
 use Drupal\views\Entity\View;
 use Drupal\views\ViewEntityInterface;
-use Symfony\Cmf\Component\Routing\RouteObjectInterface;
+use Drupal\Core\Routing\RouteObjectInterface;
 use Symfony\Component\HttpFoundation\ParameterBag;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -257,7 +257,7 @@ class ViewUI implements ViewEntityInterface {
   }
 
   /**
-   * Submit handler for cancel button
+   * Submit handler for cancel button.
    */
   public function standardCancel($form, FormStateInterface $form_state) {
     if (!empty($this->changed) && isset($this->form_cache)) {

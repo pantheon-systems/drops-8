@@ -73,15 +73,21 @@ abstract class Connection {
    * The name of the Statement class for this connection.
    *
    * @var string
+   *
+   * @deprecated in drupal:9.1.0 and is removed from drupal:10.0.0. Database
+   *   drivers should use or extend StatementWrapper instead, and encapsulate
+   *   client-level statement objects.
+   *
+   * @see https://www.drupal.org/node/3177488
    */
   protected $statementClass = 'Drupal\Core\Database\Statement';
 
   /**
-   * Whether this database connection supports transactions.
+   * The name of the StatementWrapper class for this connection.
    *
-   * @var bool
+   * @var string
    */
-  protected $transactionSupport = TRUE;
+  protected $statementWrapperClass = NULL;
 
   /**
    * Whether this database connection supports transactional DDL.
@@ -221,7 +227,13 @@ abstract class Connection {
       @trigger_error('In drupal:10.0.0 not setting the $identifierQuotes property in the concrete Connection class will result in an RuntimeException. See https://www.drupal.org/node/2986894', E_USER_DEPRECATED);
       $this->identifierQuotes = ['', ''];
     }
+
     assert(count($this->identifierQuotes) === 2 && Inspector::assertAllStrings($this->identifierQuotes), '\Drupal\Core\Database\Connection::$identifierQuotes must contain 2 string values');
+    // The 'transactions' option is deprecated.
+    if (isset($connection_options['transactions'])) {
+      @trigger_error('Passing a \'transactions\' connection option to ' . __METHOD__ . ' is deprecated in drupal:9.1.0 and is removed in drupal:10.0.0. All database drivers must support transactions. See https://www.drupal.org/node/2278745', E_USER_DEPRECATED);
+      unset($connection_options['transactions']);
+    }
 
     // Work out the database driver namespace if none is provided. This normally
     // written to setting.php by installer or set by
@@ -230,11 +242,19 @@ abstract class Connection {
       $connection_options['namespace'] = (new \ReflectionObject($this))->getNamespaceName();
     }
 
+    // The support for database drivers where the namespace that starts with
+    // Drupal\\Driver\\Database\\ is deprecated.
+    if (strpos($connection_options['namespace'], 'Drupal\Driver\Database') === 0) {
+      @trigger_error('Support for database drivers located in the "drivers/lib/Drupal/Driver/Database" directory is deprecated in drupal:9.1.0 and is removed in drupal:10.0.0. Contributed and custom database drivers should be provided by modules and use the namespace "Drupal\MODULE_NAME\Driver\Database\DRIVER_NAME". See https://www.drupal.org/node/3123251', E_USER_DEPRECATED);
+    }
+
     // Initialize and prepare the connection prefix.
     $this->setPrefix(isset($connection_options['prefix']) ? $connection_options['prefix'] : '');
 
     // Set a Statement class, unless the driver opted out.
+    // @todo remove this in Drupal 10 https://www.drupal.org/node/3177490
     if (!empty($this->statementClass)) {
+      @trigger_error('\Drupal\Core\Database\Connection::$statementClass is deprecated in drupal:9.1.0 and is removed from drupal:10.0.0. Database drivers should use or extend StatementWrapper instead, and encapsulate client-level statement objects. See https://www.drupal.org/node/3177488', E_USER_DEPRECATED);
       $connection->setAttribute(\PDO::ATTR_STATEMENT_CLASS, [$this->statementClass, [$this]]);
     }
 
@@ -260,15 +280,40 @@ abstract class Connection {
    * variables. In case of PDO database connection objects, PHP only closes the
    * connection when the PDO object is destructed, so any references to this
    * object may cause the number of maximum allowed connections to be exceeded.
+   *
+   * @deprecated in drupal:9.1.0 and is removed from drupal:10.0.0. Move custom
+   *   database destruction logic to __destruct().
+   *
+   * @see https://www.drupal.org/node/3142866
    */
   public function destroy() {
-    // Destroy all references to this connection by setting them to NULL.
-    // The Statement class attribute only accepts a new value that presents a
-    // proper callable, so we reset it to PDOStatement.
-    if (!empty($this->statementClass)) {
-      $this->connection->setAttribute(\PDO::ATTR_STATEMENT_CLASS, ['PDOStatement', []]);
+    $backtrace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2);
+    if ($backtrace[1]['class'] !== self::class && $backtrace[1]['function'] !== '__destruct') {
+      @trigger_error(__METHOD__ . '() is deprecated in drupal:9.1.0 and is removed from drupal:10.0.0. Move custom database destruction logic to __destruct(). See https://www.drupal.org/node/3142866', E_USER_DEPRECATED);
+      // Destroy all references to this connection by setting them to NULL.
+      // The Statement class attribute only accepts a new value that presents a
+      // proper callable, so we reset it to PDOStatement.
+      // @todo remove this in Drupal 10 https://www.drupal.org/node/3177490
+      if (!empty($this->statementClass)) {
+        $this->connection->setAttribute(\PDO::ATTR_STATEMENT_CLASS, ['PDOStatement', []]);
+      }
+      $this->schema = NULL;
     }
-    $this->schema = NULL;
+  }
+
+  /**
+   * Ensures that the PDO connection can be garbage collected.
+   */
+  public function __destruct() {
+    // Call the ::destroy method to provide a BC layer.
+    // @todo https://www.drupal.org/project/drupal/issues/3153864 Remove this
+    //   call in Drupal 10 as the logic in the destroy() method is no longer
+    //   required now we implement a proper destructor.
+    $this->destroy();
+    // Ensure that the circular reference caused by Connection::__construct()
+    // using $this in the call to set the statement class can be garbage
+    // collected.
+    $this->connection = NULL;
   }
 
   /**
@@ -317,6 +362,11 @@ abstract class Connection {
    *   database type. In rare cases, such as creating an SQL function, []
    *   characters might be needed and can be allowed by changing this option to
    *   TRUE.
+   * - pdo: By default, queries will execute with the PDO options set on the
+   *   connection. In particular cases, it could be necessary to override the
+   *   PDO driver options on the statement level. In such case, pass the
+   *   required setting as an array here, and they will be passed to the
+   *   prepared statement. See https://www.php.net/manual/en/pdo.prepare.php.
    *
    * @return array
    *   An array of default query options.
@@ -328,6 +378,7 @@ abstract class Connection {
       'throw_exception' => TRUE,
       'allow_delimiter_in_query' => FALSE,
       'allow_square_brackets' => FALSE,
+      'pdo' => [],
     ];
   }
 
@@ -479,6 +530,35 @@ abstract class Connection {
   }
 
   /**
+   * Returns a prepared statement given a SQL string.
+   *
+   * This method caches prepared statements, reusing them when possible. It also
+   * prefixes tables names enclosed in curly braces and, optionally, quotes
+   * identifiers enclosed in square brackets.
+   *
+   * @param string $query
+   *   The query string as SQL, with curly braces surrounding the table names.
+   * @param array $options
+   *   An associative array of options to control how the query is run. See
+   *   the documentation for self::defaultOptions() for details. The content of
+   *   the 'pdo' key will be passed to the prepared statement.
+   *
+   * @return \Drupal\Core\Database\StatementInterface
+   *   A PDO prepared statement ready for its execute() method.
+   */
+  public function prepareStatement(string $query, array $options): StatementInterface {
+    $query = $this->prefixTables($query);
+    if (!($options['allow_square_brackets'] ?? FALSE)) {
+      $query = $this->quoteIdentifiers($query);
+    }
+    // @todo in Drupal 10, only return the StatementWrapper.
+    // @see https://www.drupal.org/node/3177490
+    return $this->statementWrapperClass ?
+      new $this->statementWrapperClass($this, $this->connection, $query, $options['pdo'] ?? []) :
+      $this->connection->prepare($query, $options['pdo'] ?? []);
+  }
+
+  /**
    * Prepares a query string and returns the prepared statement.
    *
    * This method caches prepared statements, reusing them when possible. It also
@@ -494,14 +574,15 @@ abstract class Connection {
    *
    * @return \Drupal\Core\Database\StatementInterface
    *   A PDO prepared statement ready for its execute() method.
+   *
+   * @deprecated in drupal:9.1.0 and is removed from drupal:10.0.0. Use
+   *   ::prepareStatement instead.
+   *
+   * @see https://www.drupal.org/node/3137786
    */
   public function prepareQuery($query, $quote_identifiers = TRUE) {
-    $query = $this->prefixTables($query);
-    if ($quote_identifiers) {
-      $query = $this->quoteIdentifiers($query);
-    }
-
-    return $this->connection->prepare($query);
+    @trigger_error('Connection::prepareQuery() is deprecated in drupal:9.1.0 and is removed from drupal:10.0.0. Use ::prepareStatement() instead. See https://www.drupal.org/node/3137786', E_USER_DEPRECATED);
+    return $this->prepareStatement($query, ['allow_square_brackets' => !$quote_identifiers]);
   }
 
   /**
@@ -667,7 +748,7 @@ abstract class Connection {
    * query. All queries executed by Drupal are executed as PDO prepared
    * statements.
    *
-   * @param string|\Drupal\Core\Database\StatementInterface $query
+   * @param string|\Drupal\Core\Database\StatementInterface|\PDOStatement $query
    *   The query to execute. In most cases this will be a string containing
    *   an SQL query with placeholders. An already-prepared instance of
    *   StatementInterface may also be passed in order to allow calling
@@ -677,9 +758,7 @@ abstract class Connection {
    *   object to this method. It is used primarily for database drivers for
    *   databases that require special LOB field handling.
    * @param array $args
-   *   An array of arguments for the prepared statement. If the prepared
-   *   statement uses ? placeholders, this array must be an indexed array.
-   *   If it contains named placeholders, it must be an associative array.
+   *   The associative array of arguments for the prepared statement.
    * @param array $options
    *   An associative array of options to control how the query is run. The
    *   given options will be merged with self::defaultOptions(). See the
@@ -720,6 +799,10 @@ abstract class Connection {
         $stmt = $query;
         $stmt->execute(NULL, $options);
       }
+      elseif ($query instanceof \PDOStatement) {
+        $stmt = $query;
+        $stmt->execute();
+      }
       else {
         $this->expandArguments($query, $args);
         // To protect against SQL injection, Drupal only supports executing one
@@ -728,7 +811,7 @@ abstract class Connection {
         // semicolons should only be needed for special cases like defining a
         // function or stored procedure in SQL. Trim any trailing delimiter to
         // minimize false positives unless delimiter is allowed.
-        $trim_chars = "  \t\n\r\0\x0B";
+        $trim_chars = " \xA0\t\n\r\0\x0B";
         if (empty($options['allow_delimiter_in_query'])) {
           $trim_chars .= ';';
         }
@@ -736,7 +819,7 @@ abstract class Connection {
         if (strpos($query, ';') !== FALSE && empty($options['allow_delimiter_in_query'])) {
           throw new \InvalidArgumentException('; is not supported in SQL strings. Use only one statement at a time.');
         }
-        $stmt = $this->prepareQuery($query, !$options['allow_square_brackets']);
+        $stmt = $this->prepareStatement($query, $options);
         $stmt->execute($args, $options);
       }
 
@@ -795,7 +878,15 @@ abstract class Connection {
       // Wrap the exception in another exception, because PHP does not allow
       // overriding Exception::getMessage(). Its message is the extra database
       // debug information.
-      $query_string = ($query instanceof StatementInterface) ? $query->getQueryString() : $query;
+      if ($query instanceof StatementInterface) {
+        $query_string = $query->getQueryString();
+      }
+      elseif ($query instanceof \PDOStatement) {
+        $query_string = $query->queryString;
+      }
+      else {
+        $query_string = $query;
+      }
       $message = $e->getMessage() . ": " . $query_string . "; " . print_r($args, TRUE);
       // Match all SQLSTATE 23xxx errors.
       if (substr($e->getCode(), -6, -3) == '23') {
@@ -1112,7 +1203,10 @@ abstract class Connection {
    */
   public function condition($conjunction) {
     $class = $this->getDriverClass('Condition');
-    return new $class($conjunction);
+    // Creating an instance of the class Drupal\Core\Database\Query\Condition
+    // should only be created from the database layer. This will allow database
+    // drivers to override the default Condition class.
+    return new $class($conjunction, FALSE);
   }
 
   /**
@@ -1284,9 +1378,6 @@ abstract class Connection {
    * @see \Drupal\Core\Database\Transaction::rollBack()
    */
   public function rollBack($savepoint_name = 'drupal_transaction') {
-    if (!$this->supportsTransactions()) {
-      return;
-    }
     if (!$this->inTransaction()) {
       throw new TransactionNoActiveException();
     }
@@ -1346,9 +1437,6 @@ abstract class Connection {
    * @see \Drupal\Core\Database\Transaction
    */
   public function pushTransaction($name) {
-    if (!$this->supportsTransactions()) {
-      return;
-    }
     if (isset($this->transactionLayers[$name])) {
       throw new TransactionNameNonUniqueException($name . " is already in use.");
     }
@@ -1379,9 +1467,6 @@ abstract class Connection {
    * @see \Drupal\Core\Database\Transaction
    */
   public function popTransaction($name) {
-    if (!$this->supportsTransactions()) {
-      return;
-    }
     // The transaction has already been committed earlier. There is nothing we
     // need to do. If this transaction was part of an earlier out-of-order
     // rollback, an exception would already have been thrown by
@@ -1562,9 +1647,15 @@ abstract class Connection {
    *
    * @return bool
    *   TRUE if this connection supports transactions, FALSE otherwise.
+   *
+   * @deprecated in drupal:9.1.0 and is removed from drupal:10.0.0. All database
+   * drivers must support transactions.
+   *
+   * @see https://www.drupal.org/node/2278745
    */
   public function supportsTransactions() {
-    return $this->transactionSupport;
+    @trigger_error(__METHOD__ . ' is deprecated in drupal:9.1.0 and is removed in drupal:10.0.0. All database drivers must support transactions. See https://www.drupal.org/node/2278745', E_USER_DEPRECATED);
+    return TRUE;
   }
 
   /**
@@ -1631,7 +1722,7 @@ abstract class Connection {
   }
 
   /**
-   * Retrieves an unique ID from a given sequence.
+   * Retrieves a unique ID from a given sequence.
    *
    * Use this function if for some reason you can't use a serial field. For
    * example, MySQL has no ways of reading of the current value of a sequence
@@ -1650,7 +1741,7 @@ abstract class Connection {
   abstract public function nextId($existing_id = 0);
 
   /**
-   * Prepares a statement for execution and returns a statement object
+   * Prepares a statement for execution and returns a statement object.
    *
    * Emulated prepared statements do not communicate with the database server so
    * this method does not check the statement.
@@ -1673,10 +1764,20 @@ abstract class Connection {
    *
    * @throws \PDOException
    *
-   * @see \PDO::prepare()
+   * @see https://www.php.net/manual/en/pdo.prepare.php
+   *
+   * @deprecated in drupal:9.1.0 and is removed from drupal:10.0.0. Database
+   *   drivers should instantiate \PDOStatement objects by calling
+   *   \PDO::prepare in their Connection::prepareStatement method instead.
+   *   \PDO::prepare should not be called outside of driver code.
+   *
+   * @see https://www.drupal.org/node/3137786
    */
   public function prepare($statement, array $driver_options = []) {
-    return $this->connection->prepare($statement, $driver_options);
+    @trigger_error('Connection::prepare() is deprecated in drupal:9.1.0 and is removed from drupal:10.0.0. Database drivers should instantiate \PDOStatement objects by calling \PDO::prepare in their Connection::prepareStatement method instead. \PDO::prepare should not be called outside of driver code. See https://www.drupal.org/node/3137786', E_USER_DEPRECATED);
+    return $this->statementWrapperClass ?
+      (new $this->statementWrapperClass($this, $this->connection, $statement, $driver_options))->getClientStatement() :
+      $this->connection->prepare($statement, $driver_options);
   }
 
   /**
@@ -1765,7 +1866,7 @@ abstract class Connection {
     }
 
     // Use reflection to get the namespace of the class being called.
-    $reflector = new \ReflectionClass(get_called_class());
+    $reflector = new \ReflectionClass(static::class);
 
     $database = [
       'driver' => $url_components['scheme'],

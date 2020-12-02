@@ -104,7 +104,7 @@ class LinkFieldTest extends BrowserTestBase {
 
     // Display creation form.
     $this->drupalGet('entity_test/add');
-    $this->assertFieldByName("{$field_name}[0][uri]", '', 'Link URL field is displayed');
+    $this->assertSession()->fieldValueEquals("{$field_name}[0][uri]", '');
     $this->assertRaw('placeholder="http://example.com"');
 
     // Create a path alias.
@@ -217,10 +217,10 @@ class LinkFieldTest extends BrowserTestBase {
       $edit = [
         "{$field_name}[0][uri]" => $uri,
       ];
-      $this->drupalPostForm('entity_test/add', $edit, t('Save'));
+      $this->drupalPostForm('entity_test/add', $edit, 'Save');
       preg_match('|entity_test/manage/(\d+)|', $this->getUrl(), $match);
       $id = $match[1];
-      $this->assertText(t('entity_test @id has been created.', ['@id' => $id]));
+      $this->assertText('entity_test ' . $id . ' has been created.');
       $this->assertRaw('"' . $string . '"');
     }
   }
@@ -238,8 +238,8 @@ class LinkFieldTest extends BrowserTestBase {
       $edit = [
         "{$field_name}[0][uri]" => $invalid_value,
       ];
-      $this->drupalPostForm('entity_test/add', $edit, t('Save'));
-      $this->assertText(t($error_message, ['@link_path' => $invalid_value]));
+      $this->drupalPostForm('entity_test/add', $edit, 'Save');
+      $this->assertText(strtr($error_message, ['@link_path' => $invalid_value]));
     }
   }
 
@@ -293,39 +293,39 @@ class LinkFieldTest extends BrowserTestBase {
       $this->drupalGet('entity_test/add');
       // Assert label is shown.
       $this->assertText('Read more about this entity');
-      $this->assertFieldByName("{$field_name}[0][uri]", '', 'URL field found.');
+      $this->assertSession()->fieldValueEquals("{$field_name}[0][uri]", '');
       $this->assertRaw('placeholder="http://example.com"');
 
       if ($title_setting === DRUPAL_DISABLED) {
-        $this->assertNoFieldByName("{$field_name}[0][title]", '', 'Link text field not found.');
+        $this->assertSession()->fieldNotExists("{$field_name}[0][title]");
         $this->assertNoRaw('placeholder="Enter the text for this link"');
       }
       else {
         $this->assertRaw('placeholder="Enter the text for this link"');
 
-        $this->assertFieldByName("{$field_name}[0][title]", '', 'Link text field found.');
+        $this->assertSession()->fieldValueEquals("{$field_name}[0][title]", '');
         if ($title_setting === DRUPAL_OPTIONAL) {
           // Verify that the URL is required, if the link text is non-empty.
           $edit = [
             "{$field_name}[0][title]" => 'Example',
           ];
-          $this->drupalPostForm(NULL, $edit, t('Save'));
-          $this->assertText(t('The URL field is required when the @title field is specified.', ['@title' => t('Link text')]));
+          $this->submitForm($edit, 'Save');
+          $this->assertText('The URL field is required when the Link text field is specified.');
         }
         if ($title_setting === DRUPAL_REQUIRED) {
           // Verify that the link text is required, if the URL is non-empty.
           $edit = [
             "{$field_name}[0][uri]" => 'http://www.example.com',
           ];
-          $this->drupalPostForm(NULL, $edit, t('Save'));
-          $this->assertText(t('@title field is required if there is @uri input.', ['@title' => t('Link text'), '@uri' => t('URL')]));
+          $this->submitForm($edit, 'Save');
+          $this->assertText('Link text field is required if there is URL input.');
 
           // Verify that the link text is not required, if the URL is empty.
           $edit = [
             "{$field_name}[0][uri]" => '',
           ];
-          $this->drupalPostForm(NULL, $edit, t('Save'));
-          $this->assertNoText(t('@name field is required.', ['@name' => t('Link text')]));
+          $this->submitForm($edit, 'Save');
+          $this->assertNoText('Link text field is required.');
 
           // Verify that a URL and link text meets requirements.
           $this->drupalGet('entity_test/add');
@@ -333,8 +333,8 @@ class LinkFieldTest extends BrowserTestBase {
             "{$field_name}[0][uri]" => 'http://www.example.com',
             "{$field_name}[0][title]" => 'Example',
           ];
-          $this->drupalPostForm(NULL, $edit, t('Save'));
-          $this->assertNoText(t('@name field is required.', ['@name' => t('Link text')]));
+          $this->submitForm($edit, 'Save');
+          $this->assertNoText('Link text field is required.');
         }
       }
     }
@@ -345,10 +345,10 @@ class LinkFieldTest extends BrowserTestBase {
       "{$field_name}[0][uri]" => $value,
       "{$field_name}[0][title]" => '',
     ];
-    $this->drupalPostForm(NULL, $edit, t('Save'));
+    $this->submitForm($edit, 'Save');
     preg_match('|entity_test/manage/(\d+)|', $this->getUrl(), $match);
     $id = $match[1];
-    $this->assertText(t('entity_test @id has been created.', ['@id' => $id]));
+    $this->assertText('entity_test ' . $id . ' has been created.');
 
     $output = $this->renderTestEntity($id);
     $expected_link = (string) Link::fromTextAndUrl($value, Url::fromUri($value))->toString();
@@ -359,8 +359,8 @@ class LinkFieldTest extends BrowserTestBase {
     $edit = [
       "{$field_name}[0][title]" => $title,
     ];
-    $this->drupalPostForm("entity_test/manage/$id/edit", $edit, t('Save'));
-    $this->assertText(t('entity_test @id has been updated.', ['@id' => $id]));
+    $this->drupalPostForm("entity_test/manage/$id/edit", $edit, 'Save');
+    $this->assertText('entity_test ' . $id . ' has been updated.');
 
     $output = $this->renderTestEntity($id);
     $expected_link = (string) Link::fromTextAndUrl($title, Url::fromUri($value))->toString();
@@ -429,10 +429,10 @@ class LinkFieldTest extends BrowserTestBase {
     ];
     // Assert label is shown.
     $this->assertText('Read more about this entity');
-    $this->drupalPostForm(NULL, $edit, t('Save'));
+    $this->submitForm($edit, 'Save');
     preg_match('|entity_test/manage/(\d+)|', $this->getUrl(), $match);
     $id = $match[1];
-    $this->assertText(t('entity_test @id has been created.', ['@id' => $id]));
+    $this->assertText('entity_test ' . $id . ' has been created.');
 
     // Verify that the link is output according to the formatter settings.
     // Not using generatePermutations(), since that leads to 32 cases, which
@@ -580,10 +580,10 @@ class LinkFieldTest extends BrowserTestBase {
       "{$field_name}[2][uri]" => $url3,
       "{$field_name}[2][title]" => $title3,
     ];
-    $this->drupalPostForm(NULL, $edit, t('Save'));
+    $this->submitForm($edit, 'Save');
     preg_match('|entity_test/manage/(\d+)|', $this->getUrl(), $match);
     $id = $match[1];
-    $this->assertText(t('entity_test @id has been created.', ['@id' => $id]));
+    $this->assertText('entity_test ' . $id . ' has been created.');
 
     // Verify that the link is output according to the formatter settings.
     $options = [
@@ -743,7 +743,7 @@ class LinkFieldTest extends BrowserTestBase {
     // autocomplete and therefore must show the link unaltered.
     $this->drupalGet($entity_test->toUrl('edit-form'));
     $this->assertSession()->fieldValueEquals('field_link[0][uri]', $correct_link);
-    $this->drupalPostForm(NULL, [], 'Save');
+    $this->submitForm([], 'Save');
 
     $entity_test_storage->resetCache();
     $entity_test = $entity_test_storage->load($entity_test->id());
@@ -797,7 +797,7 @@ class LinkFieldTest extends BrowserTestBase {
       "{$field_name}[0][uri]" => '<nolink>',
     ];
 
-    $this->drupalPostForm('/entity_test/add', $edit, t('Save'));
+    $this->drupalPostForm('/entity_test/add', $edit, 'Save');
     preg_match('|entity_test/manage/(\d+)|', $this->getUrl(), $match);
     $id = $match[1];
     $output = $this->renderTestEntity($id);
@@ -810,7 +810,7 @@ class LinkFieldTest extends BrowserTestBase {
       "{$field_name}[0][uri]" => '<none>',
     ];
 
-    $this->drupalPostForm('/entity_test/add', $edit, t('Save'));
+    $this->drupalPostForm('/entity_test/add', $edit, 'Save');
     preg_match('|entity_test/manage/(\d+)|', $this->getUrl(), $match);
     $id = $match[1];
     $output = $this->renderTestEntity($id);

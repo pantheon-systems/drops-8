@@ -40,10 +40,10 @@ class ConfigTest extends BrowserTestBase {
     $this->assertText('Public local files served by the webserver.');
     $this->assertText('Private local files served by Drupal.');
 
-    $this->drupalPostForm(NULL, $fields, t('Save configuration'));
-    $this->assertText(t('The configuration options have been saved.'));
+    $this->submitForm($fields, 'Save configuration');
+    $this->assertText('The configuration options have been saved.');
     foreach ($fields as $field => $value) {
-      $this->assertFieldByName($field, $value);
+      $this->assertSession()->fieldValueEquals($field, $value);
     }
 
     // Remove the private path, rebuild the container and verify that private

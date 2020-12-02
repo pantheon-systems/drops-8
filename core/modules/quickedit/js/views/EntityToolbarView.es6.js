@@ -3,7 +3,7 @@
  * A Backbone View that provides an entity level toolbar.
  */
 
-(function($, _, Backbone, Drupal, debounce, Popper) {
+(function ($, _, Backbone, Drupal, debounce, Popper) {
   Drupal.quickedit.EntityToolbarView = Backbone.View.extend(
     /** @lends Drupal.quickedit.EntityToolbarView# */ {
       /**
@@ -100,8 +100,8 @@
           if ($body.children('#quickedit-entity-toolbar').length === 0) {
             $body.append(this.$el);
           }
-          // The fence will define a area on the screen that the entity toolbar
-          // will be position within.
+          // The fence will define an area on the screen that the entity toolbar
+          // will be positioned within.
           if ($body.children('#quickedit-toolbar-fence').length === 0) {
             this.$fence = $(Drupal.theme('quickeditEntityToolbarFence'))
               .css(Drupal.displace())

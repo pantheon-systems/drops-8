@@ -57,7 +57,7 @@ class EntityAddUITest extends BrowserTestBase {
       'description' => 'My test description',
     ])->save();
     $this->drupalGet('/entity_test_with_bundle/add');
-    $this->assertUrl('/entity_test_with_bundle/add/test');
+    $this->assertSession()->addressEquals('/entity_test_with_bundle/add/test');
 
     // Two bundles exist, confirm both are shown.
     EntityTestBundle::create([
@@ -75,7 +75,7 @@ class EntityAddUITest extends BrowserTestBase {
     $this->clickLink('Test2 label');
     $this->drupalGet('/entity_test_with_bundle/add/test2');
 
-    $this->drupalPostForm(NULL, ['name[0][value]' => 'test name'], t('Save'));
+    $this->submitForm(['name[0][value]' => 'test name'], 'Save');
     $entity = EntityTestWithBundle::load(1);
     $this->assertEqual('test name', $entity->label());
 
@@ -135,7 +135,7 @@ class EntityAddUITest extends BrowserTestBase {
 
     // One bundle exists, confirm redirection to the add-form.
     $this->drupalGet('/entity_test_mul/add');
-    $this->assertUrl('/entity_test_mul/add/test');
+    $this->assertSession()->addressEquals('/entity_test_mul/add/test');
 
     // Two bundles exist, confirm both are shown.
     entity_test_create_bundle('test2', 'Test2 label', 'entity_test_mul');
@@ -147,7 +147,7 @@ class EntityAddUITest extends BrowserTestBase {
     $this->clickLink('Test2 label');
     $this->drupalGet('/entity_test_mul/add/test2');
 
-    $this->drupalPostForm(NULL, ['name[0][value]' => 'test name'], t('Save'));
+    $this->submitForm(['name[0][value]' => 'test name'], 'Save');
     $entity = EntityTestMul::load(1);
     $this->assertEqual('test name', $entity->label());
   }

@@ -3,6 +3,7 @@
 namespace Drupal\Tests\search\Kernel;
 
 use Drupal\KernelTests\KernelTestBase;
+use Drupal\search\SearchTextProcessorInterface;
 
 /**
  * Tests that CJK tokenizer works as intended.
@@ -19,7 +20,7 @@ class SearchTokenizerTest extends KernelTestBase {
   /**
    * Verifies that strings of CJK characters are tokenized.
    *
-   * The search_simplify() function does special things with numbers, symbols,
+   * The text analysis function does special things with numbers, symbols
    * and punctuation. So we only test that CJK characters that are not in these
    * character classes are tokenized properly. See PREG_CLASS_CKJ for more
    * information.
@@ -32,8 +33,8 @@ class SearchTokenizerTest extends KernelTestBase {
       ->set('index.overlap_cjk', TRUE)
       ->save();
 
-    // Create a string of CJK characters from various character ranges in
-    // the Unicode tables.
+    // Create a string of CJK characters from various character ranges in the
+    // Unicode tables.
 
     // Beginnings of the character ranges.
     $starts = [
@@ -85,20 +86,18 @@ class SearchTokenizerTest extends KernelTestBase {
 
     // Generate characters consisting of starts, midpoints, and ends.
     $chars = [];
-    $charcodes = [];
     foreach ($starts as $key => $value) {
-      $charcodes[] = $starts[$key];
       $chars[] = $this->code2utf($starts[$key]);
       $mid = round(0.5 * ($starts[$key] + $ends[$key]));
-      $charcodes[] = $mid;
       $chars[] = $this->code2utf($mid);
-      $charcodes[] = $ends[$key];
       $chars[] = $this->code2utf($ends[$key]);
     }
 
     // Merge into a string and tokenize.
     $string = implode('', $chars);
-    $out = trim(search_simplify($string));
+    $text_processor = \Drupal::service('search.text_processor');
+    assert($text_processor instanceof SearchTextProcessorInterface);
+    $out = trim($text_processor->analyze($string));
     $expected = mb_strtolower(implode(' ', $chars));
 
     // Verify that the output matches what we expect.
@@ -120,7 +119,9 @@ class SearchTokenizerTest extends KernelTestBase {
       ->save();
 
     $letters = 'abcdefghijklmnopqrstuvwxyz';
-    $out = trim(search_simplify($letters));
+    $text_processor = \Drupal::service('search.text_processor');
+    assert($text_processor instanceof SearchTextProcessorInterface);
+    $out = trim($text_processor->analyze($letters));
 
     $this->assertEqual($letters, $out, 'Letters are not CJK tokenized');
   }

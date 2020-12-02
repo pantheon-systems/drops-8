@@ -5,7 +5,7 @@ namespace Drupal\Tests\views\Unit\Routing;
 use Drupal\Core\Routing\RouteMatch;
 use Drupal\Tests\UnitTestCase;
 use Drupal\views\Routing\ViewPageController;
-use Symfony\Cmf\Component\Routing\RouteObjectInterface;
+use Drupal\Core\Routing\RouteObjectInterface;
 use Symfony\Component\HttpFoundation\ParameterBag;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Route;
@@ -101,7 +101,7 @@ class ViewPageControllerTest extends UnitTestCase {
   }
 
   /**
-   * Tests the page controller with arguments of a overridden page view.
+   * Tests the page controller with arguments of an overridden page view.
    *
    * Note: This test does not care about upcasting for now.
    */
@@ -137,7 +137,7 @@ class ViewPageControllerTest extends UnitTestCase {
   }
 
   /**
-   * Tests the page controller with arguments of a overridden page view.
+   * Tests the page controller with arguments of an overridden page view.
    *
    * This test care about upcasted values and ensures that the raw variables
    * are pulled in.

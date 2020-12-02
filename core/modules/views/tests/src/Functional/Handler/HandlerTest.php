@@ -234,14 +234,15 @@ class HandlerTest extends ViewTestBase {
    *   The type of assertion - examples are "Browser", "PHP".
    *
    * @return bool
-   *   TRUE if the assertion succeeded, FALSE otherwise.
+   *   TRUE if the assertion succeeded.
    */
   protected function assertEqualValue($expected, $handler, $message = '', $group = 'Other') {
     if (empty($message)) {
       $message = t('Comparing @first and @second', ['@first' => implode(',', $expected), '@second' => implode(',', $handler->value)]);
     }
 
-    return $this->assert($expected == $handler->value, $message, $group);
+    $this->assertEquals($expected, $handler->value, $message);
+    return TRUE;
   }
 
   /**
@@ -255,14 +256,14 @@ class HandlerTest extends ViewTestBase {
     $handler_options_path = 'admin/structure/views/nojs/handler/test_handler_relationships/default/field/title';
     $view_edit_path = 'admin/structure/views/view/test_handler_relationships/edit';
     $this->drupalGet($view_edit_path);
-    $this->assertLinkByHref($handler_options_path);
+    $this->assertSession()->linkByHrefExists($handler_options_path);
 
     // The test view has a relationship to node_revision so the field should
     // show a relationship selection.
 
     $this->drupalGet($handler_options_path);
     $relationship_name = 'options[relationship]';
-    $this->assertFieldByName($relationship_name);
+    $this->assertSession()->fieldExists($relationship_name);
 
     // Check for available options.
     $fields = $this->getSession()->getPage()->findAll('named_exact', ['field', $relationship_name]);
@@ -277,22 +278,22 @@ class HandlerTest extends ViewTestBase {
     $this->assertEqual($options, $expected_options);
 
     // Remove the relationship and make sure no relationship option appears.
-    $this->drupalPostForm('admin/structure/views/nojs/handler/test_handler_relationships/default/relationship/nid', [], t('Remove'));
+    $this->drupalPostForm('admin/structure/views/nojs/handler/test_handler_relationships/default/relationship/nid', [], 'Remove');
     $this->drupalGet($handler_options_path);
-    $this->assertNoFieldByName($relationship_name, NULL, 'Make sure that no relationship option is available');
+    $this->assertSession()->fieldNotExists($relationship_name);
 
     // Create a view of comments with node relationship.
     View::create(['base_table' => 'comment_field_data', 'id' => 'test_get_entity_type'])->save();
-    $this->drupalPostForm('admin/structure/views/nojs/add-handler/test_get_entity_type/default/relationship', ['name[comment_field_data.node]' => 'comment_field_data.node'], t('Add and configure relationships'));
-    $this->drupalPostForm(NULL, [], t('Apply'));
+    $this->drupalPostForm('admin/structure/views/nojs/add-handler/test_get_entity_type/default/relationship', ['name[comment_field_data.node]' => 'comment_field_data.node'], 'Add and configure relationships');
+    $this->submitForm([], 'Apply');
     // Add a content type filter.
-    $this->drupalPostForm('admin/structure/views/nojs/add-handler/test_get_entity_type/default/filter', ['name[node_field_data.type]' => 'node_field_data.type'], t('Add and configure filter criteria'));
-    $this->assertOptionSelected('edit-options-relationship', 'node');
-    $this->drupalPostForm(NULL, ['options[value][page]' => 'page'], t('Apply'));
+    $this->drupalPostForm('admin/structure/views/nojs/add-handler/test_get_entity_type/default/filter', ['name[node_field_data.type]' => 'node_field_data.type'], 'Add and configure filter criteria');
+    $this->assertTrue($this->assertSession()->optionExists('edit-options-relationship', 'node')->isSelected());
+    $this->submitForm(['options[value][page]' => 'page'], 'Apply');
     // Check content type filter options.
     $this->drupalGet('admin/structure/views/nojs/handler/test_get_entity_type/default/filter/type');
-    $this->assertOptionSelected('edit-options-relationship', 'node');
-    $this->assertFieldChecked('edit-options-value-page');
+    $this->assertTrue($this->assertSession()->optionExists('edit-options-relationship', 'node')->isSelected());
+    $this->assertSession()->checkboxChecked('edit-options-value-page');
   }
 
   /**

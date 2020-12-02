@@ -2,7 +2,6 @@
 
 namespace Drupal\Tests\basic_auth\Functional;
 
-use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Core\Url;
 use Drupal\Tests\basic_auth\Traits\BasicAuthTestTrait;
 use Drupal\language\Entity\ConfigurableLanguage;
@@ -52,7 +51,7 @@ class BasicAuthTest extends BrowserTestBase {
     $this->assertText($account->getAccountName(), 'Account name is displayed.');
     $this->assertSession()->statusCodeEquals(200);
     $this->mink->resetSessions();
-    $this->assertNull($this->drupalGetHeader('X-Drupal-Cache'));
+    $this->assertSession()->responseHeaderDoesNotExist('X-Drupal-Cache');
     // Check that Cache-Control is not set to public.
     $this->assertSession()->responseHeaderNotContains('Cache-Control', 'public');
 
@@ -65,7 +64,7 @@ class BasicAuthTest extends BrowserTestBase {
     // Ensure that the user is prompted to authenticate if they are not yet
     // authenticated and the route only allows basic auth.
     $this->drupalGet($url);
-    $this->assertEqual($this->drupalGetHeader('WWW-Authenticate'), new FormattableMarkup('Basic realm="@realm"', ['@realm' => \Drupal::config('system.site')->get('name')]));
+    $this->assertSession()->responseHeaderEquals('WWW-Authenticate', 'Basic realm="' . \Drupal::config('system.site')->get('name') . '"');
     $this->assertSession()->statusCodeEquals(401);
 
     // Ensure that a route without basic auth defined doesn't prompt for auth.
@@ -84,9 +83,9 @@ class BasicAuthTest extends BrowserTestBase {
     // cache if basic auth credentials are provided.
     $url = Url::fromRoute('router_test.10');
     $this->drupalGet($url);
-    $this->assertEqual($this->drupalGetHeader('X-Drupal-Cache'), 'MISS');
+    $this->assertSession()->responseHeaderEquals('X-Drupal-Cache', 'MISS');
     $this->basicAuthGet($url, $account->getAccountName(), $account->pass_raw);
-    $this->assertNull($this->drupalGetHeader('X-Drupal-Cache'));
+    $this->assertSession()->responseHeaderDoesNotExist('X-Drupal-Cache');
     // Check that Cache-Control is not set to public.
     $this->assertSession()->responseHeaderNotContains('Cache-Control', 'public');
   }
@@ -211,8 +210,8 @@ class BasicAuthTest extends BrowserTestBase {
     $assert_response_cacheability = function ($expected_page_cache_header_value, $expected_dynamic_page_cache_header_value) use ($session, $url) {
       $this->drupalGet($url);
       $this->assertSession()->statusCodeEquals(401);
-      $this->assertSame($expected_page_cache_header_value, $session->getResponseHeader('X-Drupal-Cache'));
-      $this->assertSame($expected_dynamic_page_cache_header_value, $session->getResponseHeader('X-Drupal-Dynamic-Cache'));
+      $this->assertSession()->responseHeaderEquals('X-Drupal-Cache', $expected_page_cache_header_value);
+      $this->assertSession()->responseHeaderEquals('X-Drupal-Dynamic-Cache', $expected_dynamic_page_cache_header_value);
     };
 
     // 1. First request: cold caches, both Page Cache and Dynamic Page Cache are
