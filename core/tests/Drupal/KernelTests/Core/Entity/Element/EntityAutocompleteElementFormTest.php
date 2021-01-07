@@ -10,6 +10,7 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\entity_test\Entity\EntityTest;
 use Drupal\entity_test\Entity\EntityTestStringId;
 use Drupal\KernelTests\Core\Entity\EntityKernelTestBase;
+use Drupal\user\Entity\Role;
 use Drupal\user\Entity\User;
 
 /**
@@ -48,9 +49,21 @@ class EntityAutocompleteElementFormTest extends EntityKernelTestBase implements 
 
     $this->installEntitySchema('entity_test_string_id');
 
+    // Create user 1 so that the user created later in the test has a different
+    // user ID.
+    // @todo Remove in https://www.drupal.org/node/540008.
+    User::create(['uid' => 1, 'name' => 'user1'])->save();
+
+    Role::create([
+      'id' => 'test_role',
+      'label' => 'Can view test entities',
+      'permissions' => ['view test entity'],
+    ])->save();
+
     $this->testUser = User::create([
       'name' => 'foobar1',
       'mail' => 'foobar1@example.com',
+      'roles' => ['test_role'],
     ]);
     $this->testUser->save();
     \Drupal::service('current_user')->setAccount($this->testUser);
@@ -336,11 +349,11 @@ class EntityAutocompleteElementFormTest extends EntityKernelTestBase implements 
     // Rebuild the form.
     $form = $form_builder->getForm($this);
 
-    $expected = t('- Restricted access -') . ' (' . $this->referencedEntities[0]->id() . ')';
-    $this->assertEqual($form['single_access']['#value'], $expected);
+    $expected = '- Restricted access - (' . $this->referencedEntities[0]->id() . ')';
+    $this->assertEquals($expected, $form['single_access']['#value']);
 
-    $expected .= ', ' . t('- Restricted access -') . ' (' . $this->referencedEntities[1]->id() . ')';
-    $this->assertEqual($form['tags_access']['#value'], $expected);
+    $expected .= ', - Restricted access - (' . $this->referencedEntities[1]->id() . ')';
+    $this->assertEquals($expected, $form['tags_access']['#value']);
   }
 
   /**
