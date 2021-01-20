@@ -518,11 +518,6 @@ Layout Initiative
 Media Initiative
 - Janez Urevc 'slashrsm' https://www.drupal.org/u/slashrsm
 
-PHPUnit Initiative
-- Daniel Wehner 'dawehner' https://www.drupal.org/u/dawehner
-- (provisional) Michiel Nugter 'michielnugter' https://www.drupal.org/u/michielnugter
-- (provisional) Len Swaneveld 'Lendude' https://www.drupal.org/u/lendude
-
 Workflow Initiative
 - Dick Olsson 'dixon_' https://www.drupal.org/u/dixon_
 
@@ -544,9 +539,10 @@ participate in mentoring.
 - Lucas Hedding 'heddn' https://www.drupal.org/u/heddn
 - Tara King 'sparklingrobots' https://www.drupal.org/u/sparklingrobots
 - Rachel Lawson 'rachel_norfolk' https://www.drupal.org/u/rachel_norfolk
-- Valery Lourie 'valthebald' https://www.drupal.org/u/valthebald
 - Elli Ludwigson 'ekl1773' https://www.drupal.org/u/ekl1773
 - Jess Myrbo 'xjm' https://www.drupal.org/u/xjm
 - Matthew Radcliffe 'mradcliffe' https://www.drupal.org/u/mradcliffe
+- (provisional) Chris Darke 'chrisdarke' https://www.drupal.org/u/chrisdarke
+- (provisional) AmyJune Hineline 'volkswagenchick' https://www.drupal.org/u/volkswagenchick
 
 Provisional membership: None at this time.
