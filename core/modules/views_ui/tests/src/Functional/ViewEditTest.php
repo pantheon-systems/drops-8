@@ -66,7 +66,7 @@ class ViewEditTest extends UITestBase {
     $view = \Drupal::entityTypeManager()->getStorage('view')->load('test_view');
     $displays = $view->get('display');
     $this->assertTrue(!empty($displays['test_1']), 'Display data found for new display ID key.');
-    $this->assertIdentical($displays['test_1']['id'], 'test_1', 'New display ID matches the display ID key.');
+    $this->assertSame('test_1', $displays['test_1']['id'], 'New display ID matches the display ID key.');
     $this->assertArrayNotHasKey('attachment_1', $displays);
 
     // Set to the same machine name and save the View.
@@ -183,7 +183,7 @@ class ViewEditTest extends UITestBase {
         $elements = $this->xpath('//select[@id="edit-rendering-language"]/option');
         // Compare values inside the option elements with expected values.
         for ($i = 0; $i < count($elements); $i++) {
-          $this->assertEqual($elements[$i]->getAttribute('value'), $expected_elements[$i]);
+          $this->assertEqual($expected_elements[$i], $elements[$i]->getAttribute('value'));
         }
 
         // Check that the selected values are respected even we they are not
@@ -235,7 +235,7 @@ class ViewEditTest extends UITestBase {
         $elements = $this->xpath('//div[@id="edit-options-value"]//input');
         // Compare values inside the option elements with expected values.
         for ($i = 0; $i < count($elements); $i++) {
-          $this->assertEqual($elements[$i]->getAttribute('value'), $expected_elements[$i]);
+          $this->assertEqual($expected_elements[$i], $elements[$i]->getAttribute('value'));
         }
       }
     }
