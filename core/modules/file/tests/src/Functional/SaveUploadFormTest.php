@@ -105,7 +105,7 @@ class SaveUploadFormTest extends FileManagedTestBase {
     $file1 = File::load($max_fid_after);
     $this->assertInstanceOf(File::class, $file1);
     // MIME type of the uploaded image may be either image/jpeg or image/png.
-    $this->assertEqual(substr($file1->getMimeType(), 0, 5), 'image', 'A MIME type was set.');
+    $this->assertEqual('image', substr($file1->getMimeType(), 0, 5), 'A MIME type was set.');
 
     // Reset the hook counters to get rid of the 'load' we just called.
     file_test_reset();
@@ -126,7 +126,7 @@ class SaveUploadFormTest extends FileManagedTestBase {
     $file2 = File::load($max_fid_after);
     $this->assertInstanceOf(File::class, $file2);
     // MIME type of the uploaded image may be either image/jpeg or image/png.
-    $this->assertEqual(substr($file2->getMimeType(), 0, 5), 'image', 'A MIME type was set.');
+    $this->assertEqual('image', substr($file2->getMimeType(), 0, 5), 'A MIME type was set.');
 
     // Load both files using File::loadMultiple().
     $files = File::loadMultiple([$file1->id(), $file2->id()]);
@@ -166,8 +166,7 @@ class SaveUploadFormTest extends FileManagedTestBase {
 
     $this->drupalPostForm('file-test/save_upload_from_form_test', $edit, 'Submit');
     $this->assertSession()->statusCodeEquals(200);
-    $message = t('Only files with the following extensions are allowed:') . ' <em class="placeholder">' . $extensions . '</em>';
-    $this->assertRaw($message);
+    $this->assertSession()->responseContains('Only files with the following extensions are allowed: <em class="placeholder">' . $extensions . '</em>');
     $this->assertRaw(t('Epic upload FAIL!'));
 
     // Check that the correct hooks were called.
@@ -228,8 +227,7 @@ class SaveUploadFormTest extends FileManagedTestBase {
 
     $this->drupalPostForm('file-test/save_upload_from_form_test', $edit, 'Submit');
     $this->assertSession()->statusCodeEquals(200);
-    $message = t('For security reasons, your upload has been renamed to') . ' <em class="placeholder">' . $this->phpfile->filename . '_.txt' . '</em>';
-    $this->assertRaw($message);
+    $this->assertSession()->responseContains('For security reasons, your upload has been renamed to <em class="placeholder">' . $this->phpfile->filename . '_.txt' . '</em>');
     $this->assertRaw(t('File MIME type is text/plain.'));
     $this->assertRaw(t('You WIN!'));
 
@@ -522,7 +520,7 @@ class SaveUploadFormTest extends FileManagedTestBase {
     $this->assertRaw(t('Epic upload FAIL!'));
 
     // Search for combined error message followed by a formatted list of messages.
-    $this->assertRaw(t('One or more files could not be uploaded.') . '<div class="item-list">');
+    $this->assertSession()->responseContains('One or more files could not be uploaded.<div class="item-list">');
   }
 
   /**

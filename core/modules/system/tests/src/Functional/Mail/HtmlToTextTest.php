@@ -57,7 +57,7 @@ class HtmlToTextTest extends BrowserTestBase {
     $tested_tags = implode(', ', array_unique($matches[1]));
     $message .= ' (' . $tested_tags . ')';
     $result = MailFormatHelper::htmlToText($html, $allowed_tags);
-    $this->assertEqual($result, $text, Html::escape($message));
+    $this->assertEqual($text, $result, Html::escape($message));
     $verbose = 'html = <pre>' . $this->stringToHtml($html)
       . '</pre><br />result = <pre>' . $this->stringToHtml($result)
       . '</pre><br />expected = <pre>' . $this->stringToHtml($text)
@@ -371,7 +371,7 @@ EOT;
   public function testRemoveTrailingWhitespace() {
     $text = "Hi there! \nHerp Derp";
     $mail_lines = explode("\n", MailFormatHelper::wrapMail($text));
-    $this->assertNotEqual(" ", substr($mail_lines[0], -1), 'Trailing whitespace removed.');
+    $this->assertNotEquals(" ", substr($mail_lines[0], -1), 'Trailing whitespace removed.');
   }
 
   /**
