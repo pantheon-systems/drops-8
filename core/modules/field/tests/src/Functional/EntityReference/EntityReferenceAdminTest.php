@@ -335,13 +335,13 @@ class EntityReferenceAdminTest extends BrowserTestBase {
     /** @var \Drupal\field\Entity\FieldConfig $field_config */
     $field_config = FieldConfig::load($field_id);
     // Expect that the target bundle has been saved in the backend.
-    $this->assertEqual($field_config->getSetting('handler_settings')['auto_create_bundle'], $vocabularies[1]->id());
+    $this->assertEqual($vocabularies[1]->id(), $field_config->getSetting('handler_settings')['auto_create_bundle']);
 
     // Delete the other bundle. Field config should not be affected.
     $vocabularies[0]->delete();
     $field_config = FieldConfig::load($field_id);
     $this->assertTrue($field_config->getSetting('handler_settings')['auto_create']);
-    $this->assertIdentical($field_config->getSetting('handler_settings')['auto_create_bundle'], $vocabularies[1]->id());
+    $this->assertSame($vocabularies[1]->id(), $field_config->getSetting('handler_settings')['auto_create_bundle']);
 
     // Delete the bundle set for entity auto-creation. Auto-created settings
     // should be reset (no auto-creation).
@@ -390,21 +390,11 @@ class EntityReferenceAdminTest extends BrowserTestBase {
    *   An array of expected options.
    */
   protected function assertFieldSelectOptions($name, array $expected_options) {
-    $xpath = $this->assertSession()->buildXPathQuery('//select[@name=:name]', [':name' => $name]);
-    $fields = $this->xpath($xpath);
-    if ($fields) {
-      $field = $fields[0];
-      $options = $field->findAll('xpath', 'option');
-      array_walk($options, function (NodeElement &$option) {
-        $option = $option->getValue();
-      });
-      sort($options);
-      sort($expected_options);
-      $this->assertIdentical($options, $expected_options);
-    }
-    else {
-      $this->fail('Unable to find field ' . $name);
-    }
+    $options = $this->assertSession()->selectExists($name)->findAll('xpath', 'option');
+    array_walk($options, function (NodeElement &$option) {
+      $option = $option->getValue();
+    });
+    $this->assertEqualsCanonicalizing($expected_options, $options);
   }
 
 }
