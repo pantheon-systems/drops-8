@@ -174,7 +174,7 @@ class FileFieldWidgetTest extends FileFieldTestBase {
             $check_field_name = $field_name;
           }
 
-          $this->assertIdentical($button->getAttribute('name'), $check_field_name . '_' . $key . '_remove_button');
+          $this->assertSame($check_field_name . '_' . $key . '_remove_button', $button->getAttribute('name'));
         }
 
         // "Click" the remove button (emulating either a nojs or js submission).
@@ -333,7 +333,7 @@ class FileFieldWidgetTest extends FileFieldTestBase {
     $this->assertFileExists($comment_file->getFileUri());
     // Test authenticated file download.
     $url = $comment_file->createFileUrl();
-    $this->assertNotEqual($url, NULL, 'Confirmed that the URL is valid');
+    $this->assertNotNull($url, 'Confirmed that the URL is valid');
     $this->drupalGet($comment_file->createFileUrl());
     $this->assertSession()->statusCodeEquals(200);
 
