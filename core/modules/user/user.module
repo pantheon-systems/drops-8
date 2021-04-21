@@ -286,6 +286,7 @@ function _user_role_permissions_update($roles) {
  */
 function user_is_blocked($name) {
   return (bool) \Drupal::entityQuery('user')
+    ->accessCheck(FALSE)
     ->condition('name', $name)
     ->condition('status', 0)
     ->execute();
@@ -775,7 +776,7 @@ function user_mail($key, &$message, $params) {
   $langcode = $message['langcode'];
   $variables = ['user' => $params['account']];
 
-  $language = $language_manager->getLanguage($params['account']->getPreferredLangcode());
+  $language = $language_manager->getLanguage($langcode);
   $original_language = $language_manager->getConfigOverrideLanguage();
   $language_manager->setConfigOverrideLanguage($language);
   $mail_config = \Drupal::config('user.mail');
