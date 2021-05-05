@@ -25,12 +25,12 @@ use Symfony\Component\Validator\Exception\UnexpectedValueException;
  */
 class FileValidator extends ConstraintValidator
 {
-    const KB_BYTES = 1000;
-    const MB_BYTES = 1000000;
-    const KIB_BYTES = 1024;
-    const MIB_BYTES = 1048576;
+    public const KB_BYTES = 1000;
+    public const MB_BYTES = 1000000;
+    public const KIB_BYTES = 1024;
+    public const MIB_BYTES = 1048576;
 
-    private static $suffices = [
+    private const SUFFICES = [
         1 => 'bytes',
         self::KB_BYTES => 'kB',
         self::MB_BYTES => 'MB',
@@ -63,7 +63,7 @@ class FileValidator extends ConstraintValidator
                         $binaryFormat = null === $constraint->binaryFormat ? true : $constraint->binaryFormat;
                     }
 
-                    list(, $limitAsString, $suffix) = $this->factorizeSizes(0, $limitInBytes, $binaryFormat);
+                    [, $limitAsString, $suffix] = $this->factorizeSizes(0, $limitInBytes, $binaryFormat);
                     $this->context->buildViolation($constraint->uploadIniSizeErrorMessage)
                         ->setParameter('{{ limit }}', $limitAsString)
                         ->setParameter('{{ suffix }}', $suffix)
@@ -157,7 +157,7 @@ class FileValidator extends ConstraintValidator
             $limitInBytes = $constraint->maxSize;
 
             if ($sizeInBytes > $limitInBytes) {
-                list($sizeAsString, $limitAsString, $suffix) = $this->factorizeSizes($sizeInBytes, $limitInBytes, $constraint->binaryFormat);
+                [$sizeAsString, $limitAsString, $suffix] = $this->factorizeSizes($sizeInBytes, $limitInBytes, $constraint->binaryFormat);
                 $this->context->buildViolation($constraint->maxSizeMessage)
                     ->setParameter('{{ file }}', $this->formatValue($path))
                     ->setParameter('{{ size }}', $sizeAsString)
@@ -214,8 +214,10 @@ class FileValidator extends ConstraintValidator
     /**
      * Convert the limit to the smallest possible number
      * (i.e. try "MB", then "kB", then "bytes").
+     *
+     * @param int|float $limit
      */
-    private function factorizeSizes(int $size, int $limit, bool $binaryFormat): array
+    private function factorizeSizes(int $size, $limit, bool $binaryFormat): array
     {
         if ($binaryFormat) {
             $coef = self::MIB_BYTES;
@@ -245,6 +247,6 @@ class FileValidator extends ConstraintValidator
             $sizeAsString = (string) round($size / $coef, 2);
         }
 
-        return [$sizeAsString, $limitAsString, self::$suffices[$coef]];
+        return [$sizeAsString, $limitAsString, self::SUFFICES[$coef]];
     }
 }
