@@ -4,7 +4,7 @@
 
 namespace Composer\Autoload;
 
-class ComposerStaticInit2c072069adc88b1651da1341085ffbde
+class ComposerStaticInit472701ab8d72f0dd2c51dc14762787f7
 {
     public static $files = array (
         '0e6d7bf4a5811bfa5cf40c5ccd6fae6a' => __DIR__ . '/..' . '/symfony/polyfill-mbstring/bootstrap.php',
@@ -440,6 +440,7 @@ class ComposerStaticInit2c072069adc88b1651da1341085ffbde
         'Composer\\Installers\\MauticInstaller' => __DIR__ . '/..' . '/composer/installers/src/Composer/Installers/MauticInstaller.php',
         'Composer\\Installers\\MayaInstaller' => __DIR__ . '/..' . '/composer/installers/src/Composer/Installers/MayaInstaller.php',
         'Composer\\Installers\\MediaWikiInstaller' => __DIR__ . '/..' . '/composer/installers/src/Composer/Installers/MediaWikiInstaller.php',
+        'Composer\\Installers\\MiaoxingInstaller' => __DIR__ . '/..' . '/composer/installers/src/Composer/Installers/MiaoxingInstaller.php',
         'Composer\\Installers\\MicroweberInstaller' => __DIR__ . '/..' . '/composer/installers/src/Composer/Installers/MicroweberInstaller.php',
         'Composer\\Installers\\ModxInstaller' => __DIR__ . '/..' . '/composer/installers/src/Composer/Installers/ModxInstaller.php',
         'Composer\\Installers\\MoodleInstaller' => __DIR__ . '/..' . '/composer/installers/src/Composer/Installers/MoodleInstaller.php',
@@ -475,12 +476,14 @@ class ComposerStaticInit2c072069adc88b1651da1341085ffbde
         'Composer\\Installers\\TYPO3CmsInstaller' => __DIR__ . '/..' . '/composer/installers/src/Composer/Installers/TYPO3CmsInstaller.php',
         'Composer\\Installers\\TYPO3FlowInstaller' => __DIR__ . '/..' . '/composer/installers/src/Composer/Installers/TYPO3FlowInstaller.php',
         'Composer\\Installers\\TaoInstaller' => __DIR__ . '/..' . '/composer/installers/src/Composer/Installers/TaoInstaller.php',
+        'Composer\\Installers\\TastyIgniterInstaller' => __DIR__ . '/..' . '/composer/installers/src/Composer/Installers/TastyIgniterInstaller.php',
         'Composer\\Installers\\TheliaInstaller' => __DIR__ . '/..' . '/composer/installers/src/Composer/Installers/TheliaInstaller.php',
         'Composer\\Installers\\TuskInstaller' => __DIR__ . '/..' . '/composer/installers/src/Composer/Installers/TuskInstaller.php',
         'Composer\\Installers\\UserFrostingInstaller' => __DIR__ . '/..' . '/composer/installers/src/Composer/Installers/UserFrostingInstaller.php',
         'Composer\\Installers\\VanillaInstaller' => __DIR__ . '/..' . '/composer/installers/src/Composer/Installers/VanillaInstaller.php',
         'Composer\\Installers\\VgmcpInstaller' => __DIR__ . '/..' . '/composer/installers/src/Composer/Installers/VgmcpInstaller.php',
         'Composer\\Installers\\WHMCSInstaller' => __DIR__ . '/..' . '/composer/installers/src/Composer/Installers/WHMCSInstaller.php',
+        'Composer\\Installers\\WinterInstaller' => __DIR__ . '/..' . '/composer/installers/src/Composer/Installers/WinterInstaller.php',
         'Composer\\Installers\\WolfCMSInstaller' => __DIR__ . '/..' . '/composer/installers/src/Composer/Installers/WolfCMSInstaller.php',
         'Composer\\Installers\\WordPressInstaller' => __DIR__ . '/..' . '/composer/installers/src/Composer/Installers/WordPressInstaller.php',
         'Composer\\Installers\\YawikInstaller' => __DIR__ . '/..' . '/composer/installers/src/Composer/Installers/YawikInstaller.php',
@@ -4134,11 +4137,11 @@ class ComposerStaticInit2c072069adc88b1651da1341085ffbde
     public static function getInitializer(ClassLoader $loader)
     {
         return \Closure::bind(function () use ($loader) {
-            $loader->prefixLengthsPsr4 = ComposerStaticInit2c072069adc88b1651da1341085ffbde::$prefixLengthsPsr4;
-            $loader->prefixDirsPsr4 = ComposerStaticInit2c072069adc88b1651da1341085ffbde::$prefixDirsPsr4;
-            $loader->prefixesPsr0 = ComposerStaticInit2c072069adc88b1651da1341085ffbde::$prefixesPsr0;
-            $loader->fallbackDirsPsr0 = ComposerStaticInit2c072069adc88b1651da1341085ffbde::$fallbackDirsPsr0;
-            $loader->classMap = ComposerStaticInit2c072069adc88b1651da1341085ffbde::$classMap;
+            $loader->prefixLengthsPsr4 = ComposerStaticInit472701ab8d72f0dd2c51dc14762787f7::$prefixLengthsPsr4;
+            $loader->prefixDirsPsr4 = ComposerStaticInit472701ab8d72f0dd2c51dc14762787f7::$prefixDirsPsr4;
+            $loader->prefixesPsr0 = ComposerStaticInit472701ab8d72f0dd2c51dc14762787f7::$prefixesPsr0;
+            $loader->fallbackDirsPsr0 = ComposerStaticInit472701ab8d72f0dd2c51dc14762787f7::$fallbackDirsPsr0;
+            $loader->classMap = ComposerStaticInit472701ab8d72f0dd2c51dc14762787f7::$classMap;
 
         }, null, ClassLoader::class);
     }
