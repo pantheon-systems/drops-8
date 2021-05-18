@@ -54,6 +54,15 @@ class Connection extends DatabaseConnection {
   protected $needsCleanup = FALSE;
 
   /**
+   * Stores the server version after it has been retrieved from the database.
+   *
+   * @var string
+   *
+   * @see \Drupal\Core\Database\Driver\mysql\Connection::version
+   */
+  private $serverVersion;
+
+  /**
    * The minimal possible value for the max_allowed_packet setting of MySQL.
    *
    * @link https://mariadb.com/kb/en/mariadb/server-system-variables/#max_allowed_packet
