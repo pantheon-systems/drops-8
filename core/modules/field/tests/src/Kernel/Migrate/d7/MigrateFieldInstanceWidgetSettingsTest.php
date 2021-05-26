@@ -53,8 +53,8 @@ class MigrateFieldInstanceWidgetSettingsTest extends MigrateDrupal7TestBase {
     /** @var \Drupal\Core\Entity\Display\EntityFormDisplayInterface $entity */
     $entity = EntityFormDisplay::load($id);
     $this->assertInstanceOf(EntityFormDisplayInterface::class, $entity);
-    $this->assertIdentical($expected_entity_type, $entity->getTargetEntityTypeId());
-    $this->assertIdentical($expected_bundle, $entity->getTargetBundle());
+    $this->assertSame($expected_entity_type, $entity->getTargetEntityTypeId());
+    $this->assertSame($expected_bundle, $entity->getTargetBundle());
   }
 
   /**
@@ -72,8 +72,8 @@ class MigrateFieldInstanceWidgetSettingsTest extends MigrateDrupal7TestBase {
   protected function assertComponent($display_id, $component_id, $widget_type, $weight) {
     $component = EntityFormDisplay::load($display_id)->getComponent($component_id);
     $this->assertIsArray($component);
-    $this->assertIdentical($widget_type, $component['type']);
-    $this->assertIdentical($weight, $component['weight']);
+    $this->assertSame($widget_type, $component['type']);
+    $this->assertSame($weight, $component['weight']);
   }
 
   /**
@@ -135,6 +135,9 @@ class MigrateFieldInstanceWidgetSettingsTest extends MigrateDrupal7TestBase {
     $this->assertEntity('comment.comment_node_test_content_type.default', 'comment', 'comment_node_test_content_type');
     $this->assertComponent('comment.comment_node_test_content_type.default', 'comment_body', 'text_textarea', 0);
     $this->assertComponent('comment.comment_node_test_content_type.default', 'field_integer', 'number', 2);
+
+    $this->assertEntity('comment.comment_node_a_thirty_two_char.default', 'comment', 'comment_node_a_thirty_two_char');
+    $this->assertComponent('comment.comment_node_a_thirty_two_char.default', 'comment_body', 'text_textarea', 0);
 
     $this->assertEntity('taxonomy_term.test_vocabulary.default', 'taxonomy_term', 'test_vocabulary');
     $this->assertComponent('comment.comment_node_test_content_type.default', 'field_integer', 'number', 2);

@@ -4913,7 +4913,7 @@ $connection->insert('field_config_instance')
   'field_name' => 'field_link',
   'entity_type' => 'node',
   'bundle' => 'blog',
-  'data' => 'a:7:{s:5:"label";s:4:"Link";s:6:"widget";a:5:{s:6:"weight";s:2:"10";s:4:"type";s:10:"link_field";s:6:"module";s:4:"link";s:6:"active";i:0;s:8:"settings";a:0:{}}s:8:"settings";a:13:{s:12:"absolute_url";i:1;s:12:"validate_url";i:1;s:3:"url";i:0;s:5:"title";s:8:"required";s:11:"title_value";s:19:"Unused Static Title";s:27:"title_label_use_field_label";i:0;s:15:"title_maxlength";s:3:"128";s:7:"display";a:1:{s:10:"url_cutoff";s:2:"81";}s:10:"attributes";a:6:{s:6:"target";s:6:"_blank";s:3:"rel";s:8:"nofollow";s:18:"configurable_class";i:0;s:5:"class";s:7:"classes";s:18:"configurable_title";i:1;s:5:"title";s:0:"";}s:10:"rel_remove";s:19:"rel_remove_external";s:13:"enable_tokens";i:1;s:18:"user_register_form";b:0;s:23:"entity_translation_sync";b:0;}s:7:"display";a:1:{s:7:"default";a:5:{s:5:"label";s:5:"above";s:4:"type";s:12:"link_default";s:6:"weight";s:1:"9";s:8:"settings";a:0:{}s:6:"module";s:4:"link";}}s:8:"required";i:0;s:11:"description";s:0:"";s:13:"default_value";N;}',
+  'data' => 'a:7:{s:5:"label";s:4:"Link";s:6:"widget";a:5:{s:6:"weight";s:2:"10";s:4:"type";s:10:"link_field";s:6:"module";s:4:"link";s:6:"active";i:0;s:8:"settings";a:0:{}}s:8:"settings";a:14:{s:12:"absolute_url";i:1;s:12:"validate_url";i:1;s:3:"url";i:0;s:5:"title";s:8:"required";s:11:"title_value";s:19:"Unused Static Title";s:20:"title_allowed_values";s:0:"";s:27:"title_label_use_field_label";i:0;s:15:"title_maxlength";s:3:"128";s:7:"display";a:1:{s:10:"url_cutoff";s:2:"81";}s:10:"attributes";a:6:{s:6:"target";s:6:"_blank";s:3:"rel";s:8:"nofollow";s:18:"configurable_class";i:0;s:5:"class";s:7:"classes";s:18:"configurable_title";i:1;s:5:"title";s:0:"";}s:10:"rel_remove";s:19:"rel_remove_external";s:13:"enable_tokens";i:1;s:18:"user_register_form";b:0;s:23:"entity_translation_sync";b:0;}s:7:"display";a:1:{s:7:"default";a:5:{s:5:"label";s:5:"above";s:4:"type";s:12:"link_default";s:6:"weight";s:1:"9";s:8:"settings";a:0:{}s:6:"module";s:4:"link";}}s:8:"required";i:0;s:11:"description";s:0:"";s:13:"default_value";a:1:{i:0;a:3:{s:5:"title";s:6:"Drupal";s:3:"url";s:23:"https://www.drupal.org/";s:10:"attributes";a:1:{s:5:"title";s:14:"Home - Drupal ";}}}}',
   'deleted' => '0',
 ))
 ->values(array(
@@ -5337,6 +5337,24 @@ $connection->insert('field_config_instance')
   'entity_type' => 'node',
   'bundle' => 'blog',
   'data' => 'a:7:{s:5:"label";s:7:"termrss";s:6:"widget";a:5:{s:6:"weight";s:2:"16";s:4:"type";s:15:"options_buttons";s:6:"module";s:7:"options";s:6:"active";i:1;s:8:"settings";a:0:{}}s:8:"settings";a:2:{s:18:"user_register_form";b:0;s:23:"entity_translation_sync";b:0;}s:7:"display";a:1:{s:7:"default";a:5:{s:5:"label";s:5:"above";s:4:"type";s:36:"taxonomy_term_reference_rss_category";s:6:"weight";s:2:"14";s:8:"settings";a:0:{}s:6:"module";s:8:"taxonomy";}}s:8:"required";i:0;s:11:"description";s:0:"";s:13:"default_value";N;}',
+  'deleted' => '0',
+))
+->values(array(
+  'id' => '86',
+  'field_id' => '1',
+  'field_name' => 'comment_body',
+  'entity_type' => 'comment',
+  'bundle' => 'comment_node_a_thirty_two_character_type_name',
+  'data' => 'a:6:{s:5:"label";s:7:"Comment";s:8:"settings";a:2:{s:15:"text_processing";i:1;s:18:"user_register_form";b:0;}s:8:"required";b:1;s:7:"display";a:1:{s:7:"default";a:5:{s:5:"label";s:6:"hidden";s:4:"type";s:12:"text_default";s:6:"weight";i:0;s:8:"settings";a:0:{}s:6:"module";s:4:"text";}}s:6:"widget";a:4:{s:4:"type";s:13:"text_textarea";s:8:"settings";a:1:{s:4:"rows";i:5;}s:6:"weight";i:0;s:6:"module";s:4:"text";}s:11:"description";s:0:"";}',
+  'deleted' => '0',
+))
+->values(array(
+  'id' => '87',
+  'field_id' => '2',
+  'field_name' => 'body',
+  'entity_type' => 'node',
+  'bundle' => 'a_thirty_two_character_type_name',
+  'data' => 'a:6:{s:5:"label";s:4:"Body";s:6:"widget";a:4:{s:4:"type";s:26:"text_textarea_with_summary";s:8:"settings";a:2:{s:4:"rows";i:20;s:12:"summary_rows";i:5;}s:6:"weight";i:-4;s:6:"module";s:4:"text";}s:8:"settings";a:3:{s:15:"display_summary";b:1;s:15:"text_processing";i:1;s:18:"user_register_form";b:0;}s:7:"display";a:2:{s:7:"default";a:5:{s:5:"label";s:6:"hidden";s:4:"type";s:12:"text_default";s:8:"settings";a:0:{}s:6:"module";s:4:"text";s:6:"weight";i:0;}s:6:"teaser";a:5:{s:5:"label";s:6:"hidden";s:4:"type";s:23:"text_summary_or_trimmed";s:8:"settings";a:1:{s:11:"trim_length";i:600;}s:6:"module";s:4:"text";s:6:"weight";i:0;}}s:8:"required";b:0;s:11:"description";s:0:"";}',
   'deleted' => '0',
 ))
 ->execute();
@@ -44746,6 +44764,21 @@ $connection->insert('node_type')
   'disabled' => '0',
   'orig_type' => 'et',
 ))
+ ->values(array(
+  'type' => 'a_thirty_two_character_type_name',
+  'name' => 'Test long name',
+  'base' => 'node_content',
+  'module' => 'node',
+  'description' => '',
+  'help' => '',
+  'has_title' => '1',
+  'title_label' => 'Title',
+  'custom' => '1',
+  'modified' => '1',
+  'locked' => '0',
+  'disabled' => '0',
+  'orig_type' => 'page',
+))
 ->execute();
 
 $connection->schema()->createTable('picture_mapping', array(
@@ -58607,10 +58640,6 @@ $connection->insert('variable')
 ->values(array(
   'name' => 'site_name',
   'value' => 's:13:"The Site Name";',
-))
-->values(array(
-  'name' => 'site_offline_message',
-  'value' => 's:42:"This is a custom maintenance mode message.";',
 ))
 ->values(array(
   'name' => 'site_slogan',

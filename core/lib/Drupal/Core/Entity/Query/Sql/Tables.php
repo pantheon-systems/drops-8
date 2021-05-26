@@ -250,6 +250,14 @@ class Tables implements TablesInterface {
             $key++;
           }
         }
+        // If there are no additional specifiers but the field has a main
+        // property, use that to look up the column name.
+        elseif ($field_storage && $column) {
+          $columns = $field_storage->getColumns();
+          if (isset($columns[$column])) {
+            $sql_column = $table_mapping->getFieldColumnName($field_storage, $column);
+          }
+        }
 
         $table = $this->ensureEntityTable($index_prefix, $sql_column, $type, $langcode, $base_table, $entity_id_field, $entity_tables);
       }
@@ -467,7 +475,7 @@ class Tables implements TablesInterface {
    *   The alias of the next entity table joined in.
    */
   protected function addNextBaseTable(EntityType $entity_type, $table, $sql_column, FieldStorageDefinitionInterface $field_storage) {
-    $join_condition = '%alias.' . $entity_type->getKey('id') . " = $table.$sql_column";
+    $join_condition = '[%alias].[' . $entity_type->getKey('id') . "] = [$table].[$sql_column]";
     return $this->sqlQuery->leftJoin($entity_type->getBaseTable(), NULL, $join_condition);
   }
 
