@@ -5,6 +5,7 @@ namespace Drupal\Core\Database\Driver\mysql;
 use Drupal\Core\Database\DatabaseAccessDeniedException;
 use Drupal\Core\Database\IntegrityConstraintViolationException;
 use Drupal\Core\Database\DatabaseExceptionWrapper;
+use Drupal\Core\Database\StatementInterface;
 use Drupal\Core\Database\StatementWrapper;
 use Drupal\Core\Database\Database;
 use Drupal\Core\Database\DatabaseNotFoundException;
@@ -64,6 +65,15 @@ class Connection extends DatabaseConnection {
    * @var bool
    */
   protected $needsCleanup = FALSE;
+
+  /**
+   * Stores the server version after it has been retrieved from the database.
+   *
+   * @var string
+   *
+   * @see \Drupal\Core\Database\Driver\mysql\Connection::version
+   */
+  private $serverVersion;
 
   /**
    * The minimal possible value for the max_allowed_packet setting of MySQL.
@@ -290,11 +300,10 @@ class Connection extends DatabaseConnection {
    *   The PDO server version.
    */
   protected function getServerVersion(): string {
-    static $server_version;
-    if (!$server_version) {
-      $server_version = $this->connection->query('SELECT VERSION()')->fetchColumn();
+    if (!$this->serverVersion) {
+      $this->serverVersion = $this->connection->query('SELECT VERSION()')->fetchColumn();
     }
-    return $server_version;
+    return $this->serverVersion;
   }
 
   public function databaseType() {
