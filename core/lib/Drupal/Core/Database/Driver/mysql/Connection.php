@@ -54,15 +54,6 @@ class Connection extends DatabaseConnection {
   protected $needsCleanup = FALSE;
 
   /**
-   * Stores the server version after it has been retrieved from the database.
-   *
-   * @var string
-   *
-   * @see \Drupal\Core\Database\Driver\mysql\Connection::version
-   */
-  private $serverVersion;
-
-  /**
    * The minimal possible value for the max_allowed_packet setting of MySQL.
    *
    * @link https://mariadb.com/kb/en/mariadb/server-system-variables/#max_allowed_packet
@@ -553,56 +544,6 @@ class Connection extends DatabaseConnection {
 
   public function driver() {
     return 'mysql';
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function version() {
-    if ($this->isMariaDb()) {
-      return $this->getMariaDbVersionMatch();
-    }
-
-    return $this->getServerVersion();
-  }
-
-  /**
-   * Determines whether the MySQL distribution is MariaDB or not.
-   *
-   * @return bool
-   *   Returns TRUE if the distribution is MariaDB, or FALSE if not.
-   */
-  public function isMariaDb(): bool {
-    return (bool) $this->getMariaDbVersionMatch();
-  }
-
-  /**
-   * Gets the MariaDB portion of the server version.
-   *
-   * @return string
-   *   The MariaDB portion of the server version if present, or NULL if not.
-   */
-  protected function getMariaDbVersionMatch(): ?string {
-    // MariaDB may prefix its version string with '5.5.5-', which should be
-    // ignored.
-    // @see https://github.com/MariaDB/server/blob/f6633bf058802ad7da8196d01fd19d75c53f7274/include/mysql_com.h#L42.
-    $regex = '/^(?:5\.5\.5-)?(\d+\.\d+\.\d+.*-mariadb.*)/i';
-
-    preg_match($regex, $this->getServerVersion(), $matches);
-    return (empty($matches[1])) ? NULL : $matches[1];
-  }
-
-  /**
-   * Gets the server version.
-   *
-   * @return string
-   *   The PDO server version.
-   */
-  protected function getServerVersion(): string {
-    if (!$this->serverVersion) {
-      $this->serverVersion = $this->connection->query('SELECT VERSION()')->fetchColumn();
-    }
-    return $this->serverVersion;
   }
 
   public function databaseType() {
