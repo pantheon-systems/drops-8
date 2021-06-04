@@ -24,10 +24,10 @@ use Symfony\Component\Validator\ConstraintViolationListInterface;
  */
 class ConstraintViolationListNormalizer implements NormalizerInterface, CacheableSupportsMethodInterface
 {
-    const INSTANCE = 'instance';
-    const STATUS = 'status';
-    const TITLE = 'title';
-    const TYPE = 'type';
+    public const INSTANCE = 'instance';
+    public const STATUS = 'status';
+    public const TITLE = 'title';
+    public const TYPE = 'type';
 
     private $defaultContext;
     private $nameConverter;
@@ -40,6 +40,8 @@ class ConstraintViolationListNormalizer implements NormalizerInterface, Cacheabl
 
     /**
      * {@inheritdoc}
+     *
+     * @return array
      */
     public function normalize($object, $format = null, array $context = [])
     {

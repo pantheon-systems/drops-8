@@ -126,7 +126,8 @@ class TextFieldTest extends StringFieldTest {
 
     $test_file = current($this->drupalGetTestFiles('text'));
     $edit['files[file_field_0]'] = \Drupal::service('file_system')->realpath($test_file->uri);
-    $this->drupalPostForm('entity_test/add', $edit, 'Upload');
+    $this->drupalGet('entity_test/add');
+    $this->submitForm($edit, 'Upload');
     $this->assertSession()->statusCodeEquals(200);
     $edit = [
       'text_long[0][value]' => 'Long text',
@@ -134,7 +135,7 @@ class TextFieldTest extends StringFieldTest {
     $this->submitForm($edit, 'Save');
     $this->assertSession()->statusCodeEquals(200);
     $this->drupalGet('entity_test/1');
-    $this->assertText('Long text');
+    $this->assertSession()->pageTextContains('Long text');
   }
 
   /**
@@ -188,7 +189,8 @@ class TextFieldTest extends StringFieldTest {
     $this->drupalLogin($this->adminUser);
     foreach (filter_formats() as $format) {
       if (!$format->isFallbackFormat()) {
-        $this->drupalPostForm('admin/config/content/formats/manage/' . $format->id() . '/disable', [], 'Disable');
+        $this->drupalGet('admin/config/content/formats/manage/' . $format->id() . '/disable');
+        $this->submitForm([], 'Disable');
       }
     }
     $this->drupalLogin($this->webUser);
@@ -207,7 +209,7 @@ class TextFieldTest extends StringFieldTest {
     $this->submitForm($edit, 'Save');
     preg_match('|entity_test/manage/(\d+)|', $this->getUrl(), $match);
     $id = $match[1];
-    $this->assertText('entity_test ' . $id . ' has been created.', 'Entity was created');
+    $this->assertSession()->pageTextContains('entity_test ' . $id . ' has been created.');
 
     // Display the entity.
     $entity = EntityTest::load($id);
@@ -224,7 +226,8 @@ class TextFieldTest extends StringFieldTest {
       'format' => mb_strtolower($this->randomMachineName()),
       'name' => $this->randomMachineName(),
     ];
-    $this->drupalPostForm('admin/config/content/formats/add', $edit, 'Save configuration');
+    $this->drupalGet('admin/config/content/formats/add');
+    $this->submitForm($edit, 'Save configuration');
     filter_formats_reset();
     $format = FilterFormat::load($edit['format']);
     $format_id = $format->id();
@@ -245,7 +248,7 @@ class TextFieldTest extends StringFieldTest {
       "{$field_name}[0][format]" => $format_id,
     ];
     $this->submitForm($edit, 'Save');
-    $this->assertText('entity_test ' . $id . ' has been updated.', 'Entity was updated');
+    $this->assertSession()->pageTextContains('entity_test ' . $id . ' has been updated.');
 
     // Display the entity.
     $this->container->get('entity_type.manager')->getStorage('entity_test')->resetCache([$id]);

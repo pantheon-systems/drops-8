@@ -44,7 +44,7 @@ class FeedValidationTest extends EntityKernelTestBase {
     $feed->save();
 
     // Add another feed.
-    /* @var \Drupal\aggregator\FeedInterface $feed */
+    /** @var \Drupal\aggregator\FeedInterface $feed */
     $feed = Feed::create([
       'title' => 'Feed 1',
       'url' => 'https://www.drupal.org/planet/rss.xml',
@@ -54,14 +54,10 @@ class FeedValidationTest extends EntityKernelTestBase {
     $violations = $feed->validate();
 
     $this->assertCount(2, $violations);
-    $this->assertEqual($violations[0]->getPropertyPath(), 'title');
-    $this->assertEqual($violations[0]->getMessage(), t('A feed named %value already exists. Enter a unique title.', [
-      '%value' => $feed->label(),
-    ]));
-    $this->assertEqual($violations[1]->getPropertyPath(), 'url');
-    $this->assertEqual($violations[1]->getMessage(), t('A feed with this URL %value already exists. Enter a unique URL.', [
-      '%value' => $feed->getUrl(),
-    ]));
+    $this->assertEquals('title', $violations[0]->getPropertyPath());
+    $this->assertEquals(t('A feed named %value already exists. Enter a unique title.', ['%value' => $feed->label()]), $violations[0]->getMessage());
+    $this->assertEquals('url', $violations[1]->getPropertyPath());
+    $this->assertEquals(t('A feed with this URL %value already exists. Enter a unique URL.', ['%value' => $feed->getUrl()]), $violations[1]->getMessage());
   }
 
 }

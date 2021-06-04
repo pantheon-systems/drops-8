@@ -82,7 +82,7 @@ class DatabaseStorageExpirableTest extends StorageTestBase {
 
     // Verify that all items in the other collection are different.
     $result = $stores[1]->getAll();
-    $this->assertEqual($result, ['foo' => $this->objects[5]]);
+    $this->assertEquals(['foo' => $this->objects[5]], $result);
 
     // Verify that multiple items can be deleted.
     $stores[0]->deleteMultiple(array_keys($values));
@@ -97,7 +97,7 @@ class DatabaseStorageExpirableTest extends StorageTestBase {
     for ($i = 0; $i <= 1; $i++) {
       // setWithExpireIfNotExists() should be TRUE the first time (when $i is
       // 0) and FALSE the second time (when $i is 1).
-      $this->assertEqual(!$i, $stores[0]->setWithExpireIfNotExists($key, $this->objects[$i], rand(500, 100000)));
+      $this->assertEquals(!$i, $stores[0]->setWithExpireIfNotExists($key, $this->objects[$i], rand(500, 100000)));
       $this->assertEquals($this->objects[0], $stores[0]->get($key));
       // Verify that the other collection is not affected.
       $this->assertNull($stores[1]->get($key));
@@ -128,7 +128,7 @@ class DatabaseStorageExpirableTest extends StorageTestBase {
     $this->assertFalse($stores[0]->has('yesterday'));
     $this->assertNull($stores[0]->get('yesterday'));
     $this->assertTrue($stores[0]->has('troubles'));
-    $this->assertIdentical($stores[0]->get('troubles'), 'here to stay');
+    $this->assertSame('here to stay', $stores[0]->get('troubles'));
     $this->assertCount(1, $stores[0]->getMultiple(['yesterday', 'troubles']));
 
     // Store items set to expire in the past in various ways.

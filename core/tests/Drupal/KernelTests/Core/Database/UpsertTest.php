@@ -40,17 +40,17 @@ class UpsertTest extends DatabaseTestBase {
     $upsert->execute();
 
     $num_records_after = $connection->query('SELECT COUNT(*) FROM {test_people}')->fetchField();
-    $this->assertEqual($num_records_before + 1, $num_records_after, 'Rows were inserted and updated properly.');
+    $this->assertEquals($num_records_before + 1, $num_records_after, 'Rows were inserted and updated properly.');
 
     $person = $connection->query('SELECT * FROM {test_people} WHERE [job] = :job', [':job' => 'Presenter'])->fetch();
-    $this->assertEqual($person->job, 'Presenter', 'Job set correctly.');
-    $this->assertEqual($person->age, 31, 'Age set correctly.');
-    $this->assertEqual($person->name, 'Tiffany', 'Name set correctly.');
+    $this->assertEquals('Presenter', $person->job, 'Job set correctly.');
+    $this->assertEquals(31, $person->age, 'Age set correctly.');
+    $this->assertEquals('Tiffany', $person->name, 'Name set correctly.');
 
     $person = $connection->query('SELECT * FROM {test_people} WHERE [job] = :job', [':job' => 'Speaker'])->fetch();
-    $this->assertEqual($person->job, 'Speaker', 'Job was not changed.');
-    $this->assertEqual($person->age, 32, 'Age updated correctly.');
-    $this->assertEqual($person->name, 'Meredith', 'Name was not changed.');
+    $this->assertEquals('Speaker', $person->job, 'Job was not changed.');
+    $this->assertEquals(32, $person->age, 'Age updated correctly.');
+    $this->assertEquals('Meredith', $person->name, 'Name was not changed.');
   }
 
   /**

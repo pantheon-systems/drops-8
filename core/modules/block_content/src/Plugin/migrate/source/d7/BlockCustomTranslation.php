@@ -7,7 +7,11 @@ use Drupal\migrate_drupal\Plugin\migrate\source\DrupalSqlBase;
 use Drupal\content_translation\Plugin\migrate\source\I18nQueryTrait;
 
 /**
- * Gets Drupal 7 custom block translation from database.
+ * Gets Drupal 7 i18n custom block translations from database.
+ *
+ * For available configuration keys, refer to the parent classes:
+ * @see \Drupal\migrate\Plugin\migrate\source\SqlBase
+ * @see \Drupal\migrate\Plugin\migrate\source\SourcePluginBase
  *
  * @MigrateSource(
  *   id = "d7_block_custom_translation",
@@ -56,7 +60,9 @@ class BlockCustomTranslation extends DrupalSqlBase {
    * {@inheritdoc}
    */
   public function prepareRow(Row $row) {
-    parent::prepareRow($row);
+    if (!parent::prepareRow($row)) {
+      return FALSE;
+    }
     // Set the i18n string table for use in I18nQueryTrait.
     $this->i18nStringTable = static::I18N_STRING_TABLE;
     // Save the translation for this property.

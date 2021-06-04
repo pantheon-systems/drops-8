@@ -291,7 +291,7 @@ class BrowserTestBaseTest extends BrowserTestBase {
     $dangerous = 'Bad html <script>alert(123);</script>';
     $sanitized = Html::escape($dangerous);
     $this->assertNoText($dangerous);
-    $this->assertText($sanitized);
+    $this->assertSession()->responseContains($sanitized);
   }
 
   /**
@@ -303,6 +303,31 @@ class BrowserTestBaseTest extends BrowserTestBase {
     $this->expectDeprecation('AssertLegacyTrait::assertPattern() is deprecated in drupal:8.2.0 and is removed from drupal:10.0.0. Use $this->assertSession()->responseMatches() instead. See https://www.drupal.org/node/3129738');
     $this->drupalGet('test-escaped-characters');
     $this->assertPattern('/div class.*escaped/');
+  }
+
+  /**
+   * Tests deprecated assertText.
+   *
+   * @group legacy
+   */
+  public function testAssertText() {
+    $this->expectDeprecation('AssertLegacyTrait::assertText() is deprecated in drupal:8.2.0 and is removed from drupal:10.0.0. Use $this->assertSession()->responseContains() or $this->assertSession()->pageTextContains() instead. See https://www.drupal.org/node/3129738');
+    $this->expectDeprecation('Calling AssertLegacyTrait::assertText() with more than one argument is deprecated in drupal:8.2.0 and the method is removed from drupal:10.0.0. Use $this->assertSession()->responseContains() or $this->assertSession()->pageTextContains() instead. See https://www.drupal.org/node/3129738');
+    $this->drupalGet('test-encoded');
+    $dangerous = 'Bad html <script>alert(123);</script>';
+    $this->assertText(Html::escape($dangerous), 'Sanitized text should be present.');
+  }
+
+  /**
+   * Tests deprecated assertNoText.
+   *
+   * @group legacy
+   */
+  public function testAssertNoText() {
+    $this->expectDeprecation('Calling AssertLegacyTrait::assertNoText() with more than one argument is deprecated in drupal:8.2.0 and the method is removed from drupal:10.0.0. Use $this->assertSession()->responseNotContains() or $this->assertSession()->pageTextNotContains() instead. See https://www.drupal.org/node/3129738');
+    $this->drupalGet('test-encoded');
+    $dangerous = 'Bad html <script>alert(123);</script>';
+    $this->assertNoText($dangerous, 'Dangerous text should not be present.');
   }
 
   /**
@@ -880,8 +905,6 @@ class BrowserTestBaseTest extends BrowserTestBase {
     foreach ($this->getSession()->getResponseHeaders() as $name => $values) {
       if (preg_match('/^X-Drupal-Assertion-[0-9]+$/', $name, $matches)) {
         foreach ($values as $value) {
-          // Call \Drupal\simpletest\WebTestBase::error() with the parameters from
-          // the header.
           $parameters = unserialize(urldecode($value));
           if (count($parameters) === 3) {
             if ($parameters[1] === 'User deprecated function') {

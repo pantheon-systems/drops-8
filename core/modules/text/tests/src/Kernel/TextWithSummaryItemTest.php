@@ -70,18 +70,18 @@ class TextWithSummaryItemTest extends FieldKernelTestBase {
     $entity = $storage->load($entity->id());
     $this->assertInstanceOf(FieldItemListInterface::class, $entity->summary_field);
     $this->assertInstanceOf(FieldItemInterface::class, $entity->summary_field[0]);
-    $this->assertEqual($entity->summary_field->value, $value);
-    $this->assertEqual($entity->summary_field->summary, $summary);
+    $this->assertEquals($value, $entity->summary_field->value);
+    $this->assertEquals($summary, $entity->summary_field->summary);
     $this->assertNull($entity->summary_field->format);
     // Even if no format is given, if text processing is enabled, the default
     // format is used.
-    $this->assertEqual($entity->summary_field->processed, "<p>$value</p>\n");
-    $this->assertEqual($entity->summary_field->summary_processed, "<p>$summary</p>\n");
+    $this->assertEquals("<p>{$value}</p>\n", $entity->summary_field->processed);
+    $this->assertEquals("<p>{$summary}</p>\n", $entity->summary_field->summary_processed);
 
     // Change the format, this should update the processed properties.
     $entity->summary_field->format = 'no_filters';
-    $this->assertEqual($entity->summary_field->processed, $value);
-    $this->assertEqual($entity->summary_field->summary_processed, $summary);
+    $this->assertEquals($value, $entity->summary_field->processed);
+    $this->assertEquals($summary, $entity->summary_field->summary_processed);
 
     // Test the generateSampleValue() method.
     $entity = $this->container->get('entity_type.manager')

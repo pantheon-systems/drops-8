@@ -93,8 +93,8 @@ class ConnectionTest extends DatabaseTestBase {
 
     // In the MySQL driver, the port can be different, so check individual
     // options.
-    $this->assertEqual($connection_info['default']['driver'], $connectionOptions['driver'], 'The default connection info driver matches the current connection options driver.');
-    $this->assertEqual($connection_info['default']['database'], $connectionOptions['database'], 'The default connection info database matches the current connection options database.');
+    $this->assertEquals($connection_info['default']['driver'], $connectionOptions['driver'], 'The default connection info driver matches the current connection options driver.');
+    $this->assertEquals($connection_info['default']['database'], $connectionOptions['database'], 'The default connection info database matches the current connection options database.');
 
     // Set up identical replica and confirm connection options are identical.
     Database::addConnectionInfo('default', 'replica', $connection_info['default']);
@@ -105,7 +105,7 @@ class ConnectionTest extends DatabaseTestBase {
 
     // Get a fresh copy of the default connection options.
     $connectionOptions = $db->getConnectionOptions();
-    $this->assertIdentical($connectionOptions, $connectionOptions2, 'The default and replica connection options are identical.');
+    $this->assertSame($connectionOptions2, $connectionOptions, 'The default and replica connection options are identical.');
 
     // Set up a new connection with different connection info.
     $test = $connection_info['default'];
@@ -115,7 +115,7 @@ class ConnectionTest extends DatabaseTestBase {
 
     // Get a fresh copy of the default connection options.
     $connectionOptions = $db->getConnectionOptions();
-    $this->assertNotEqual($connection_info['default']['database'], $connectionOptions['database'], 'The test connection info database does not match the current connection options database.');
+    $this->assertNotEquals($connection_info['default']['database'], $connectionOptions['database'], 'The test connection info database does not match the current connection options database.');
   }
 
   /**
