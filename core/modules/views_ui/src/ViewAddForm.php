@@ -123,6 +123,7 @@ class ViewAddForm extends ViewFormBase {
       '#type' => 'select',
       '#title' => $this->t('Show'),
       '#options' => $options,
+      '#sort_options' => TRUE,
     ];
     $show_form = &$form['displays']['show'];
     $default_value = \Drupal::moduleHandler()->moduleExists('node') ? 'node' : 'users';
@@ -185,7 +186,7 @@ class ViewAddForm extends ViewFormBase {
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
     try {
-      /** @var $wizard \Drupal\views\Plugin\views\wizard\WizardInterface */
+      /** @var \Drupal\views\Plugin\views\wizard\WizardInterface $wizard */
       $wizard = $form_state->get('wizard_instance');
       $this->entity = $wizard->createView($form, $form_state);
     }

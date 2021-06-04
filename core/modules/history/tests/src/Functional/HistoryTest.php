@@ -107,7 +107,7 @@ class HistoryTest extends BrowserTestBase {
     $response = $this->getNodeReadTimestamps([$nid]);
     $this->assertEquals(200, $response->getStatusCode());
     $json = Json::decode($response->getBody());
-    $this->assertIdentical([1 => 0], $json, 'The node has not yet been read.');
+    $this->assertSame([1 => 0], $json, 'The node has not yet been read.');
 
     // View the node.
     $this->drupalGet('node/' . $nid);
@@ -116,7 +116,7 @@ class HistoryTest extends BrowserTestBase {
     $settings = $this->getDrupalSettings();
     $libraries = explode(',', $settings['ajaxPageState']['libraries']);
     $this->assertContains('history/mark-as-read', $libraries, 'history/mark-as-read library is present.');
-    $this->assertEqual([$nid => TRUE], $settings['history']['nodesToMarkAsRead'], 'drupalSettings to mark node as read are present.');
+    $this->assertEquals([$nid => TRUE], $settings['history']['nodesToMarkAsRead'], 'drupalSettings to mark node as read are present.');
 
     // Simulate JavaScript: perform HTTP request to mark node as read.
     $response = $this->markNodeAsRead($nid);
@@ -128,7 +128,7 @@ class HistoryTest extends BrowserTestBase {
     $response = $this->getNodeReadTimestamps([$nid]);
     $this->assertEquals(200, $response->getStatusCode());
     $json = Json::decode($response->getBody());
-    $this->assertIdentical([1 => $timestamp], $json, 'The node has been read.');
+    $this->assertSame([1 => $timestamp], $json, 'The node has been read.');
 
     // Failing to specify node IDs for the first endpoint should return a 404.
     $response = $this->getNodeReadTimestamps([]);

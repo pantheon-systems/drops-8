@@ -369,7 +369,7 @@ class MigrateExecutable implements MigrateExecutableInterface {
   public function processRow(Row $row, array $process = NULL, $value = NULL) {
     foreach ($this->migration->getProcessPlugins($process) as $destination => $plugins) {
       $multiple = FALSE;
-      /** @var $plugin \Drupal\migrate\Plugin\MigrateProcessInterface */
+      /** @var \Drupal\migrate\Plugin\MigrateProcessInterface $plugin */
       foreach ($plugins as $plugin) {
         $definition = $plugin->getPluginDefinition();
         // Many plugins expect a scalar value but the current value of the
@@ -552,11 +552,8 @@ class MigrateExecutable implements MigrateExecutableInterface {
     // plenty of memory to continue.
     drupal_static_reset();
 
-    // Entity storage can blow up with caches so clear them out.
-    $entity_type_manager = \Drupal::entityTypeManager();
-    foreach ($entity_type_manager->getDefinitions() as $id => $definition) {
-      $entity_type_manager->getStorage($id)->resetCache();
-    }
+    // Entity storage can blow up with caches, so clear it out.
+    \Drupal::service('entity.memory_cache')->deleteAll();
 
     // @TODO: explore resetting the container.
 

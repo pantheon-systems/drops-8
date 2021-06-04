@@ -74,10 +74,10 @@ class ExtensionViewsFieldTest extends ViewsKernelTestBase {
 
     // Test without the tar option.
     $renderer->executeInRenderContext(new RenderContext(), function () use ($view) {
-      $this->assertEqual($view->field['extension']->advancedRender($view->result[0]), 'png');
-      $this->assertEqual($view->field['extension']->advancedRender($view->result[1]), 'tar');
-      $this->assertEqual($view->field['extension']->advancedRender($view->result[2]), 'gz');
-      $this->assertEqual($view->field['extension']->advancedRender($view->result[3]), '');
+      $this->assertEquals('png', $view->field['extension']->advancedRender($view->result[0]));
+      $this->assertEquals('tar', $view->field['extension']->advancedRender($view->result[1]));
+      $this->assertEquals('gz', $view->field['extension']->advancedRender($view->result[2]));
+      $this->assertEquals('', $view->field['extension']->advancedRender($view->result[3]));
     });
 
     // Test with the tar option.
@@ -89,10 +89,10 @@ class ExtensionViewsFieldTest extends ViewsKernelTestBase {
     $this->executeView($view);
 
     $renderer->executeInRenderContext(new RenderContext(), function () use ($view) {
-      $this->assertEqual($view->field['extension']->advancedRender($view->result[0]), 'png');
-      $this->assertEqual($view->field['extension']->advancedRender($view->result[1]), 'tar');
-      $this->assertEqual($view->field['extension']->advancedRender($view->result[2]), 'tar.gz');
-      $this->assertEqual($view->field['extension']->advancedRender($view->result[3]), '');
+      $this->assertEquals('png', $view->field['extension']->advancedRender($view->result[0]));
+      $this->assertEquals('tar', $view->field['extension']->advancedRender($view->result[1]));
+      $this->assertEquals('tar.gz', $view->field['extension']->advancedRender($view->result[2]));
+      $this->assertEquals('', $view->field['extension']->advancedRender($view->result[3]));
     });
   }
 

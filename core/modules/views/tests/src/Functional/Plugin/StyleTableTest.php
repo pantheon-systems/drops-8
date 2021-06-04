@@ -43,11 +43,11 @@ class StyleTableTest extends ViewTestBase {
 
     $result = $this->xpath('//caption/child::text()');
     $this->assertNotEmpty($result, 'The caption appears on the table.');
-    $this->assertEqual(trim($result[0]->getText()), 'caption-text');
+    $this->assertEquals('caption-text', trim($result[0]->getText()));
 
     $result = $this->xpath('//summary/child::text()');
     $this->assertNotEmpty($result, 'The summary appears on the table.');
-    $this->assertEqual(trim($result[0]->getText()), 'summary-text');
+    $this->assertEquals('summary-text', trim($result[0]->getText()));
     // Check that the summary has the right accessibility settings.
     $summary = $this->xpath('//summary')[0];
     $this->assertTrue($summary->hasAttribute('role'));
@@ -55,7 +55,7 @@ class StyleTableTest extends ViewTestBase {
 
     $result = $this->xpath('//caption/details/child::text()[normalize-space()]');
     $this->assertNotEmpty($result, 'The table description appears on the table.');
-    $this->assertEqual(trim($result[0]->getText()), 'description-text');
+    $this->assertEquals('description-text', trim($result[0]->getText()));
 
     // Remove the caption and ensure the caption is not displayed anymore.
     $view = View::load('test_table');

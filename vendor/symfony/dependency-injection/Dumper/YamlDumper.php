@@ -45,7 +45,7 @@ class YamlDumper extends Dumper
      */
     public function dump(array $options = [])
     {
-        if (!class_exists('Symfony\Component\Yaml\Dumper')) {
+        if (!class_exists(\Symfony\Component\Yaml\Dumper::class)) {
             throw new LogicException('Unable to dump the container as the Symfony Yaml Component is not installed.');
         }
 
@@ -132,7 +132,7 @@ class YamlDumper extends Dumper
         }
 
         if (null !== $decoratedService = $definition->getDecoratedService()) {
-            list($decorated, $renamedId, $priority) = $decoratedService;
+            [$decorated, $renamedId, $priority] = $decoratedService;
             $code .= sprintf("        decorates: %s\n", $decorated);
             if (null !== $renamedId) {
                 $code .= sprintf("        decoration_inner_name: %s\n", $renamedId);

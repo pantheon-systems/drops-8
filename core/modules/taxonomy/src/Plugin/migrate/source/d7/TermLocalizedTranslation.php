@@ -8,6 +8,11 @@ use Drupal\migrate\Row;
 /**
  * Gets i18n taxonomy terms from source database.
  *
+ * For available configuration keys, refer to the parent classes:
+ * @see \Drupal\taxonomy\Plugin\migrate\source\d7\Term
+ * @see \Drupal\migrate\Plugin\migrate\source\SqlBase
+ * @see \Drupal\migrate\Plugin\migrate\source\SourcePluginBase
+ *
  * @MigrateSource(
  *   id = "d7_term_localized_translation",
  *   source_module = "i18n_taxonomy"
@@ -50,7 +55,9 @@ class TermLocalizedTranslation extends Term {
    * {@inheritdoc}
    */
   public function prepareRow(Row $row) {
-    parent::prepareRow($row);
+    if (!parent::prepareRow($row)) {
+      return FALSE;
+    }
 
     // Override language with ltlanguage.
     $language = $row->getSourceProperty('ltlanguage');
