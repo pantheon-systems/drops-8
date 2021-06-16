@@ -18,15 +18,15 @@ namespace Symfony\Component\Serializer\Encoder;
  */
 class JsonEncoder implements EncoderInterface, DecoderInterface
 {
-    const FORMAT = 'json';
+    public const FORMAT = 'json';
 
     protected $encodingImpl;
     protected $decodingImpl;
 
     public function __construct(JsonEncode $encodingImpl = null, JsonDecode $decodingImpl = null)
     {
-        $this->encodingImpl = $encodingImpl ?: new JsonEncode();
-        $this->decodingImpl = $decodingImpl ?: new JsonDecode([JsonDecode::ASSOCIATIVE => true]);
+        $this->encodingImpl = $encodingImpl ?? new JsonEncode();
+        $this->decodingImpl = $decodingImpl ?? new JsonDecode([JsonDecode::ASSOCIATIVE => true]);
     }
 
     /**
