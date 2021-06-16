@@ -98,6 +98,7 @@ upstream/web/
 /web/.eslintignore
 /web/.eslintrc.json
 /web/.gitattributes
+/web/.gitignore
 /web/.ht.router.php
 /web/.htaccess
 /web/INSTALL.txt
