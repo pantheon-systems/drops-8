@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
+### [3.2.5] 2021-05-24
+
+  * Fixed: issue comparing disjunctive MultiConstraints to conjunctive ones (#127)
+  * Fixed: added complete type information using phpstan annotations
+
+### [3.2.4] 2020-11-13
+
+  * Fixed: code clean-up
+
+### [3.2.3] 2020-11-12
+
+  * Fixed: constraints in the form of `X || Y, >=Y.1` and other such complex constructs were in some cases being optimized into a more restrictive constraint
+
 ### [3.2.2] 2020-10-14
 
   * Fixed: internal code cleanups
@@ -44,6 +57,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
   * Break: Removed the deprecated `AbstractConstraint`
   * Added `getUpperBound` and `getLowerBound` to ConstraintInterface. They return `Composer\Semver\Constraint\Bound` instances
   * Added `MultiConstraint::create` to create the most-optimal form of ConstraintInterface from an array of constraint strings
+
+### [1.7.2] 2020-12-03
+
+  * Fixed: Allow installing on php 8
 
 ### [1.7.1] 2020-09-27
 
@@ -128,6 +145,9 @@ This project adheres to [Semantic Versioning](http://semver.org/).
     - Namespace: `Composer\Test\Package\LinkConstraint` -> `Composer\Test\Semver\Constraint`
   * Changed: code style using php-cs-fixer.
 
+[3.2.5]: https://github.com/composer/semver/compare/3.2.4...3.2.5
+[3.2.4]: https://github.com/composer/semver/compare/3.2.3...3.2.4
+[3.2.3]: https://github.com/composer/semver/compare/3.2.2...3.2.3
 [3.2.2]: https://github.com/composer/semver/compare/3.2.1...3.2.2
 [3.2.1]: https://github.com/composer/semver/compare/3.2.0...3.2.1
 [3.2.0]: https://github.com/composer/semver/compare/3.1.0...3.2.0
@@ -135,6 +155,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 [3.0.1]: https://github.com/composer/semver/compare/3.0.0...3.0.1
 [3.0.0]: https://github.com/composer/semver/compare/2.0.0...3.0.0
 [2.0.0]: https://github.com/composer/semver/compare/1.5.1...2.0.0
+[1.7.2]: https://github.com/composer/semver/compare/1.7.1...1.7.2
 [1.7.1]: https://github.com/composer/semver/compare/1.7.0...1.7.1
 [1.7.0]: https://github.com/composer/semver/compare/1.6.0...1.7.0
 [1.6.0]: https://github.com/composer/semver/compare/1.5.2...1.6.0

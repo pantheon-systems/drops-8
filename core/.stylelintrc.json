@@ -1,7 +1,6 @@
 {
   "extends": "stylelint-config-standard",
   "plugins": [
-    "stylelint-no-browser-hacks/lib",
     "stylelint-order"
   ],
   "rules": {
@@ -445,22 +444,12 @@
       "font-smooth",
       "line-height"
     ],
-    "plugin/no-browser-hacks": [true, {
-      "browsers": [
-        "ie >= 9",
-        "edge >= 13",
-        "firefox >= 5",
-        "opera >= 12",
-        "safari >= 5",
-        "chrome >= 56"
-      ]
-    }],
     "property-no-unknown": null,
     "rule-empty-line-before": null,
     "selector-pseudo-element-colon-notation": null,
     "shorthand-property-no-redundant-values": null,
     "string-quotes": "double",
-    "unit-allowed-list": ["deg", "em", "ex", "fr", "ms", "rem", "%", "s", "px", "vw", "vh"],
+    "unit-allowed-list": ["ch", "deg", "em", "ex", "fr", "ms", "rem", "%", "s", "px", "vw", "vh"],
     "value-keyword-case": ["lower", {
       "ignoreProperties": [
         "--font-family",

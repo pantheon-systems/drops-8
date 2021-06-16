@@ -64,7 +64,7 @@ class FieldConfigEntityUnitTest extends UnitTestCase {
   protected $fieldStorage;
 
   /**
-   * The mock field type plugin manager;
+   * The mock field type plugin manager.
    *
    * @var \Drupal\Core\Field\FieldTypePluginManagerInterface|\PHPUnit\Framework\MockObject\MockObject
    */
@@ -160,7 +160,7 @@ class FieldConfigEntityUnitTest extends UnitTestCase {
   }
 
   /**
-   * Test that invalid bundles are handled.
+   * Tests that invalid bundles are handled.
    */
   public function testCalculateDependenciesIncorrectBundle() {
     $storage = $this->createMock('\Drupal\Core\Config\Entity\ConfigEntityStorageInterface');

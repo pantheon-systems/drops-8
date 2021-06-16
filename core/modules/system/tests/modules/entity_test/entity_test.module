@@ -85,7 +85,7 @@ function entity_test_entity_types($filter = NULL) {
 function entity_test_entity_type_alter(array &$entity_types) {
   $state = \Drupal::state();
 
-  /** @var $entity_types \Drupal\Core\Entity\EntityTypeInterface[] */
+  /** @var \Drupal\Core\Entity\EntityTypeInterface[] $entity_types */
   foreach (entity_test_entity_types() as $entity_type) {
     // Optionally specify a translation handler for testing translations.
     if ($state->get('entity_test.translation')) {
@@ -425,6 +425,15 @@ function entity_test_entity_field_access($operation, FieldDefinitionInterface $f
 function entity_test_entity_field_access_alter(array &$grants, array $context) {
   if ($context['field_definition']->getName() == 'field_test_text' && $context['items']->value == 'access alter value') {
     $grants[':default'] = AccessResult::forbidden()->inheritCacheability($grants[':default'])->addCacheableDependency($context['items']->getEntity());
+  }
+}
+
+/**
+ * Implements hook_entity_form_mode_alter().
+ */
+function entity_test_entity_form_mode_alter(&$form_mode, EntityInterface $entity) {
+  if ($entity->getEntityTypeId() === 'entity_test' && $entity->get('name')->value === 'compact_form_mode') {
+    $form_mode = 'compact';
   }
 }
 

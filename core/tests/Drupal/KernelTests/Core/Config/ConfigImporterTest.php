@@ -73,7 +73,7 @@ class ConfigImporterTest extends KernelTestBase {
 
     // Verify the default configuration values exist.
     $config = $this->config($dynamic_name);
-    $this->assertIdentical($config->get('id'), 'dotted.default');
+    $this->assertSame('dotted.default', $config->get('id'));
 
     // Verify that a bare $this->config() does not involve module APIs.
     $this->assertFalse(isset($GLOBALS['hook_config_test']));
@@ -108,12 +108,12 @@ class ConfigImporterTest extends KernelTestBase {
 
       $actual_error_log = $this->configImporter->getErrors();
       $expected_error_log = ['Site UUID in source storage does not match the target storage.'];
-      $this->assertEqual($actual_error_log, $expected_error_log);
+      $this->assertEquals($expected_error_log, $actual_error_log);
 
       $expected = static::FAIL_MESSAGE . PHP_EOL . 'Site UUID in source storage does not match the target storage.';
       $this->assertEquals($expected, $actual_message);
       foreach ($expected_error_log as $log_row) {
-        $this->assertRegExp("/$log_row/", $actual_message);
+        $this->assertMatchesRegularExpression("/$log_row/", $actual_message);
       }
     }
   }
@@ -128,7 +128,7 @@ class ConfigImporterTest extends KernelTestBase {
 
     // Verify the default configuration values exist.
     $config = $this->config($dynamic_name);
-    $this->assertIdentical($config->get('id'), 'dotted.default');
+    $this->assertSame('dotted.default', $config->get('id'));
 
     // Delete the file from the sync directory.
     $sync->delete($dynamic_name);
@@ -140,7 +140,7 @@ class ConfigImporterTest extends KernelTestBase {
     $this->assertFalse($storage->read($dynamic_name));
 
     $config = $this->config($dynamic_name);
-    $this->assertIdentical($config->get('id'), NULL);
+    $this->assertNull($config->get('id'));
 
     // Verify that appropriate module API hooks have been invoked.
     $this->assertTrue(isset($GLOBALS['hook_config_test']['load']));
@@ -189,7 +189,7 @@ class ConfigImporterTest extends KernelTestBase {
 
     // Verify the values appeared.
     $config = $this->config($dynamic_name);
-    $this->assertIdentical($config->get('label'), $original_dynamic_data['label']);
+    $this->assertSame($original_dynamic_data['label'], $config->get('label'));
 
     // Verify that appropriate module API hooks have been invoked.
     $this->assertFalse(isset($GLOBALS['hook_config_test']['load']));
@@ -242,17 +242,17 @@ class ConfigImporterTest extends KernelTestBase {
 
     $entity_storage = \Drupal::entityTypeManager()->getStorage('config_test');
     $primary = $entity_storage->load('primary');
-    $this->assertEqual($primary->id(), 'primary');
-    $this->assertEqual($primary->uuid(), $values_primary['uuid']);
-    $this->assertEqual($primary->label(), $values_primary['label']);
+    $this->assertEquals('primary', $primary->id());
+    $this->assertEquals($values_primary['uuid'], $primary->uuid());
+    $this->assertEquals($values_primary['label'], $primary->label());
     $secondary = $entity_storage->load('secondary');
-    $this->assertEqual($secondary->id(), 'secondary');
-    $this->assertEqual($secondary->uuid(), $values_secondary['uuid']);
-    $this->assertEqual($secondary->label(), $values_secondary['label']);
+    $this->assertEquals('secondary', $secondary->id());
+    $this->assertEquals($values_secondary['uuid'], $secondary->uuid());
+    $this->assertEquals($values_secondary['label'], $secondary->label());
 
     $logs = $this->configImporter->getErrors();
     $this->assertCount(1, $logs);
-    $this->assertEqual($logs[0], new FormattableMarkup('Deleted and replaced configuration entity "@name"', ['@name' => $name_secondary]));
+    $this->assertEquals(new FormattableMarkup('Deleted and replaced configuration entity "@name"', ['@name' => $name_secondary]), $logs[0]);
   }
 
   /**
@@ -288,17 +288,17 @@ class ConfigImporterTest extends KernelTestBase {
 
     $entity_storage = \Drupal::entityTypeManager()->getStorage('config_test');
     $primary = $entity_storage->load('primary');
-    $this->assertEqual($primary->id(), 'primary');
-    $this->assertEqual($primary->uuid(), $values_primary['uuid']);
-    $this->assertEqual($primary->label(), $values_primary['label']);
+    $this->assertEquals('primary', $primary->id());
+    $this->assertEquals($values_primary['uuid'], $primary->uuid());
+    $this->assertEquals($values_primary['label'], $primary->label());
     $secondary = $entity_storage->load('secondary');
-    $this->assertEqual($secondary->id(), 'secondary');
-    $this->assertEqual($secondary->uuid(), $values_secondary['uuid']);
-    $this->assertEqual($secondary->label(), $values_secondary['label']);
+    $this->assertEquals('secondary', $secondary->id());
+    $this->assertEquals($values_secondary['uuid'], $secondary->uuid());
+    $this->assertEquals($values_secondary['label'], $secondary->label());
 
     $logs = $this->configImporter->getErrors();
     $this->assertCount(1, $logs);
-    $this->assertEqual($logs[0], Html::escape("Unexpected error during import with operation create for $name_primary: 'config_test' entity with ID 'secondary' already exists."));
+    $this->assertEquals(Html::escape("Unexpected error during import with operation create for {$name_primary}: 'config_test' entity with ID 'secondary' already exists."), $logs[0]);
   }
 
   /**
@@ -365,22 +365,22 @@ class ConfigImporterTest extends KernelTestBase {
 
     $entity_storage = \Drupal::entityTypeManager()->getStorage('config_test');
     $deleter = $entity_storage->load('deleter');
-    $this->assertEqual($deleter->id(), 'deleter');
-    $this->assertEqual($deleter->uuid(), $values_deleter['uuid']);
-    $this->assertEqual($deleter->label(), $values_deleter['label']);
+    $this->assertEquals('deleter', $deleter->id());
+    $this->assertEquals($values_deleter['uuid'], $deleter->uuid());
+    $this->assertEquals($values_deleter['label'], $deleter->label());
 
     // The deletee was deleted in
     // \Drupal\config_test\Entity\ConfigTest::postSave().
     $this->assertNull($entity_storage->load('deletee'));
 
     $other = $entity_storage->load('other');
-    $this->assertEqual($other->id(), 'other');
-    $this->assertEqual($other->uuid(), $values_other['uuid']);
-    $this->assertEqual($other->label(), $values_other['label']);
+    $this->assertEquals('other', $other->id());
+    $this->assertEquals($values_other['uuid'], $other->uuid());
+    $this->assertEquals($values_other['label'], $other->label());
 
     $logs = $this->configImporter->getErrors();
     $this->assertCount(1, $logs);
-    $this->assertEqual($logs[0], new FormattableMarkup('Update target "@name" is missing.', ['@name' => $name_deletee]));
+    $this->assertEquals(new FormattableMarkup('Update target "@name" is missing.', ['@name' => $name_deletee]), $logs[0]);
   }
 
   /**
@@ -500,9 +500,9 @@ class ConfigImporterTest extends KernelTestBase {
 
     // Verify the active configuration still returns the default values.
     $config = $this->config($name);
-    $this->assertIdentical($config->get('foo'), 'bar');
+    $this->assertSame('bar', $config->get('foo'));
     $config = $this->config($dynamic_name);
-    $this->assertIdentical($config->get('label'), 'Default');
+    $this->assertSame('Default', $config->get('label'));
 
     // Import.
     $this->configImporter->reset()->import();
@@ -510,13 +510,13 @@ class ConfigImporterTest extends KernelTestBase {
     // Verify the values were updated.
     \Drupal::configFactory()->reset($name);
     $config = $this->config($name);
-    $this->assertIdentical($config->get('foo'), 'beer');
+    $this->assertSame('beer', $config->get('foo'));
     $config = $this->config($dynamic_name);
-    $this->assertIdentical($config->get('label'), 'Updated');
+    $this->assertSame('Updated', $config->get('label'));
 
     // Verify that the original file content is still the same.
-    $this->assertIdentical($sync->read($name), $original_name_data);
-    $this->assertIdentical($sync->read($dynamic_name), $original_dynamic_data);
+    $this->assertSame($original_name_data, $sync->read($name));
+    $this->assertSame($original_dynamic_data, $sync->read($dynamic_name));
 
     // Verify that appropriate module API hooks have been invoked.
     $this->assertTrue(isset($GLOBALS['hook_config_test']['load']));
@@ -679,7 +679,7 @@ class ConfigImporterTest extends KernelTestBase {
       $expected = static::FAIL_MESSAGE . PHP_EOL . 'The core.extension configuration does not exist.';
       $this->assertEquals($expected, $e->getMessage());
       $error_log = $this->configImporter->getErrors();
-      $this->assertEqual(['The core.extension configuration does not exist.'], $error_log);
+      $this->assertEquals(['The core.extension configuration does not exist.'], $error_log);
     }
   }
 
@@ -705,7 +705,7 @@ class ConfigImporterTest extends KernelTestBase {
       $this->assertEquals($expected, $e->getMessage(), 'There were errors validating the config synchronization.');
       $error_log = $this->configImporter->getErrors();
       // Install profiles should not even be scanned at this point.
-      $this->assertEqual(['Unable to install the <em class="placeholder">standard</em> module since it does not exist.'], $error_log);
+      $this->assertEquals(['Unable to install the <em class="placeholder">standard</em> module since it does not exist.'], $error_log);
     }
   }
 
@@ -734,7 +734,7 @@ class ConfigImporterTest extends KernelTestBase {
       // does not use an install profile. This situation should be impossible
       // to get in but site's can removed the install profile setting from
       // settings.php so the test is valid.
-      $this->assertEqual(['Cannot change the install profile from <em class="placeholder"></em> to <em class="placeholder">this_will_not_work</em> once Drupal is installed.'], $error_log);
+      $this->assertEquals(['Cannot change the install profile from <em class="placeholder"></em> to <em class="placeholder">this_will_not_work</em> once Drupal is installed.'], $error_log);
     }
   }
 

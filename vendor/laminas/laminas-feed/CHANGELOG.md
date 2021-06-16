@@ -2,6 +2,72 @@
 
 All notable changes to this project will be documented in this file, in reverse chronological order by release.
 
+## 2.14.1 - 2021-04-01
+
+
+-----
+
+### Release Notes for [2.14.1](https://github.com/laminas/laminas-feed/milestone/9)
+
+### Fixed
+
+- Fixes the behavior of `Laminas\PubSubHubbub\Publisher::notifyAll()` to actually send requests to the various hubs associated with the instance; previously, it did not.
+
+### 2.14.1
+
+- Total issues resolved: **0**
+- Total pull requests resolved: **1**
+- Total contributors: **1**
+
+#### Bug
+
+ - [37: Ensure PubSubHubbub\Publisher::notifyAll() calls HTTP client send() method](https://github.com/laminas/laminas-feed/pull/37) thanks to @weierophinney
+
+## 2.14.0 - 2021-03-16
+
+
+-----
+
+### Release Notes for [2.14.0](https://github.com/laminas/laminas-feed/milestone/7)
+
+### Added
+
+- Adds a new `PodcastIndex` extension to each of the Reader and Writer subcomponents, allowing users to both create and consume [xmlns:podcast feeds](https://github.com/Podcastindex-org/podcast-namespace/blob/main/docs/1.0.md). Please [read the documentation for more details](https://docs.laminas.dev/laminas-feed/extensions/podcast-index/).
+
+### 2.14.0
+
+- Total issues resolved: **0**
+- Total pull requests resolved: **2**
+- Total contributors: **2**
+
+#### Enhancement
+
+ - [35: Switch from Travis-CI to GitHub Actions](https://github.com/laminas/laminas-feed/pull/35) thanks to @weierophinney
+ - [31: Create PodcastIndex extension](https://github.com/laminas/laminas-feed/pull/31) thanks to @codedmonkey
+
+## 2.13.1 - 2021-01-04
+
+### Fixed
+
+- [#33](https://github.com/laminas/laminas-feed/pull/33) fixes an issue whereby parsing a feed entry date that is in an incorrect format was incorrectly causing a `null` value to be returned for the date, rather than correctly throwing an exception.
+
+-----
+
+### Release Notes for [2.13.1](https://github.com/laminas/laminas-feed/milestone/6)
+
+2.13.x bugfix release (patch)
+
+### 2.13.1
+
+- Total issues resolved: **1**
+- Total pull requests resolved: **1**
+- Total contributors: **2**
+
+#### Bug
+
+- [33: Fixes 32 - Method getDateModified of RSS reader doesn't iterate over different formats](https://github.com/laminas/laminas-feed/pull/33) thanks to @froschdesign
+- [32: Method getDateModified of RSS reader doesn't iterate over different formats](https://github.com/laminas/laminas-feed/issues/32) thanks to @Klaasie
+
 ## 2.13.0 - 2020-11-18
 
 ### Added
