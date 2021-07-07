@@ -10,7 +10,7 @@
   overflow: hidden;
   width: var(--sp2);
   height: var(--sp2);
-  margin-block-start: 2px; /* Visually align button with menu link text. */
+  margin-block-start: var(--sp0-5); /* Visually align button with menu link text. */
   padding-block: 0;
   padding-inline-start: 0;
   padding-inline-end: 0;
@@ -19,6 +19,11 @@
   border: 0;
   background: transparent;
   -webkit-appearance: none;
+
+  &:focus {
+    outline: auto 2px var(--color--blue-50);
+    outline-offset: 2px;
+  }
 
   & .icon--menu-toggle {
     position: absolute;
@@ -80,12 +85,7 @@ body:not(.is-always-mobile-nav) {
         outline: 0;
 
         & .icon--menu-toggle {
-          border: solid 1px transparent;
-          background-color: var(--color--blue-50);
-
-          &:after {
-            border-color: var(--color--white);
-          }
+          border: solid 2px var(--color--blue-20);
         }
       }
 
@@ -100,7 +100,10 @@ body:not(.is-always-mobile-nav) {
 
       & .icon--menu-toggle {
         inset-inline-start: 3px;
+        width: 18px;
         transform: translateY(-50%);
+        border-radius: 4px;
+        background-color: var(--color--white);
 
         &:before {
           content: none;

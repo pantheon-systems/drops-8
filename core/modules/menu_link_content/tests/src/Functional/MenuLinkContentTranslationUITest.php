@@ -13,7 +13,7 @@ use Drupal\menu_link_content\Entity\MenuLinkContent;
 class MenuLinkContentTranslationUITest extends ContentTranslationUITestBase {
 
   /**
-   * {inheritdoc}
+   * {@inheritdoc}
    */
   protected $defaultCacheContexts = ['languages:language_interface', 'session', 'theme', 'url.path', 'url.query_args', 'user.permissions', 'user.roles:authenticated'];
 
@@ -96,7 +96,8 @@ class MenuLinkContentTranslationUITest extends ContentTranslationUITestBase {
     $this->container->get('theme_installer')->install(['seven']);
     $edit = [];
     $edit['admin_theme'] = 'seven';
-    $this->drupalPostForm('admin/appearance', $edit, 'Save configuration');
+    $this->drupalGet('admin/appearance');
+    $this->submitForm($edit, 'Save configuration');
     // Check that edit uses the admin theme.
     $this->drupalGet('admin/structure/menu/item/' . $entityId . '/edit');
     $this->assertRaw('core/themes/seven/css/base/elements.css');

@@ -51,7 +51,8 @@ class WizardTest extends WizardTestBase {
 
     // Just triggering the saving should automatically choose a proper row
     // plugin.
-    $this->drupalPostForm('admin/structure/views/add', $view, 'Save and edit');
+    $this->drupalGet('admin/structure/views/add');
+    $this->submitForm($view, 'Save and edit');
     // Verify that the view saving was successful and the browser got redirected
     // to the edit page.
     $this->assertSession()->addressEquals('admin/structure/views/view/' . $view['id']);
@@ -60,7 +61,8 @@ class WizardTest extends WizardTestBase {
     // row plugins as the select field.
 
     $this->drupalGet('admin/structure/views/add');
-    $this->drupalPostForm('admin/structure/views/add', $view, 'Update "of type" choice');
+    $this->drupalGet('admin/structure/views/add');
+    $this->submitForm($view, 'Update "of type" choice');
 
     // Check for available options of the row plugin.
     $expected_options = ['entity:comment', 'fields'];
@@ -83,19 +85,19 @@ class WizardTest extends WizardTestBase {
     $view = Views::getView($view['id']);
     $view->initHandlers();
     $row = $view->display_handler->getOption('row');
-    $this->assertEqual($row['type'], 'entity:comment');
+    $this->assertEquals('entity:comment', $row['type']);
 
     // Check for the default filters.
-    $this->assertEqual($view->filter['status']->table, 'comment_field_data');
-    $this->assertEqual($view->filter['status']->field, 'status');
+    $this->assertEquals('comment_field_data', $view->filter['status']->table);
+    $this->assertEquals('status', $view->filter['status']->field);
     $this->assertEquals('1', $view->filter['status']->value);
-    $this->assertEqual($view->filter['status_node']->table, 'node_field_data');
-    $this->assertEqual($view->filter['status_node']->field, 'status');
+    $this->assertEquals('node_field_data', $view->filter['status_node']->table);
+    $this->assertEquals('status', $view->filter['status_node']->field);
     $this->assertEquals('1', $view->filter['status_node']->value);
 
     // Check for the default fields.
-    $this->assertEqual($view->field['subject']->table, 'comment_field_data');
-    $this->assertEqual($view->field['subject']->field, 'subject');
+    $this->assertEquals('comment_field_data', $view->field['subject']->table);
+    $this->assertEquals('subject', $view->field['subject']->field);
   }
 
 }

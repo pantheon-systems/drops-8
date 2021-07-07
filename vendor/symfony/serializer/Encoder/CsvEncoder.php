@@ -22,16 +22,16 @@ use Symfony\Component\Serializer\Exception\UnexpectedValueException;
  */
 class CsvEncoder implements EncoderInterface, DecoderInterface
 {
-    const FORMAT = 'csv';
-    const DELIMITER_KEY = 'csv_delimiter';
-    const ENCLOSURE_KEY = 'csv_enclosure';
-    const ESCAPE_CHAR_KEY = 'csv_escape_char';
-    const KEY_SEPARATOR_KEY = 'csv_key_separator';
-    const HEADERS_KEY = 'csv_headers';
-    const ESCAPE_FORMULAS_KEY = 'csv_escape_formulas';
-    const AS_COLLECTION_KEY = 'as_collection';
-    const NO_HEADERS_KEY = 'no_headers';
-    const OUTPUT_UTF8_BOM_KEY = 'output_utf8_bom';
+    public const FORMAT = 'csv';
+    public const DELIMITER_KEY = 'csv_delimiter';
+    public const ENCLOSURE_KEY = 'csv_enclosure';
+    public const ESCAPE_CHAR_KEY = 'csv_escape_char';
+    public const KEY_SEPARATOR_KEY = 'csv_key_separator';
+    public const HEADERS_KEY = 'csv_headers';
+    public const ESCAPE_FORMULAS_KEY = 'csv_escape_formulas';
+    public const AS_COLLECTION_KEY = 'as_collection';
+    public const NO_HEADERS_KEY = 'no_headers';
+    public const OUTPUT_UTF8_BOM_KEY = 'output_utf8_bom';
 
     private const UTF8_BOM = "\xEF\xBB\xBF";
 
@@ -96,7 +96,7 @@ class CsvEncoder implements EncoderInterface, DecoderInterface
             }
         }
 
-        list($delimiter, $enclosure, $escapeChar, $keySeparator, $headers, $escapeFormulas, $outputBom) = $this->getCsvOptions($context);
+        [$delimiter, $enclosure, $escapeChar, $keySeparator, $headers, $escapeFormulas, $outputBom] = $this->getCsvOptions($context);
 
         foreach ($data as &$value) {
             $flattened = [];
@@ -157,7 +157,7 @@ class CsvEncoder implements EncoderInterface, DecoderInterface
         $headerCount = [];
         $result = [];
 
-        list($delimiter, $enclosure, $escapeChar, $keySeparator) = $this->getCsvOptions($context);
+        [$delimiter, $enclosure, $escapeChar, $keySeparator] = $this->getCsvOptions($context);
 
         while (false !== ($cols = fgetcsv($handle, 0, $delimiter, $enclosure, $escapeChar))) {
             $nbCols = \count($cols);

@@ -431,7 +431,7 @@ class XssTest extends TestCase {
         ['p'],
       ],
     ];
-    // @fixme This dataset currently fails under 5.4 because of
+    // @todo This dataset currently fails under 5.4 because of
     //   https://www.drupal.org/node/1210798. Restore after its fixed.
     if (version_compare(PHP_VERSION, '5.4.0', '<')) {
       $cases[] = [
@@ -484,7 +484,7 @@ class XssTest extends TestCase {
    */
   public function testQuestionSign() {
     $value = Xss::filter('<?xml:namespace ns="urn:schemas-microsoft-com:time">');
-    $this->assertTrue(stripos($value, '<?xml') === FALSE, 'HTML tag stripping evasion -- starting with a question sign (processing instructions).');
+    $this->assertStringNotContainsStringIgnoringCase('<?xml', $value, 'HTML tag stripping evasion -- starting with a question sign (processing instructions).');
   }
 
   /**
@@ -541,7 +541,7 @@ class XssTest extends TestCase {
    */
   public function testFilterXSSAdmin() {
     $value = Xss::filterAdmin('<style /><iframe /><frame /><frameset /><meta /><link /><embed /><applet /><param /><layer />');
-    $this->assertEquals($value, '', 'Admin HTML filter -- should never allow some tags.');
+    $this->assertEquals('', $value, 'Admin HTML filter -- should never allow some tags.');
   }
 
   /**

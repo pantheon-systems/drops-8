@@ -47,7 +47,7 @@ class TextSummaryTest extends KernelTestBase {
   }
 
   /**
-   * Test summary with long example.
+   * Tests summary with long example.
    */
   public function testLongSentence() {
     // 125.
@@ -69,7 +69,7 @@ class TextSummaryTest extends KernelTestBase {
   }
 
   /**
-   * Test various summary length edge cases.
+   * Tests various summary length edge cases.
    */
   public function testLength() {
     FilterFormat::create([
@@ -225,8 +225,8 @@ class TextSummaryTest extends KernelTestBase {
   }
 
   /**
-   * Test text_summary() returns an empty string without any error when called
-   * with an invalid format.
+   * Tests text_summary() returns an empty string without any error when
+   * called with an invalid format.
    */
   public function testInvalidFilterFormat() {
 
@@ -238,14 +238,11 @@ class TextSummaryTest extends KernelTestBase {
    */
   public function assertTextSummary($text, $expected, $format = NULL, $size = NULL) {
     $summary = text_summary($text, $format, $size);
-    $this->assertIdentical($summary, $expected, new FormattableMarkup('<pre style="white-space: pre-wrap">@actual</pre> is identical to <pre style="white-space: pre-wrap">@expected</pre>', [
-      '@actual' => $summary,
-      '@expected' => $expected,
-    ]));
+    $this->assertSame($expected, $summary, new FormattableMarkup('<pre style="white-space: pre-wrap">@actual</pre> is identical to <pre style="white-space: pre-wrap">@expected</pre>', ['@actual' => $summary, '@expected' => $expected]));
   }
 
   /**
-   * Test required summary.
+   * Tests required summary.
    */
   public function testRequiredSummary() {
     $this->installEntitySchema('entity_test');

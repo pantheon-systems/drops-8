@@ -6,7 +6,29 @@ use Drupal\migrate\Row;
 use Drupal\migrate_drupal\Plugin\migrate\source\DrupalSqlBase;
 
 /**
- * Source returning tids from the term_node table for the current revision.
+ * Drupal 6 term/node relationships (current revision) source from database.
+ *
+ * Available configuration keys:
+ * - vid: (optional) The taxonomy vocabulary (vid) to filter terms retrieved
+ *   from the source - should be an integer. If omitted, all terms are
+ *   retrieved.
+ *
+ * Example:
+ *
+ * @code
+ * source:
+ *   plugin: d6_term_node
+ *   vid: 7
+ * @endcode
+ *
+ * In this example the relations between nodes and terms are retrieved from
+ * the source database. Source rows include only terms that belong to the
+ * vocabulary with 'vid' equal to 7.
+ *
+ * For additional configuration keys, refer to the parent classes.
+ *
+ * @see \Drupal\migrate\Plugin\migrate\source\SqlBase
+ * @see \Drupal\migrate\Plugin\migrate\source\SourcePluginBase
  *
  * @MigrateSource(
  *   id = "d6_term_node",
@@ -18,7 +40,7 @@ class TermNode extends DrupalSqlBase {
   /**
    * The join options between the node and the term node table.
    */
-  const JOIN = 'tn.vid = n.vid';
+  const JOIN = '[tn].[vid] = [n].[vid]';
 
   /**
    * {@inheritdoc}
@@ -29,7 +51,7 @@ class TermNode extends DrupalSqlBase {
       ->fields('tn', ['nid', 'vid'])
       ->fields('n', ['type']);
     // Because this is an inner join it enforces the current revision.
-    $query->innerJoin('term_data', 'td', 'td.tid = tn.tid AND td.vid = :vid', [':vid' => $this->configuration['vid']]);
+    $query->innerJoin('term_data', 'td', '[td].[tid] = [tn].[tid] AND [td].[vid] = :vid', [':vid' => $this->configuration['vid']]);
     $query->innerJoin('node', 'n', static::JOIN);
     return $query;
   }
@@ -54,7 +76,7 @@ class TermNode extends DrupalSqlBase {
       ->fields('tn', ['tid'])
       ->condition('n.nid', $row->getSourceProperty('nid'));
     $query->join('node', 'n', static::JOIN);
-    $query->innerJoin('term_data', 'td', 'td.tid = tn.tid AND td.vid = :vid', [':vid' => $this->configuration['vid']]);
+    $query->innerJoin('term_data', 'td', '[td].[tid] = [tn].[tid] AND [td].[vid] = :vid', [':vid' => $this->configuration['vid']]);
     $row->setSourceProperty('tid', $query->execute()->fetchCol());
     return parent::prepareRow($row);
   }

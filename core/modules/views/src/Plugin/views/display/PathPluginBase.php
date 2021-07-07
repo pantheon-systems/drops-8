@@ -126,7 +126,7 @@ abstract class PathPluginBase extends DisplayPluginBase implements DisplayRouter
   protected function getRoute($view_id, $display_id) {
     $defaults = [
       '_controller' => 'Drupal\views\Routing\ViewPageController::handle',
-      '_title' => $this->view->getTitle(),
+      '_title_callback' => 'Drupal\views\Routing\ViewPageController::getTitle',
       'view_id' => $view_id,
       'display_id' => $display_id,
       '_view_display_show_admin_links' => $this->getOption('show_admin_links'),
@@ -203,6 +203,9 @@ abstract class PathPluginBase extends DisplayPluginBase implements DisplayRouter
 
     // Store whether the view will return a response.
     $route->setOption('returns_response', !empty($this->getPluginDefinition()['returns_response']));
+
+    // Symfony 4 requires that UTF-8 route patterns have the "utf8" option set
+    $route->setOption('utf8', TRUE);
 
     return $route;
   }

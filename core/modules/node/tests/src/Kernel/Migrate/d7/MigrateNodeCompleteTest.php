@@ -103,7 +103,7 @@ class MigrateNodeCompleteTest extends MigrateDrupal7TestBase {
     // that only the complete migration ran.
     $results = $this->nodeMigrateMapTableCount('7');
     $this->assertSame(0, $results['node']);
-    $this->assertSame(7, $results['node_complete']);
+    $this->assertSame(8, $results['node_complete']);
 
     $db = \Drupal::database();
     $this->assertEquals($this->expectedNodeFieldRevisionTable(), $db->select('node_field_revision', 'nr')
@@ -125,6 +125,27 @@ class MigrateNodeCompleteTest extends MigrateDrupal7TestBase {
     foreach ($this->expectedNodeFieldRevisionTable() as $key => $revision) {
       $this->assertRevision($revision, $data[$key]);
     }
+
+    // Test the migration of node and user reference fields.
+    foreach ([2, 3] as $revision_id) {
+      $revision = $this->nodeStorage->loadRevision($revision_id);
+      $this->assertCount(1, $revision->field_node_reference);
+      $this->assertSame('5', $revision->field_node_reference->target_id);
+
+      $this->assertCount(1, $revision->field_user_reference);
+      $this->assertSame('Bob', $revision->field_user_reference[0]->entity->getAccountName());
+    }
+
+    // Test the order in multi-value fields.
+    $revision = $this->nodeStorage->loadRevision(1);
+    $this->assertSame([
+      ['value' => 'default@example.com'],
+      ['value' => 'another@example.com'],
+    ], $revision->get('field_email')->getValue());
+    $this->assertSame([
+      ['target_id' => '17'],
+      ['target_id' => '15'],
+    ], $revision->get('field_term_entityreference')->getValue());
   }
 
   /**
@@ -164,7 +185,7 @@ class MigrateNodeCompleteTest extends MigrateDrupal7TestBase {
    *   An array of revision data.
    */
   protected function assertRevision(array $revision, array $data) {
-    /* @var  \Drupal\node\NodeInterface $actual */
+    /** @var  \Drupal\node\NodeInterface $actual */
     $actual = $this->nodeStorage->loadRevision($revision['vid'])
       ->getTranslation($revision['langcode']);
     $this->assertInstanceOf(NodeInterface::class, $actual);

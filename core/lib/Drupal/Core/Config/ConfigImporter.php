@@ -13,7 +13,7 @@ use Drupal\Core\Entity\EntityStorageException;
 use Drupal\Core\Lock\LockBackendInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslationInterface;
-use Symfony\Component\EventDispatcher\EventDispatcherInterface;
+use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 /**
  * Defines a configuration importer.
@@ -53,7 +53,7 @@ class ConfigImporter {
   /**
    * The event dispatcher used to notify subscribers.
    *
-   * @var \Symfony\Component\EventDispatcher\EventDispatcherInterface
+   * @var \Symfony\Contracts\EventDispatcher\EventDispatcherInterface
    */
   protected $eventDispatcher;
 
@@ -172,7 +172,7 @@ class ConfigImporter {
    * @param \Drupal\Core\Config\StorageComparerInterface $storage_comparer
    *   A storage comparer object used to determine configuration changes and
    *   access the source and target storage objects.
-   * @param \Symfony\Component\EventDispatcher\EventDispatcherInterface $event_dispatcher
+   * @param \Symfony\Contracts\EventDispatcher\EventDispatcherInterface $event_dispatcher
    *   The event dispatcher used to notify subscribers of config import events.
    * @param \Drupal\Core\Config\ConfigManagerInterface $config_manager
    *   The configuration manager.
@@ -393,17 +393,19 @@ class ConfigImporter {
     // dependencies are uninstalled last. Extensions of the same weight are
     // sorted in reverse alphabetical order, to ensure the order is exactly
     // opposite from installation. For example, this module list:
+    // @code
     // array(
     //   'actions' => 0,
     //   'ban' => 0,
     //   'options' => -2,
     //   'text' => -1,
     // );
+    // @endcode
     // will result in the following sort order:
-    // -2   options
-    // -1   text
-    //  0 0 ban
-    //  0 1 actions
+    // 1. -2   options
+    // 2. -1   text
+    // 3.  0 0 ban
+    // 4.  0 1 actions
     // @todo Move this sorting functionality to the extension system.
     array_multisort(array_values($module_list), SORT_ASC, array_keys($module_list), SORT_DESC, $module_list);
     $this->extensionChangelist['module']['uninstall'] = array_intersect(array_keys($module_list), $uninstall);

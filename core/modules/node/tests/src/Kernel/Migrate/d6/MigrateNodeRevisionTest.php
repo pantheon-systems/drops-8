@@ -48,30 +48,30 @@ class MigrateNodeRevisionTest extends MigrateNodeTestBase {
    *   The revision's time stamp.
    */
   protected function assertRevision($id, $langcode, $title, $log, $timestamp) {
-    /* @var  \Drupal\node\NodeInterface $revision */
+    /** @var  \Drupal\node\NodeInterface $revision */
     $revision = $this->nodeStorage->loadRevision($id)
       ->getTranslation($langcode);
     $this->assertInstanceOf(NodeInterface::class, $revision);
     $this->assertSame($title, $revision->getTitle());
     $this->assertSame($log, $revision->revision_log->value);
-    $this->assertIdentical($timestamp, $revision->getRevisionCreationTime());
+    $this->assertSame($timestamp, $revision->getRevisionCreationTime());
   }
 
   /**
-   * Test node revisions migration from Drupal 6 to 8.
+   * Tests node revisions migration from Drupal 6 to 8.
    */
   public function testNodeRevision() {
     $node = \Drupal::entityTypeManager()->getStorage('node')->loadRevision(2001);
     /** @var \Drupal\node\NodeInterface $node */
-    $this->assertIdentical('1', $node->id());
-    $this->assertIdentical('2001', $node->getRevisionId());
-    $this->assertIdentical('und', $node->langcode->value);
-    $this->assertIdentical('Test title rev 3', $node->getTitle());
-    $this->assertIdentical('body test rev 3', $node->body->value);
-    $this->assertIdentical('teaser test rev 3', $node->body->summary);
-    $this->assertIdentical('2', $node->getRevisionUser()->id());
-    $this->assertIdentical('modified rev 3', $node->revision_log->value);
-    $this->assertIdentical('1420861423', $node->getRevisionCreationTime());
+    $this->assertSame('1', $node->id());
+    $this->assertSame('2001', $node->getRevisionId());
+    $this->assertSame('und', $node->langcode->value);
+    $this->assertSame('Test title rev 3', $node->getTitle());
+    $this->assertSame('body test rev 3', $node->body->value);
+    $this->assertSame('teaser test rev 3', $node->body->summary);
+    $this->assertSame('2', $node->getRevisionUser()->id());
+    $this->assertSame('modified rev 3', $node->revision_log->value);
+    $this->assertSame('1420861423', $node->getRevisionCreationTime());
 
     $this->assertRevision(1, 'und', 'Test title', NULL, '1390095702');
     $this->assertRevision(3, 'und', 'Test title rev 3', NULL, '1420718386');

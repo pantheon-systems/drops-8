@@ -80,13 +80,13 @@ class MigrateFieldOptionTranslationTest extends MigrateDrupal7TestBase {
 
     $config_translation = $language_manager->getLanguageConfigOverride('fr', 'field.storage.node.field_rating');
     $allowed_values = [
-      1 => [
+      0 => [
         'label' => 'Haute',
       ],
-      2 => [
+      1 => [
         'label' => 'Moyenne',
       ],
-      3 => [
+      2 => [
         'label' => 'Faible',
       ],
     ];
@@ -94,20 +94,60 @@ class MigrateFieldOptionTranslationTest extends MigrateDrupal7TestBase {
 
     $config_translation = $language_manager->getLanguageConfigOverride('is', 'field.storage.node.field_rating');
     $allowed_values = [
-      1 => [
+      0 => [
         'label' => 'Hár',
       ],
-      2 => [
+      1 => [
         'label' => 'Miðlungs',
       ],
-      3 => [
+      2 => [
         'label' => 'Lágt',
       ],
     ];
     $this->assertSame($allowed_values, $config_translation->get('settings.allowed_values'));
 
+    $config_translation = $language_manager->getLanguageConfigOverride('fr', 'field.storage.node.field_boolean');
+    $this->assertNull($config_translation->get('settings.allowed_values'));
+
+    $config_translation = $language_manager->getLanguageConfigOverride('is', 'field.storage.node.field_boolean');
+    $allowed_values = [
+      0 => [
+        0 => 'Off',
+        1 => '1',
+      ],
+      1 => [
+        0 => 'Off',
+        1 => '1',
+      ],
+    ];
+    $this->assertSame($allowed_values, $config_translation->get('settings.allowed_values'));
+
+    $config_translation = $language_manager->getLanguageConfigOverride('fr', 'field.storage.node.field_checkbox');
+    $allowed_values = [
+      0 => [
+        0 => 'Stop',
+        1 => 'Go',
+      ],
+      1 => [
+        0 => 'Stop',
+        1 => 'Go',
+      ],
+    ];
+    $this->assertSame($allowed_values, $config_translation->get('settings.allowed_values'));
+    $config_translation = $language_manager->getLanguageConfigOverride('is', 'field.storage.node.field_checkbox');
+    $allowed_values = [
+      0 => [
+        0 => 'Stop',
+        1 => 'Go',
+      ],
+      1 => [
+        0 => 'Stop',
+        1 => 'Go',
+      ],
+    ];
+    $this->assertSame($allowed_values, $config_translation->get('settings.allowed_values'));
     // Ensure that the count query works as expected.
-    $this->assertCount(16, $this->getMigration('d7_field_option_translation')->getSourcePlugin());
+    $this->assertCount(20, $this->getMigration('d7_field_option_translation')->getSourcePlugin());
   }
 
 }

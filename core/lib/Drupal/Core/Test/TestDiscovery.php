@@ -136,6 +136,7 @@ class TestDiscovery {
    *   An array of tests keyed by the group name. If a test is annotated to
    *   belong to multiple groups, it will appear under all group keys it belongs
    *   to.
+   *
    * @code
    *     $groups['block'] => array(
    *       'Drupal\Tests\block\Functional\BlockTest' => array(
@@ -185,7 +186,7 @@ class TestDiscovery {
       // unavailable modules. TestDiscovery should not filter out module
       // requirements for PHPUnit-based test classes.
       // @todo Move this behavior to \Drupal\simpletest\TestBase so tests can be
-      //       marked as skipped, instead.
+      //   marked as skipped, instead.
       // @see https://www.drupal.org/node/1273478
       if ($info['type'] == 'Simpletest') {
         if (!empty($info['requires']['module'])) {

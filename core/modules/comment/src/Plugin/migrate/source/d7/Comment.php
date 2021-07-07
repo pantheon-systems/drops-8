@@ -8,6 +8,11 @@ use Drupal\migrate_drupal\Plugin\migrate\source\d7\FieldableEntity;
 /**
  * Drupal 7 comment source from database.
  *
+ * For available configuration keys, refer to the parent classes.
+ *
+ * @see \Drupal\migrate\Plugin\migrate\source\SqlBase
+ * @see \Drupal\migrate\Plugin\migrate\source\SourcePluginBase
+ *
  * @MigrateSource(
  *   id = "d7_comment",
  *   source_module = "comment"
@@ -20,7 +25,7 @@ class Comment extends FieldableEntity {
    */
   public function query() {
     $query = $this->select('comment', 'c')->fields('c');
-    $query->innerJoin('node', 'n', 'c.nid = n.nid');
+    $query->innerJoin('node', 'n', '[c].[nid] = [n].[nid]');
     $query->addField('n', 'type', 'node_type');
     $query->orderBy('c.created');
     return $query;
