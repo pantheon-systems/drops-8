@@ -23,7 +23,7 @@ use Symfony\Component\Yaml\Yaml;
  */
 class YamlEncoder implements EncoderInterface, DecoderInterface
 {
-    const FORMAT = 'yaml';
+    public const FORMAT = 'yaml';
     private const ALTERNATIVE_FORMAT = 'yml';
 
     public const PRESERVE_EMPTY_OBJECTS = 'preserve_empty_objects';
@@ -38,8 +38,8 @@ class YamlEncoder implements EncoderInterface, DecoderInterface
             throw new RuntimeException('The YamlEncoder class requires the "Yaml" component. Install "symfony/yaml" to use it.');
         }
 
-        $this->dumper = $dumper ?: new Dumper();
-        $this->parser = $parser ?: new Parser();
+        $this->dumper = $dumper ?? new Dumper();
+        $this->parser = $parser ?? new Parser();
         $this->defaultContext = array_merge($this->defaultContext, $defaultContext);
     }
 

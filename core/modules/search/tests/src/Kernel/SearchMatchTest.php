@@ -6,6 +6,7 @@ use Drupal\Core\Database\Database;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\search\SearchIndexInterface;
+use Drupal\search\SearchQuery;
 
 /**
  * Indexes content and queries it.
@@ -37,7 +38,7 @@ class SearchMatchTest extends KernelTestBase {
   }
 
   /**
-   * Test search indexing.
+   * Tests search indexing.
    */
   public function testMatching() {
     $this->_setup();
@@ -107,9 +108,9 @@ class SearchMatchTest extends KernelTestBase {
     // Note: OR queries that include short words in OR groups are only accepted
     // if the ORed terms are ANDed with at least one long word in the rest of
     // the query. Examples:
-    //   enim dolore OR ut = enim (dolore OR ut) = (enim dolor) OR (enim ut)
+    // -  enim dolore OR ut = enim (dolore OR ut) = (enim dolor) OR (enim ut)
     // is good, and
-    //   dolore OR ut = (dolore) OR (ut)
+    // -  dolore OR ut = (dolore) OR (ut)
     // is bad. This is a design limitation to avoid full table scans.
     $queries = [
       // Simple AND queries.
@@ -164,7 +165,7 @@ class SearchMatchTest extends KernelTestBase {
     $connection = Database::getConnection();
     foreach ($queries as $query => $results) {
       $result = $connection->select('search_index', 'i')
-        ->extend('Drupal\search\SearchQuery')
+        ->extend(SearchQuery::class)
         ->searchExpression($query, static::SEARCH_TYPE)
         ->execute();
 
@@ -184,7 +185,7 @@ class SearchMatchTest extends KernelTestBase {
     ];
     foreach ($queries as $query => $results) {
       $result = $connection->select('search_index', 'i')
-        ->extend('Drupal\search\SearchQuery')
+        ->extend(SearchQuery::class)
         ->searchExpression($query, static::SEARCH_TYPE_2)
         ->execute();
 
@@ -207,7 +208,7 @@ class SearchMatchTest extends KernelTestBase {
     ];
     foreach ($queries as $query => $results) {
       $result = $connection->select('search_index', 'i')
-        ->extend('Drupal\search\SearchQuery')
+        ->extend(SearchQuery::class)
         ->searchExpression($query, static::SEARCH_TYPE_JPN)
         ->execute();
 
@@ -218,7 +219,7 @@ class SearchMatchTest extends KernelTestBase {
   }
 
   /**
-   * Test the matching abilities of the engine.
+   * Tests the matching abilities of the engine.
    *
    * Verify if a query produces the correct results.
    */
@@ -232,11 +233,11 @@ class SearchMatchTest extends KernelTestBase {
     // Compare $results and $found.
     sort($found);
     sort($results);
-    $this->assertEqual($found, $results, "Query matching '$query'");
+    $this->assertEquals($found, $results, "Query matching '$query'");
   }
 
   /**
-   * Test the scoring abilities of the engine.
+   * Tests the scoring abilities of the engine.
    *
    * Verify if a query produces normalized, monotonous scores.
    */
@@ -250,10 +251,10 @@ class SearchMatchTest extends KernelTestBase {
     // Check order.
     $sorted = $scores;
     sort($sorted);
-    $this->assertEqual($scores, array_reverse($sorted), "Query order '$query'");
+    $this->assertEquals($scores, array_reverse($sorted), "Query order '$query'");
 
     // Check range.
-    $this->assertEqual(!count($scores) || (min($scores) > 0.0 && max($scores) <= 1.0001), TRUE, "Query scoring '$query'");
+    $this->assertTrue(!count($scores) || (min($scores) > 0.0 && max($scores) <= 1.0001), "Query scoring '$query'");
   }
 
 }

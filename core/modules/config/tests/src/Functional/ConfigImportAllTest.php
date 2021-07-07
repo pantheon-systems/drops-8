@@ -117,12 +117,13 @@ class ConfigImportAllTest extends ModuleTestBase {
     }
 
     // Import the configuration thereby re-installing all the modules.
-    $this->drupalPostForm('admin/config/development/configuration', [], 'Import all');
+    $this->drupalGet('admin/config/development/configuration');
+    $this->submitForm([], 'Import all');
     // Modules have been installed that have services.
     $this->rebuildContainer();
 
     // Check that there are no errors.
-    $this->assertIdentical($this->configImporter()->getErrors(), []);
+    $this->assertSame([], $this->configImporter()->getErrors());
 
     // Check that all modules that were uninstalled are now reinstalled.
     $this->assertModules(array_keys($modules_to_uninstall), TRUE);
@@ -136,7 +137,7 @@ class ConfigImportAllTest extends ModuleTestBase {
       $this->container->get('config.storage.sync'),
       $this->container->get('config.storage')
     );
-    $this->assertIdentical($storage_comparer->createChangelist()->getChangelist(), $storage_comparer->getEmptyChangelist());
+    $this->assertSame($storage_comparer->getEmptyChangelist(), $storage_comparer->createChangelist()->getChangelist());
 
     // Now we have all configuration imported, test all of them for schema
     // conformance. Ensures all imported default configuration is valid when
