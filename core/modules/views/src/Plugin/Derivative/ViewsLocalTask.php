@@ -71,7 +71,7 @@ class ViewsLocalTask extends DeriverBase implements ContainerDeriverInterface {
 
     $view_route_names = $this->state->get('views.view_route_names');
     foreach ($this->getApplicableMenuViews() as $pair) {
-      /** @var $executable \Drupal\views\ViewExecutable */
+      /** @var \Drupal\views\ViewExecutable $executable */
       list($view_id, $display_id) = $pair;
       $executable = $this->viewStorage->load($view_id)->getExecutable();
 
@@ -110,7 +110,7 @@ class ViewsLocalTask extends DeriverBase implements ContainerDeriverInterface {
 
     foreach ($this->getApplicableMenuViews() as $pair) {
       list($view_id, $display_id) = $pair;
-      /** @var $executable \Drupal\views\ViewExecutable */
+      /** @var \Drupal\views\ViewExecutable $executable */
       $executable = $this->viewStorage->load($view_id)->getExecutable();
 
       $executable->setDisplay($display_id);
@@ -151,6 +151,7 @@ class ViewsLocalTask extends DeriverBase implements ContainerDeriverInterface {
    *
    * @return array
    *   A list of arrays containing the $view and $display_id.
+   *
    * @code
    * array(
    *   array($view, $display_id),

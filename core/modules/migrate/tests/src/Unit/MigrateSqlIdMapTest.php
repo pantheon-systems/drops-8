@@ -110,7 +110,7 @@ class MigrateSqlIdMapTest extends MigrateTestCase {
     $migration
       ->method('getDestinationPlugin')
       ->willReturn($plugin);
-    $event_dispatcher = $this->createMock('Symfony\Component\EventDispatcher\EventDispatcherInterface');
+    $event_dispatcher = $this->createMock('Symfony\Contracts\EventDispatcher\EventDispatcherInterface');
 
     $id_map = new TestSqlIdMap($this->database, [], 'sql', [], $migration, $event_dispatcher);
     $migration
@@ -328,7 +328,7 @@ class MigrateSqlIdMapTest extends MigrateTestCase {
       $this->assertEquals($message_default, $message_row->message);
       $this->assertEquals(MigrationInterface::MESSAGE_ERROR, $message_row->level);
     }
-    $this->assertEquals($count, 1);
+    $this->assertEquals(1, $count);
 
     // Retrieve messages with a specific level.
     $messages = $id_map->getMessages([], MigrationInterface::MESSAGE_WARNING);
@@ -337,7 +337,7 @@ class MigrateSqlIdMapTest extends MigrateTestCase {
       $count = 1;
       $this->assertEquals(MigrationInterface::MESSAGE_WARNING, $message_row->level);
     }
-    $this->assertEquals($count, 1);
+    $this->assertEquals(1, $count);
   }
 
   /**

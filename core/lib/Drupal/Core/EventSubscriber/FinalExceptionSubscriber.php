@@ -86,15 +86,13 @@ class FinalExceptionSubscriber implements EventSubscriberInterface {
     if ($this->isErrorDisplayable($error)) {
       // If error type is 'User notice' then treat it as debug information
       // instead of an error message.
-      // @see debug()
       if ($error['%type'] == 'User notice') {
         $error['%type'] = 'Debug';
       }
 
       $error = $this->simplifyFileInError($error);
 
-      unset($error['backtrace']);
-      unset($error['severity_level']);
+      unset($error['backtrace'], $error['exception'], $error['severity_level']);
 
       if (!$this->isErrorLevelVerbose()) {
         // Without verbose logging, use a simple message.
