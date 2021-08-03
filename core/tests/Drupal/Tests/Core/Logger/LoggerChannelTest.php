@@ -84,17 +84,17 @@ class LoggerChannelTest extends UnitTestCase {
       $logger = $this->createMock('Psr\Log\LoggerInterface');
       $logger->expects($this->once())
         ->method('log')
-        ->will($this->returnCallback(function () use ($i, &$index_order) {
+        ->willReturnCallback(function () use ($i, &$index_order) {
           // Append the $i to the index order, so that we know the order that
           // loggers got called with.
           $index_order .= $i;
-        }));
+        });
       $channel->addLogger($logger, $i);
     }
 
     $channel->log(rand(0, 7), $this->randomMachineName());
     // Ensure that the logger added in the end fired first.
-    $this->assertEquals($index_order, '3210');
+    $this->assertEquals('3210', $index_order);
   }
 
   /**

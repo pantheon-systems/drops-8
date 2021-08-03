@@ -283,11 +283,14 @@ class ContextualLinkManagerTest extends UnitTestCase {
     }
     $this->factory->expects($this->any())
       ->method('createInstance')
-      ->will($this->returnValueMap($map));
+      ->willReturnMap($map);
 
-    $this->moduleHandler->expects($this->at(1))
+    $this->moduleHandler->expects($this->exactly(2))
       ->method('alter')
-      ->with($this->equalTo('contextual_links'), new Count(2), $this->equalTo('group1'), $this->equalTo(['key' => 'value']));
+      ->withConsecutive(
+        ['contextual_links_plugins'],
+        ['contextual_links', new Count(2), 'group1', ['key' => 'value']],
+      );
 
     $result = $this->contextualLinkManager->getContextualLinksArrayByGroup('group1', ['key' => 'value']);
     $this->assertCount(2, $result);
@@ -333,10 +336,10 @@ class ContextualLinkManagerTest extends UnitTestCase {
 
     $this->accessManager->expects($this->any())
       ->method('checkNamedRoute')
-      ->will($this->returnValueMap([
+      ->willReturnMap([
         ['test_route', ['key' => 'value'], $this->account, FALSE, TRUE],
         ['test_route2', ['key' => 'value'], $this->account, FALSE, FALSE],
-      ]));
+      ]);
 
     // Set up mocking of the plugin factory.
     $map = [];
@@ -358,7 +361,7 @@ class ContextualLinkManagerTest extends UnitTestCase {
     }
     $this->factory->expects($this->any())
       ->method('createInstance')
-      ->will($this->returnValueMap($map));
+      ->willReturnMap($map);
 
     $result = $this->contextualLinkManager->getContextualLinksArrayByGroup('group1', ['key' => 'value']);
 

@@ -33,7 +33,7 @@ interface PagerManagerInterface {
    * before executing it. For example:
    * @code
    *   $query = $connection->select('some_table')
-   *     ->extend('Drupal\Core\Database\Query\PagerSelectExtender');
+   *     ->extend(PagerSelectExtender::class);
    * @endcode
    *
    * However, if you are using a different method for generating the items to be
@@ -74,8 +74,8 @@ interface PagerManagerInterface {
    *   // PagerManagerInterface::findPage(). This comes from a URL parameter, so
    *   // here we are assuming that the URL parameter corresponds to an actual
    *   // page of results that will exist within the set.
-   *   $pager_parameters = \Drupal::service('pager.parameters');
-   *   $page = $pager_parameters->findPage();
+   *   $pager_manager = \Drupal::service('pager.manager');
+   *   $page = $pager_manager->findPage();
    *   $num_per_page = \Drupal::config('mymodule.settings')->get('num_per_page');
    *   $offset = $num_per_page * $page;
    *   $result = mymodule_remote_search($keywords, $offset, $num_per_page);
@@ -121,6 +121,24 @@ interface PagerManagerInterface {
   public function getPager($element = 0);
 
   /**
+   * Returns the current page being requested for display within a pager.
+   *
+   * @param int $pager_id
+   *   (optional) An integer to distinguish between multiple pagers on one page.
+   *
+   * @return int
+   *   The number of the current requested page, within the pager represented by
+   *   $element. This is determined from the URL query parameter
+   *   \Drupal::request()->query->get('page'), or 0 by default. Note that this
+   *   number may differ from the actual page being displayed. For example, if a
+   *   search for "example text" brings up three pages of results, but a user
+   *   visits search/node/example+text?page=10, this function will return 10,
+   *   even though the default pager implementation adjusts for this and still
+   *   displays the third page of search results at that URL.
+   */
+  public function findPage(int $pager_id = 0): int;
+
+  /**
    * Gets the URL query parameter array of a pager link.
    *
    * Adds to or adjusts the 'page' URL query parameter so that if you follow the
@@ -144,5 +162,27 @@ interface PagerManagerInterface {
    *   The altered $query parameter array.
    */
   public function getUpdatedParameters(array $query, $element, $index);
+
+  /**
+   * Gets the extent of the pager page element IDs.
+   *
+   * @return int
+   *   The maximum element ID available, -1 if there are no elements.
+   */
+  public function getMaxPagerElementId();
+
+  /**
+   * Reserve a pager element ID.
+   *
+   * Calling code may need to reserve the ID of a pager before actually creating
+   * it. This methods allows to do so ensuring no collision occurs with
+   * ::getMaxPagerElementId().
+   *
+   * @param int $element
+   *   The ID of the pager to be reserved.
+   *
+   * @see \Drupal\Core\Database\Query\PagerSelectExtender::element()
+   */
+  public function reservePagerElementId(int $element): void;
 
 }
