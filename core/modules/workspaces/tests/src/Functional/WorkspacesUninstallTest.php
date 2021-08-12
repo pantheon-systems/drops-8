@@ -36,8 +36,10 @@ class WorkspacesUninstallTest extends BrowserTestBase {
     $session->linkExists('Remove workspaces');
     $this->clickLink('Remove workspaces');
     $session->pageTextContains('Are you sure you want to delete all workspaces?');
-    $this->drupalPostForm('/admin/modules/uninstall/entity/workspace', [], 'Delete all workspaces');
-    $this->drupalPostForm('admin/modules/uninstall', ['uninstall[workspaces]' => TRUE], 'Uninstall');
+    $this->drupalGet('/admin/modules/uninstall/entity/workspace');
+    $this->submitForm([], 'Delete all workspaces');
+    $this->drupalGet('admin/modules/uninstall');
+    $this->submitForm(['uninstall[workspaces]' => TRUE], 'Uninstall');
     $this->submitForm([], 'Uninstall');
     $session->pageTextContains('The selected modules have been uninstalled.');
     $session->pageTextNotContains('Workspaces');
@@ -45,6 +47,7 @@ class WorkspacesUninstallTest extends BrowserTestBase {
     $this->assertFalse(\Drupal::database()->schema()->fieldExists('node_revision', 'workspace'));
 
     // Verify that the revision metadata key has been removed.
+    $this->rebuildContainer();
     $entity_type = \Drupal::entityDefinitionUpdateManager()->getEntityType('node');
     $revision_metadata_keys = $entity_type->get('revision_metadata_keys');
     $this->assertArrayNotHasKey('workspace', $revision_metadata_keys);

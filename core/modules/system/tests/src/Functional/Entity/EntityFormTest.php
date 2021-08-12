@@ -3,6 +3,9 @@
 namespace Drupal\Tests\system\Functional\Entity;
 
 use Drupal\Component\Render\FormattableMarkup;
+use Drupal\Core\Entity\Entity\EntityFormDisplay;
+use Drupal\Core\Entity\Entity\EntityFormMode;
+use Drupal\entity_test\Entity\EntityTest;
 use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\Tests\BrowserTestBase;
 
@@ -58,14 +61,49 @@ class EntityFormTest extends BrowserTestBase {
   }
 
   /**
+   * Tests hook_entity_form_mode_alter().
+   *
+   * @see entity_test_entity_form_mode_alter()
+   */
+  public function testEntityFormModeAlter() {
+    // Create compact entity display.
+    EntityFormMode::create(['id' => 'entity_test.compact', 'targetEntityType' => 'entity_test'])->save();
+    EntityFormDisplay::create([
+      'targetEntityType' => 'entity_test',
+      'bundle' => 'entity_test',
+      'mode' => 'compact',
+      'status' => TRUE,
+    ])->removeComponent('field_test_text')->save();
+
+    // The field should be available on default form mode.
+    $entity1 = EntityTest::create([
+      'name' => $this->randomString(),
+    ]);
+    $entity1->save();
+    $this->drupalGet($entity1->toUrl('edit-form'));
+    $this->assertSession()->elementExists('css', 'input[name="field_test_text[0][value]"]');
+
+    // The field should be hidden on compact form mode.
+    // See: entity_test_entity_form_mode_alter().
+    $entity2 = EntityTest::create([
+      'name' => 'compact_form_mode',
+    ]);
+    $entity2->save();
+    $this->drupalGet($entity2->toUrl('edit-form'));
+    $this->assertSession()->elementNotExists('css', 'input[name="field_test_text[0][value]"]');
+  }
+
+  /**
    * Tests hook_entity_form_display_alter().
+   *
+   * Verify that the altered field has the correct size value.
    *
    * @see entity_test_entity_form_display_alter()
    */
   public function testEntityFormDisplayAlter() {
     $this->drupalGet('entity_test/add');
-    $altered_field = $this->xpath('//input[@name="field_test_text[0][value]" and @size="42"]');
-    $this->assertCount(1, $altered_field, 'The altered field has the correct size value.');
+    $altered_field = $this->assertSession()->fieldExists('field_test_text[0][value]');
+    $this->assertEquals(42, $altered_field->getAttribute('size'));
   }
 
   /**
@@ -83,20 +121,22 @@ class EntityFormTest extends BrowserTestBase {
       'field_test_text[0][value]' => $this->randomMachineName(16),
     ];
 
-    $this->drupalPostForm($entity_type . '/add', $edit, 'Save');
+    $this->drupalGet($entity_type . '/add');
+    $this->submitForm($edit, 'Save');
     $entity = $this->loadEntityByName($entity_type, $name1);
     $this->assertNotNull($entity, new FormattableMarkup('%entity_type: Entity found in the database.', ['%entity_type' => $entity_type]));
 
     $edit['name[0][value]'] = $name2;
-    $this->drupalPostForm($entity_type . '/manage/' . $entity->id() . '/edit', $edit, 'Save');
+    $this->drupalGet($entity_type . '/manage/' . $entity->id() . '/edit');
+    $this->submitForm($edit, 'Save');
     $entity = $this->loadEntityByName($entity_type, $name1);
     $this->assertNull($entity, new FormattableMarkup('%entity_type: The entity has been modified.', ['%entity_type' => $entity_type]));
     $entity = $this->loadEntityByName($entity_type, $name2);
     $this->assertNotNull($entity, new FormattableMarkup('%entity_type: Modified entity found in the database.', ['%entity_type' => $entity_type]));
-    $this->assertNotEqual($entity->name->value, $name1, new FormattableMarkup('%entity_type: The entity name has been modified.', ['%entity_type' => $entity_type]));
+    $this->assertNotEquals($name1, $entity->name->value, new FormattableMarkup('%entity_type: The entity name has been modified.', ['%entity_type' => $entity_type]));
 
     $this->drupalGet($entity_type . '/manage/' . $entity->id() . '/edit');
-    $this->clickLink(t('Delete'));
+    $this->clickLink('Delete');
     $this->submitForm([], 'Delete');
     $entity = $this->loadEntityByName($entity_type, $name2);
     $this->assertNull($entity, new FormattableMarkup('%entity_type: Entity not found in the database.', ['%entity_type' => $entity_type]));
@@ -118,7 +158,8 @@ class EntityFormTest extends BrowserTestBase {
       'field_test_text[0][value]' => $this->randomMachineName(16),
     ];
 
-    $this->drupalPostForm($entity_type_id . '/add', $edit, 'Save');
+    $this->drupalGet($entity_type_id . '/add');
+    $this->submitForm($edit, 'Save');
     $entity = $this->loadEntityByName($entity_type_id, $name1);
     $this->assertNotNull($entity, new FormattableMarkup('%entity_type: Entity found in the database.', ['%entity_type' => $entity_type_id]));
 
@@ -126,16 +167,17 @@ class EntityFormTest extends BrowserTestBase {
     // translation module.
     $entity->addTranslation('ro', ['name' => $name1_ro])->save();
     $translated_entity = $this->loadEntityByName($entity_type_id, $name1)->getTranslation('ro');
-    $this->assertEqual($translated_entity->name->value, $name1_ro, new FormattableMarkup('%entity_type: The translation has been added.', ['%entity_type' => $entity_type_id]));
+    $this->assertEquals($name1_ro, $translated_entity->name->value, new FormattableMarkup('%entity_type: The translation has been added.', ['%entity_type' => $entity_type_id]));
 
     $edit['name[0][value]'] = $name2_ro;
-    $this->drupalPostForm('ro/' . $entity_type_id . '/manage/' . $entity->id() . '/edit', $edit, 'Save');
+    $this->drupalGet('ro/' . $entity_type_id . '/manage/' . $entity->id() . '/edit');
+    $this->submitForm($edit, 'Save');
     $translated_entity = $this->loadEntityByName($entity_type_id, $name1)->getTranslation('ro');
     $this->assertNotNull($translated_entity, new FormattableMarkup('%entity_type: Modified translation found in the database.', ['%entity_type' => $entity_type_id]));
-    $this->assertEqual($translated_entity->name->value, $name2_ro, new FormattableMarkup('%entity_type: The name of the translation has been modified.', ['%entity_type' => $entity_type_id]));
+    $this->assertEquals($name2_ro, $translated_entity->name->value, new FormattableMarkup('%entity_type: The name of the translation has been modified.', ['%entity_type' => $entity_type_id]));
 
     $this->drupalGet('ro/' . $entity_type_id . '/manage/' . $entity->id() . '/edit');
-    $this->clickLink(t('Delete'));
+    $this->clickLink('Delete');
     $this->submitForm([], 'Delete Romanian translation');
     $entity = $this->loadEntityByName($entity_type_id, $name1);
     $this->assertNotNull($entity, new FormattableMarkup('%entity_type: The original entity still exists.', ['%entity_type' => $entity_type_id]));
@@ -164,14 +206,16 @@ class EntityFormTest extends BrowserTestBase {
     // Check that from-level validation handlers can be defined and can alter
     // the form array.
     $state->set('entity_test.form.validate.test', 'form-level');
-    $this->drupalPostForm('entity_test/add', [], 'Save');
+    $this->drupalGet('entity_test/add');
+    $this->submitForm([], 'Save');
     $this->assertTrue($state->get('entity_test.form.validate.result'), 'Form-level validation handlers behave correctly.');
 
     // Check that defining a button-level validation handler causes an exception
     // to be thrown.
     $state->set('entity_test.form.validate.test', 'button-level');
-    $this->drupalPostForm('entity_test/add', [], 'Save');
-    $this->assertEqual($state->get('entity_test.form.save.exception'), 'Drupal\Core\Entity\EntityStorageException: Entity validation was skipped.', 'Button-level validation handlers behave correctly.');
+    $this->drupalGet('entity_test/add');
+    $this->submitForm([], 'Save');
+    $this->assertEquals('Drupal\\Core\\Entity\\EntityStorageException: Entity validation was skipped.', $state->get('entity_test.form.save.exception'), 'Button-level validation handlers behave correctly.');
   }
 
 }

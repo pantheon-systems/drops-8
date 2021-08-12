@@ -68,7 +68,7 @@ class QuickEditIntegrationLoadingTest extends BrowserTestBase {
   }
 
   /**
-   * Test loading of untransformed text when a user doesn't have access to it.
+   * Tests loading of untransformed text when a user doesn't have access to it.
    */
   public function testUsersWithoutPermission() {
     // Create 3 users, each with insufficient permissions, i.e. without either
@@ -117,7 +117,7 @@ class QuickEditIntegrationLoadingTest extends BrowserTestBase {
   }
 
   /**
-   * Test loading of untransformed text when a user does have access to it.
+   * Tests loading of untransformed text when a user does have access to it.
    */
   public function testUserWithPermission() {
     $user = $this->drupalCreateUser(array_merge(static::$basicPermissions, ['edit any article content', 'access in-place editing']));
@@ -140,8 +140,8 @@ class QuickEditIntegrationLoadingTest extends BrowserTestBase {
     $this->assertEquals(200, $response->getStatusCode());
     $ajax_commands = Json::decode($response->getBody());
     $this->assertCount(1, $ajax_commands, 'The untransformed text POST request results in one AJAX command.');
-    $this->assertIdentical('editorGetUntransformedText', $ajax_commands[0]['command'], 'The first AJAX command is an editorGetUntransformedText command.');
-    $this->assertIdentical('<p>Do you also love Drupal?</p><img src="druplicon.png" data-caption="Druplicon" />', $ajax_commands[0]['data'], 'The editorGetUntransformedText command contains the expected data.');
+    $this->assertSame('editorGetUntransformedText', $ajax_commands[0]['command'], 'The first AJAX command is an editorGetUntransformedText command.');
+    $this->assertSame('<p>Do you also love Drupal?</p><img src="druplicon.png" data-caption="Druplicon" />', $ajax_commands[0]['data'], 'The editorGetUntransformedText command contains the expected data.');
   }
 
 }
