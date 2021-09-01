@@ -87,12 +87,12 @@ class SessionHttpsTest extends BrowserTestBase {
 
     // Verify that user is logged in on secure URL.
     $this->drupalGet($this->httpsUrl('admin/config'));
-    $this->assertText('Configuration');
+    $this->assertSession()->pageTextContains('Configuration');
     $this->assertSession()->statusCodeEquals(200);
 
     // Verify that user is not logged in on non-secure URL.
     $this->drupalGet($this->httpUrl('admin/config'));
-    $this->assertNoText('Configuration');
+    $this->assertSession()->pageTextNotContains('Configuration');
     $this->assertSession()->statusCodeEquals(403);
 
     // Verify that empty SID cannot be used on the non-secure site.
@@ -242,19 +242,15 @@ class SessionHttpsTest extends BrowserTestBase {
   }
 
   /**
-   * Test that there exists a session with two specific session IDs.
+   * Tests that there exists a session with two specific session IDs.
    *
    * @param $sid
    *   The insecure session ID to search for.
    * @param $assertion_text
    *   The text to display when we perform the assertion.
-   *
-   * @return
-   *   The result of assertTrue() that there's a session in the system that
-   *   has the given insecure and secure session IDs.
    */
   protected function assertSessionIds($sid, $assertion_text) {
-    return $this->assertNotEmpty(\Drupal::database()->select('sessions', 's')->fields('s', ['timestamp'])->condition('sid', Crypt::hashBase64($sid))->execute()->fetchField(), $assertion_text);
+    $this->assertNotEmpty(\Drupal::database()->select('sessions', 's')->fields('s', ['timestamp'])->condition('sid', Crypt::hashBase64($sid))->execute()->fetchField(), $assertion_text);
   }
 
   /**

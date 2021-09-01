@@ -58,18 +58,18 @@ class SearchKeywordsConditionsTest extends BrowserTestBase {
   public function testSearchKeywordsConditions() {
     // No keys, not conditions - no results.
     $this->drupalGet('search/dummy_path');
-    $this->assertNoText('Dummy search snippet to display');
+    $this->assertSession()->pageTextNotContains('Dummy search snippet to display');
     // With keys - get results.
     $keys = 'bike shed ' . $this->randomMachineName();
     $this->drupalGet("search/dummy_path", ['query' => ['keys' => $keys]]);
-    $this->assertText("Dummy search snippet to display. Keywords: {$keys}");
+    $this->assertSession()->pageTextContains("Dummy search snippet to display. Keywords: {$keys}");
     $keys = 'blue drop ' . $this->randomMachineName();
     $this->drupalGet("search/dummy_path", ['query' => ['keys' => $keys]]);
-    $this->assertText("Dummy search snippet to display. Keywords: {$keys}");
+    $this->assertSession()->pageTextContains("Dummy search snippet to display. Keywords: {$keys}");
     // Add some conditions and keys.
     $keys = 'moving drop ' . $this->randomMachineName();
     $this->drupalGet("search/dummy_path", ['query' => ['keys' => 'bike', 'search_conditions' => $keys]]);
-    $this->assertText("Dummy search snippet to display.");
+    $this->assertSession()->pageTextContains("Dummy search snippet to display.");
     $this->assertRaw(Html::escape(print_r(['keys' => 'bike', 'search_conditions' => $keys], TRUE)));
   }
 

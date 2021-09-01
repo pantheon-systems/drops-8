@@ -53,9 +53,9 @@ class ColorSafePreviewTest extends BrowserTestBase {
     // core/modules/color/tests/modules/color_test/themes/color_test_theme/color/preview.html
     $url = Url::fromRoute('system.theme_settings_theme', ['theme' => 'color_test_theme']);
     $this->drupalGet($url);
-    $this->assertText('TEST COLOR PREVIEW');
+    $this->assertSession()->pageTextContains('TEST COLOR PREVIEW');
 
-    $this->assertNoRaw('<script>alert("security filter test");</script>');
+    $this->assertSession()->responseNotContains('<script>alert("security filter test");</script>');
     $this->assertRaw('<h2>TEST COLOR PREVIEW</h2>');
   }
 

@@ -49,10 +49,10 @@ class StatisticsReportsTest extends StatisticsTestBase {
 
     // Get some page and check if the block is displayed.
     $this->drupalGet('user');
-    $this->assertText('Popular content', 'Found the popular content block.');
-    $this->assertText("Today's", "Found today's popular content.");
-    $this->assertText('All time', 'Found the all time popular content.');
-    $this->assertText('Last viewed', 'Found the last viewed popular content.');
+    $this->assertSession()->pageTextContains('Popular content');
+    $this->assertSession()->pageTextContains("Today's");
+    $this->assertSession()->pageTextContains('All time');
+    $this->assertSession()->pageTextContains('Last viewed');
 
     $tags = Cache::mergeTags($node->getCacheTags(), $block->getCacheTags());
     $tags = Cache::mergeTags($tags, $this->blockingUser->getCacheTags());

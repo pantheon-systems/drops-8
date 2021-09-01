@@ -15,7 +15,7 @@ use Drupal\Core\Language\Language;
 class ShortcutTranslationUITest extends ContentTranslationUITestBase {
 
   /**
-   * {inheritdoc}
+   * {@inheritdoc}
    */
   protected $defaultCacheContexts = ['languages:language_interface', 'session', 'theme', 'user', 'url.path', 'url.query_args', 'url.site'];
 
@@ -83,8 +83,7 @@ class ShortcutTranslationUITest extends ContentTranslationUITestBase {
         $this->drupalGet('<front>', ['language' => $language]);
         $expected_path = \Drupal::urlGenerator()->generateFromRoute('user.page', [], ['language' => $language]);
         $label = $entity->getTranslation($langcode)->label();
-        $elements = $this->xpath('//nav[contains(@class, "toolbar-lining")]/ul[@class="toolbar-menu"]/li/a[contains(@href, :href) and normalize-space(text())=:label]', [':href' => $expected_path, ':label' => $label]);
-        $this->assertTrue(!empty($elements), new FormattableMarkup('Translated @language shortcut link @label found.', ['@label' => $label, '@language' => $language->getName()]));
+        $this->assertSession()->elementExists('xpath', "//nav[contains(@class, 'toolbar-lining')]/ul[@class='toolbar-menu']/li/a[contains(@href, '{$expected_path}') and normalize-space(text())='{$label}']");
       }
     }
   }
@@ -105,12 +104,7 @@ class ShortcutTranslationUITest extends ContentTranslationUITestBase {
         $options = ['language' => $languages[$langcode]];
         $url = $entity->toUrl('edit-form', $options);
         $this->drupalGet($url);
-
-        $title = t('@title [%language translation]', [
-          '@title' => $entity->getTranslation($langcode)->label(),
-          '%language' => $languages[$langcode]->getName(),
-        ]);
-        $this->assertRaw($title);
+        $this->assertSession()->pageTextContains("{$entity->getTranslation($langcode)->label()} [{$languages[$langcode]->getName()} translation]");
       }
     }
   }

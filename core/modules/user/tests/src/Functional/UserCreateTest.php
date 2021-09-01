@@ -38,8 +38,8 @@ class UserCreateTest extends BrowserTestBase {
     $user = $this->drupalCreateUser(['administer users']);
     $this->drupalLogin($user);
 
-    $this->assertEqual($user->getCreatedTime(), REQUEST_TIME, 'Creating a user sets default "created" timestamp.');
-    $this->assertEqual($user->getChangedTime(), REQUEST_TIME, 'Creating a user sets default "changed" timestamp.');
+    $this->assertEquals(REQUEST_TIME, $user->getCreatedTime(), 'Creating a user sets default "created" timestamp.');
+    $this->assertEquals(REQUEST_TIME, $user->getChangedTime(), 'Creating a user sets default "changed" timestamp.');
 
     // Create a field.
     $field_name = 'test_field';
@@ -81,18 +81,18 @@ class UserCreateTest extends BrowserTestBase {
     $this->assertSession()->checkboxChecked('edit-status-1');
 
     // Test that browser autocomplete behavior does not occur.
-    $this->assertNoRaw('data-user-info-from-browser');
+    $this->assertSession()->responseNotContains('data-user-info-from-browser');
 
     // Test that the password strength indicator displays.
     $config = $this->config('user.settings');
 
     $config->set('password_strength', TRUE)->save();
     $this->drupalGet('admin/people/create');
-    $this->assertRaw(t('Password strength:'));
+    $this->assertSession()->responseContains("Password strength:");
 
     $config->set('password_strength', FALSE)->save();
     $this->drupalGet('admin/people/create');
-    $this->assertNoRaw(t('Password strength:'));
+    $this->assertSession()->responseNotContains("Password strength:");
 
     // We create two users, notifying one and not notifying the other, to
     // ensure that the tests work in both cases.
@@ -105,19 +105,20 @@ class UserCreateTest extends BrowserTestBase {
         'pass[pass2]' => $pass,
         'notify' => $notify,
       ];
-      $this->drupalPostForm('admin/people/create', $edit, 'Create new account');
+      $this->drupalGet('admin/people/create');
+      $this->submitForm($edit, 'Create new account');
 
       if ($notify) {
-        $this->assertText('A welcome message with further instructions has been emailed to the new user ' . $edit['name'] . '.', 'User created');
+        $this->assertSession()->pageTextContains('A welcome message with further instructions has been emailed to the new user ' . $edit['name'] . '.');
         $this->assertCount(1, $this->drupalGetMails(), 'Notification email sent');
       }
       else {
-        $this->assertText('Created a new user account for ' . $edit['name'] . '. No email has been sent.', 'User created');
+        $this->assertSession()->pageTextContains('Created a new user account for ' . $edit['name'] . '. No email has been sent.');
         $this->assertCount(0, $this->drupalGetMails(), 'Notification email not sent');
       }
 
       $this->drupalGet('admin/people');
-      $this->assertText($edit['name'], 'User found in list of users');
+      $this->assertSession()->pageTextContains($edit['name']);
       $user = user_load_by_name($name);
       $this->assertTrue($user->isActive(), 'User is not blocked');
     }
@@ -132,9 +133,10 @@ class UserCreateTest extends BrowserTestBase {
       'pass[pass2]' => 0,
       'notify' => FALSE,
     ];
-    $this->drupalPostForm('admin/people/create', $edit, 'Create new account');
-    $this->assertText("Created a new user account for $name. No email has been sent");
-    $this->assertNoText('Password field is required');
+    $this->drupalGet('admin/people/create');
+    $this->submitForm($edit, 'Create new account');
+    $this->assertSession()->pageTextContains("Created a new user account for $name. No email has been sent");
+    $this->assertSession()->pageTextNotContains('Password field is required');
   }
 
 }

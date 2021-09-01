@@ -161,7 +161,7 @@ class LinkGeneratorTest extends UnitTestCase {
   public function testGenerateNoLink() {
     $this->urlGenerator->expects($this->never())
       ->method('generateFromRoute');
-    $this->moduleHandler->expects($this->once())
+    $this->moduleHandler->expects($this->exactly(2))
       ->method('alter')
       ->with('link', $this->isType('array'));
 
@@ -172,6 +172,14 @@ class LinkGeneratorTest extends UnitTestCase {
     $result = $this->linkGenerator->generate('Test', $url);
     $this->assertInstanceOf(GeneratedNoLink::class, $result);
     $this->assertSame('<span>Test</span>', (string) $result);
+
+    // Validate removal of hreflang attributes.
+    $url = Url::fromRoute('<nolink>', [], [
+      'language' => new Language(['id' => 'de']),
+    ]);
+    $url->setUrlGenerator($this->urlGenerator);
+    $result = $this->linkGenerator->generate('Test With Language', $url);
+    $this->assertSame('<span>Test With Language</span>', (string) $result);
   }
 
   /**
@@ -208,7 +216,7 @@ class LinkGeneratorTest extends UnitTestCase {
   public function testGenerateButton() {
     $this->urlGenerator->expects($this->never())
       ->method('generateFromRoute');
-    $this->moduleHandler->expects($this->once())
+    $this->moduleHandler->expects($this->exactly(2))
       ->method('alter')
       ->with('link', $this->isType('array'));
 
@@ -218,6 +226,14 @@ class LinkGeneratorTest extends UnitTestCase {
     $result = $this->linkGenerator->generate('Test', $url);
     $this->assertInstanceOf(GeneratedButton::class, $result);
     $this->assertSame('<button type="button">Test</button>', (string) $result);
+
+    // Validate removal of hreflang attributes.
+    $url = new Url('<button>', [], [
+      'language' => new Language(['id' => 'de']),
+    ]);
+    $url->setUrlGenerator($this->urlGenerator);
+    $result = $this->linkGenerator->generate('Test With Language', $url);
+    $this->assertSame('<button type="button">Test With Language</button>', (string) $result);
   }
 
   /**
@@ -403,11 +419,7 @@ class LinkGeneratorTest extends UnitTestCase {
    * @see \Drupal\Core\Utility\LinkGenerator::generate()
    */
   public function testGenerateWithHtml() {
-    $this->urlGenerator->expects($this->at(0))
-      ->method('generateFromRoute')
-      ->with('test_route_5', [], $this->defaultOptions)
-      ->willReturn((new GeneratedUrl())->setGeneratedUrl('/test-route-5'));
-    $this->urlGenerator->expects($this->at(1))
+    $this->urlGenerator->expects($this->exactly(2))
       ->method('generateFromRoute')
       ->with('test_route_5', [], $this->defaultOptions)
       ->willReturn((new GeneratedUrl())->setGeneratedUrl('/test-route-5'));
@@ -465,11 +477,11 @@ class LinkGeneratorTest extends UnitTestCase {
 
     $this->urlGenerator->expects($this->exactly(4))
       ->method('getPathFromRoute')
-      ->will($this->returnValueMap([
+      ->willReturnMap([
         ['test_route_1', [], 'test-route-1'],
         ['test_route_3', [], 'test-route-3'],
         ['test_route_4', ['object' => '1'], 'test-route-4/1'],
-      ]));
+      ]);
 
     $this->moduleHandler->expects($this->exactly(5))
       ->method('alter');
@@ -541,9 +553,15 @@ class LinkGeneratorTest extends UnitTestCase {
     $options = ['query' => [], 'language' => NULL, 'set_active_class' => FALSE, 'absolute' => FALSE];
     $this->urlGenerator->expects($this->any())
       ->method('generateFromRoute')
-      ->will($this->returnValueMap([
-        ['test_route_1', [], $options, TRUE, (new GeneratedUrl())->setGeneratedUrl('/test-route-1')],
-      ]));
+      ->willReturnMap([
+        [
+          'test_route_1',
+          [],
+          $options,
+          TRUE,
+          (new GeneratedUrl())->setGeneratedUrl('/test-route-1'),
+        ],
+      ]);
 
     $url = new Url('test_route_1');
     $url->setUrlGenerator($this->urlGenerator);
@@ -572,10 +590,22 @@ class LinkGeneratorTest extends UnitTestCase {
     $options = ['query' => [], 'language' => NULL, 'set_active_class' => FALSE, 'absolute' => FALSE];
     $this->urlGenerator->expects($this->any())
       ->method('generateFromRoute')
-      ->will($this->returnValueMap([
-        ['test_route_1', [], $options, TRUE, (new GeneratedUrl())->setGeneratedUrl('/test-route-1')],
-        ['test_route_2', [], $options, TRUE, (new GeneratedUrl())->setGeneratedUrl('/test-route-2')],
-      ]));
+      ->willReturnMap([
+        [
+          'test_route_1',
+          [],
+          $options,
+          TRUE,
+          (new GeneratedUrl())->setGeneratedUrl('/test-route-1'),
+        ],
+        [
+          'test_route_2',
+          [],
+          $options,
+          TRUE,
+          (new GeneratedUrl())->setGeneratedUrl('/test-route-2'),
+        ],
+      ]);
 
     $url = new Url('test_route_2');
     $url->setUrlGenerator($this->urlGenerator);

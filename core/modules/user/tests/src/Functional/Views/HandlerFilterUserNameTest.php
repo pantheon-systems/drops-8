@@ -83,7 +83,7 @@ class HandlerFilterUserNameTest extends ViewTestBase {
     $this->executeView($view);
     $this->assertIdenticalResultset($view, [['uid' => $this->accounts[0]->id()]], $this->columnMap);
 
-    $this->assertEqual($view->filter['uid']->getValueOptions(), NULL);
+    $this->assertNull($view->filter['uid']->getValueOptions());
   }
 
   /**
@@ -105,8 +105,9 @@ class HandlerFilterUserNameTest extends ViewTestBase {
     $edit = [
       'options[value]' => implode(', ', $users),
     ];
-    $this->drupalPostForm($path, $edit, 'Apply');
-    $this->assertRaw(t('There are no entities matching "%value".', ['%value' => implode(', ', $users)]));
+    $this->drupalGet($path);
+    $this->submitForm($edit, 'Apply');
+    $this->assertSession()->pageTextContains('There are no users matching "' . implode(', ', $users) . '".');
 
     // Pass in an invalid username and a valid username.
     $random_name = $this->randomMachineName();
@@ -116,8 +117,9 @@ class HandlerFilterUserNameTest extends ViewTestBase {
       'options[value]' => implode(', ', $users),
     ];
     $users = [$users[0]];
-    $this->drupalPostForm($path, $edit, 'Apply');
-    $this->assertRaw(t('There are no entities matching "%value".', ['%value' => implode(', ', $users)]));
+    $this->drupalGet($path);
+    $this->submitForm($edit, 'Apply');
+    $this->assertSession()->pageTextContains('There are no users matching "' . implode(', ', $users) . '".');
 
     // Pass in just valid usernames.
     $users = $this->names;
@@ -125,8 +127,9 @@ class HandlerFilterUserNameTest extends ViewTestBase {
     $edit = [
       'options[value]' => implode(', ', $users),
     ];
-    $this->drupalPostForm($path, $edit, 'Apply');
-    $this->assertNoRaw(t('There are no entities matching "%value".', ['%value' => implode(', ', $users)]));
+    $this->drupalGet($path);
+    $this->submitForm($edit, 'Apply');
+    $this->assertSession()->pageTextNotContains('There are no users matching "' . implode(', ', $users) . '".');
   }
 
   /**
@@ -142,7 +145,7 @@ class HandlerFilterUserNameTest extends ViewTestBase {
     $users = array_map('strtolower', $users);
     $options['query']['uid'] = implode(', ', $users);
     $this->drupalGet($path, $options);
-    $this->assertRaw(t('There are no entities matching "%value".', ['%value' => implode(', ', $users)]));
+    $this->assertSession()->pageTextContains('There are no users matching "' . implode(', ', $users) . '".');
 
     // Pass in an invalid target_id in for the entity_autocomplete value format.
     // There should be no errors, but all results should be returned as the
@@ -162,14 +165,14 @@ class HandlerFilterUserNameTest extends ViewTestBase {
     $users = [$users[0]];
 
     $this->drupalGet($path, $options);
-    $this->assertRaw(t('There are no entities matching "%value".', ['%value' => implode(', ', $users)]));
+    $this->assertSession()->pageTextContains('There are no users matching "' . implode(', ', $users) . '".');
 
     // Pass in just valid usernames.
     $users = $this->names;
     $options['query']['uid'] = implode(', ', $users);
 
     $this->drupalGet($path, $options);
-    $this->assertNoRaw('Unable to find user');
+    $this->assertSession()->pageTextNotContains('Unable to find user');
     // The actual result should contain all of the user ids.
     foreach ($this->accounts as $account) {
       $this->assertRaw($account->id());
@@ -181,7 +184,7 @@ class HandlerFilterUserNameTest extends ViewTestBase {
     }, $this->accounts);
 
     $this->drupalGet($path, $options);
-    $this->assertNoRaw('Unable to find user');
+    $this->assertSession()->pageTextNotContains('Unable to find user');
     // The actual result should contain all of the user ids.
     foreach ($this->accounts as $account) {
       $this->assertRaw($account->id());
