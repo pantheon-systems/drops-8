@@ -98,7 +98,7 @@ abstract class UpdateTestBase extends BrowserTestBase {
     $this->config('update_test.settings')->set('xml_map', $xml_map)->save();
     // Manually check the update status.
     $this->drupalGet('admin/reports/updates');
-    $this->clickLink(t('Check manually'));
+    $this->clickLink('Check manually');
     $this->checkForMetaRefresh();
   }
 
@@ -106,10 +106,10 @@ abstract class UpdateTestBase extends BrowserTestBase {
    * Runs a series of assertions that are applicable to all update statuses.
    */
   protected function standardTests() {
-    $this->assertRaw('<h3>' . t('Drupal core') . '</h3>');
+    $this->assertSession()->responseContains('<h3>Drupal core</h3>');
     // Verify that the link to the Drupal project appears.
     $this->assertRaw(Link::fromTextAndUrl(t('Drupal'), Url::fromUri('http://example.com/project/drupal'))->toString());
-    $this->assertNoText('No available releases found');
+    $this->assertSession()->pageTextNotContains('No available releases found');
   }
 
   /**
@@ -219,7 +219,7 @@ abstract class UpdateTestBase extends BrowserTestBase {
    */
   protected function confirmRevokedStatus($revoked_version, $newer_version, $new_version_label) {
     $this->drupalGet('admin/reports/updates');
-    $this->clickLink(t('Check manually'));
+    $this->clickLink('Check manually');
     $this->checkForMetaRefresh();
     $this->assertUpdateTableTextContains('Revoked!');
     $this->assertUpdateTableTextContains($revoked_version);
@@ -241,7 +241,7 @@ abstract class UpdateTestBase extends BrowserTestBase {
    */
   protected function confirmUnsupportedStatus($unsupported_version, $newer_version, $new_version_label) {
     $this->drupalGet('admin/reports/updates');
-    $this->clickLink(t('Check manually'));
+    $this->clickLink('Check manually');
     $this->checkForMetaRefresh();
     $this->assertUpdateTableTextContains('Not supported!');
     $this->assertUpdateTableTextContains($unsupported_version);
@@ -264,6 +264,16 @@ abstract class UpdateTestBase extends BrowserTestBase {
   }
 
   /**
+   * Asserts that the update table text does not contain the specified text.
+   *
+   * @param string $text
+   *   The expected text.
+   */
+  protected function assertUpdateTableTextNotContains($text) {
+    $this->assertSession()->elementTextNotContains('css', $this->updateTableLocator, $text);
+  }
+
+  /**
    * Asserts that the update table element HTML contains the specified text.
    *
    * @param string $text
@@ -274,6 +284,19 @@ abstract class UpdateTestBase extends BrowserTestBase {
   protected function assertUpdateTableElementContains($text) {
     $this->assertSession()
       ->elementContains('css', $this->updateTableLocator, $text);
+  }
+
+  /**
+   * Asserts that the update table element HTML contains the specified text.
+   *
+   * @param string $text
+   *   The expected text.
+   *
+   * @see \Behat\Mink\WebAssert::elementNotContains()
+   */
+  protected function assertUpdateTableElementNotContains($text) {
+    $this->assertSession()
+      ->elementNotContains('css', $this->updateTableLocator, $text);
   }
 
   /**

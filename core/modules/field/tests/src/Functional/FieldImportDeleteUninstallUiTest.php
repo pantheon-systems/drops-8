@@ -85,8 +85,8 @@ class FieldImportDeleteUninstallUiTest extends FieldTestBase {
     // Verify entity has been created properly.
     $id = $entity->id();
     $entity = EntityTest::load($id);
-    $this->assertEqual($entity->field_tel->value, $value);
-    $this->assertEqual($entity->field_tel[0]->value, $value);
+    $this->assertEquals($value, $entity->field_tel->value);
+    $this->assertEquals($value, $entity->field_tel[0]->value);
 
     $active = $this->container->get('config.storage');
     $sync = $this->container->get('config.storage.sync');
@@ -104,7 +104,7 @@ class FieldImportDeleteUninstallUiTest extends FieldTestBase {
     $this->drupalGet('admin/config/development/configuration');
     // Test that the message for one field being purged during a configuration
     // synchronization is correct.
-    $this->assertText('This synchronization will delete data from the field entity_test.field_tel.');
+    $this->assertSession()->pageTextContains('This synchronization will delete data from the field entity_test.field_tel.');
 
     // Stage an uninstall of the datetime module to test the message for
     // multiple fields.
@@ -112,12 +112,12 @@ class FieldImportDeleteUninstallUiTest extends FieldTestBase {
     $sync->write('core.extension', $core_extension);
 
     $this->drupalGet('admin/config/development/configuration');
-    $this->assertText('This synchronization will delete data from the fields: entity_test.field_tel, entity_test.field_date.');
+    $this->assertSession()->pageTextContains('This synchronization will delete data from the fields: entity_test.field_tel, entity_test.field_date.');
 
     // This will purge all the data, delete the field and uninstall the
     // Telephone and Text modules.
     $this->submitForm([], 'Import all');
-    $this->assertNoText('Field data will be deleted by this synchronization.');
+    $this->assertSession()->pageTextNotContains('Field data will be deleted by this synchronization.');
     $this->rebuildContainer();
     $this->assertFalse(\Drupal::moduleHandler()->moduleExists('telephone'));
     $this->assertNull(\Drupal::service('entity.repository')->loadEntityByUuid('field_storage_config', $field_storage->uuid()), 'The telephone field has been deleted by the configuration synchronization');

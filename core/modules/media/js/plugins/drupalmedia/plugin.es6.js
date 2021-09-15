@@ -174,7 +174,7 @@
               }
             });
           }
-          // @see media_field_widget_form_alter()
+          // @see media_field_widget_single_element_form_alter()
           const hostEntityLangcode = document
             .getElementById(editor.name)
             .getAttribute('data-media-embed-host-entity-langcode');
@@ -472,6 +472,9 @@
               uuid: this.data.attributes['data-entity-uuid'],
             },
             dataType: 'html',
+            headers: {
+              'X-Drupal-MediaPreview-CSRF-Token': editor.config.drupalMedia_previewCsrfToken,
+            },
             success: (previewHtml, textStatus, jqXhr) => {
               this.element.setHtml(previewHtml);
               this.setData(

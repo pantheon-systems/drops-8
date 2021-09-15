@@ -33,9 +33,10 @@ class NodeTitleXSSTest extends NodeTestBase {
     $edit = [];
     $edit['title[0][value]'] = $title;
 
-    $this->drupalPostForm('node/add/page', $edit, 'Preview');
+    $this->drupalGet('node/add/page');
+    $this->submitForm($edit, 'Preview');
     // Verify that harmful tags are escaped when previewing a node.
-    $this->assertNoRaw($xss);
+    $this->assertSession()->responseNotContains($xss);
 
     $settings = ['title' => $title];
     $node = $this->drupalCreateNode($settings);
@@ -43,10 +44,10 @@ class NodeTitleXSSTest extends NodeTestBase {
     $this->drupalGet('node/' . $node->id());
     // Titles should be escaped.
     $this->assertRaw('<title>' . Html::escape($title) . ' | Drupal</title>');
-    $this->assertNoRaw($xss);
+    $this->assertSession()->responseNotContains($xss);
 
     $this->drupalGet('node/' . $node->id() . '/edit');
-    $this->assertNoRaw($xss);
+    $this->assertSession()->responseNotContains($xss);
   }
 
 }

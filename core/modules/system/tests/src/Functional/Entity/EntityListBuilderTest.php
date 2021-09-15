@@ -37,7 +37,7 @@ class EntityListBuilderTest extends BrowserTestBase {
   }
 
   /**
-   * Test paging.
+   * Tests paging.
    */
   public function testPager() {
     // Create 51 test entities.
@@ -50,11 +50,11 @@ class EntityListBuilderTest extends BrowserTestBase {
 
     // Item 51 should not be present.
     $this->assertRaw('Test entity 50');
-    $this->assertNoRaw('Test entity 51');
+    $this->assertSession()->responseNotContains('Test entity 51');
 
     // Browse to the next page, test entity 51 is shown.
-    $this->clickLink(t('Page 2'));
-    $this->assertNoRaw('Test entity 50');
+    $this->clickLink('Page 2');
+    $this->assertSession()->responseNotContains('Test entity 50');
     $this->assertRaw('Test entity 51');
   }
 
@@ -68,7 +68,7 @@ class EntityListBuilderTest extends BrowserTestBase {
     $build = $list_builder->render();
     $this->container->get('renderer')->renderRoot($build);
 
-    $this->assertEqual(['entity_test_view_grants', 'languages:' . LanguageInterface::TYPE_INTERFACE, 'theme', 'url.query_args.pagers:0', 'user.permissions'], $build['#cache']['contexts']);
+    $this->assertEquals(['entity_test_view_grants', 'languages:' . LanguageInterface::TYPE_INTERFACE, 'theme', 'url.query_args.pagers:0', 'user.permissions'], $build['#cache']['contexts']);
   }
 
   /**

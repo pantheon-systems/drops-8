@@ -120,7 +120,7 @@ class QuickEditLoadingTest extends WebDriverTestBase {
   }
 
   /**
-   * Test the loading of Quick Edit with different permissions.
+   * Tests the loading of Quick Edit with different permissions.
    */
   public function testUserPermissions() {
     $assert = $this->assertSession();
@@ -128,13 +128,13 @@ class QuickEditLoadingTest extends WebDriverTestBase {
     $this->drupalGet('node/1');
 
     // Library and in-place editors.
-    $this->assertNoRaw('core/modules/quickedit/js/quickedit.js');
-    $this->assertNoRaw('core/modules/quickedit/js/editors/formEditor.js');
+    $this->assertSession()->responseNotContains('core/modules/quickedit/js/quickedit.js');
+    $this->assertSession()->responseNotContains('core/modules/quickedit/js/editors/formEditor.js');
 
     // HTML annotation and title class do not exist for users without
     // permission to in-place edit.
-    $this->assertNoRaw('data-quickedit-entity-id="node/1"');
-    $this->assertNoRaw('data-quickedit-field-id="node/1/body/en/full"');
+    $this->assertSession()->responseNotContains('data-quickedit-entity-id="node/1"');
+    $this->assertSession()->responseNotContains('data-quickedit-field-id="node/1/body/en/full"');
     $this->assertSession()->elementNotExists('xpath', '//h1[contains(@class, "js-quickedit-page-title")]');
     $assert->linkNotExists('Quick edit');
 
@@ -182,16 +182,17 @@ class QuickEditLoadingTest extends WebDriverTestBase {
   }
 
   /**
-   * Test Quick Edit does not appear for entities with pending revisions.
+   * Tests Quick Edit does not appear for entities with pending revisions.
    */
   public function testWithPendingRevision() {
     $this->drupalLogin($this->editorUser);
 
     // Verify that the preview is loaded correctly.
-    $this->drupalPostForm('node/add/article', ['title[0][value]' => 'foo'], 'Preview');
+    $this->drupalGet('node/add/article');
+    $this->submitForm(['title[0][value]' => 'foo'], 'Preview');
     // Verify that quickedit is not active on preview.
-    $this->assertNoRaw('data-quickedit-entity-id="node/' . $this->testNode->id() . '"');
-    $this->assertNoRaw('data-quickedit-field-id="node/' . $this->testNode->id() . '/title/' . $this->testNode->language()->getId() . '/full"');
+    $this->assertSession()->responseNotContains('data-quickedit-entity-id="node/' . $this->testNode->id() . '"');
+    $this->assertSession()->responseNotContains('data-quickedit-field-id="node/' . $this->testNode->id() . '/title/' . $this->testNode->language()->getId() . '/full"');
 
     $this->drupalGet('node/' . $this->testNode->id());
     $this->assertRaw('data-quickedit-entity-id="node/' . $this->testNode->id() . '"');
@@ -207,8 +208,8 @@ class QuickEditLoadingTest extends WebDriverTestBase {
     $this->testNode->save();
 
     $this->drupalGet('node/' . $this->testNode->id());
-    $this->assertNoRaw('data-quickedit-entity-id="node/' . $this->testNode->id() . '"');
-    $this->assertNoRaw('data-quickedit-field-id="node/' . $this->testNode->id() . '/title/' . $this->testNode->language()->getId() . '/full"');
+    $this->assertSession()->responseNotContains('data-quickedit-entity-id="node/' . $this->testNode->id() . '"');
+    $this->assertSession()->responseNotContains('data-quickedit-field-id="node/' . $this->testNode->id() . '/title/' . $this->testNode->language()->getId() . '/full"');
   }
 
   /**

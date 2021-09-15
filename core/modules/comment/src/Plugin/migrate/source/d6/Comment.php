@@ -8,6 +8,11 @@ use Drupal\migrate_drupal\Plugin\migrate\source\DrupalSqlBase;
 /**
  * Drupal 6 comment source from database.
  *
+ * For available configuration keys, refer to the parent classes.
+ *
+ * @see \Drupal\migrate\Plugin\migrate\source\SqlBase
+ * @see \Drupal\migrate\Plugin\migrate\source\SourcePluginBase
+ *
  * @MigrateSource(
  *   id = "d6_comment",
  *   source_module = "comment"
@@ -24,7 +29,7 @@ class Comment extends DrupalSqlBase {
       'comment', 'hostname', 'timestamp', 'status', 'thread', 'name',
       'mail', 'homepage', 'format',
     ]);
-    $query->innerJoin('node', 'n', 'c.nid = n.nid');
+    $query->innerJoin('node', 'n', '[c].[nid] = [n].[nid]');
     $query->fields('n', ['type', 'language']);
     $query->orderBy('c.timestamp');
     return $query;

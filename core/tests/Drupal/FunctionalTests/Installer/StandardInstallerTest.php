@@ -32,22 +32,9 @@ class StandardInstallerTest extends ConfigAfterInstallerTestBase {
    */
   protected function setUpSite() {
     // Test that the correct theme is being used.
-    $this->assertNoRaw('bartik');
+    $this->assertSession()->responseNotContains('bartik');
     $this->assertRaw('themes/seven/css/theme/install-page.css');
     parent::setUpSite();
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  protected function curlExec($curl_options, $redirect = FALSE) {
-    // Ensure that we see the classy progress CSS on the batch page.
-    // Batch processing happens as part of HTTP redirects, so we can access the
-    // HTML of the batch page.
-    if (strpos($curl_options[CURLOPT_URL], '&id=1&op=do_nojs') !== FALSE) {
-      $this->assertRaw('themes/classy/css/components/progress.css');
-    }
-    return parent::curlExec($curl_options, $redirect);
   }
 
   /**
