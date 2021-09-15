@@ -73,6 +73,7 @@ return array(
     'Composer\\Installers\\OsclassInstaller' => $vendorDir . '/composer/installers/src/Composer/Installers/OsclassInstaller.php',
     'Composer\\Installers\\OxidInstaller' => $vendorDir . '/composer/installers/src/Composer/Installers/OxidInstaller.php',
     'Composer\\Installers\\PPIInstaller' => $vendorDir . '/composer/installers/src/Composer/Installers/PPIInstaller.php',
+    'Composer\\Installers\\PantheonInstaller' => $vendorDir . '/composer/installers/src/Composer/Installers/PantheonInstaller.php',
     'Composer\\Installers\\PhiftyInstaller' => $vendorDir . '/composer/installers/src/Composer/Installers/PhiftyInstaller.php',
     'Composer\\Installers\\PhpBBInstaller' => $vendorDir . '/composer/installers/src/Composer/Installers/PhpBBInstaller.php',
     'Composer\\Installers\\PimcoreInstaller' => $vendorDir . '/composer/installers/src/Composer/Installers/PimcoreInstaller.php',

@@ -4,7 +4,7 @@
 
 namespace Composer\Autoload;
 
-class ComposerStaticInite2fd01f7430ee53cb2e489183523d597
+class ComposerStaticInitf197092365111500249304d9be7b237b
 {
     public static $files = array (
         '0e6d7bf4a5811bfa5cf40c5ccd6fae6a' => __DIR__ . '/..' . '/symfony/polyfill-mbstring/bootstrap.php',
@@ -450,6 +450,7 @@ class ComposerStaticInite2fd01f7430ee53cb2e489183523d597
         'Composer\\Installers\\OsclassInstaller' => __DIR__ . '/..' . '/composer/installers/src/Composer/Installers/OsclassInstaller.php',
         'Composer\\Installers\\OxidInstaller' => __DIR__ . '/..' . '/composer/installers/src/Composer/Installers/OxidInstaller.php',
         'Composer\\Installers\\PPIInstaller' => __DIR__ . '/..' . '/composer/installers/src/Composer/Installers/PPIInstaller.php',
+        'Composer\\Installers\\PantheonInstaller' => __DIR__ . '/..' . '/composer/installers/src/Composer/Installers/PantheonInstaller.php',
         'Composer\\Installers\\PhiftyInstaller' => __DIR__ . '/..' . '/composer/installers/src/Composer/Installers/PhiftyInstaller.php',
         'Composer\\Installers\\PhpBBInstaller' => __DIR__ . '/..' . '/composer/installers/src/Composer/Installers/PhpBBInstaller.php',
         'Composer\\Installers\\PimcoreInstaller' => __DIR__ . '/..' . '/composer/installers/src/Composer/Installers/PimcoreInstaller.php',
@@ -4129,11 +4130,11 @@ class ComposerStaticInite2fd01f7430ee53cb2e489183523d597
     public static function getInitializer(ClassLoader $loader)
     {
         return \Closure::bind(function () use ($loader) {
-            $loader->prefixLengthsPsr4 = ComposerStaticInite2fd01f7430ee53cb2e489183523d597::$prefixLengthsPsr4;
-            $loader->prefixDirsPsr4 = ComposerStaticInite2fd01f7430ee53cb2e489183523d597::$prefixDirsPsr4;
-            $loader->prefixesPsr0 = ComposerStaticInite2fd01f7430ee53cb2e489183523d597::$prefixesPsr0;
-            $loader->fallbackDirsPsr0 = ComposerStaticInite2fd01f7430ee53cb2e489183523d597::$fallbackDirsPsr0;
-            $loader->classMap = ComposerStaticInite2fd01f7430ee53cb2e489183523d597::$classMap;
+            $loader->prefixLengthsPsr4 = ComposerStaticInitf197092365111500249304d9be7b237b::$prefixLengthsPsr4;
+            $loader->prefixDirsPsr4 = ComposerStaticInitf197092365111500249304d9be7b237b::$prefixDirsPsr4;
+            $loader->prefixesPsr0 = ComposerStaticInitf197092365111500249304d9be7b237b::$prefixesPsr0;
+            $loader->fallbackDirsPsr0 = ComposerStaticInitf197092365111500249304d9be7b237b::$fallbackDirsPsr0;
+            $loader->classMap = ComposerStaticInitf197092365111500249304d9be7b237b::$classMap;
 
         }, null, ClassLoader::class);
     }

@@ -57,17 +57,17 @@
         },
         {
             "name": "composer/installers",
-            "version": "v1.11.0",
-            "version_normalized": "1.11.0.0",
+            "version": "v1.12.0",
+            "version_normalized": "1.12.0.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/composer/installers.git",
-                "reference": "ae03311f45dfe194412081526be2e003960df74b"
+                "reference": "d20a64ed3c94748397ff5973488761b22f6d3f19"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/composer/installers/zipball/ae03311f45dfe194412081526be2e003960df74b",
-                "reference": "ae03311f45dfe194412081526be2e003960df74b",
+                "url": "https://api.github.com/repos/composer/installers/zipball/d20a64ed3c94748397ff5973488761b22f6d3f19",
+                "reference": "d20a64ed3c94748397ff5973488761b22f6d3f19",
                 "shasum": ""
             },
             "require": {
@@ -85,7 +85,7 @@
                 "symfony/phpunit-bridge": "^4.2 || ^5",
                 "symfony/process": "^2.3"
             },
-            "time": "2021-04-28T06:42:17+00:00",
+            "time": "2021-09-13T08:19:44+00:00",
             "type": "composer-plugin",
             "extra": {
                 "class": "Composer\\Installers\\Plugin",
@@ -168,6 +168,7 @@
                 "modx",
                 "moodle",
                 "osclass",
+                "pantheon",
                 "phpbb",
                 "piwik",
                 "ppi",
@@ -693,17 +694,17 @@
         },
         {
             "name": "drupal/core",
-            "version": "8.9.18",
-            "version_normalized": "8.9.18.0",
+            "version": "8.9.19",
+            "version_normalized": "8.9.19.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/drupal/core.git",
-                "reference": "e536176c45d9d75ec57f7a12c0e3c0aead856841"
+                "reference": "96eb83b31d950f020cbc079ab960159c3735a033"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/drupal/core/zipball/e536176c45d9d75ec57f7a12c0e3c0aead856841",
-                "reference": "e536176c45d9d75ec57f7a12c0e3c0aead856841",
+                "url": "https://api.github.com/repos/drupal/core/zipball/96eb83b31d950f020cbc079ab960159c3735a033",
+                "reference": "96eb83b31d950f020cbc079ab960159c3735a033",
                 "shasum": ""
             },
             "require": {
@@ -933,8 +934,8 @@
         },
         {
             "name": "drupal/core-composer-scaffold",
-            "version": "8.9.18",
-            "version_normalized": "8.9.18.0",
+            "version": "8.9.19",
+            "version_normalized": "8.9.19.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/drupal/core-composer-scaffold.git",
@@ -981,8 +982,8 @@
         },
         {
             "name": "drupal/core-project-message",
-            "version": "8.9.18",
-            "version_normalized": "8.9.18.0",
+            "version": "8.9.19",
+            "version_normalized": "8.9.19.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/drupal/core-project-message.git",
@@ -1020,17 +1021,17 @@
         },
         {
             "name": "drupal/core-recommended",
-            "version": "8.9.18",
-            "version_normalized": "8.9.18.0",
+            "version": "8.9.19",
+            "version_normalized": "8.9.19.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/drupal/core-recommended.git",
-                "reference": "71839bb9799b70f449b76294b461877ba1e9ff2c"
+                "reference": "880335bafeeba6d29454053bd24f253a219c2cfc"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/drupal/core-recommended/zipball/71839bb9799b70f449b76294b461877ba1e9ff2c",
-                "reference": "71839bb9799b70f449b76294b461877ba1e9ff2c",
+                "url": "https://api.github.com/repos/drupal/core-recommended/zipball/880335bafeeba6d29454053bd24f253a219c2cfc",
+                "reference": "880335bafeeba6d29454053bd24f253a219c2cfc",
                 "shasum": ""
             },
             "require": {
@@ -1042,7 +1043,7 @@
                 "doctrine/common": "v2.7.3",
                 "doctrine/inflector": "v1.2.0",
                 "doctrine/lexer": "1.0.2",
-                "drupal/core": "8.9.18",
+                "drupal/core": "8.9.19",
                 "easyrdf/easyrdf": "0.9.1",
                 "egulias/email-validator": "2.1.17",
                 "guzzlehttp/guzzle": "6.5.4",
@@ -1102,8 +1103,8 @@
         },
         {
             "name": "drupal/core-vendor-hardening",
-            "version": "8.9.18",
-            "version_normalized": "8.9.18.0",
+            "version": "8.9.19",
+            "version_normalized": "8.9.19.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/drupal/core-vendor-hardening.git",
