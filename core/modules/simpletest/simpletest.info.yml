@@ -4,3 +4,4 @@ description: 'Deprecated. SimpleTest has been removed from core.'
 package: Core
 version: VERSION
 hidden: true
+

@@ -4,3 +4,4 @@ description: 'Theme for testing the theme system with the Nyan Cat theme engine'
 version: VERSION
 engine: nyan_cat
 base theme: false
+

@@ -5,3 +5,4 @@ version: VERSION
 hidden: true
 install:
   - js_deprecation_log_test
+

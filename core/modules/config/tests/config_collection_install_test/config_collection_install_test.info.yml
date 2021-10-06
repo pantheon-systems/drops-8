@@ -2,3 +2,4 @@ name: 'Configuration events test'
 type: module
 package: Testing
 version: VERSION
+

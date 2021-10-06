@@ -4,3 +4,4 @@ description: 'Test theme which uses test_basetheme as the base theme.'
 version: VERSION
 base theme: classy
 package: Testing
+

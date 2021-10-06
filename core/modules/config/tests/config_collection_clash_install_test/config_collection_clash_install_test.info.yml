@@ -6,3 +6,4 @@ package: Testing
 version: VERSION
 dependencies:
   - drupal:config_collection_install_test
+

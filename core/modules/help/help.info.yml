@@ -3,3 +3,4 @@ type: module
 description: 'Manages the display of online help.'
 package: Core
 version: VERSION
+

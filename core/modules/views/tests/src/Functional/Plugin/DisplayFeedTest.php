@@ -76,7 +76,7 @@ class DisplayFeedTest extends ViewTestBase {
     $this->assertEquals($node_title, $this->getSession()->getDriver()->getText('//item/title'));
     $this->assertEquals($node_link, $this->getSession()->getDriver()->getText('//item/link'));
     // Verify HTML is properly escaped in the description field.
-    $this->assertRaw('&lt;p&gt;A paragraph&lt;/p&gt;');
+    $this->assertSession()->responseContains('&lt;p&gt;A paragraph&lt;/p&gt;');
 
     $view = $this->container->get('entity_type.manager')->getStorage('view')->load('test_display_feed');
     $display = &$view->getDisplay('feed_1');
@@ -101,9 +101,9 @@ class DisplayFeedTest extends ViewTestBase {
     $this->drupalGet('test-feed-icon/' . $node->id());
     $page_url = $this->getUrl();
     $icon_href = $this->cssSelect('a.feed-icon[href *= "test-feed-icon"]')[0]->getAttribute('href');
-    $this->assertEqual($icon_href, $page_url . '/feed', 'The feed icon was found.');
+    $this->assertEquals($page_url . '/feed', $icon_href, 'The feed icon was found.');
     $link_href = $this->cssSelect('link[type = "application/rss+xml"][href *= "test-feed-icon"]')[0]->getAttribute('href');
-    $this->assertEqual($link_href, $page_url . '/feed', 'The RSS link was found.');
+    $this->assertEquals($page_url . '/feed', $link_href, 'The RSS link was found.');
     $this->drupalGet($icon_href);
     $this->assertEquals($frontpage_url, $this->getSession()->getDriver()->getText('//channel/link'));
   }
@@ -137,7 +137,7 @@ class DisplayFeedTest extends ViewTestBase {
     $this->assertEquals($node_title, $this->getSession()->getDriver()->getText('//item/title'));
     $this->assertEquals($node_link, $this->getSession()->getDriver()->getText('//item/link'));
     // Verify HTML is properly escaped in the description field.
-    $this->assertRaw('&lt;p&gt;A paragraph&lt;/p&gt;');
+    $this->assertSession()->responseContains('&lt;p&gt;A paragraph&lt;/p&gt;');
 
     // Change the display to use the nid field, which is rewriting output as
     // 'node/{{ nid }}' and make sure things are still working.
@@ -166,7 +166,7 @@ class DisplayFeedTest extends ViewTestBase {
     // Check that the rss header is output on the page display.
     $this->drupalGet('/test-attached-disabled');
     $feed_header = $this->xpath('//link[@rel="alternate"]');
-    $this->assertEqual($feed_header[0]->getAttribute('type'), 'application/rss+xml', 'The feed link has the type application/rss+xml.');
+    $this->assertEquals('application/rss+xml', $feed_header[0]->getAttribute('type'), 'The feed link has the type application/rss+xml.');
     $this->assertStringContainsString('test-attached-disabled.xml', $feed_header[0]->getAttribute('href'), 'Page display contains the correct feed URL.');
 
     // Disable the feed display.

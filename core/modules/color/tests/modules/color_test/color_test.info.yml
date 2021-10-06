@@ -3,3 +3,4 @@ type: module
 description: 'Provides test helpers for color module.'
 package: Testing
 version: VERSION
+

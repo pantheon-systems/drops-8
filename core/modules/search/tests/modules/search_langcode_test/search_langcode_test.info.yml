@@ -3,3 +3,4 @@ type: module
 description: 'Support module for search module testing.'
 package: Testing
 version: VERSION
+

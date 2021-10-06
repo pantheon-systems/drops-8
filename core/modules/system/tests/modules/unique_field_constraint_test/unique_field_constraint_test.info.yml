@@ -3,3 +3,4 @@ type: module
 description: 'Support module for UniqueField Constraint testing.'
 package: Testing
 version: VERSION
+

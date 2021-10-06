@@ -8,3 +8,4 @@ install:
   # tests as possible run with them enabled.
   - drupal:page_cache
   - dynamic_page_cache
+

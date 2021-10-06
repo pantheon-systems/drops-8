@@ -3,3 +3,4 @@ type: module
 description: 'Support module for the language config override test.'
 package: Testing
 version: VERSION
+

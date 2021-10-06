@@ -36,7 +36,7 @@ class ReverseProxyMiddlewareTest extends UnitTestCase {
     $middleware = new ReverseProxyMiddleware($this->mockHttpKernel, $settings);
     // Mock a request object.
     $request = $this->getMockBuilder('Symfony\Component\HttpFoundation\Request')
-      ->setMethods(['setTrustedProxies'])
+      ->onlyMethods(['setTrustedProxies'])
       ->getMock();
     // setTrustedProxies() should never fire.
     $request->expects($this->never())
@@ -63,7 +63,7 @@ class ReverseProxyMiddlewareTest extends UnitTestCase {
     return [
       'Proxy with default trusted headers' => [
         ['reverse_proxy_addresses' => ['127.0.0.2', '127.0.0.3']],
-        Request::HEADER_FORWARDED | Request::HEADER_X_FORWARDED_ALL,
+        Request::HEADER_FORWARDED | Request::HEADER_X_FORWARDED_FOR | Request::HEADER_X_FORWARDED_HOST | Request::HEADER_X_FORWARDED_PORT | Request::HEADER_X_FORWARDED_PROTO,
       ],
       'Proxy with AWS trusted headers' => [
         [

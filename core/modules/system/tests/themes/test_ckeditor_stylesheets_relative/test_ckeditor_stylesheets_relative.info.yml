@@ -5,3 +5,4 @@ version: VERSION
 base theme: false
 ckeditor_stylesheets:
   - css/yokotsoko.css
+

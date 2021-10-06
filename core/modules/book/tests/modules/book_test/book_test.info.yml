@@ -3,3 +3,4 @@ type: module
 description: 'Support module for book module testing.'
 package: Testing
 version: VERSION
+

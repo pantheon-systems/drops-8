@@ -12,3 +12,4 @@ libraries-extend:
   test_theme/collapse:
     - not_a_string:
         expected: 'an exception'
+

@@ -4,3 +4,4 @@ description: Test module used to test adding modules with child module.
 package: Testing
 version: VERSION
 hidden: true
+

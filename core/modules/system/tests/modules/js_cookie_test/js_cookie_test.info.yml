@@ -3,3 +3,4 @@ type: module
 description: 'Module for the jsCookieTest.'
 package: Testing
 version: VERSION
+

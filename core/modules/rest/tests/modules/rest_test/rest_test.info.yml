@@ -3,3 +3,4 @@ type: module
 description: 'Provides test hooks and resources for REST module.'
 package: Testing
 version: VERSION
+

@@ -4,3 +4,4 @@ base theme: stark
 dependencies:
   - test_module_required_by_theme
   - test_another_module_required_by_theme
+

@@ -80,16 +80,7 @@ class MigrateSqlIdMapEnsureTablesTest extends MigrateTestCase {
         'source' => ['sourceid1', 'sourceid2'],
       ],
     ];
-    $schema = $this->getMockBuilder('Drupal\Core\Database\Schema')
-      ->disableOriginalConstructor()
-      ->getMock();
-    $schema->expects($this->at(0))
-      ->method('tableExists')
-      ->with('migrate_map_sql_idmap_test')
-      ->will($this->returnValue(FALSE));
-    $schema->expects($this->at(1))
-      ->method('createTable')
-      ->with('migrate_map_sql_idmap_test', $map_table_schema);
+
     // Now do the message table.
     $fields = [];
     $fields['msgid'] = [
@@ -118,17 +109,27 @@ class MigrateSqlIdMapEnsureTablesTest extends MigrateTestCase {
       'description' => 'Messages generated during a migration process',
       'fields' => $fields,
       'primary key' => ['msgid'],
+      'indexes' => [
+        'source_ids_hash' => ['source_ids_hash'],
+      ],
     ];
 
-    $schema->expects($this->at(2))
+    $schema = $this->getMockBuilder('Drupal\Core\Database\Schema')
+      ->disableOriginalConstructor()
+      ->getMock();
+    $schema->expects($this->exactly(2))
       ->method('tableExists')
-      ->with('migrate_message_sql_idmap_test')
-      ->will($this->returnValue(FALSE));
-    $schema->expects($this->at(3))
+      ->willReturnMap([
+        ['migrate_map_sql_idmap_test', FALSE],
+        ['migrate_message_sql_idmap_test', FALSE],
+      ]);
+    $schema->expects($this->exactly(2))
       ->method('createTable')
-      ->with('migrate_message_sql_idmap_test', $table_schema);
-    $schema->expects($this->any())
-      ->method($this->anything());
+      ->withConsecutive(
+        ['migrate_map_sql_idmap_test', $map_table_schema],
+        ['migrate_message_sql_idmap_test', $table_schema],
+      );
+
     $this->runEnsureTablesTest($schema);
   }
 
@@ -139,53 +140,48 @@ class MigrateSqlIdMapEnsureTablesTest extends MigrateTestCase {
     $schema = $this->getMockBuilder('Drupal\Core\Database\Schema')
       ->disableOriginalConstructor()
       ->getMock();
-    $schema->expects($this->at(0))
+    $schema->expects($this->exactly(1))
       ->method('tableExists')
       ->with('migrate_map_sql_idmap_test')
-      ->will($this->returnValue(TRUE));
-    $schema->expects($this->at(1))
+      ->willReturn(TRUE);
+    $schema->expects($this->exactly(3))
       ->method('fieldExists')
-      ->with('migrate_map_sql_idmap_test', 'rollback_action')
-      ->will($this->returnValue(FALSE));
-    $field_schema = [
-      'type' => 'int',
-      'size' => 'tiny',
-      'unsigned' => TRUE,
-      'not null' => TRUE,
-      'default' => 0,
-      'description' => 'Flag indicating what to do for this item on rollback',
-    ];
-    $schema->expects($this->at(2))
+      ->willReturnMap([
+        ['migrate_map_sql_idmap_test', 'rollback_action', FALSE],
+        ['migrate_map_sql_idmap_test', 'hash', FALSE],
+        ['migrate_map_sql_idmap_test', 'source_ids_hash', FALSE],
+      ]);
+    $schema->expects($this->exactly(3))
       ->method('addField')
-      ->with('migrate_map_sql_idmap_test', 'rollback_action', $field_schema);
-    $schema->expects($this->at(3))
-      ->method('fieldExists')
-      ->with('migrate_map_sql_idmap_test', 'hash')
-      ->will($this->returnValue(FALSE));
-    $field_schema = [
-      'type' => 'varchar',
-      'length' => '64',
-      'not null' => FALSE,
-      'description' => 'Hash of source row data, for detecting changes',
-    ];
-    $schema->expects($this->at(4))
-      ->method('addField')
-      ->with('migrate_map_sql_idmap_test', 'hash', $field_schema);
-    $schema->expects($this->at(5))
-      ->method('fieldExists')
-      ->with('migrate_map_sql_idmap_test', 'source_ids_hash')
-      ->will($this->returnValue(FALSE));
-    $field_schema = [
-      'type' => 'varchar',
-      'length' => '64',
-      'not null' => TRUE,
-      'description' => 'Hash of source ids. Used as primary key',
-    ];
-    $schema->expects($this->at(6))
-      ->method('addField')
-      ->with('migrate_map_sql_idmap_test', 'source_ids_hash', $field_schema);
-    $schema->expects($this->exactly(7))
-      ->method($this->anything());
+      ->withConsecutive(
+        [
+          'migrate_map_sql_idmap_test', 'rollback_action', [
+            'type' => 'int',
+            'size' => 'tiny',
+            'unsigned' => TRUE,
+            'not null' => TRUE,
+            'default' => 0,
+            'description' => 'Flag indicating what to do for this item on rollback',
+          ],
+        ],
+        [
+          'migrate_map_sql_idmap_test', 'hash', [
+            'type' => 'varchar',
+            'length' => '64',
+            'not null' => FALSE,
+            'description' => 'Hash of source row data, for detecting changes',
+          ],
+        ],
+        [
+          'migrate_map_sql_idmap_test', 'source_ids_hash', [
+            'type' => 'varchar',
+            'length' => '64',
+            'not null' => TRUE,
+            'description' => 'Hash of source ids. Used as primary key',
+          ],
+        ],
+      );
+
     $this->runEnsureTablesTest($schema);
   }
 
@@ -230,8 +226,8 @@ class MigrateSqlIdMapEnsureTablesTest extends MigrateTestCase {
     $migration->expects($this->any())
       ->method('getDestinationPlugin')
       ->willReturn($plugin);
-    /** @var \Symfony\Component\EventDispatcher\EventDispatcherInterface $event_dispatcher */
-    $event_dispatcher = $this->createMock('Symfony\Component\EventDispatcher\EventDispatcherInterface');
+    /** @var \Symfony\Contracts\EventDispatcher\EventDispatcherInterface $event_dispatcher */
+    $event_dispatcher = $this->createMock('Symfony\Contracts\EventDispatcher\EventDispatcherInterface');
     $map = new TestSqlIdMap($database, [], 'sql', [], $migration, $event_dispatcher);
     $map->getDatabase();
   }

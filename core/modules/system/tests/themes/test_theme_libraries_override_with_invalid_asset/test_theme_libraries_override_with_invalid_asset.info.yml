@@ -8,3 +8,4 @@ libraries-override:
   # \Drupal\Core\Asset\Exception\InvalidLibrariesOverrideSpecificationException.
   core/drupal.dialog:
     css: false
+

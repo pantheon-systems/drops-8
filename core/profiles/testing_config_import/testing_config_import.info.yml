@@ -7,3 +7,4 @@ install:
   - syslog
 themes:
   - stark
+

@@ -6,3 +6,4 @@ version: VERSION
 hidden: true
 dependencies:
   - drupal:entity_test
+

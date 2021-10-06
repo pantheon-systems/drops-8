@@ -3,3 +3,4 @@ type: module
 description: 'Support module for node related exception testing.'
 package: Testing
 version: VERSION
+

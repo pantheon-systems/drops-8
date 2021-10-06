@@ -3,3 +3,4 @@ type: module
 description: 'Support module for BigPipe regression testing.'
 package: Testing
 version: VERSION
+

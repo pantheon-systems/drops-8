@@ -3,3 +3,4 @@ name: 'TableDrag test'
 description: 'Draggable table test module.'
 package: Testing
 version: VERSION
+

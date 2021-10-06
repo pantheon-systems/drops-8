@@ -3,3 +3,4 @@ type: module
 description: "Test general form component for condition plugins."
 package: Testing
 version: VERSION
+

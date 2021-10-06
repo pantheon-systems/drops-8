@@ -5,3 +5,4 @@ package: Testing
 version: VERSION
 dependencies:
   - drupal:module_install_class_loader_test1
+

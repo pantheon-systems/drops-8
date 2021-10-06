@@ -3,3 +3,4 @@ description: 'Support module for tests that require a failed module install.'
 type: module
 package: Testing
 version: VERSION
+

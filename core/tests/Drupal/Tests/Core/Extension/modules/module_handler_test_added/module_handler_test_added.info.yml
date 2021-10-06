@@ -4,3 +4,4 @@ description: 'Test module used to test adding a module during runtime.'
 package: Testing
 version: VERSION
 hidden: true
+

@@ -6,3 +6,4 @@ version: VERSION
 dependencies:
   - drupal:entity_test
   - drupal:field_test
+

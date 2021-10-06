@@ -3,3 +3,4 @@ type: module
 description: 'Support module for testing theme suggestions.'
 package: Testing
 version: VERSION
+

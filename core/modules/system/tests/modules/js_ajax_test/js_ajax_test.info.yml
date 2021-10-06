@@ -3,3 +3,4 @@ description: 'Provides custom ajax commands used for tests'
 type: module
 package: Testing
 version: VERSION
+

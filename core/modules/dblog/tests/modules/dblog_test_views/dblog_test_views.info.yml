@@ -6,3 +6,4 @@ version: VERSION
 dependencies:
   - drupal:dblog
   - drupal:views
+

@@ -6,3 +6,4 @@ version: VERSION
 dependencies:
   - drupal:config_translation
   - drupal:config_test
+

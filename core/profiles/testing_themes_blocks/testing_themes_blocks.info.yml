@@ -9,3 +9,4 @@ themes:
   - testing_theme_without_blocks
 install:
   - block
+

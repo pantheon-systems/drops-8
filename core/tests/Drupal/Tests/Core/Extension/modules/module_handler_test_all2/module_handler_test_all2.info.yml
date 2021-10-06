@@ -4,3 +4,4 @@ description: 'Test module used to test adding groups of modules with loadAll dur
 package: Testing
 version: VERSION
 hidden: true
+

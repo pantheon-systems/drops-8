@@ -7,3 +7,4 @@ version: VERSION
 dependencies:
   - drupal:language
   - drupal:file
+

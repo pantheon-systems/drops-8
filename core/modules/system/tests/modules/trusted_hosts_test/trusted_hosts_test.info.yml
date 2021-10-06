@@ -2,3 +2,4 @@ type: module
 name: 'Trusted hosts test module'
 package: Testing
 version: VERSION
+

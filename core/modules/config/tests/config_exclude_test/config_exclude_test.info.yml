@@ -2,3 +2,4 @@ name: 'Configuration Module Exclude Test'
 type: module
 package: Testing
 version: VERSION
+
