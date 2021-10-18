@@ -1,17 +1,11 @@
-composer.lock
-/vendor/
-.csslintrc
-.editorconfig
-.eslintignore
-.eslintrc.json
-.gitattributes
-.ht.router.php
-.htaccess
-INSTALL.txt
-README.txt
-autoload.php
-example.gitignore
-index.php
-robots.txt
-update.php
-web.config
+# Only commit files that are explicitly part of the upstream configuration.
+# This prevents `vendor` et. al. from being committed should someone
+# accidentally run composer operations in this directory without including
+# the `--no-update` flag.
+*
+
+# Explicitly allow files that are supposed to be part of the upstream
+# configuration here. If other files are added, include another line
+# beginning with a "!" and followed by the new file's name to override
+# the .gitignore directive above (i.e. to "un-ignore" it).
+!composer.json

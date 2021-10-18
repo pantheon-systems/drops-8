@@ -8,12 +8,8 @@
         }
     ],
     "require": {
-        "php": ">=7.3",
-        "composer/installers": "^1.8",
-        "drupal/core-composer-scaffold": "^9",
-        "drupal/core-recommended": "^8.8 || ^9",
-        "pantheon-systems/drupal-integrations": "^8 || ^9",
-        "cweagans/composer-patches": "^1.0",
-        "zaporylie/composer-drupal-optimizations": "^1.2"
+    },
+    "extra": {
+        "_README": "To make a custom upstream, clone this repository and add any dependencies to be provided by this upstream to this composer.json file. Leave the root-level composer.json file for the exclusive use of each individual site; do not modify it after your custom upstream has been published. See https://pantheon.io/docs/create-custom-upstream for more information."
     }
 }
