@@ -24,6 +24,8 @@
 # is to register them in Packagist and give them the type
 # `drupal-custom-module` instead of `drupal-module`. This will cause
 # Composer to install them to the directory `modules/custom`.
+# This will cause a build error on Pantheon unless this location
+# is .gitignore'd as shown below.
 #
 # An alternate strategy for custom modules is to commit them
 # directly to the repository of the site where they are used. This
@@ -41,10 +43,10 @@
 # you might instead commit Git-tracked custom modules to some other
 # path, such as /web/modules/<site-namespace>.
 #
-# Sites that do not have any Composer-managed custom modules may
-# delete all of the `modules/custom` lines below.
+# Sites that do not have any Composer-managed custom modules do
+# not need to use any of the `modules/custom` rules below.
 # ------------------------------------------------------------------
-/web/modules/custom/*
+#/web/modules/custom/*
 #!/web/modules/custom/module_in_repo
 
 
