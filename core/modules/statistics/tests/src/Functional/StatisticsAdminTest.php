@@ -77,7 +77,8 @@ class StatisticsAdminTest extends BrowserTestBase {
 
     // Enable counter on content view.
     $edit['statistics_count_content_views'] = 1;
-    $this->drupalPostForm('admin/config/system/statistics', $edit, 'Save configuration');
+    $this->drupalGet('admin/config/system/statistics');
+    $this->submitForm($edit, 'Save configuration');
     $config = $this->config('statistics.settings');
     $this->assertNotEmpty($config->get('count_content_views'), 'Count content view log is enabled.');
 
@@ -94,21 +95,22 @@ class StatisticsAdminTest extends BrowserTestBase {
     // "1 view" will actually be shown when the node is hit the second time).
     $this->drupalGet('node/' . $this->testNode->id());
     $this->client->post($stats_path, ['form_params' => $post]);
-    $this->assertText('1 view', 'Node is viewed once.');
+    $this->assertSession()->pageTextContains('1 view');
 
     $this->drupalGet('node/' . $this->testNode->id());
     $this->client->post($stats_path, ['form_params' => $post]);
-    $this->assertText('2 views', 'Node is viewed 2 times.');
+    $this->assertSession()->pageTextContains('2 views');
 
     // Increase the max age to test that nodes are no longer immediately
     // updated, visit the node once more to populate the cache.
     $this->config('statistics.settings')->set('display_max_age', 3600)->save();
     $this->drupalGet('node/' . $this->testNode->id());
-    $this->assertText('3 views', 'Node is viewed 3 times.');
+    $this->assertSession()->pageTextContains('3 views');
 
     $this->client->post($stats_path, ['form_params' => $post]);
     $this->drupalGet('node/' . $this->testNode->id());
-    $this->assertText('3 views', 'Views counter was not updated.');
+    // Verify that views counter was not updated.
+    $this->assertSession()->pageTextContains('3 views');
   }
 
   /**
@@ -131,7 +133,7 @@ class StatisticsAdminTest extends BrowserTestBase {
       ->condition('n.nid', $this->testNode->id())
       ->execute()
       ->fetchAssoc();
-    $this->assertEqual($result['nid'], $this->testNode->id(), 'Verifying that the node counter is incremented.');
+    $this->assertEquals($result['nid'], $this->testNode->id(), 'Verifying that the node counter is incremented.');
 
     $this->testNode->delete();
 
@@ -161,7 +163,7 @@ class StatisticsAdminTest extends BrowserTestBase {
     $this->client->post($stats_path, ['form_params' => $post]);
     $this->drupalGet('node/' . $this->testNode->id());
     $this->client->post($stats_path, ['form_params' => $post]);
-    $this->assertText('1 view', 'Node is viewed once.');
+    $this->assertSession()->pageTextContains('1 view');
 
     // statistics_cron() will subtract
     // statistics.settings:accesslog.max_lifetime config from REQUEST_TIME in
@@ -170,8 +172,9 @@ class StatisticsAdminTest extends BrowserTestBase {
     sleep(2);
     $this->cronRun();
 
+    // Verify that no hit URL is found.
     $this->drupalGet('admin/reports/pages');
-    $this->assertNoText('node/' . $this->testNode->id(), 'No hit URL found.');
+    $this->assertSession()->pageTextNotContains('node/' . $this->testNode->id());
 
     $result = Database::getConnection()->select('node_counter', 'nc')
       ->fields('nc', ['daycount'])

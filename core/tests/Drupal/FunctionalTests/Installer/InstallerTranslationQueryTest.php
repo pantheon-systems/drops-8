@@ -37,13 +37,12 @@ class InstallerTranslationQueryTest extends InstallerTestBase {
 
     // The language should have been automatically detected, all following
     // screens should be translated already.
-    $elements = $this->xpath('//input[@type="submit"]/@value');
-    $this->assertEqual(current($elements)->getText(), 'Save and continue de');
+    $this->assertSession()->buttonExists('Save and continue de');
     $this->translations['Save and continue'] = 'Save and continue de';
 
     // Check the language direction.
     $direction = current($this->xpath('/@dir'))->getText();
-    $this->assertEqual($direction, 'ltr');
+    $this->assertEquals('ltr', $direction);
   }
 
   /**
@@ -63,8 +62,8 @@ class InstallerTranslationQueryTest extends InstallerTestBase {
 
     // Verify German was configured but not English.
     $this->drupalGet('admin/config/regional/language');
-    $this->assertText('German');
-    $this->assertNoText('English');
+    $this->assertSession()->pageTextContains('German');
+    $this->assertSession()->pageTextNotContains('English');
   }
 
   /**

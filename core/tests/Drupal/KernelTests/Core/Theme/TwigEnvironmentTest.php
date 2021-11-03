@@ -35,8 +35,8 @@ class TwigEnvironmentTest extends KernelTestBase {
     $renderer = $this->container->get('renderer');
     /** @var \Drupal\Core\Template\TwigEnvironment $environment */
     $environment = \Drupal::service('twig');
-    $this->assertEqual($environment->renderInline('test-no-context'), 'test-no-context');
-    $this->assertEqual($environment->renderInline('test-with-context {{ llama }}', ['llama' => 'muuh']), 'test-with-context muuh');
+    $this->assertEquals('test-no-context', $environment->renderInline('test-no-context'));
+    $this->assertEquals('test-with-context muuh', $environment->renderInline('test-with-context {{ llama }}', ['llama' => 'muuh']));
 
     $element = [];
     $unsafe_string = '<script>alert(\'Danger! High voltage!\');</script>';
@@ -45,7 +45,7 @@ class TwigEnvironmentTest extends KernelTestBase {
       '#template' => 'test-with-context <label>{{ unsafe_content }}</label>',
       '#context' => ['unsafe_content' => $unsafe_string],
     ];
-    $this->assertEqual($renderer->renderRoot($element), 'test-with-context <label>' . Html::escape($unsafe_string) . '</label>');
+    $this->assertEquals('test-with-context <label>' . Html::escape($unsafe_string) . '</label>', $renderer->renderRoot($element));
 
     // Enable twig_auto_reload and twig_debug.
     $settings = Settings::getAll();
@@ -64,8 +64,8 @@ class TwigEnvironmentTest extends KernelTestBase {
     ];
     $element_copy = $element;
     // Render it twice so that twig caching is triggered.
-    $this->assertEqual($renderer->renderRoot($element), 'test-with-context muuh');
-    $this->assertEqual($renderer->renderRoot($element_copy), 'test-with-context muuh');
+    $this->assertEquals('test-with-context muuh', $renderer->renderRoot($element));
+    $this->assertEquals('test-with-context muuh', $renderer->renderRoot($element_copy));
 
     // Tests caching of inline templates with long content to ensure the
     // generated cache key can be used as a filename.
@@ -85,8 +85,8 @@ class TwigEnvironmentTest extends KernelTestBase {
     $element_copy = $element;
 
     // Render it twice so that twig caching is triggered.
-    $this->assertEqual($renderer->renderRoot($element), $expected);
-    $this->assertEqual($renderer->renderRoot($element_copy), $expected);
+    $this->assertEquals($expected, $renderer->renderRoot($element));
+    $this->assertEquals($expected, $renderer->renderRoot($element_copy));
 
     $name = '{# inline_template_start #}' . $element['test']['#template'];
     $prefix = $environment->getTwigCachePrefix();
@@ -94,7 +94,7 @@ class TwigEnvironmentTest extends KernelTestBase {
     $cache = $environment->getCache();
     $class = $environment->getTemplateClass($name);
     $expected = $prefix . '_inline-template_' . substr(Crypt::hashBase64($class), 0, TwigPhpStorageCache::SUFFIX_SUBSTRING_LENGTH);
-    $this->assertEqual($expected, $cache->generateKey($name, $class));
+    $this->assertEquals($expected, $cache->generateKey($name, $class));
   }
 
   /**
@@ -136,10 +136,10 @@ class TwigEnvironmentTest extends KernelTestBase {
     $key_direct = $environment->getCache()->generateKey($name_direct, $class_direct);
 
     // All three should be equal for both cases.
-    $this->assertEqual($class_include, $class_namespaced);
-    $this->assertEqual($class_namespaced, $class_direct);
-    $this->assertEqual($key_include, $key_namespaced);
-    $this->assertEqual($key_namespaced, $key_direct);
+    $this->assertEquals($class_include, $class_namespaced);
+    $this->assertEquals($class_namespaced, $class_direct);
+    $this->assertEquals($key_include, $key_namespaced);
+    $this->assertEquals($key_namespaced, $key_direct);
   }
 
   /**
@@ -177,7 +177,7 @@ class TwigEnvironmentTest extends KernelTestBase {
     $new_extension_filename = $cache->generateKey($template_path, $class);
     \Drupal::getContainer()->set('twig', NULL);
 
-    $this->assertNotEqual($new_extension_filename, $original_filename);
+    $this->assertNotEquals($original_filename, $new_extension_filename);
   }
 
   /**
@@ -186,12 +186,14 @@ class TwigEnvironmentTest extends KernelTestBase {
   public function register(ContainerBuilder $container) {
     parent::register($container);
 
-    $container->setDefinition('twig_loader__file_system', new Definition('Twig\Loader\FilesystemLoader', [[sys_get_temp_dir()]]))
+    $definition = new Definition('Twig\Loader\FilesystemLoader', [[sys_get_temp_dir()]]);
+    $definition->setPublic(TRUE);
+    $container->setDefinition('twig_loader__file_system', $definition)
       ->addTag('twig.loader');
   }
 
   /**
-   * Test template invalidation.
+   * Tests template invalidation.
    */
   public function testTemplateInvalidation() {
     $template_before = <<<TWIG

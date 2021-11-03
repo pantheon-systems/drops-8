@@ -115,7 +115,7 @@ class CommentCSSTest extends CommentTestBase {
         // user (the viewer) was the author of the comment. We do this in Java-
         // Script to prevent breaking the render cache.
         $this->assertCount(1, $this->xpath('//*[contains(@class, "comment") and @data-comment-user-id="' . $case['comment_uid'] . '"]'), 'data-comment-user-id attribute is set on comment.');
-        $this->assertRaw(drupal_get_path('module', 'comment') . '/js/comment-by-viewer.js');
+        $this->assertSession()->responseContains(drupal_get_path('module', 'comment') . '/js/comment-by-viewer.js');
       }
 
       // Verify the unpublished class.
@@ -134,7 +134,7 @@ class CommentCSSTest extends CommentTestBase {
       if ($case['comment_status'] == CommentInterface::PUBLISHED || $case['user'] == 'admin') {
         $this->assertCount(1, $this->xpath('//*[contains(@class, "comment")]/*[@data-comment-timestamp="' . $comment->getChangedTime() . '"]'), 'data-comment-timestamp attribute is set on comment');
         $expectedJS = ($case['user'] !== 'anonymous');
-        $this->assertIdentical($expectedJS, isset($settings['ajaxPageState']['libraries']) && in_array('comment/drupal.comment-new-indicator', explode(',', $settings['ajaxPageState']['libraries'])), 'drupal.comment-new-indicator library is present.');
+        $this->assertSame($expectedJS, isset($settings['ajaxPageState']['libraries']) && in_array('comment/drupal.comment-new-indicator', explode(',', $settings['ajaxPageState']['libraries'])), 'drupal.comment-new-indicator library is present.');
       }
     }
   }

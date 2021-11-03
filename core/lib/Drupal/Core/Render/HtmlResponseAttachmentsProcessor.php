@@ -112,10 +112,7 @@ class HtmlResponseAttachmentsProcessor implements AttachmentsResponseProcessorIn
    * {@inheritdoc}
    */
   public function processAttachments(AttachmentsInterface $response) {
-    // @todo Convert to assertion once https://www.drupal.org/node/2408013 lands
-    if (!$response instanceof HtmlResponse) {
-      throw new \InvalidArgumentException('\Drupal\Core\Render\HtmlResponse instance expected.');
-    }
+    assert($response instanceof HtmlResponse);
 
     // First, render the actual placeholders; this may cause additional
     // attachments to be added to the response, which the attachment
@@ -439,7 +436,15 @@ class HtmlResponseAttachmentsProcessor implements AttachmentsResponseProcessorIn
         '#attributes' => $attributes,
       ];
       $href = $attributes['href'];
-      $attached['html_head'][] = [$element, 'html_head_link:' . $attributes['rel'] . ':' . $href];
+      $rel = $attributes['rel'];
+
+      // Allow multiple hreflang tags to use the same href.
+      if (isset($attributes['hreflang'])) {
+        $attached['html_head'][] = [$element, 'html_head_link:' . $rel . ':' . $attributes['hreflang'] . ':' . $href];
+      }
+      else {
+        $attached['html_head'][] = [$element, 'html_head_link:' . $rel . ':' . $href];
+      }
 
       if ($should_add_header) {
         // Also add a HTTP header "Link:".

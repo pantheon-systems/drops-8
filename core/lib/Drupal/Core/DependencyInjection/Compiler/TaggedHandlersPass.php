@@ -39,6 +39,13 @@ use Symfony\Component\DependencyInjection\Reference;
 class TaggedHandlersPass implements CompilerPassInterface {
 
   /**
+   * Service tag information keyed by tag name.
+   *
+   * @var array
+   */
+  protected $tagCache = [];
+
+  /**
    * {@inheritdoc}
    *
    * Finds services tagged with 'service_collector' or 'service_id_collector',
@@ -58,11 +65,18 @@ class TaggedHandlersPass implements CompilerPassInterface {
    *
    * Additional tag attributes supported by 'service_collector' only:
    *   - call: The method name to call on the consumer service. Defaults to
-   *     'addHandler'. The called method receives two arguments:
-   *     - The handler instance as first argument.
-   *     - Optionally the handler's priority as second argument, if the method
-   *       accepts a second parameter and its name is "priority". In any case,
-   *       all handlers registered at compile time are sorted already.
+   *     'addHandler'. The called method receives at least one argument,
+   *     optionally more:
+   *     - The handler instance must be the first method parameter, and it must
+   *       have a type declaration.
+   *     - If the method has a parameter named $id, in any position, it will
+   *       receive the value of service ID when called.
+   *     - If the method has a parameter named $priority, in any position, it
+   *       will receive the value of the tag's 'priority' attribute.
+   *     - Any other method parameters whose names match the name of an
+   *       attribute of the tag will receive the value of that tag attribute.The
+   *       order of the method parameters and the order of the service tag
+   *       attributes do not need to match.
    *
    * Example (YAML):
    * @code
@@ -89,19 +103,22 @@ class TaggedHandlersPass implements CompilerPassInterface {
    *   If at least one tagged service is required but none are found.
    */
   public function process(ContainerBuilder $container) {
-    // Avoid using ContainerBuilder::findTaggedServiceIds() as that we result in
+    // Avoid using ContainerBuilder::findTaggedServiceIds() as that results in
     // additional iterations around all the service definitions.
-    foreach ($container->getDefinitions() as $consumer_id => $definition) {
-      $tags = $definition->getTags();
-      if (isset($tags['service_collector'])) {
-        foreach ($tags['service_collector'] as $pass) {
-          $this->processServiceCollectorPass($pass, $consumer_id, $container);
-        }
+    foreach ($container->getDefinitions() as $id => $definition) {
+      foreach ($definition->getTags() as $name => $info) {
+        $this->tagCache[$name][$id] = $info;
       }
-      if (isset($tags['service_id_collector'])) {
-        foreach ($tags['service_id_collector'] as $pass) {
-          $this->processServiceIdCollectorPass($pass, $consumer_id, $container);
-        }
+    }
+
+    foreach ($this->tagCache['service_collector'] ?? [] as $consumer_id => $tags) {
+      foreach ($tags as $pass) {
+        $this->processServiceCollectorPass($pass, $consumer_id, $container);
+      }
+    }
+    foreach ($this->tagCache['service_id_collector'] ?? [] as $consumer_id => $tags) {
+      foreach ($tags as $pass) {
+        $this->processServiceIdCollectorPass($pass, $consumer_id, $container);
       }
     }
   }
@@ -158,7 +175,7 @@ class TaggedHandlersPass implements CompilerPassInterface {
     // Find all tagged handlers.
     $handlers = [];
     $extra_arguments = [];
-    foreach ($container->findTaggedServiceIds($tag) as $id => $attributes) {
+    foreach ($this->tagCache[$tag] ?? [] as $id => $attributes) {
       // Validate the interface.
       $handler = $container->getDefinition($id);
       if (!is_subclass_of($handler->getClass(), $interface)) {
@@ -218,7 +235,7 @@ class TaggedHandlersPass implements CompilerPassInterface {
 
     // Find all tagged handlers.
     $handlers = [];
-    foreach ($container->findTaggedServiceIds($tag) as $id => $attributes) {
+    foreach ($this->tagCache[$tag] ?? [] as $id => $attributes) {
       $handlers[$id] = isset($attributes[0]['priority']) ? $attributes[0]['priority'] : 0;
     }
 

@@ -116,8 +116,8 @@ class Internal extends CKEditorPluginBase implements ContainerFactoryPluginInter
 
     // Add the format_tags setting, if its button is enabled.
     $toolbar_buttons = CKEditorPluginManager::getEnabledButtons($editor);
-    if (in_array('Format', $toolbar_buttons)) {
-      $config['format_tags'] = $this->generateFormatTagsSetting($editor);
+    if (in_array('Format', $toolbar_buttons) && $format_string = $this->generateFormatTagsSetting($editor)) {
+      $config['format_tags'] = $format_string;
     }
 
     return $config;
@@ -344,14 +344,15 @@ class Internal extends CKEditorPluginBase implements ContainerFactoryPluginInter
    * @param \Drupal\editor\Entity\Editor $editor
    *   A configured text editor object.
    *
-   * @return array
-   *   An array containing the "format_tags" configuration.
+   * @return string|false
+   *   A string containing the "format_tags" configuration or FALSE if the
+   *   editor has not an associated filter format.
    */
   protected function generateFormatTagsSetting(Editor $editor) {
     // When no text format is associated yet, assume no tag is allowed.
     // @see \Drupal\editor\EditorInterface::hasAssociatedFilterFormat()
     if (!$editor->hasAssociatedFilterFormat()) {
-      return [];
+      return FALSE;
     }
 
     $format = $editor->getFilterFormat();
@@ -475,8 +476,8 @@ class Internal extends CKEditorPluginBase implements ContainerFactoryPluginInter
           // attributes is allowed. However, that may not be the case: the "*"
           // tag may still apply restrictions.
           // Since CKEditor's ACF follows the following principle:
-          //     Once validated, an element or its property cannot be
-          //     invalidated by another rule.
+          // - Once validated, an element or its property cannot be
+          //   invalidated by another rule.
           // That means that the most permissive setting wins. Which means that
           // it will still be allowed by CKEditor, for instance, to define any
           // style, no matter what the "*" tag's restrictions may be. If there

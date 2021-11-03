@@ -5,7 +5,12 @@ namespace Drupal\book\Plugin\migrate\source;
 use Drupal\migrate_drupal\Plugin\migrate\source\DrupalSqlBase;
 
 /**
- * Drupal 6 and 7 book source.
+ * Drupal 6/7 book source from database.
+ *
+ * For available configuration keys, refer to the parent classes.
+ *
+ * @see \Drupal\migrate\Plugin\migrate\source\SqlBase
+ * @see \Drupal\migrate\Plugin\migrate\source\SourcePluginBase
  *
  * @MigrateSource(
  *   id = "book",
@@ -19,7 +24,7 @@ class Book extends DrupalSqlBase {
    */
   public function query() {
     $query = $this->select('book', 'b')->fields('b', ['nid', 'bid']);
-    $query->join('menu_links', 'ml', 'b.mlid = ml.mlid');
+    $query->join('menu_links', 'ml', '[b].[mlid] = [ml].[mlid]');
     $ml_fields = ['mlid', 'plid', 'weight', 'has_children', 'depth'];
     foreach (range(1, 9) as $i) {
       $field = "p$i";
