@@ -42,9 +42,8 @@ function claro_theme_suggestions_details_alter(&$suggestions, $variables) {
 /**
  * Implements hook_preprocess_HOOK() for menu-local-tasks templates.
  *
- * Use preprocess hook to set #attached to child elements
- * because they will be processed by Twig and drupal_render will
- * be invoked.
+ * Use preprocess hook to set #attached to child elements because they will be
+ * processed by Twig and \Drupal::service('renderer')->render() will be invoked.
  */
 function claro_preprocess_menu_local_tasks(&$variables) {
   if (!empty($variables['primary'])) {
@@ -748,10 +747,12 @@ function claro_form_system_modules_alter(&$form, FormStateInterface $form_state)
       foreach (Element::children($form['modules'][$key]) as $module_key) {
         if (isset($form['modules'][$key][$module_key]['links'])) {
           foreach ($form['modules'][$key][$module_key]['links'] as $link_key => &$link) {
-            $action_link_type = $link_key_to_action_link_type[$link_key];
-            $link['#options']['attributes']['class'][] = 'action-link';
-            $link['#options']['attributes']['class'][] = 'action-link--small';
-            $link['#options']['attributes']['class'][] = "action-link--icon-$action_link_type";
+            if (array_key_exists($link_key, $link_key_to_action_link_type)) {
+              $action_link_type = $link_key_to_action_link_type[$link_key];
+              $link['#options']['attributes']['class'][] = 'action-link';
+              $link['#options']['attributes']['class'][] = 'action-link--small';
+              $link['#options']['attributes']['class'][] = "action-link--icon-$action_link_type";
+            }
           }
         }
       }

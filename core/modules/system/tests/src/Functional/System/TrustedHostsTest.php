@@ -29,15 +29,17 @@ class TrustedHostsTest extends BrowserTestBase {
   }
 
   /**
-   * Tests that the status page shows an error when the trusted host setting
-   * is missing from settings.php
+   * Tests the status page behavior with no setting.
+   *
+   * Checks that an error is shown when the trusted host setting is missing from
+   * settings.php
    */
   public function testStatusPageWithoutConfiguration() {
     $this->drupalGet('admin/reports/status');
     $this->assertSession()->statusCodeEquals(200);
 
-    $this->assertRaw(t('Trusted Host Settings'));
-    $this->assertRaw(t('The trusted_host_patterns setting is not configured in settings.php.'));
+    $this->assertSession()->pageTextContains("Trusted Host Settings");
+    $this->assertSession()->pageTextContains("The trusted_host_patterns setting is not configured in settings.php.");
   }
 
   /**
@@ -54,8 +56,8 @@ class TrustedHostsTest extends BrowserTestBase {
     $this->drupalGet('admin/reports/status');
     $this->assertSession()->statusCodeEquals(200);
 
-    $this->assertRaw(t('Trusted Host Settings'));
-    $this->assertRaw(t('The trusted_host_patterns setting is set to allow'));
+    $this->assertSession()->pageTextContains("Trusted Host Settings");
+    $this->assertSession()->pageTextContains("The trusted_host_patterns setting is set to allow");
   }
 
   /**
@@ -75,7 +77,7 @@ class TrustedHostsTest extends BrowserTestBase {
     $this->writeSettings($settings);
 
     $this->drupalGet('trusted-hosts-test/fake-request');
-    $this->assertText('Host: ' . $host);
+    $this->assertSession()->pageTextContains('Host: ' . $host);
   }
 
   /**

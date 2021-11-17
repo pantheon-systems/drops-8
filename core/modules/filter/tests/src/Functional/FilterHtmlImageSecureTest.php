@@ -143,20 +143,21 @@ class FilterHtmlImageSecureTest extends BrowserTestBase {
     $edit = [
       'comment_body[0][value]' => implode("\n", $comment),
     ];
-    $this->drupalPostForm('node/' . $this->node->id(), $edit, 'Save');
+    $this->drupalGet('node/' . $this->node->id());
+    $this->submitForm($edit, 'Save');
     foreach ($images as $image => $converted) {
       $found = FALSE;
       foreach ($this->xpath('//img[@testattribute="' . hash('sha256', $image) . '"]') as $element) {
         $found = TRUE;
         if ($converted == $red_x_image) {
-          $this->assertEqual($element->getAttribute('src'), $red_x_image);
-          $this->assertEqual($element->getAttribute('alt'), $alt_text);
-          $this->assertEqual($element->getAttribute('title'), $title_text);
-          $this->assertEqual($element->getAttribute('height'), '16');
-          $this->assertEqual($element->getAttribute('width'), '16');
+          $this->assertEquals($red_x_image, $element->getAttribute('src'));
+          $this->assertEquals($alt_text, $element->getAttribute('alt'));
+          $this->assertEquals($title_text, $element->getAttribute('title'));
+          $this->assertEquals('16', $element->getAttribute('height'));
+          $this->assertEquals('16', $element->getAttribute('width'));
         }
         else {
-          $this->assertEqual($element->getAttribute('src'), $converted);
+          $this->assertEquals($converted, $element->getAttribute('src'));
         }
       }
       $this->assertTrue($found, new FormattableMarkup('@image was found.', ['@image' => $image]));

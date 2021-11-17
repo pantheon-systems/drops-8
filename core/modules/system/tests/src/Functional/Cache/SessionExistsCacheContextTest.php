@@ -34,37 +34,37 @@ class SessionExistsCacheContextTest extends BrowserTestBase {
     $this->assertSessionCookieOnClient(FALSE);
     $this->drupalGet(Url::fromRoute('<front>'));
     $this->assertSessionCookieOnClient(FALSE);
-    $this->assertRaw('Session does not exist!');
-    $this->assertRaw('[session.exists]=0');
+    $this->assertSession()->pageTextContains('Session does not exist!');
+    $this->assertSession()->responseContains('[session.exists]=0');
 
     // 2. Session (authenticated).
     $this->assertSessionCookieOnClient(FALSE);
     $this->drupalLogin($this->rootUser);
     $this->assertSessionCookieOnClient(TRUE);
-    $this->assertRaw('Session exists!');
-    $this->assertRaw('[session.exists]=1');
+    $this->assertSession()->pageTextContains('Session exists!');
+    $this->assertSession()->responseContains('[session.exists]=1');
     $this->drupalLogout();
     $this->assertSessionCookieOnClient(FALSE);
-    $this->assertRaw('Session does not exist!');
-    $this->assertRaw('[session.exists]=0');
+    $this->assertSession()->pageTextContains('Session does not exist!');
+    $this->assertSession()->responseContains('[session.exists]=0');
 
     // 3. Session (anonymous).
     $this->assertSessionCookieOnClient(FALSE);
     $this->drupalGet(Url::fromRoute('<front>', [], ['query' => ['trigger_session' => 1]]));
     $this->assertSessionCookieOnClient(TRUE);
-    $this->assertRaw('Session does not exist!');
-    $this->assertRaw('[session.exists]=0');
+    $this->assertSession()->pageTextContains('Session does not exist!');
+    $this->assertSession()->responseContains('[session.exists]=0');
     $this->drupalGet(Url::fromRoute('<front>'));
     $this->assertSessionCookieOnClient(TRUE);
-    $this->assertRaw('Session exists!');
-    $this->assertRaw('[session.exists]=1');
+    $this->assertSession()->pageTextContains('Session exists!');
+    $this->assertSession()->responseContains('[session.exists]=1');
   }
 
   /**
    * Asserts whether a session cookie is present on the client or not.
    */
   public function assertSessionCookieOnClient($expected_present) {
-    $this->assertEqual($expected_present, (bool) $this->getSession()->getCookie($this->getSessionName()), 'Session cookie exists.');
+    $this->assertEquals($expected_present, (bool) $this->getSession()->getCookie($this->getSessionName()), 'Session cookie exists.');
   }
 
 }

@@ -9,7 +9,7 @@ use Drupal\node\Entity\Node;
 /**
  * Tests request logging for cached and uncached pages.
  *
- * We subclass WebTestBase rather than StatisticsTestBase, because we
+ * We subclass BrowserTestBase rather than StatisticsTestBase, because we
  * want to test requests from an anonymous user.
  *
  * @group statistics
@@ -78,8 +78,10 @@ class StatisticsLoggingTest extends BrowserTestBase {
       'label' => $this->randomMachineName(16),
       'direction' => 'ltr',
     ];
-    $this->drupalPostForm('admin/config/regional/language/add', $this->language, 'Add custom language');
-    $this->drupalPostForm('admin/config/regional/language/detection', ['language_interface[enabled][language-url]' => 1], 'Save settings');
+    $this->drupalGet('admin/config/regional/language/add');
+    $this->submitForm($this->language, 'Add custom language');
+    $this->drupalGet('admin/config/regional/language/detection');
+    $this->submitForm(['language_interface[enabled][language-url]' => 1], 'Save settings');
     $this->drupalLogout();
 
     // Enable access logging.
@@ -120,20 +122,20 @@ class StatisticsLoggingTest extends BrowserTestBase {
     $this->drupalGet($path);
     $settings = $this->getDrupalSettings();
     $this->assertSession()->responseMatches($expected_library);
-    $this->assertIdentical($this->node->id(), $settings['statistics']['data']['nid'], 'Found statistics settings on node page.');
+    $this->assertSame($settings['statistics']['data']['nid'], $this->node->id(), 'Found statistics settings on node page.');
 
     // Verify the same when loading the site in a non-default language.
     $this->drupalGet($this->language['langcode'] . '/' . $path);
     $settings = $this->getDrupalSettings();
     $this->assertSession()->responseMatches($expected_library);
-    $this->assertIdentical($this->node->id(), $settings['statistics']['data']['nid'], 'Found statistics settings on valid node page in a non-default language.');
+    $this->assertSame($settings['statistics']['data']['nid'], $this->node->id(), 'Found statistics settings on valid node page in a non-default language.');
 
     // Manually call statistics.php to simulate ajax data collection behavior.
     global $base_root;
     $post = ['nid' => $this->node->id()];
     $this->client->post($base_root . $stats_path, ['form_params' => $post]);
     $node_counter = \Drupal::service('statistics.storage.node')->fetchView($this->node->id());
-    $this->assertIdentical(1, $node_counter->getTotalCount());
+    $this->assertSame(1, $node_counter->getTotalCount());
 
     // Try fetching statistics for an invalid node ID and verify it returns
     // FALSE.

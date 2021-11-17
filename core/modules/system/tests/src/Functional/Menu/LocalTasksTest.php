@@ -127,9 +127,8 @@ class LocalTasksTest extends BrowserTestBase {
     $this->assertLocalTaskAppears($title);
 
     // Ensure the view tab is active.
-    $result = $this->xpath('//ul[contains(@class, "tabs")]//li[contains(@class, "active")]/a');
-    $this->assertCount(1, $result, 'There is just a single active tab.');
-    $this->assertEqual('View(active tab)', $result[0]->getText(), 'The view tab is active.');
+    $this->assertSession()->elementsCount('xpath', '//ul[contains(@class, "tabs")]//li[contains(@class, "active")]/a', 1);
+    $this->assertSession()->elementTextEquals('xpath', '//ul[contains(@class, "tabs")]//li[contains(@class, "active")]/a', 'View(active tab)');
 
     // Verify that local tasks in the second level appear.
     $sub_tasks = [
@@ -142,17 +141,17 @@ class LocalTasksTest extends BrowserTestBase {
     $this->drupalGet(Url::fromRoute('menu_test.local_task_test_tasks_settings'));
     $this->assertLocalTasks($sub_tasks, 1);
 
-    $result = $this->xpath('//ul[contains(@class, "tabs")]//li[contains(@class, "active")]/a');
-    $this->assertCount(1, $result, 'There is just a single active tab.');
-    $this->assertEqual('Settings(active tab)', $result[0]->getText(), 'The settings tab is active.');
+    $this->assertSession()->elementsCount('xpath', '//ul[contains(@class, "tabs")]//li[contains(@class, "active")]/a', 1);
+    $this->assertSession()->elementTextEquals('xpath', '//ul[contains(@class, "tabs")]//li[contains(@class, "active")]/a', 'Settings(active tab)');
 
     $this->drupalGet(Url::fromRoute('menu_test.local_task_test_tasks_settings_sub1'));
     $this->assertLocalTasks($sub_tasks, 1);
 
-    $result = $this->xpath('//ul[contains(@class, "tabs")]//a[contains(@class, "active")]');
-    $this->assertCount(2, $result, 'There are tabs active on both levels.');
-    $this->assertEqual('Settings(active tab)', $result[0]->getText(), 'The settings tab is active.');
-    $this->assertEqual('Dynamic title for TestTasksSettingsSub1(active tab)', $result[1]->getText(), 'The sub1 tab is active.');
+    $xpath = '//ul[contains(@class, "tabs")]//a[contains(@class, "active")]';
+    $this->assertSession()->elementsCount('xpath', $xpath, 2);
+    $links = $this->xpath($xpath);
+    $this->assertEquals('Settings(active tab)', $links[0]->getText(), 'The settings tab is active.');
+    $this->assertEquals('Dynamic title for TestTasksSettingsSub1(active tab)', $links[1]->getText(), 'The sub1 tab is active.');
 
     $this->assertSession()->responseHeaderContains('X-Drupal-Cache-Tags', 'kittens:ragdoll');
     $this->assertSession()->responseHeaderContains('X-Drupal-Cache-Tags', 'kittens:dwarf-cat');
@@ -162,17 +161,17 @@ class LocalTasksTest extends BrowserTestBase {
 
     $result = $this->xpath('//ul[contains(@class, "tabs")]//li[contains(@class, "active")]');
     $this->assertCount(2, $result, 'There are tabs active on both levels.');
-    $this->assertEqual('Settings(active tab)', $result[0]->getText(), 'The settings tab is active.');
-    $this->assertEqual('Derive 1(active tab)', $result[1]->getText(), 'The derive1 tab is active.');
+    $this->assertEquals('Settings(active tab)', $result[0]->getText(), 'The settings tab is active.');
+    $this->assertEquals('Derive 1(active tab)', $result[1]->getText(), 'The derive1 tab is active.');
 
     // Ensures that the local tasks contains the proper 'provider key'
     $definitions = $this->container->get('plugin.manager.menu.local_task')->getDefinitions();
-    $this->assertEqual($definitions['menu_test.local_task_test_tasks_view']['provider'], 'menu_test');
-    $this->assertEqual($definitions['menu_test.local_task_test_tasks_edit']['provider'], 'menu_test');
-    $this->assertEqual($definitions['menu_test.local_task_test_tasks_settings']['provider'], 'menu_test');
-    $this->assertEqual($definitions['menu_test.local_task_test_tasks_settings_sub1']['provider'], 'menu_test');
-    $this->assertEqual($definitions['menu_test.local_task_test_tasks_settings_sub2']['provider'], 'menu_test');
-    $this->assertEqual($definitions['menu_test.local_task_test_tasks_settings_sub3']['provider'], 'menu_test');
+    $this->assertEquals('menu_test', $definitions['menu_test.local_task_test_tasks_view']['provider']);
+    $this->assertEquals('menu_test', $definitions['menu_test.local_task_test_tasks_edit']['provider']);
+    $this->assertEquals('menu_test', $definitions['menu_test.local_task_test_tasks_settings']['provider']);
+    $this->assertEquals('menu_test', $definitions['menu_test.local_task_test_tasks_settings_sub1']['provider']);
+    $this->assertEquals('menu_test', $definitions['menu_test.local_task_test_tasks_settings_sub2']['provider']);
+    $this->assertEquals('menu_test', $definitions['menu_test.local_task_test_tasks_settings_sub3']['provider']);
 
     // Test that we we correctly apply the active class to tabs where one of the
     // request attributes is upcast to an entity object.
@@ -190,7 +189,7 @@ class LocalTasksTest extends BrowserTestBase {
 
     $result = $this->xpath('//ul[contains(@class, "tabs")]//li[contains(@class, "active")]');
     $this->assertCount(1, $result, 'There is one active tab.');
-    $this->assertEqual('upcasting sub1(active tab)', $result[0]->getText(), 'The "upcasting sub1" tab is active.');
+    $this->assertEquals('upcasting sub1(active tab)', $result[0]->getText(), 'The "upcasting sub1" tab is active.');
 
     $this->drupalGet(Url::fromRoute('menu_test.local_task_test_upcasting_sub2', ['entity_test' => '1']));
 
@@ -202,7 +201,7 @@ class LocalTasksTest extends BrowserTestBase {
 
     $result = $this->xpath('//ul[contains(@class, "tabs")]//li[contains(@class, "active")]');
     $this->assertCount(1, $result, 'There is one active tab.');
-    $this->assertEqual('upcasting sub2(active tab)', $result[0]->getText(), 'The "upcasting sub2" tab is active.');
+    $this->assertEquals('upcasting sub2(active tab)', $result[0]->getText(), 'The "upcasting sub2" tab is active.');
   }
 
   /**
@@ -254,7 +253,7 @@ class LocalTasksTest extends BrowserTestBase {
   }
 
   /**
-   * Test that local tasks blocks cache is invalidated correctly.
+   * Tests that local tasks blocks cache is invalidated correctly.
    */
   public function testLocalTaskBlockCache() {
     $this->drupalLogin($this->rootUser);

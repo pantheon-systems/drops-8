@@ -4,7 +4,6 @@ namespace Drupal\Tests\system\Functional\System;
 
 use Drupal\Core\Url;
 use Drupal\Tests\BrowserTestBase;
-use Symfony\Component\CssSelector\CssSelectorConverter;
 
 /**
  * Tests output on the status overview page.
@@ -50,8 +49,8 @@ class StatusTest extends BrowserTestBase {
     $this->drupalGet('admin/reports/status');
     $this->assertSession()->statusCodeEquals(200);
 
-    $phpversion = phpversion();
-    $this->assertText($phpversion, 'Php version is shown on the page.');
+    // Verify that the PHP version is shown on the page.
+    $this->assertSession()->pageTextContains(phpversion());
 
     if (function_exists('phpinfo')) {
       $this->assertSession()->linkByHrefExists(Url::fromRoute('system.php')->toString());
@@ -61,16 +60,16 @@ class StatusTest extends BrowserTestBase {
     }
 
     // If a module is fully installed no pending updates exists.
-    $this->assertNoText('Out of date');
+    $this->assertSession()->pageTextNotContains('Out of date');
 
     // The setting config_sync_directory is not properly formed.
-    $this->assertRaw(t("Your %file file must define the %setting setting", ['%file' => $this->siteDirectory . '/settings.php', '%setting' => "\$settings['config_sync_directory']"]));
+    $this->assertSession()->pageTextContains("Your {$this->siteDirectory}/settings.php file must define the \$settings['config_sync_directory'] setting");
 
     // Set the schema version of update_test_postupdate to a lower version, so
     // update_test_postupdate_update_8001() needs to be executed.
     drupal_set_installed_schema_version('update_test_postupdate', 8000);
     $this->drupalGet('admin/reports/status');
-    $this->assertText('Out of date');
+    $this->assertSession()->pageTextContains('Out of date');
 
     // Now cleanup the executed post update functions.
     drupal_set_installed_schema_version('update_test_postupdate', 8001);
@@ -78,7 +77,7 @@ class StatusTest extends BrowserTestBase {
     $post_update_registry = \Drupal::service('update.post_update_registry');
     $post_update_registry->filterOutInvokedUpdatesByModule('update_test_postupdate');
     $this->drupalGet('admin/reports/status');
-    $this->assertText('Out of date');
+    $this->assertSession()->pageTextContains('Out of date');
 
     $this->drupalGet('admin/reports/status/php');
     $this->assertSession()->statusCodeEquals(200);
@@ -87,9 +86,7 @@ class StatusTest extends BrowserTestBase {
     $cron_last_run = \Drupal::state()->get('system.cron_last');
     \Drupal::state()->set('system.cron_last', 0);
     $this->drupalGet('admin/reports/status');
-    $css_selector_converter = new CssSelectorConverter();
-    $xpath = $css_selector_converter->toXPath('details.system-status-report__entry') . '//div[contains(text(), "Cron has not run recently")]';
-    $this->assertNotEmpty($this->xpath($xpath), 'Cron has not run recently error is being displayed.');
+    $this->assertSession()->elementExists('xpath', '//details[contains(@class, "system-status-report__entry")]//div[contains(text(), "Cron has not run recently")]');
     \Drupal::state()->set('system.cron_last', $cron_last_run);
   }
 
