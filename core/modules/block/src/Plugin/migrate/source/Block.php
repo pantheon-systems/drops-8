@@ -6,7 +6,12 @@ use Drupal\migrate\Row;
 use Drupal\migrate_drupal\Plugin\migrate\source\DrupalSqlBase;
 
 /**
- * Drupal block source from database.
+ * Drupal 6/7 block source from database.
+ *
+ * For available configuration keys, refer to the parent classes.
+ *
+ * @see \Drupal\migrate\Plugin\migrate\source\SqlBase
+ * @see \Drupal\migrate\Plugin\migrate\source\SourcePluginBase
  *
  * @MigrateSource(
  *   id = "block",
@@ -120,7 +125,7 @@ class Block extends DrupalSqlBase {
       ->fields('br', ['rid'])
       ->condition('module', $module)
       ->condition('delta', $delta);
-    $query->join($this->userRoleTable, 'ur', 'br.rid = ur.rid');
+    $query->join($this->userRoleTable, 'ur', '[br].[rid] = [ur].[rid]');
     $roles = $query->execute()
       ->fetchCol();
     $row->setSourceProperty('roles', $roles);

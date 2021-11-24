@@ -89,7 +89,8 @@ abstract class LocaleUpdateBase extends BrowserTestBase {
    */
   protected function addLanguage($langcode) {
     $edit = ['predefined_langcode' => $langcode];
-    $this->drupalPostForm('admin/config/regional/language/add', $edit, 'Add language');
+    $this->drupalGet('admin/config/regional/language/add');
+    $this->submitForm($edit, 'Add language');
     $this->container->get('language_manager')->reset();
     $this->assertNotEmpty(\Drupal::languageManager()->getLanguage($langcode), new FormattableMarkup('Language %langcode added.', ['%langcode' => $langcode]));
   }
@@ -302,14 +303,14 @@ EOF;
    */
   protected function assertTranslation($source, $translation, $langcode, $message = '') {
     $query = Database::getConnection()->select('locales_target', 'lt');
-    $query->innerJoin('locales_source', 'ls', 'ls.lid = lt.lid');
+    $query->innerJoin('locales_source', 'ls', '[ls].[lid] = [lt].[lid]');
     $db_translation = $query->fields('lt', ['translation'])
       ->condition('ls.source', $source)
       ->condition('lt.language', $langcode)
       ->execute()
       ->fetchField();
     $db_translation = $db_translation == FALSE ? '' : $db_translation;
-    $this->assertEqual($translation, $db_translation, $message ? $message : new FormattableMarkup('Correct translation of %source (%language)', ['%source' => $source, '%language' => $langcode]));
+    $this->assertEquals($translation, $db_translation, $message ? $message : new FormattableMarkup('Correct translation of %source (%language)', ['%source' => $source, '%language' => $langcode]));
   }
 
 }

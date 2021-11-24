@@ -326,8 +326,14 @@ class Sql extends QueryPluginBase {
    */
   public function submitOptionsForm(&$form, FormStateInterface $form_state) {
     $element = ['#parents' => ['query', 'options', 'query_tags']];
-    $value = explode(',', NestedArray::getValue($form_state->getValues(), $element['#parents']));
-    $value = array_filter(array_map('trim', $value));
+    $value = NestedArray::getValue($form_state->getValues(), $element['#parents']);
+    // When toggling a display to override defaults or vice-versa the submit
+    // handler gets invoked twice, and we don't want to bash the values from the
+    // original call.
+    if (is_array($value)) {
+      return;
+    }
+    $value = array_filter(array_map('trim', explode(',', $value)));
     $form_state->setValueForElement($element, $value);
   }
 
@@ -337,8 +343,8 @@ class Sql extends QueryPluginBase {
    * they must join either to the primary table or to a pre-existing
    * relationship.
    *
-   * An example of a relationship would be a nodereference table.
-   * If you have a nodereference named 'book_parent' which links to a
+   * An example of a relationship would be a node reference table.
+   * If you have a node reference named 'book_parent' which links to a
    * parent node, you could set up a relationship 'node_book_parent'
    * to 'node'. Then, anything that links to 'node' can link to
    * 'node_book_parent' instead, thus allowing all properties of
@@ -834,7 +840,7 @@ class Sql extends QueryPluginBase {
     $alias = $alias ? $alias : $field;
 
     // PostgreSQL truncates aliases to 63 characters:
-    //   https://www.drupal.org/node/571548.
+    // https://www.drupal.org/node/571548.
 
     // We limit the length of the original alias up to 60 characters
     // to get a unique alias later if its have duplicates
@@ -1558,7 +1564,7 @@ class Sql extends QueryPluginBase {
 
   /**
    * Loads all entities contained in the passed-in $results.
-   *.
+   *
    * If the entity belongs to the base table, then it gets stored in
    * $result->_entity. Otherwise, it gets stored in
    * $result->_relationship_entities[$relationship_id];

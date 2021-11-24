@@ -31,7 +31,7 @@ class ReorderDisplays extends ViewsFormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
-    /** @var $view \Drupal\views\ViewEntityInterface */
+    /** @var \Drupal\views\ViewEntityInterface $view */
     $view = $form_state->get('view');
     $display_id = $form_state->get('display_id');
 
@@ -106,7 +106,7 @@ class ReorderDisplays extends ViewsFormBase {
 
       $form['displays'][$id]['removed'] = [
         'checkbox' => [
-          '#title' => t('Remove @id', ['@id' => $id]),
+          '#title' => $this->t('Remove @id', ['@id' => $id]),
           '#title_display' => 'invisible',
           '#type' => 'checkbox',
           '#id' => 'display-removed-' . $id,
@@ -149,7 +149,7 @@ class ReorderDisplays extends ViewsFormBase {
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
-    /** @var $view \Drupal\views_ui\ViewUI */
+    /** @var \Drupal\views_ui\ViewUI $view */
     $view = $form_state->get('view');
     $order = [];
 

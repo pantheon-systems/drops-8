@@ -35,12 +35,13 @@ class FileFieldValidateTest extends FileFieldTestBase {
     // Try to post a new node without uploading a file.
     $edit = [];
     $edit['title[0][value]'] = $this->randomMachineName();
-    $this->drupalPostForm('node/add/' . $type_name, $edit, 'Save');
-    $this->assertRaw(t('@title field is required.', ['@title' => $field->getLabel()]));
+    $this->drupalGet('node/add/' . $type_name);
+    $this->submitForm($edit, 'Save');
+    $this->assertSession()->pageTextContains("{$field->getLabel()} field is required.");
 
     // Create a new node with the uploaded file.
     $nid = $this->uploadNodeFile($test_file, $field_name, $type_name);
-    $this->assertTrue($nid !== FALSE, new FormattableMarkup('uploadNodeFile(@test_file, @field_name, @type_name) succeeded', ['@test_file' => $test_file->getFileUri(), '@field_name' => $field_name, '@type_name' => $type_name]));
+    $this->assertNotFalse($nid, new FormattableMarkup('uploadNodeFile(@test_file, @field_name, @type_name) succeeded', ['@test_file' => $test_file->getFileUri(), '@field_name' => $field_name, '@type_name' => $type_name]));
 
     $node_storage->resetCache([$nid]);
     $node = $node_storage->load($nid);
@@ -56,8 +57,9 @@ class FileFieldValidateTest extends FileFieldTestBase {
     // Try to post a new node without uploading a file in the multivalue field.
     $edit = [];
     $edit['title[0][value]'] = $this->randomMachineName();
-    $this->drupalPostForm('node/add/' . $type_name, $edit, 'Save');
-    $this->assertRaw(t('@title field is required.', ['@title' => $field->getLabel()]));
+    $this->drupalGet('node/add/' . $type_name);
+    $this->submitForm($edit, 'Save');
+    $this->assertSession()->pageTextContains("{$field->getLabel()} field is required.");
 
     // Create a new node with the uploaded file into the multivalue field.
     $nid = $this->uploadNodeFile($test_file, $field_name, $type_name);
@@ -103,8 +105,9 @@ class FileFieldValidateTest extends FileFieldTestBase {
 
       // Check that uploading the large file fails (1M limit).
       $this->uploadNodeFile($large_file, $field_name, $type_name);
-      $error_message = t('The file is %filesize exceeding the maximum file size of %maxsize.', ['%filesize' => format_size($large_file->getSize()), '%maxsize' => format_size($file_limit)]);
-      $this->assertRaw($error_message);
+      $filesize = format_size($large_file->getSize());
+      $maxsize = format_size($file_limit);
+      $this->assertSession()->pageTextContains("The file is {$filesize} exceeding the maximum file size of {$maxsize}.");
     }
 
     // Turn off the max filesize.
@@ -147,8 +150,7 @@ class FileFieldValidateTest extends FileFieldTestBase {
 
     // Check that the file with the wrong extension cannot be uploaded.
     $this->uploadNodeFile($test_file, $field_name, $type_name);
-    $error_message = t('Only files with the following extensions are allowed: %files-allowed.', ['%files-allowed' => 'txt']);
-    $this->assertRaw($error_message);
+    $this->assertSession()->pageTextContains("Only files with the following extensions are allowed: txt.");
 
     // Enable extension checking for text and image files.
     $this->updateFileField($field_name, $type_name, ['file_extensions' => "txt $test_file_extension"]);
@@ -189,8 +191,8 @@ class FileFieldValidateTest extends FileFieldTestBase {
 
     // Check that the file can still be removed.
     $this->removeNodeFile($nid);
-    $this->assertNoText('Only files with the following extensions are allowed: txt.');
-    $this->assertText('Article ' . $node->getTitle() . ' has been updated.');
+    $this->assertSession()->pageTextNotContains('Only files with the following extensions are allowed: txt.');
+    $this->assertSession()->pageTextContains('Article ' . $node->getTitle() . ' has been updated.');
   }
 
 }

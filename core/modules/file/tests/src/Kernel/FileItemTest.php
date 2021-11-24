@@ -82,7 +82,7 @@ class FileItemTest extends FieldKernelTestBase {
     // 'default:file'.
     $field_definition = FieldConfig::load('entity_test.entity_test.file_test');
     $handler_id = $field_definition->getSetting('handler');
-    $this->assertEqual($handler_id, 'default:file');
+    $this->assertEquals('default:file', $handler_id);
 
     // Create a test entity with the
     $entity = EntityTest::create();
@@ -95,12 +95,12 @@ class FileItemTest extends FieldKernelTestBase {
     $entity = EntityTest::load($entity->id());
     $this->assertInstanceOf(FieldItemListInterface::class, $entity->file_test);
     $this->assertInstanceOf(FieldItemInterface::class, $entity->file_test[0]);
-    $this->assertEqual($entity->file_test->target_id, $this->file->id());
-    $this->assertEqual($entity->file_test->display, 1);
-    $this->assertEqual($entity->file_test->description, $description);
-    $this->assertEqual($entity->file_test->entity->getFileUri(), $this->file->getFileUri());
-    $this->assertEqual($entity->file_test->entity->id(), $this->file->id());
-    $this->assertEqual($entity->file_test->entity->uuid(), $this->file->uuid());
+    $this->assertEquals($this->file->id(), $entity->file_test->target_id);
+    $this->assertEquals(1, $entity->file_test->display);
+    $this->assertEquals($description, $entity->file_test->description);
+    $this->assertEquals($this->file->getFileUri(), $entity->file_test->entity->getFileUri());
+    $this->assertEquals($this->file->id(), $entity->file_test->entity->id());
+    $this->assertEquals($this->file->uuid(), $entity->file_test->entity->uuid());
 
     // Make sure the computed files reflects updates to the file.
     file_put_contents('public://example-2.txt', $this->randomMachineName());
@@ -110,8 +110,8 @@ class FileItemTest extends FieldKernelTestBase {
     $file2->save();
 
     $entity->file_test->target_id = $file2->id();
-    $this->assertEqual($entity->file_test->entity->id(), $file2->id());
-    $this->assertEqual($entity->file_test->entity->getFileUri(), $file2->getFileUri());
+    $this->assertEquals($entity->file_test->entity->id(), $file2->id());
+    $this->assertEquals($entity->file_test->entity->getFileUri(), $file2->getFileUri());
 
     // Test the deletion of an entity having an entity reference field targeting
     // a non-existing entity.
@@ -128,7 +128,7 @@ class FileItemTest extends FieldKernelTestBase {
     /** @var \Drupal\Core\StreamWrapper\StreamWrapperManagerInterface $stream_wrapper_manager */
     $stream_wrapper_manager = \Drupal::service('stream_wrapper_manager');
 
-    $this->assertEqual($this->directory, dirname($stream_wrapper_manager::getTarget($uri)));
+    $this->assertEquals($this->directory, dirname($stream_wrapper_manager::getTarget($uri)));
 
     // Make sure the computed files reflects updates to the file.
     file_put_contents('public://example-3.txt', $this->randomMachineName());
@@ -151,7 +151,7 @@ class FileItemTest extends FieldKernelTestBase {
       ->view($entity, 'default');
     \Drupal::service('renderer')->renderRoot($output);
     $this->assertTrue(!empty($entity->file_test->entity));
-    $this->assertEqual($entity->file_test->entity->getFileUri(), $uri);
+    $this->assertEquals($uri, $entity->file_test->entity->getFileUri());
   }
 
 }

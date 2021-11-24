@@ -103,8 +103,11 @@ class NodeAdminTest extends NodeTestBase {
 
     $this->drupalGet('admin/content');
     foreach ($nodes_query as $delta => $string) {
-      $elements = $this->xpath('//table[contains(@class, :class)]/tbody/tr[' . ($delta + 1) . ']/td[2]/a[normalize-space(text())=:label]', [':class' => 'views-table', ':label' => $string]);
-      $this->assertTrue(!empty($elements), 'The node was found in the correct order.');
+      // Verify that the node was found in the correct order.
+      $this->assertSession()->elementExists('xpath', $this->assertSession()->buildXPathQuery('//table[contains(@class, :class)]/tbody/tr[' . ($delta + 1) . ']/td[2]/a[normalize-space(text())=:label]', [
+        ':class' => 'views-table',
+        ':label' => $string,
+      ]));
     }
 
     // Compare the rendered HTML node list to a query for the nodes ordered by
@@ -117,8 +120,11 @@ class NodeAdminTest extends NodeTestBase {
 
     $this->drupalGet('admin/content', ['query' => ['sort' => 'asc', 'order' => 'title']]);
     foreach ($nodes_query as $delta => $string) {
-      $elements = $this->xpath('//table[contains(@class, :class)]/tbody/tr[' . ($delta + 1) . ']/td[2]/a[normalize-space(text())=:label]', [':class' => 'views-table', ':label' => $string]);
-      $this->assertTrue(!empty($elements), 'The node was found in the correct order.');
+      // Verify that the node was found in the correct order.
+      $this->assertSession()->elementExists('xpath', $this->assertSession()->buildXPathQuery('//table[contains(@class, :class)]/tbody/tr[' . ($delta + 1) . ']/td[2]/a[normalize-space(text())=:label]', [
+        ':class' => 'views-table',
+        ':label' => $string,
+      ]));
     }
   }
 
@@ -153,7 +159,7 @@ class NodeAdminTest extends NodeTestBase {
       $this->assertSession()->linkByHrefExists('node/' . $node->id() . '/edit');
       $this->assertSession()->linkByHrefExists('node/' . $node->id() . '/delete');
       // Verify that we can see the content type label.
-      $this->assertEqual(trim($node_type_labels[$delta]->getText()), $node->type->entity->label());
+      $this->assertEquals(trim($node_type_labels[$delta]->getText()), $node->type->entity->label());
       $delta++;
     }
 

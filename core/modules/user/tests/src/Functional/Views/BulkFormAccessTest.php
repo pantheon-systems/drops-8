@@ -2,7 +2,6 @@
 
 namespace Drupal\Tests\user\Functional\Views;
 
-use Drupal\Component\Render\FormattableMarkup;
 use Drupal\user\Entity\User;
 
 /**
@@ -56,14 +55,11 @@ class BulkFormAccessTest extends UserTestBase {
       'user_bulk_form[' . ($no_edit_user->id() - 1) . ']' => TRUE,
       'action' => 'user_block_user_action',
     ];
-    $this->drupalPostForm('test-user-bulk-form', $edit, 'Apply to selected items');
+    $this->drupalGet('test-user-bulk-form');
+    $this->submitForm($edit, 'Apply to selected items');
     $this->assertSession()->statusCodeEquals(200);
 
-    $this->assertRaw(new FormattableMarkup('No access to execute %action on the @entity_type_label %entity_label.', [
-      '%action' => 'Block the selected user(s)',
-      '@entity_type_label' => 'User',
-      '%entity_label' => $no_edit_user->label(),
-    ]));
+    $this->assertSession()->pageTextContains("No access to execute Block the selected user(s) on the User {$no_edit_user->label()}.");
 
     // Re-load the account "no_edit" and ensure it is not blocked.
     $no_edit_user = User::load($no_edit_user->id());
@@ -77,7 +73,8 @@ class BulkFormAccessTest extends UserTestBase {
       'user_bulk_form[' . ($normal_user->id() - 1) . ']' => TRUE,
       'action' => 'user_block_user_action',
     ];
-    $this->drupalPostForm('test-user-bulk-form', $edit, 'Apply to selected items');
+    $this->drupalGet('test-user-bulk-form');
+    $this->submitForm($edit, 'Apply to selected items');
 
     $normal_user = User::load($normal_user->id());
     $this->assertTrue($normal_user->isBlocked(), 'The user is blocked.');
@@ -89,7 +86,8 @@ class BulkFormAccessTest extends UserTestBase {
       'user_bulk_form[' . ($normal_user->id() - 1) . ']' => TRUE,
       'action' => 'user_unblock_user_action',
     ];
-    $this->drupalPostForm('test-user-bulk-form', $edit, 'Apply to selected items');
+    $this->drupalGet('test-user-bulk-form');
+    $this->submitForm($edit, 'Apply to selected items');
 
     // Re-load the normal user and ensure it is still blocked.
     $normal_user = User::load($normal_user->id());
@@ -120,7 +118,8 @@ class BulkFormAccessTest extends UserTestBase {
       'user_bulk_form[' . ($account2->id() - 1) . ']' => TRUE,
       'action' => 'user_cancel_user_action',
     ];
-    $this->drupalPostForm('test-user-bulk-form', $edit, 'Apply to selected items');
+    $this->drupalGet('test-user-bulk-form');
+    $this->submitForm($edit, 'Apply to selected items');
     $edit = [
       'user_cancel_method' => 'user_cancel_delete',
     ];

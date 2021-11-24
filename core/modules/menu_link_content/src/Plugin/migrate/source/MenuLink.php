@@ -7,7 +7,7 @@ use Drupal\migrate_drupal\Plugin\migrate\source\DrupalSqlBase;
 use Drupal\migrate\Row;
 
 /**
- * Drupal menu link source from database.
+ * Drupal 6/7 menu link source from database.
  *
  * @MigrateSource(
  *   id = "menu_link",
@@ -29,7 +29,7 @@ class MenuLink extends DrupalSqlBase {
       ->condition('ml.customized', 1)
       ->condition($and);
     $query->condition($condition);
-    $query->leftJoin('menu_links', 'pl', 'ml.plid = pl.mlid');
+    $query->leftJoin('menu_links', 'pl', '[ml].[plid] = [pl].[mlid]');
     $query->addField('pl', 'link_path', 'parent_link_path');
     $query->orderBy('ml.depth');
     $query->orderby('ml.mlid');

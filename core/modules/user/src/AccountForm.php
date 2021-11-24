@@ -75,9 +75,9 @@ abstract class AccountForm extends ContentEntityForm implements TrustedCallbackI
 
     // For a new account, there are 2 sub-cases:
     // $self_register: A user creates their own, new, account
-    //   (path '/user/register')
+    // (path '/user/register')
     // $admin_create: An administrator creates a new account for another user
-    //   (path '/admin/people/create')
+    // (path '/admin/people/create')
     // If the current user is logged in and has permission to create users
     // then it must be the second case.
     $admin_create = $register && $account->access('create');
@@ -130,7 +130,7 @@ abstract class AccountForm extends ContentEntityForm implements TrustedCallbackI
       // To skip the current password field, the user must have logged in via a
       // one-time link and have the token in the URL. Store this in $form_state
       // so it persists even on subsequent Ajax requests.
-      if (!$form_state->get('user_pass_reset') && ($token = $this->getRequest()->get('pass-reset-token'))) {
+      if (!$form_state->get('user_pass_reset') && ($token = $this->getRequest()->query->get('pass-reset-token'))) {
         $session_key = 'pass_reset_' . $account->id();
         $user_pass_reset = isset($_SESSION[$session_key]) && hash_equals($_SESSION[$session_key], $token);
         $form_state->set('user_pass_reset', $user_pass_reset);
@@ -281,7 +281,7 @@ abstract class AccountForm extends ContentEntityForm implements TrustedCallbackI
     $system_date_config = \Drupal::config('system.date');
     $form['timezone'] = [
       '#type' => 'details',
-      '#title' => t('Locale settings'),
+      '#title' => $this->t('Locale settings'),
       '#open' => TRUE,
       '#weight' => 6,
       '#access' => $system_date_config->get('timezone.user.configurable'),
@@ -291,10 +291,10 @@ abstract class AccountForm extends ContentEntityForm implements TrustedCallbackI
     }
     $form['timezone']['timezone'] = [
       '#type' => 'select',
-      '#title' => t('Time zone'),
+      '#title' => $this->t('Time zone'),
       '#default_value' => $account->getTimezone() ?: $system_date_config->get('timezone.default'),
       '#options' => system_time_zones($account->id() != $user->id(), TRUE),
-      '#description' => t('Select the desired local time and time zone. Dates and times throughout this site will be displayed using this time zone.'),
+      '#description' => $this->t('Select the desired local time and time zone. Dates and times throughout this site will be displayed using this time zone.'),
     ];
 
     // If not set or selected yet, detect timezone for the current user only.
@@ -352,7 +352,7 @@ abstract class AccountForm extends ContentEntityForm implements TrustedCallbackI
    */
   public function buildEntity(array $form, FormStateInterface $form_state) {
     // Change the roles array to a list of enabled roles.
-    // @todo: Alter the form state as the form values are directly extracted and
+    // @todo Alter the form state as the form values are directly extracted and
     //   set on the field, which throws an exception as the list requires
     //   numeric keys. Allow to override this per field. As this function is
     //   called twice, we have to prevent it from getting the array keys twice.

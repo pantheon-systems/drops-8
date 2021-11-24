@@ -45,7 +45,7 @@ class ReEnableModuleFieldTest extends BrowserTestBase {
   }
 
   /**
-   * Test the behavior of a field module after being disabled and re-enabled.
+   * Tests the behavior of a field module after being disabled and re-enabled.
    *
    * @see field_system_info_alter()
    */
@@ -92,7 +92,7 @@ class ReEnableModuleFieldTest extends BrowserTestBase {
       'field_telephone[0][value]' => "123456789",
     ];
     $this->submitForm($edit, 'Save');
-    $this->assertRaw('<a href="tel:123456789">');
+    $this->assertSession()->responseContains('<a href="tel:123456789">');
 
     // Test that the module can't be uninstalled from the UI while there is data
     // for its fields.
@@ -102,7 +102,7 @@ class ReEnableModuleFieldTest extends BrowserTestBase {
     ]);
     $this->drupalLogin($admin_user);
     $this->drupalGet('admin/modules/uninstall');
-    $this->assertText("The Telephone number field type is used in the following field: node.field_telephone");
+    $this->assertSession()->pageTextContains("The Telephone number field type is used in the following field: node.field_telephone");
 
     // Add another telephone field to a different entity type in order to test
     // the message for the case when multiple fields are blocking the
@@ -120,17 +120,17 @@ class ReEnableModuleFieldTest extends BrowserTestBase {
     ])->save();
 
     $this->drupalGet('admin/modules/uninstall');
-    $this->assertText("The Telephone number field type is used in the following fields: node.field_telephone, user.field_telephone_2");
+    $this->assertSession()->pageTextContains("The Telephone number field type is used in the following fields: node.field_telephone, user.field_telephone_2");
 
     // Delete both fields.
     $field_storage->delete();
     $field_storage2->delete();
 
     $this->drupalGet('admin/modules/uninstall');
-    $this->assertText('Fields pending deletion');
+    $this->assertSession()->pageTextContains('Fields pending deletion');
     $this->cronRun();
-    $this->assertNoText("The Telephone number field type is used in the following field: node.field_telephone");
-    $this->assertNoText('Fields pending deletion');
+    $this->assertSession()->pageTextNotContains("The Telephone number field type is used in the following field: node.field_telephone");
+    $this->assertSession()->pageTextNotContains('Fields pending deletion');
   }
 
 }

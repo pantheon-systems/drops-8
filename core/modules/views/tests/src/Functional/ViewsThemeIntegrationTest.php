@@ -25,13 +25,13 @@ class ViewsThemeIntegrationTest extends ViewTestBase {
 
 
   /**
-   * Used by WebTestBase::setUp()
+   * {@inheritdoc}
    *
    * We need theme_test for testing against test_basetheme and test_subtheme.
    *
    * @var array
    *
-   * @see \Drupal\simpletest\WebTestBase::setUp()
+   * {@inheritdoc}
    */
   protected static $modules = ['views', 'theme_test'];
 
@@ -56,32 +56,32 @@ class ViewsThemeIntegrationTest extends ViewTestBase {
     $this->config('system.theme')
       ->set('default', 'test_basetheme')
       ->save();
-    $this->assertEqual($this->config('system.theme')->get('default'), 'test_basetheme');
+    $this->assertEquals('test_basetheme', $this->config('system.theme')->get('default'));
 
     // Make sure a views rendered page is touched.
     $this->drupalGet('test_page_display_200');
 
-    $this->assertRaw("test_basetheme_views_pre_render");
-    $this->assertRaw("test_basetheme_views_post_render");
+    $this->assertSession()->responseContains("test_basetheme_views_pre_render");
+    $this->assertSession()->responseContains("test_basetheme_views_post_render");
 
     // Make sub theme default to test for hook invocation
     // from both sub and base theme.
     $this->config('system.theme')
       ->set('default', 'test_subtheme')
       ->save();
-    $this->assertEqual($this->config('system.theme')->get('default'), 'test_subtheme');
+    $this->assertEquals('test_subtheme', $this->config('system.theme')->get('default'));
 
     // Make sure a views rendered page is touched.
     $this->drupalGet('test_page_display_200');
 
-    $this->assertRaw("test_subtheme_views_pre_render");
-    $this->assertRaw("test_subtheme_views_post_render");
+    $this->assertSession()->responseContains("test_subtheme_views_pre_render");
+    $this->assertSession()->responseContains("test_subtheme_views_post_render");
 
-    $this->assertRaw("test_basetheme_views_pre_render");
-    $this->assertRaw("test_basetheme_views_post_render");
+    $this->assertSession()->responseContains("test_basetheme_views_pre_render");
+    $this->assertSession()->responseContains("test_basetheme_views_post_render");
 
     // Verify that the views group title is added.
-    $this->assertRaw('<em class="placeholder">' . count($this->dataSet()) . '</em> items found.');
+    $this->assertSession()->responseContains('<em class="placeholder">' . count($this->dataSet()) . '</em> items found.');
   }
 
 }

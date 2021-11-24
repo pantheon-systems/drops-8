@@ -111,7 +111,7 @@ class ScaffoldTest extends TestCase {
   public function scaffoldSut($fixture_name, $is_link = FALSE, $relocated_docroot = TRUE) {
     $sut = $this->createSut($fixture_name, ['SYMLINK' => $is_link ? 'true' : 'false']);
     // Run composer install to get the dependencies we need to test.
-    $this->fixtures->runComposer("install --no-ansi --no-scripts", $sut);
+    $this->fixtures->runComposer("install --no-ansi --no-scripts --no-plugins", $sut);
     // Test drupal:scaffold.
     $scaffoldOutput = $this->fixtures->runScaffold($sut);
 
@@ -124,7 +124,7 @@ class ScaffoldTest extends TestCase {
       $this->assertFileExists($docroot);
     }
     else {
-      $this->assertFileNotExists($sut . '/docroot');
+      $this->assertFileDoesNotExist($sut . '/docroot');
     }
 
     return new ScaffoldTestResult($docroot, $scaffoldOutput);
@@ -254,7 +254,7 @@ class ScaffoldTest extends TestCase {
   }
 
   /**
-   * Test values for testDrupalDrupalFileWasAppended.
+   * Provides test values for testDrupalDrupalFileWasAppended.
    */
   public function scaffoldAppendTestValues() {
     return array_merge(
@@ -277,7 +277,7 @@ include __DIR__ . "/settings-custom-additions.php";',
   }
 
   /**
-   * Test values to run both with $is_link FALSE and $is_link TRUE.
+   * Tests values to run both with $is_link FALSE and $is_link TRUE.
    *
    * @param bool $is_link
    *   Whether or not symlinking should be used.
@@ -370,7 +370,7 @@ include __DIR__ . "/settings-custom-additions.php";',
   protected function assertHtaccessExcluded($docroot) {
     // Ensure that the .htaccess.txt file was not written, as our
     // top-level composer.json excludes it from the files to scaffold.
-    $this->assertFileNotExists($docroot . '/.htaccess');
+    $this->assertFileDoesNotExist($docroot . '/.htaccess');
   }
 
   /**
