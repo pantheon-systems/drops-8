@@ -3,3 +3,4 @@ type: module
 description: 'Provides test media source to test configuration forms.'
 package: Testing
 version: VERSION
+

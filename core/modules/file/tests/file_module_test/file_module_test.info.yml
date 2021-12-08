@@ -3,3 +3,4 @@ type: module
 description: 'Provides hooks for testing File module functionality.'
 package: Testing
 version: VERSION
+

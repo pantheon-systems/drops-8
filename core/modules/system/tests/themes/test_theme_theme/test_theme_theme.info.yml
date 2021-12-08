@@ -3,3 +3,4 @@ type: theme
 description: 'Test theme that extends theme settings options via theme.theme file'
 version: VERSION
 base theme: false
+

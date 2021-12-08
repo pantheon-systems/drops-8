@@ -13,9 +13,9 @@ use Drupal\Core\Session\AccountInterface;
  *
  * Display plugins are responsible for controlling where a view is rendered;
  * that is, how it is exposed to other parts of Drupal. 'Page' and 'block' are
- * the most commonly used display plugins. Each view also has a 'master' (or
- * 'default') display that includes information shared between all its
- * displays (see \Drupal\views\Plugin\views\display\DefaultDisplay).
+ * the most commonly used display plugins. Each view also has a 'default'
+ * display that includes information shared between all its displays
+ * (see \Drupal\views\Plugin\views\display\DefaultDisplay).
  *
  * Display plugins extend \Drupal\views\Plugin\views\display\DisplayPluginBase.
  * They must be annotated with \Drupal\views\Annotation\ViewsDisplay
@@ -566,8 +566,8 @@ interface DisplayPluginInterface {
   /**
    * Renders the exposed form as block.
    *
-   * @return string|null
-   *   The rendered exposed form as string or NULL otherwise.
+   * @return array|null
+   *   The renderable exposed form as array or NULL otherwise.
    */
   public function viewExposedFormBlocks();
 

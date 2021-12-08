@@ -10,3 +10,4 @@ dependencies:
 package: Core
 version: VERSION
 configure: forum.overview
+

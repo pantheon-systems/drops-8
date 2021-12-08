@@ -23,7 +23,7 @@ use Symfony\Component\Routing\Route;
  *   types = {Drupal\Core\Language\LanguageInterface::TYPE_CONTENT},
  *   weight = -9,
  *   name = @Translation("Content language"),
- *   description = @Translation("Determines the content language from a request parameter."),
+ *   description = @Translation("Determines the content language from the request parameter named 'language_content_entity'."),
  * )
  */
 class LanguageNegotiationContentEntity extends LanguageNegotiationMethodBase implements OutboundPathProcessorInterface, LanguageSwitcherInterface, ContainerFactoryPluginInterface {
@@ -188,7 +188,7 @@ class LanguageNegotiationContentEntity extends LanguageNegotiationMethodBase imp
           $max_weight = isset($content_method_weights[LanguageNegotiationUrl::METHOD_ID]) ? max($max_weight, $content_method_weights[LanguageNegotiationUrl::METHOD_ID]) : $max_weight;
         }
         else {
-          $max_weight = isset($content_method_weights[LanguageNegotiationUrl::METHOD_ID]) ? $content_method_weights[LanguageNegotiationUrl::METHOD_ID] : PHP_INT_MAX;
+          $max_weight = $content_method_weights[LanguageNegotiationUrl::METHOD_ID] ?? PHP_INT_MAX;
         }
 
         $this->hasLowerLanguageNegotiationWeightResult = $content_method_weights[static::METHOD_ID] < $max_weight;
@@ -214,7 +214,7 @@ class LanguageNegotiationContentEntity extends LanguageNegotiationMethodBase imp
    */
   protected function meetsContentEntityRoutesCondition(Route $outbound_route, Request $request) {
     $outbound_path_pattern = $outbound_route->getPath();
-    $storage = isset($this->paths[$request]) ? $this->paths[$request] : [];
+    $storage = $this->paths[$request] ?? [];
     if (!isset($storage[$outbound_path_pattern])) {
       $storage[$outbound_path_pattern] = FALSE;
 

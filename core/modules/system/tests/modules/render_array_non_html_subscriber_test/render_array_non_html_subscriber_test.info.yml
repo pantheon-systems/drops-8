@@ -3,3 +3,4 @@ type: module
 description: 'Support module for RenderArrayNonHtmlSubscriberTest.'
 package: Testing
 version: VERSION
+

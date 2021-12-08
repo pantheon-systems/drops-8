@@ -69,7 +69,7 @@ class ActionTest extends KernelTestBase {
     $loaded_accounts = $user_storage->loadMultiple();
     $this->assertCount(1, $loaded_accounts);
     $account = reset($loaded_accounts);
-    $this->assertEqual($name, $account->label());
+    $this->assertEquals($name, $account->label());
   }
 
   /**
@@ -80,7 +80,7 @@ class ActionTest extends KernelTestBase {
     $action = Action::create([
       'id' => 'user_add_role_action.' . RoleInterface::ANONYMOUS_ID,
       'type' => 'user',
-      'label' => t('Add the anonymous role to the selected users'),
+      'label' => 'Add the anonymous role to the selected users',
       'configuration' => [
         'rid' => RoleInterface::ANONYMOUS_ID,
       ],
@@ -96,7 +96,7 @@ class ActionTest extends KernelTestBase {
         'user',
       ],
     ];
-    $this->assertIdentical($expected, $action->calculateDependencies()->getDependencies());
+    $this->assertSame($expected, $action->calculateDependencies()->getDependencies());
   }
 
 }

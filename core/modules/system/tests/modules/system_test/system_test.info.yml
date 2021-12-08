@@ -6,3 +6,4 @@ version: VERSION
 configure: system_test.configure
 configure_parameters:
   foo: bar
+

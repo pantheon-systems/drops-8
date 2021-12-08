@@ -1,0 +1,6 @@
+name: 'Tabbable Shim Test'
+type: module
+description: 'Module for the testing the :tabbable selector shim'
+package: Testing
+version: VERSION
+

@@ -3,3 +3,4 @@ description: 'Adds a Config Entity with views data'
 type: module
 package: Testing
 version: VERSION
+

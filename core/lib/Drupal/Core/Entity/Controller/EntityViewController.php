@@ -67,10 +67,14 @@ class EntityViewController implements ContainerInjectionInterface, TrustedCallba
     // If the entity's label is rendered using a field formatter, set the
     // rendered title field formatter as the page title instead of the default
     // plain text title. This allows attributes set on the field to propagate
-    // correctly (e.g. RDFa, in-place editing).
+    // correctly (e.g. in-place editing).
     if ($entity instanceof FieldableEntityInterface) {
       $label_field = $entity->getEntityType()->getKey('label');
       if (isset($page[$label_field])) {
+        // Allow templates and theme functions to generate different markup
+        // for the page title, which must be inline markup as it will be placed
+        // inside <h1>.  See field--node--title.html.twig.
+        $page[$label_field]['#is_page_title'] = TRUE;
         $page['#title'] = $this->renderer->render($page[$label_field]);
       }
     }
@@ -100,6 +104,32 @@ class EntityViewController implements ContainerInjectionInterface, TrustedCallba
     $page['#pre_render'][] = [$this, 'buildTitle'];
     $page['#entity_type'] = $_entity->getEntityTypeId();
     $page['#' . $page['#entity_type']] = $_entity;
+
+    // Add canonical and shortlink links if the entity has a canonical
+    // link template and is not new.
+    if ($_entity->hasLinkTemplate('canonical') && !$_entity->isNew()) {
+
+      $url = $_entity->toUrl('canonical')->setAbsolute(TRUE);
+      $page['#attached']['html_head_link'][] = [
+        [
+          'rel' => 'canonical',
+          'href' => $url->toString(),
+        ],
+        TRUE,
+      ];
+
+      // Set the non-aliased canonical path as a default shortlink.
+      $page['#attached']['html_head_link'][] = [
+        [
+          'rel' => 'shortlink',
+          'href' => $url->setOption('alias', TRUE)->toString(),
+        ],
+        TRUE,
+      ];
+
+      // Since this generates absolute URLs, it can only be cached "per site".
+      $page['#cache']['contexts'][] = 'url.site';
+    }
 
     return $page;
   }

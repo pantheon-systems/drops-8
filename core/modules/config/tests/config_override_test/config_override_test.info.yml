@@ -5,3 +5,4 @@ version: VERSION
 dependencies:
   - drupal:block
   - drupal:block_content
+

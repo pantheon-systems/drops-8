@@ -3,3 +3,4 @@ type: module
 description: 'Support module for testing default route format.'
 package: Testing
 version: VERSION
+

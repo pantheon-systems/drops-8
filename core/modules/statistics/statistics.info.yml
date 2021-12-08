@@ -6,3 +6,4 @@ version: VERSION
 configure: statistics.settings
 dependencies:
   - drupal:node
+

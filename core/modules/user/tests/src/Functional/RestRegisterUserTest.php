@@ -84,7 +84,7 @@ class RestRegisterUserTest extends ResourceTestBase {
     $this->assertFalse(empty($user->getPassword()));
     $email_count = count($this->drupalGetMails());
 
-    $this->assertEquals($email_count, 0);
+    $this->assertEquals(0, $email_count);
 
     // Attempt to register without sending a password.
     $response = $this->registerRequest('Rick.Deckard', FALSE);
@@ -256,7 +256,7 @@ class RestRegisterUserTest extends ResourceTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function assertNormalizationEdgeCases($method, Url $url, array $request_options) {}
+  protected function assertNormalizationEdgeCases($method, Url $url, array $request_options): void {}
 
   /**
    * {@inheritdoc}

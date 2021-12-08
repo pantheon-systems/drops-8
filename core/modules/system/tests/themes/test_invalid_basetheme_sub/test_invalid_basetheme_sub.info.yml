@@ -3,3 +3,4 @@ type: theme
 description: 'Test theme which has a non-existent base theme in the base chain.'
 version: VERSION
 base theme: test_invalid_basetheme
+

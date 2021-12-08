@@ -4,3 +4,4 @@ description: 'Test theme which has a non-existent theme engine.'
 version: VERSION
 engine: not_real_engine
 base theme: false
+

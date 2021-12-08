@@ -6,3 +6,4 @@ version: VERSION
 dependencies:
   - drupal:media
   - drupal:media_test_source
+

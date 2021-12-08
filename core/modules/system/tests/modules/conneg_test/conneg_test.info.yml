@@ -3,3 +3,4 @@ type: module
 description: 'Support testing content negotiation variations.'
 package: Testing
 version: VERSION
+

@@ -3,3 +3,4 @@ type: theme
 base theme: test_theme_depending_on_modules
 dependencies:
   - help
+

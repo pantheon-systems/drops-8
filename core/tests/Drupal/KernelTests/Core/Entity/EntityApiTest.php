@@ -46,8 +46,10 @@ class EntityApiTest extends EntityKernelTestBase {
    *   The entity type to run the tests with.
    * @param \Drupal\user\UserInterface $user1
    *   The user to run the tests with.
+   *
+   * @internal
    */
-  protected function assertCRUD($entity_type, UserInterface $user1) {
+  protected function assertCRUD(string $entity_type, UserInterface $user1): void {
     // Create some test entities.
     $entity = $this->container->get('entity_type.manager')
       ->getStorage($entity_type)
@@ -67,25 +69,25 @@ class EntityApiTest extends EntityKernelTestBase {
       ->getStorage($entity_type);
 
     $entities = array_values($storage->loadByProperties(['name' => 'test']));
-    $this->assertEqual($entities[0]->name->value, 'test', new FormattableMarkup('%entity_type: Created and loaded entity', ['%entity_type' => $entity_type]));
-    $this->assertEqual($entities[1]->name->value, 'test', new FormattableMarkup('%entity_type: Created and loaded entity', ['%entity_type' => $entity_type]));
+    $this->assertEquals('test', $entities[0]->name->value, new FormattableMarkup('%entity_type: Created and loaded entity', ['%entity_type' => $entity_type]));
+    $this->assertEquals('test', $entities[1]->name->value, new FormattableMarkup('%entity_type: Created and loaded entity', ['%entity_type' => $entity_type]));
 
     // Test loading a single entity.
     $loaded_entity = $storage->load($entity->id());
-    $this->assertEqual($loaded_entity->id(), $entity->id(), new FormattableMarkup('%entity_type: Loaded a single entity by id.', ['%entity_type' => $entity_type]));
+    $this->assertEquals($entity->id(), $loaded_entity->id(), new FormattableMarkup('%entity_type: Loaded a single entity by id.', ['%entity_type' => $entity_type]));
 
     // Test deleting an entity.
     $entities = array_values($storage->loadByProperties(['name' => 'test2']));
     $entities[0]->delete();
     $entities = array_values($storage->loadByProperties(['name' => 'test2']));
-    $this->assertEqual($entities, [], new FormattableMarkup('%entity_type: Entity deleted.', ['%entity_type' => $entity_type]));
+    $this->assertEquals([], $entities, new FormattableMarkup('%entity_type: Entity deleted.', ['%entity_type' => $entity_type]));
 
     // Test updating an entity.
     $entities = array_values($storage->loadByProperties(['name' => 'test']));
     $entities[0]->name->value = 'test3';
     $entities[0]->save();
     $entity = $storage->load($entities[0]->id());
-    $this->assertEqual($entity->name->value, 'test3', new FormattableMarkup('%entity_type: Entity updated.', ['%entity_type' => $entity_type]));
+    $this->assertEquals('test3', $entity->name->value, new FormattableMarkup('%entity_type: Entity updated.', ['%entity_type' => $entity_type]));
 
     // Try deleting multiple test entities by deleting all.
     $entities = $storage->loadMultiple();
@@ -97,16 +99,16 @@ class EntityApiTest extends EntityKernelTestBase {
     // Verify that all data got deleted.
     $definition = \Drupal::entityTypeManager()->getDefinition($entity_type);
     $connection = Database::getConnection();
-    $this->assertEqual(0, (int) $connection->select($definition->getBaseTable())->countQuery()->execute()->fetchField(), 'Base table was emptied');
+    $this->assertEquals(0, (int) $connection->select($definition->getBaseTable())->countQuery()->execute()->fetchField(), 'Base table was emptied');
 
     if ($data_table = $definition->getDataTable()) {
-      $this->assertEqual(0, (int) $connection->select($data_table)->countQuery()->execute()->fetchField(), 'Data table was emptied');
+      $this->assertEquals(0, (int) $connection->select($data_table)->countQuery()->execute()->fetchField(), 'Data table was emptied');
     }
     if ($revision_table = $definition->getRevisionTable()) {
-      $this->assertEqual(0, (int) $connection->select($revision_table)->countQuery()->execute()->fetchField(), 'Revision table was emptied');
+      $this->assertEquals(0, (int) $connection->select($revision_table)->countQuery()->execute()->fetchField(), 'Revision table was emptied');
     }
     if ($revision_data_table = $definition->getRevisionDataTable()) {
-      $this->assertEqual(0, (int) $connection->select($revision_data_table)->countQuery()->execute()->fetchField(), 'Revision data table was emptied');
+      $this->assertEquals(0, (int) $connection->select($revision_data_table)->countQuery()->execute()->fetchField(), 'Revision data table was emptied');
     }
 
     // Test deleting a list of entities not indexed by entity id.
@@ -126,16 +128,16 @@ class EntityApiTest extends EntityKernelTestBase {
 
     // Verify that all data got deleted from the tables.
     $definition = \Drupal::entityTypeManager()->getDefinition($entity_type);
-    $this->assertEqual(0, (int) $connection->select($definition->getBaseTable())->countQuery()->execute()->fetchField(), 'Base table was emptied');
+    $this->assertEquals(0, (int) $connection->select($definition->getBaseTable())->countQuery()->execute()->fetchField(), 'Base table was emptied');
 
     if ($data_table = $definition->getDataTable()) {
-      $this->assertEqual(0, (int) $connection->select($data_table)->countQuery()->execute()->fetchField(), 'Data table was emptied');
+      $this->assertEquals(0, (int) $connection->select($data_table)->countQuery()->execute()->fetchField(), 'Data table was emptied');
     }
     if ($revision_table = $definition->getRevisionTable()) {
-      $this->assertEqual(0, (int) $connection->select($revision_table)->countQuery()->execute()->fetchField(), 'Revision table was emptied');
+      $this->assertEquals(0, (int) $connection->select($revision_table)->countQuery()->execute()->fetchField(), 'Revision table was emptied');
     }
     if ($revision_data_table = $definition->getRevisionDataTable()) {
-      $this->assertEqual(0, (int) $connection->select($revision_data_table)->countQuery()->execute()->fetchField(), 'Revision data table was emptied');
+      $this->assertEquals(0, (int) $connection->select($revision_data_table)->countQuery()->execute()->fetchField(), 'Revision data table was emptied');
     }
   }
 
@@ -209,7 +211,7 @@ class EntityApiTest extends EntityKernelTestBase {
       $this->fail('Entity presave EntityStorageException thrown but not caught.');
     }
     catch (EntityStorageException $e) {
-      $this->assertEqual($e->getcode(), 1, 'Entity presave EntityStorageException caught.');
+      $this->assertEquals(1, $e->getcode(), 'Entity presave EntityStorageException caught.');
     }
 
     $entity = EntityTest::create(['name' => 'test2']);
@@ -218,7 +220,7 @@ class EntityApiTest extends EntityKernelTestBase {
       $entity->save();
     }
     catch (EntityStorageException $e) {
-      $this->assertNotEqual($e->getCode(), 1, 'Entity presave EntityStorageException caught.');
+      $this->assertNotEquals(1, $e->getCode(), 'Entity presave EntityStorageException caught.');
     }
 
     $entity = EntityTest::create(['name' => 'test3']);
@@ -229,7 +231,7 @@ class EntityApiTest extends EntityKernelTestBase {
       $this->fail('Entity predelete EntityStorageException not thrown.');
     }
     catch (EntityStorageException $e) {
-      $this->assertEqual($e->getCode(), 2, 'Entity predelete EntityStorageException caught.');
+      $this->assertEquals(2, $e->getCode(), 'Entity predelete EntityStorageException caught.');
     }
 
     unset($GLOBALS['entity_test_throw_exception']);
@@ -239,7 +241,7 @@ class EntityApiTest extends EntityKernelTestBase {
       $entity->delete();
     }
     catch (EntityStorageException $e) {
-      $this->assertNotEqual($e->getCode(), 2, 'Entity predelete EntityStorageException thrown.');
+      $this->assertNotEquals(2, $e->getCode(), 'Entity predelete EntityStorageException thrown.');
     }
   }
 

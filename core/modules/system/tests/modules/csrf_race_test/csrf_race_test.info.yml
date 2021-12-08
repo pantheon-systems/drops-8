@@ -3,3 +3,4 @@ type: module
 description: 'Check that CSRF token is generated once.'
 package: Testing
 version: VERSION
+

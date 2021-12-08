@@ -6,3 +6,4 @@ dependencies:
 package: Multilingual
 version: VERSION
 configure: language.content_settings_page
+

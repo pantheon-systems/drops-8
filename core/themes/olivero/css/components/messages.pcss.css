@@ -89,42 +89,39 @@
   cursor: pointer;
   vertical-align: top;
   border: 0;
-  border-radius: 50%;
   background: none;
   appearance: none;
 
-  &::before,
-  &::after {
+  &:before,
+  &:after {
     position: absolute;
-    /* stylelint-disable csstools/use-logical */
     top: 50%;
     left: 50%;
-    /* stylelint-enable csstools/use-logical */
     display: block;
     width: 33px;
-    height: 2px;
+    height: 0;
     content: "";
-    background-color: var(--color--gray-30);
+    border-top: solid 2px var(--color--gray-30);
   }
 
-  &::before {
+  &:before {
     transform: translate(-50%, -50%) rotate(45deg);
   }
 
-  &::after {
+  &:after {
     transform: translate(-50%, -50%) rotate(-45deg);
   }
 
   &:hover {
     &::before,
     &::after {
-      background-color: var(--color--white);
+      border-color: var(--color--white);
     }
   }
 
   &:focus {
     outline: 2px solid var(--color--blue-70);
-    outline-offset: 1px;
+    outline-offset: 2px;
   }
 }
 
@@ -158,5 +155,5 @@
 
 .js-form-managed-file .messages {
   margin-block-end: var(--sp1);
-  border-inline-start: var(--form-element-border-size-left) solid var(--color--red);
+  border-inline-start: solid 6px var(--color--red);
 }

@@ -3,3 +3,4 @@ type: module
 package: Testing
 dependencies:
   - drupal:help
+

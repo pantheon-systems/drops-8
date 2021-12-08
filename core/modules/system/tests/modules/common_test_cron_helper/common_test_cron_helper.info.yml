@@ -3,3 +3,4 @@ type: module
 description: 'Helper module for CronRunTestCase::testCronExceptions().'
 package: Testing
 version: VERSION
+

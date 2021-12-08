@@ -6,3 +6,4 @@ hidden: true
 install:
   - locale
 keep_english: true
+

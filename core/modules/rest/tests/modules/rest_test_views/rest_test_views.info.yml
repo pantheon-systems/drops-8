@@ -6,3 +6,4 @@ version: VERSION
 dependencies:
   - drupal:rest
   - drupal:views
+

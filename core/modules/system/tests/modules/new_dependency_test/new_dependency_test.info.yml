@@ -5,3 +5,4 @@ package: Testing
 version: VERSION
 dependencies:
   - drupal:new_dependency_test_with_service
+

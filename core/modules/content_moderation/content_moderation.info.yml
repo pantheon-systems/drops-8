@@ -6,3 +6,4 @@ package: Core
 configure: entity.workflow.collection
 dependencies:
   - drupal:workflows
+

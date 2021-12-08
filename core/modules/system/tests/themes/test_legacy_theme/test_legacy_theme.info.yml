@@ -14,3 +14,4 @@ libraries-override:
 libraries-extend:
   theme_test/another_deprecated_library:
     - test_legacy_theme/library
+

@@ -6,3 +6,4 @@ description: 'Support module for help testing.'
 package: Testing
 dependencies:
   - drupal:help_topics
+

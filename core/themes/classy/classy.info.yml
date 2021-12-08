@@ -31,3 +31,4 @@ libraries-extend:
 
 ckeditor_stylesheets:
   - css/components/media-embed-error.css
+

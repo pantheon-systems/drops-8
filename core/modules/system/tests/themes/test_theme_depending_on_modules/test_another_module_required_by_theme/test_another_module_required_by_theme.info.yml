@@ -2,3 +2,4 @@ name: Test Another Module Required by Theme
 type: module
 package: Testing
 version: VERSION
+

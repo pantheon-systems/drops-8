@@ -3,3 +3,4 @@ type: theme
 base theme: test_theme_twig_registry_loader
 description: 'Support module for Twig registry loader testing.'
 version: VERSION
+

@@ -8,3 +8,4 @@ dependencies:
   - drupal:text
   - drupal:user
 configure: entity.block_content.collection
+

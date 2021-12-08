@@ -83,22 +83,20 @@ class FieldItemTest extends EntityKernelTestBase {
    *
    * @param \Drupal\entity_test\Entity\EntityTest $entity
    *   The test entity.
-   * @param $expected_value
+   * @param string $expected_value
    *   The expected field item value.
    *
-   * @return bool
-   *   TRUE if the item value matches expectations, FALSE otherwise.
+   * @internal
    */
-  protected function assertSavedFieldItemValue(EntityTest $entity, $expected_value) {
+  protected function assertSavedFieldItemValue(EntityTest $entity, string $expected_value): void {
     $entity->setNewRevision(TRUE);
     $entity->save();
     $base_field_expected_value = str_replace($this->fieldName, 'field_test_item', $expected_value);
-    $result = $this->assertEqual($entity->field_test_item->value, $base_field_expected_value);
-    $result = $result && $this->assertEqual($entity->{$this->fieldName}->value, $expected_value);
+    $this->assertEquals($base_field_expected_value, $entity->field_test_item->value);
+    $this->assertEquals($expected_value, $entity->{$this->fieldName}->value);
     $entity = $this->reloadEntity($entity);
-    $result = $result && $this->assertEqual($entity->field_test_item->value, $base_field_expected_value);
-    $result = $result && $this->assertEqual($entity->{$this->fieldName}->value, $expected_value);
-    return $result;
+    $this->assertEquals($base_field_expected_value, $entity->field_test_item->value);
+    $this->assertEquals($expected_value, $entity->{$this->fieldName}->value);
   }
 
 }

@@ -2,3 +2,4 @@ type: theme
 base theme: stable
 name: 'Test theme with a too long name'
 version: VERSION
+

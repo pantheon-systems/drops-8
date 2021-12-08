@@ -2,3 +2,4 @@ name: 'Configuration import test'
 type: module
 package: Testing
 version: VERSION
+

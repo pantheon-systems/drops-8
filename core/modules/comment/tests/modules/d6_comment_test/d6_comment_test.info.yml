@@ -1,0 +1,8 @@
+name: Drupal 6 comment test
+type: module
+description: Provides a source plugin to test prepareComment deprecation.
+package: Testing
+version: VERSION
+dependencies:
+  - drupal:comment
+

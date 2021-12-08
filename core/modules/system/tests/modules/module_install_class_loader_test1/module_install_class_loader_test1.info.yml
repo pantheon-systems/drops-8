@@ -3,3 +3,4 @@ description: 'Support module for tests that the class loader behaves as expected
 type: module
 package: Testing
 version: VERSION
+

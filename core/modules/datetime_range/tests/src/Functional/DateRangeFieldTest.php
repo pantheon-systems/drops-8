@@ -92,16 +92,16 @@ class DateRangeFieldTest extends DateTestBase {
       $this->submitForm($edit, 'Save');
       preg_match('|entity_test/manage/(\d+)|', $this->getUrl(), $match);
       $id = $match[1];
-      $this->assertText('entity_test ' . $id . ' has been created.');
-      $this->assertRaw($start_date->format($date_format));
-      $this->assertNoRaw($start_date->format($time_format));
-      $this->assertRaw($end_date->format($date_format));
-      $this->assertNoRaw($end_date->format($time_format));
+      $this->assertSession()->pageTextContains('entity_test ' . $id . ' has been created.');
+      $this->assertSession()->responseContains($start_date->format($date_format));
+      $this->assertSession()->responseNotContains($start_date->format($time_format));
+      $this->assertSession()->responseContains($end_date->format($date_format));
+      $this->assertSession()->responseNotContains($end_date->format($time_format));
 
       // Verify the date doesn't change when entity is edited through the form.
       $entity = EntityTest::load($id);
-      $this->assertEqual('2012-12-31', $entity->{$field_name}->value);
-      $this->assertEqual('2013-06-06', $entity->{$field_name}->end_value);
+      $this->assertEquals('2012-12-31', $entity->{$field_name}->value);
+      $this->assertEquals('2013-06-06', $entity->{$field_name}->end_value);
       $this->drupalGet('entity_test/manage/' . $id . '/edit');
       $this->submitForm([], 'Save');
       $this->drupalGet('entity_test/manage/' . $id . '/edit');
@@ -109,8 +109,8 @@ class DateRangeFieldTest extends DateTestBase {
       $this->drupalGet('entity_test/manage/' . $id . '/edit');
       $this->submitForm([], 'Save');
       $entity = EntityTest::load($id);
-      $this->assertEqual('2012-12-31', $entity->{$field_name}->value);
-      $this->assertEqual('2013-06-06', $entity->{$field_name}->end_value);
+      $this->assertEquals('2012-12-31', $entity->{$field_name}->value);
+      $this->assertEquals('2013-06-06', $entity->{$field_name}->end_value);
 
       // Formats that display a time component for date-only fields will display
       // the default time, so that is applied before calculating the expected
@@ -218,7 +218,7 @@ class DateRangeFieldTest extends DateTestBase {
       $this->submitForm($edit, 'Save');
       preg_match('|entity_test/manage/(\d+)|', $this->getUrl(), $match);
       $id = $match[1];
-      $this->assertText('entity_test ' . $id . ' has been created.');
+      $this->assertSession()->pageTextContains('entity_test ' . $id . ' has been created.');
 
       $this->massageTestDate($start_date);
 
@@ -325,11 +325,11 @@ class DateRangeFieldTest extends DateTestBase {
     $this->submitForm($edit, 'Save');
     preg_match('|entity_test/manage/(\d+)|', $this->getUrl(), $match);
     $id = $match[1];
-    $this->assertText('entity_test ' . $id . ' has been created.');
-    $this->assertRaw($start_date->format($date_format));
-    $this->assertRaw($start_date->format($time_format));
-    $this->assertRaw($end_date->format($date_format));
-    $this->assertRaw($end_date->format($time_format));
+    $this->assertSession()->pageTextContains('entity_test ' . $id . ' has been created.');
+    $this->assertSession()->responseContains($start_date->format($date_format));
+    $this->assertSession()->responseContains($start_date->format($time_format));
+    $this->assertSession()->responseContains($end_date->format($date_format));
+    $this->assertSession()->responseContains($end_date->format($time_format));
 
     /** @var \Drupal\Core\Entity\EntityDisplayRepositoryInterface $display_repository */
     $display_repository = \Drupal::service('entity_display.repository');
@@ -410,7 +410,7 @@ class DateRangeFieldTest extends DateTestBase {
     $this->submitForm($edit, 'Save');
     preg_match('|entity_test/manage/(\d+)|', $this->getUrl(), $match);
     $id = $match[1];
-    $this->assertText('entity_test ' . $id . ' has been created.');
+    $this->assertSession()->pageTextContains('entity_test ' . $id . ' has been created.');
 
     $this->displayOptions = [
       'type' => 'daterange_default',
@@ -498,11 +498,11 @@ class DateRangeFieldTest extends DateTestBase {
     $this->submitForm($edit, 'Save');
     preg_match('|entity_test/manage/(\d+)|', $this->getUrl(), $match);
     $id = $match[1];
-    $this->assertText('entity_test ' . $id . ' has been created.');
-    $this->assertRaw($start_date->format($date_format));
-    $this->assertNoRaw($start_date->format($time_format));
-    $this->assertRaw($end_date->format($date_format));
-    $this->assertNoRaw($end_date->format($time_format));
+    $this->assertSession()->pageTextContains('entity_test ' . $id . ' has been created.');
+    $this->assertSession()->responseContains($start_date->format($date_format));
+    $this->assertSession()->responseNotContains($start_date->format($time_format));
+    $this->assertSession()->responseContains($end_date->format($date_format));
+    $this->assertSession()->responseNotContains($end_date->format($time_format));
 
     /** @var \Drupal\Core\Entity\EntityDisplayRepositoryInterface $display_repository */
     $display_repository = \Drupal::service('entity_display.repository');
@@ -582,7 +582,7 @@ class DateRangeFieldTest extends DateTestBase {
     $this->submitForm($edit, 'Save');
     preg_match('|entity_test/manage/(\d+)|', $this->getUrl(), $match);
     $id = $match[1];
-    $this->assertText('entity_test ' . $id . ' has been created.');
+    $this->assertSession()->pageTextContains('entity_test ' . $id . ' has been created.');
 
     $this->displayOptions = [
       'type' => 'daterange_default',
@@ -770,7 +770,7 @@ class DateRangeFieldTest extends DateTestBase {
     $this->submitForm($edit, 'Save');
     preg_match('|entity_test/manage/(\d+)|', $this->getUrl(), $match);
     $id = $match[1];
-    $this->assertText('entity_test ' . $id . ' has been created.');
+    $this->assertSession()->pageTextContains('entity_test ' . $id . ' has been created.');
 
     $this->assertTrue($this->assertSession()->optionExists("edit-$field_name-0-value-year", '2012')->isSelected());
     $this->assertTrue($this->assertSession()->optionExists("edit-$field_name-0-value-month", '12')->isSelected());
@@ -825,7 +825,7 @@ class DateRangeFieldTest extends DateTestBase {
     $this->submitForm($edit, 'Save');
     preg_match('|entity_test/manage/(\d+)|', $this->getUrl(), $match);
     $id = $match[1];
-    $this->assertText('entity_test ' . $id . ' has been created.');
+    $this->assertSession()->pageTextContains('entity_test ' . $id . ' has been created.');
 
     $this->assertTrue($this->assertSession()->optionExists("edit-$field_name-0-value-year", '2012')->isSelected());
     $this->assertTrue($this->assertSession()->optionExists("edit-$field_name-0-value-month", '12')->isSelected());
@@ -854,7 +854,7 @@ class DateRangeFieldTest extends DateTestBase {
 
     // Test the widget for validation notifications.
     foreach ($this->datelistDataProvider() as $data) {
-      list($start_date_value, $end_date_value, $expected) = $data;
+      [$start_date_value, $end_date_value, $expected] = $data;
 
       // Display creation form.
       $this->drupalGet('entity_test/add');
@@ -871,7 +871,7 @@ class DateRangeFieldTest extends DateTestBase {
       $this->submitForm($edit, 'Save');
       $this->assertSession()->statusCodeEquals(200);
       foreach ($expected as $expected_text) {
-        $this->assertText($expected_text);
+        $this->assertSession()->pageTextContains($expected_text);
       }
     }
 
@@ -892,7 +892,7 @@ class DateRangeFieldTest extends DateTestBase {
     $this->assertSession()->statusCodeEquals(200);
     preg_match('|entity_test/manage/(\d+)|', $this->getUrl(), $match);
     $id = $match[1];
-    $this->assertText('entity_test ' . $id . ' has been created.');
+    $this->assertSession()->pageTextContains('entity_test ' . $id . ' has been created.');
 
     // Test the widget to ensure zeros are not deselected on validation.
     $this->drupalGet('entity_test/add');
@@ -993,7 +993,7 @@ class DateRangeFieldTest extends DateTestBase {
   }
 
   /**
-   * Test default value functionality.
+   * Tests default value functionality.
    */
   public function testDefaultValue() {
     // Create a test content type.
@@ -1020,7 +1020,8 @@ class DateRangeFieldTest extends DateTestBase {
       'default_value_input[default_date_type]' => 'now',
       'default_value_input[default_end_date_type]' => 'now',
     ];
-    $this->drupalPostForm('admin/structure/types/manage/date_content/fields/node.date_content.' . $field_name, $field_edit, 'Save settings');
+    $this->drupalGet('admin/structure/types/manage/date_content/fields/node.date_content.' . $field_name);
+    $this->submitForm($field_edit, 'Save settings');
 
     // Check that default value is selected in default value form.
     $this->drupalGet('admin/structure/types/manage/date_content/fields/node.date_content.' . $field_name);
@@ -1033,12 +1034,7 @@ class DateRangeFieldTest extends DateTestBase {
 
     // Check if default_date has been stored successfully.
     $config_entity = $this->config('field.field.node.date_content.' . $field_name)->get();
-    $this->assertEqual($config_entity['default_value'][0], [
-      'default_date_type' => 'now',
-      'default_date' => 'now',
-      'default_end_date_type' => 'now',
-      'default_end_date' => 'now',
-    ], 'Default value has been stored successfully');
+    $this->assertEquals(['default_date_type' => 'now', 'default_date' => 'now', 'default_end_date_type' => 'now', 'default_end_date' => 'now'], $config_entity['default_value'][0], 'Default value has been stored successfully');
 
     // Clear field cache in order to avoid stale cache values.
     \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
@@ -1046,8 +1042,8 @@ class DateRangeFieldTest extends DateTestBase {
     // Create a new node to check that datetime field default value is today.
     $new_node = Node::create(['type' => 'date_content']);
     $expected_date = new DrupalDateTime('now', DateTimeItemInterface::STORAGE_TIMEZONE);
-    $this->assertEqual($new_node->get($field_name)->offsetGet(0)->value, $expected_date->format(DateTimeItemInterface::DATE_STORAGE_FORMAT));
-    $this->assertEqual($new_node->get($field_name)->offsetGet(0)->end_value, $expected_date->format(DateTimeItemInterface::DATE_STORAGE_FORMAT));
+    $this->assertEquals($expected_date->format(DateTimeItemInterface::DATE_STORAGE_FORMAT), $new_node->get($field_name)->offsetGet(0)->value);
+    $this->assertEquals($expected_date->format(DateTimeItemInterface::DATE_STORAGE_FORMAT), $new_node->get($field_name)->offsetGet(0)->end_value);
 
     // Set an invalid relative default_value to test validation.
     $field_edit = [
@@ -1056,8 +1052,9 @@ class DateRangeFieldTest extends DateTestBase {
       'default_value_input[default_end_date_type]' => 'relative',
       'default_value_input[default_end_date]' => '+1 day',
     ];
-    $this->drupalPostForm('admin/structure/types/manage/date_content/fields/node.date_content.' . $field_name, $field_edit, 'Save settings');
-    $this->assertText('The relative start date value entered is invalid.');
+    $this->drupalGet('admin/structure/types/manage/date_content/fields/node.date_content.' . $field_name);
+    $this->submitForm($field_edit, 'Save settings');
+    $this->assertSession()->pageTextContains('The relative start date value entered is invalid.');
 
     $field_edit = [
       'default_value_input[default_date_type]' => 'relative',
@@ -1065,8 +1062,9 @@ class DateRangeFieldTest extends DateTestBase {
       'default_value_input[default_end_date_type]' => 'relative',
       'default_value_input[default_end_date]' => 'invalid date',
     ];
-    $this->drupalPostForm('admin/structure/types/manage/date_content/fields/node.date_content.' . $field_name, $field_edit, 'Save settings');
-    $this->assertText('The relative end date value entered is invalid.');
+    $this->drupalGet('admin/structure/types/manage/date_content/fields/node.date_content.' . $field_name);
+    $this->submitForm($field_edit, 'Save settings');
+    $this->assertSession()->pageTextContains('The relative end date value entered is invalid.');
 
     // Set a relative default_value.
     $field_edit = [
@@ -1075,7 +1073,8 @@ class DateRangeFieldTest extends DateTestBase {
       'default_value_input[default_end_date_type]' => 'relative',
       'default_value_input[default_end_date]' => '+90 days',
     ];
-    $this->drupalPostForm('admin/structure/types/manage/date_content/fields/node.date_content.' . $field_name, $field_edit, 'Save settings');
+    $this->drupalGet('admin/structure/types/manage/date_content/fields/node.date_content.' . $field_name);
+    $this->submitForm($field_edit, 'Save settings');
 
     // Check that default value is selected in default value form.
     $this->drupalGet('admin/structure/types/manage/date_content/fields/node.date_content.' . $field_name);
@@ -1088,12 +1087,7 @@ class DateRangeFieldTest extends DateTestBase {
 
     // Check if default_date has been stored successfully.
     $config_entity = $this->config('field.field.node.date_content.' . $field_name)->get();
-    $this->assertEqual($config_entity['default_value'][0], [
-      'default_date_type' => 'relative',
-      'default_date' => '+45 days',
-      'default_end_date_type' => 'relative',
-      'default_end_date' => '+90 days',
-    ], 'Default value has been stored successfully');
+    $this->assertEquals(['default_date_type' => 'relative', 'default_date' => '+45 days', 'default_end_date_type' => 'relative', 'default_end_date' => '+90 days'], $config_entity['default_value'][0], 'Default value has been stored successfully');
 
     // Clear field cache in order to avoid stale cache values.
     \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
@@ -1102,15 +1096,16 @@ class DateRangeFieldTest extends DateTestBase {
     $new_node = Node::create(['type' => 'date_content']);
     $expected_start_date = new DrupalDateTime('+45 days', DateTimeItemInterface::STORAGE_TIMEZONE);
     $expected_end_date = new DrupalDateTime('+90 days', DateTimeItemInterface::STORAGE_TIMEZONE);
-    $this->assertEqual($new_node->get($field_name)->offsetGet(0)->value, $expected_start_date->format(DateTimeItemInterface::DATE_STORAGE_FORMAT));
-    $this->assertEqual($new_node->get($field_name)->offsetGet(0)->end_value, $expected_end_date->format(DateTimeItemInterface::DATE_STORAGE_FORMAT));
+    $this->assertEquals($expected_start_date->format(DateTimeItemInterface::DATE_STORAGE_FORMAT), $new_node->get($field_name)->offsetGet(0)->value);
+    $this->assertEquals($expected_end_date->format(DateTimeItemInterface::DATE_STORAGE_FORMAT), $new_node->get($field_name)->offsetGet(0)->end_value);
 
     // Remove default value.
     $field_edit = [
       'default_value_input[default_date_type]' => '',
       'default_value_input[default_end_date_type]' => '',
     ];
-    $this->drupalPostForm('admin/structure/types/manage/date_content/fields/node.date_content.' . $field_name, $field_edit, 'Save settings');
+    $this->drupalGet('admin/structure/types/manage/date_content/fields/node.date_content.' . $field_name);
+    $this->submitForm($field_edit, 'Save settings');
 
     // Check that default value is selected in default value form.
     $this->drupalGet('admin/structure/types/manage/date_content/fields/node.date_content.' . $field_name);
@@ -1146,7 +1141,8 @@ class DateRangeFieldTest extends DateTestBase {
       'default_value_input[default_date_type]' => 'now',
       'default_value_input[default_end_date_type]' => '',
     ];
-    $this->drupalPostForm('admin/structure/types/manage/date_content/fields/node.date_content.' . $field_name, $field_edit, 'Save settings');
+    $this->drupalGet('admin/structure/types/manage/date_content/fields/node.date_content.' . $field_name);
+    $this->submitForm($field_edit, 'Save settings');
 
     // Make sure only the start value is populated on node add page.
     $this->drupalGet('node/add/date_content');
@@ -1158,7 +1154,8 @@ class DateRangeFieldTest extends DateTestBase {
       'default_value_input[default_date_type]' => '',
       'default_value_input[default_end_date_type]' => 'now',
     ];
-    $this->drupalPostForm('admin/structure/types/manage/date_content/fields/node.date_content.' . $field_name, $field_edit, 'Save settings');
+    $this->drupalGet('admin/structure/types/manage/date_content/fields/node.date_content.' . $field_name);
+    $this->submitForm($field_edit, 'Save settings');
 
     // Make sure only the start value is populated on node add page.
     $this->drupalGet('node/add/date_content');
@@ -1167,7 +1164,7 @@ class DateRangeFieldTest extends DateTestBase {
   }
 
   /**
-   * Test that invalid values are caught and marked as invalid.
+   * Tests that invalid values are caught and marked as invalid.
    */
   public function testInvalidField() {
     // Change the field to a datetime field.
@@ -1191,8 +1188,9 @@ class DateRangeFieldTest extends DateTestBase {
       "{$field_name}[0][end_value][time]" => '12:00:00',
     ];
     $this->submitForm($edit, 'Save');
-    $this->assertText('date is invalid', 'Empty start date value has been caught.');
+    $this->assertSession()->pageTextContains('date is invalid');
 
+    // Invalid year value.
     $date_value = 'aaaa-12-01';
     $edit = [
       "{$field_name}[0][value][date]" => $date_value,
@@ -1201,8 +1199,9 @@ class DateRangeFieldTest extends DateTestBase {
       "{$field_name}[0][end_value][time]" => '12:00:00',
     ];
     $this->submitForm($edit, 'Save');
-    $this->assertText('date is invalid', 'Invalid start year value ' . $date_value . ' has been caught.');
+    $this->assertSession()->pageTextContains('date is invalid');
 
+    // Invalid month value.
     $date_value = '2012-75-01';
     $edit = [
       "{$field_name}[0][value][date]" => $date_value,
@@ -1211,8 +1210,9 @@ class DateRangeFieldTest extends DateTestBase {
       "{$field_name}[0][end_value][time]" => '12:00:00',
     ];
     $this->submitForm($edit, 'Save');
-    $this->assertText('date is invalid', 'Invalid start month value ' . $date_value . ' has been caught.');
+    $this->assertSession()->pageTextContains('date is invalid');
 
+    // Invalid day value.
     $date_value = '2012-12-99';
     $edit = [
       "{$field_name}[0][value][date]" => $date_value,
@@ -1221,7 +1221,7 @@ class DateRangeFieldTest extends DateTestBase {
       "{$field_name}[0][end_value][time]" => '12:00:00',
     ];
     $this->submitForm($edit, 'Save');
-    $this->assertText('date is invalid', 'Invalid start day value ' . $date_value . ' has been caught.');
+    $this->assertSession()->pageTextContains('date is invalid');
 
     // Submit invalid start times and ensure they is not accepted.
     $time_value = '';
@@ -1232,8 +1232,9 @@ class DateRangeFieldTest extends DateTestBase {
       "{$field_name}[0][end_value][time]" => '12:00:00',
     ];
     $this->submitForm($edit, 'Save');
-    $this->assertText('date is invalid', 'Empty start time value has been caught.');
+    $this->assertSession()->pageTextContains('date is invalid');
 
+    // Invalid hour value.
     $time_value = '49:00:00';
     $edit = [
       "{$field_name}[0][value][date]" => '2012-12-01',
@@ -1242,8 +1243,9 @@ class DateRangeFieldTest extends DateTestBase {
       "{$field_name}[0][end_value][time]" => '12:00:00',
     ];
     $this->submitForm($edit, 'Save');
-    $this->assertText('date is invalid', 'Invalid start hour value ' . $time_value . ' has been caught.');
+    $this->assertSession()->pageTextContains('date is invalid');
 
+    // Invalid minutes value.
     $time_value = '12:99:00';
     $edit = [
       "{$field_name}[0][value][date]" => '2012-12-01',
@@ -1252,8 +1254,9 @@ class DateRangeFieldTest extends DateTestBase {
       "{$field_name}[0][end_value][time]" => '12:00:00',
     ];
     $this->submitForm($edit, 'Save');
-    $this->assertText('date is invalid', 'Invalid start minute value ' . $time_value . ' has been caught.');
+    $this->assertSession()->pageTextContains('date is invalid');
 
+    // Invalid seconds value.
     $time_value = '12:15:99';
     $edit = [
       "{$field_name}[0][value][date]" => '2012-12-01',
@@ -1262,7 +1265,7 @@ class DateRangeFieldTest extends DateTestBase {
       "{$field_name}[0][end_value][time]" => '12:00:00',
     ];
     $this->submitForm($edit, 'Save');
-    $this->assertText('date is invalid', 'Invalid start second value ' . $time_value . ' has been caught.');
+    $this->assertSession()->pageTextContains('date is invalid');
 
     // Submit invalid end dates and ensure they is not accepted.
     $date_value = '';
@@ -1273,8 +1276,9 @@ class DateRangeFieldTest extends DateTestBase {
       "{$field_name}[0][end_value][time]" => '12:00:00',
     ];
     $this->submitForm($edit, 'Save');
-    $this->assertText('date is invalid', 'Empty end date value has been caught.');
+    $this->assertSession()->pageTextContains('date is invalid');
 
+    // Invalid year value.
     $date_value = 'aaaa-12-01';
     $edit = [
       "{$field_name}[0][value][date]" => '2012-12-01',
@@ -1283,8 +1287,9 @@ class DateRangeFieldTest extends DateTestBase {
       "{$field_name}[0][end_value][time]" => '00:00:00',
     ];
     $this->submitForm($edit, 'Save');
-    $this->assertText('date is invalid', 'Invalid end year value ' . $date_value . ' has been caught.');
+    $this->assertSession()->pageTextContains('date is invalid');
 
+    // Invalid month value.
     $date_value = '2012-75-01';
     $edit = [
       "{$field_name}[0][value][date]" => '2012-12-01',
@@ -1293,8 +1298,9 @@ class DateRangeFieldTest extends DateTestBase {
       "{$field_name}[0][end_value][time]" => '00:00:00',
     ];
     $this->submitForm($edit, 'Save');
-    $this->assertText('date is invalid', 'Invalid end month value ' . $date_value . ' has been caught.');
+    $this->assertSession()->pageTextContains('date is invalid');
 
+    // Invalid day value.
     $date_value = '2012-12-99';
     $edit = [
       "{$field_name}[0][value][date]" => '2012-12-01',
@@ -1303,7 +1309,7 @@ class DateRangeFieldTest extends DateTestBase {
       "{$field_name}[0][end_value][time]" => '00:00:00',
     ];
     $this->submitForm($edit, 'Save');
-    $this->assertText('date is invalid', 'Invalid end day value ' . $date_value . ' has been caught.');
+    $this->assertSession()->pageTextContains('date is invalid');
 
     // Submit invalid start times and ensure they is not accepted.
     $time_value = '';
@@ -1314,8 +1320,9 @@ class DateRangeFieldTest extends DateTestBase {
       "{$field_name}[0][end_value][time]" => $time_value,
     ];
     $this->submitForm($edit, 'Save');
-    $this->assertText('date is invalid', 'Empty end time value has been caught.');
+    $this->assertSession()->pageTextContains('date is invalid');
 
+    // Invalid hour value.
     $time_value = '49:00:00';
     $edit = [
       "{$field_name}[0][value][date]" => '2012-12-01',
@@ -1324,8 +1331,9 @@ class DateRangeFieldTest extends DateTestBase {
       "{$field_name}[0][end_value][time]" => $time_value,
     ];
     $this->submitForm($edit, 'Save');
-    $this->assertText('date is invalid', 'Invalid end hour value ' . $time_value . ' has been caught.');
+    $this->assertSession()->pageTextContains('date is invalid');
 
+    // Invalid minutes value.
     $time_value = '12:99:00';
     $edit = [
       "{$field_name}[0][value][date]" => '2012-12-01',
@@ -1334,8 +1342,9 @@ class DateRangeFieldTest extends DateTestBase {
       "{$field_name}[0][end_value][time]" => $time_value,
     ];
     $this->submitForm($edit, 'Save');
-    $this->assertText('date is invalid', 'Invalid end minute value ' . $time_value . ' has been caught.');
+    $this->assertSession()->pageTextContains('date is invalid');
 
+    // Invalid seconds value.
     $time_value = '12:15:99';
     $edit = [
       "{$field_name}[0][value][date]" => '2012-12-01',
@@ -1344,8 +1353,9 @@ class DateRangeFieldTest extends DateTestBase {
       "{$field_name}[0][end_value][time]" => $time_value,
     ];
     $this->submitForm($edit, 'Save');
-    $this->assertText('date is invalid', 'Invalid end second value ' . $time_value . ' has been caught.');
+    $this->assertSession()->pageTextContains('date is invalid');
 
+    // End date before start date.
     $edit = [
       "{$field_name}[0][value][date]" => '2012-12-01',
       "{$field_name}[0][value][time]" => '12:00:00',
@@ -1353,8 +1363,9 @@ class DateRangeFieldTest extends DateTestBase {
       "{$field_name}[0][end_value][time]" => '12:00:00',
     ];
     $this->submitForm($edit, 'Save');
-    $this->assertText('The ' . $field_label . ' end date cannot be before the start date', 'End date before start date has been caught.');
+    $this->assertSession()->pageTextContains('The ' . $field_label . ' end date cannot be before the start date');
 
+    // End date before start date.
     $edit = [
       "{$field_name}[0][value][date]" => '2012-12-01',
       "{$field_name}[0][value][time]" => '12:00:00',
@@ -1362,7 +1373,7 @@ class DateRangeFieldTest extends DateTestBase {
       "{$field_name}[0][end_value][time]" => '11:00:00',
     ];
     $this->submitForm($edit, 'Save');
-    $this->assertText('The ' . $field_label . ' end date cannot be before the start date', 'End time before start time has been caught.');
+    $this->assertSession()->pageTextContains('The ' . $field_label . ' end date cannot be before the start date');
   }
 
   /**
@@ -1402,11 +1413,12 @@ class DateRangeFieldTest extends DateTestBase {
       $field_name . '[0][value][date]' => '2016-04-01',
       $field_name . '[0][end_value][date]' => '2016-04-02',
     ];
-    $this->drupalPostForm('node/add/date_content', $edit, 'Save');
+    $this->drupalGet('node/add/date_content');
+    $this->submitForm($edit, 'Save');
     $this->drupalGet('admin/structure/types/manage/date_content/fields/node.date_content.' . $field_name . '/storage');
     $result = $this->xpath("//*[@id='edit-settings-datetime-type' and contains(@disabled, 'disabled')]");
     $this->assertCount(1, $result, "Changing datetime setting is disabled.");
-    $this->assertText('There is data for this field in the database. The field settings can no longer be changed.');
+    $this->assertSession()->pageTextContains('There is data for this field in the database. The field settings can no longer be changed.');
   }
 
 }

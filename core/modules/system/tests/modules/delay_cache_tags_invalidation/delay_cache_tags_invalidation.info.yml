@@ -2,3 +2,4 @@ name: 'Delay Cache Tags Invalidation Test'
 type: module
 package: Testing
 version: VERSION
+

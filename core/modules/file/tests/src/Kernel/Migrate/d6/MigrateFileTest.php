@@ -49,26 +49,28 @@ class MigrateFileTest extends MigrateDrupal6TestBase implements MigrateDumpAlter
    *   The expected MIME type.
    * @param int $uid
    *   The expected file owner ID.
+   *
+   * @internal
    */
-  protected function assertEntity($fid, $name, $size, $uri, $type, $uid) {
+  protected function assertEntity(int $fid, string $name, int $size, string $uri, string $type, int $uid): void {
     /** @var \Drupal\file\FileInterface $file */
     $file = File::load($fid);
     $this->assertInstanceOf(FileInterface::class, $file);
-    $this->assertIdentical($name, $file->getFilename());
-    $this->assertIdentical($size, $file->getSize());
-    $this->assertIdentical($uri, $file->getFileUri());
-    $this->assertIdentical($type, $file->getMimeType());
-    $this->assertIdentical($uid, $file->getOwnerId());
+    $this->assertSame($name, $file->getFilename());
+    $this->assertSame($size, (int) $file->getSize());
+    $this->assertSame($uri, $file->getFileUri());
+    $this->assertSame($type, $file->getMimeType());
+    $this->assertSame($uid, (int) $file->getOwnerId());
   }
 
   /**
    * Tests the Drupal 6 files to Drupal 8 migration.
    */
   public function testFiles() {
-    $this->assertEntity(1, 'Image1.png', '39325', 'public://image-1.png', 'image/png', '1');
-    $this->assertEntity(2, 'Image2.jpg', '1831', 'public://image-2.jpg', 'image/jpeg', '1');
-    $this->assertEntity(3, 'image-3.jpg', '1831', 'public://image-3.jpg', 'image/jpeg', '1');
-    $this->assertEntity(4, 'html-1.txt', '24', 'public://html-1.txt', 'text/plain', '1');
+    $this->assertEntity(1, 'Image1.png', 39325, 'public://image-1.png', 'image/png', 1);
+    $this->assertEntity(2, 'Image2.jpg', 1831, 'public://image-2.jpg', 'image/jpeg', 1);
+    $this->assertEntity(3, 'image-3.jpg', 1831, 'public://image-3.jpg', 'image/jpeg', 1);
+    $this->assertEntity(4, 'html-1.txt', 24, 'public://html-1.txt', 'text/plain', 1);
     // Ensure temporary file was not migrated.
     $this->assertNull(File::load(6));
 
@@ -107,7 +109,7 @@ class MigrateFileTest extends MigrateDrupal6TestBase implements MigrateDumpAlter
     // File 2, when migrated for the second time, is treated as a different file
     // (due to having a different uri this time) and is given fid 6.
     $file = File::load(6);
-    $this->assertIdentical('public://core/tests/fixtures/files/image-2.jpg', $file->getFileUri());
+    $this->assertSame('public://core/tests/fixtures/files/image-2.jpg', $file->getFileUri());
 
     $map_table = $this->getMigration('d6_file')->getIdMap()->mapTableName();
     $map = \Drupal::database()

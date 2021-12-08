@@ -5,3 +5,4 @@ package: Testing
 dependencies:
   - drupal:experimental_module_test
 version: VERSION
+

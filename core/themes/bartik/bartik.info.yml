@@ -42,6 +42,8 @@ libraries-extend:
     - bartik/classy.media_library
   media_library/widget:
     - bartik/classy.media_library
+  tour/tour:
+    - bartik/tour
   user/drupal.user:
     - bartik/user
 
@@ -71,3 +73,4 @@ regions:
   footer_third: 'Footer third'
   footer_fourth: 'Footer fourth'
   footer_fifth: 'Footer fifth'
+

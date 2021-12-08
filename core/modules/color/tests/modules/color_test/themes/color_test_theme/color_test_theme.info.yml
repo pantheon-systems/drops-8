@@ -5,3 +5,4 @@ description: 'Theme for testing the color module'
 version: VERSION
 libraries:
   - color_test_theme/base
+

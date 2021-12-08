@@ -3,7 +3,7 @@
 namespace Drupal\Tests\media\FunctionalJavascript;
 
 use Drupal\Component\Utility\Html;
-use Drupal\Core\Url;
+use Drupal\Core\Entity\Entity\EntityViewDisplay;
 use Drupal\editor\Entity\Editor;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\file\Entity\File;
@@ -72,7 +72,7 @@ class CKEditorIntegrationTest extends WebDriverTestBase {
     'media',
     'node',
     'text',
-    'media_test_ckeditor',
+    'media_test_embed',
   ];
 
   /**
@@ -224,7 +224,7 @@ class CKEditorIntegrationTest extends WebDriverTestBase {
     // extra class.
     // @see \Drupal\media\Plugin\Filter\MediaEmbed::renderMissingMediaIndicator()
     // @see core/modules/media/templates/media-embed-error.html.twig
-    // @see media_test_ckeditor_preprocess_media_embed_error()
+    // @see media_test_embed_preprocess_media_embed_error()
     $original_value = $this->host->body->value;
     $this->host->body->value = str_replace($this->media->uuid(), 'invalid_uuid', $original_value);
     $this->host->save();
@@ -280,7 +280,7 @@ class CKEditorIntegrationTest extends WebDriverTestBase {
 
     // Assert that when looking at an embedded entity in the CKEditor Widget,
     // the preview is generated using the default theme, not the admin theme.
-    // @see media_test_ckeditor_entity_view_alter()
+    // @see media_test_embed_entity_view_alter()
     $this->drupalGet($this->host->toUrl('edit-form'));
     $this->waitForEditor();
     $this->assignNameToCkeditorIframe();
@@ -483,7 +483,7 @@ class CKEditorIntegrationTest extends WebDriverTestBase {
   }
 
   /**
-   * Test the EditorMediaDialog's form elements' #access logic.
+   * Tests the EditorMediaDialog's form elements' #access logic.
    */
   public function testDialogAccess() {
     $page = $this->getSession()->getPage();
@@ -746,7 +746,7 @@ class CKEditorIntegrationTest extends WebDriverTestBase {
   }
 
   /**
-   * Test that dialog loads appropriate translation's alt text.
+   * Tests that dialog loads appropriate translation's alt text.
    */
   public function testTranslationAlt() {
     \Drupal::service('module_installer')->install(['language', 'content_translation']);
@@ -868,7 +868,9 @@ class CKEditorIntegrationTest extends WebDriverTestBase {
     if ($drupalimage_is_enabled) {
       // Add an image with a link wrapped around it.
       $uri = $this->media->field_media_image->entity->getFileUri();
-      $src = file_url_transform_relative(file_create_url($uri));
+      /** @var \Drupal\Core\File\FileUrlGeneratorInterface $file_url_generator */
+      $file_url_generator = \Drupal::service('file_url_generator');
+      $src = $file_url_generator->generateString($uri);
       $this->host->body->value .= '<a href="http://www.drupal.org/association"><img alt="drupalimage test image" data-entity-type="" data-entity-uuid="" src="' . $src . '" /></a></p>';
     }
     $this->host->save();
@@ -1034,14 +1036,13 @@ class CKEditorIntegrationTest extends WebDriverTestBase {
    * @dataProvider previewAccessProvider
    */
   public function testEmbedPreviewAccess($media_embed_enabled, $can_use_format) {
-    $format = FilterFormat::create([
-      'format' => $this->randomMachineName(),
-      'name' => $this->randomString(),
-      'filters' => [
-        'filter_align' => ['status' => TRUE],
-        'filter_caption' => ['status' => TRUE],
-        'media_embed' => ['status' => $media_embed_enabled],
-      ],
+    // Reconfigure the host entity's text format to suit our needs.
+    /** @var \Drupal\filter\FilterFormatInterface $format */
+    $format = FilterFormat::load($this->host->body->format);
+    $format->set('filters', [
+      'filter_align' => ['status' => TRUE],
+      'filter_caption' => ['status' => TRUE],
+      'media_embed' => ['status' => $media_embed_enabled],
     ]);
     $format->save();
 
@@ -1052,24 +1053,28 @@ class CKEditorIntegrationTest extends WebDriverTestBase {
       $permissions[] = $format->getPermissionName();
     }
     $this->drupalLogin($this->drupalCreateUser($permissions));
-
-    $text = '<drupal-media data-caption="baz" data-entity-type="media" data-entity-uuid="' . $this->media->uuid() . '"></drupal-media>';
-    $route_parameters = ['filter_format' => $format->id()];
-    $options = [
-      'query' => [
-        'text' => $text,
-        'uuid' => $this->media->uuid(),
-      ],
-    ];
-    $this->drupalGet(Url::fromRoute('media.filter.preview', $route_parameters, $options));
+    $this->drupalGet($this->host->toUrl('edit-form'));
 
     $assert_session = $this->assertSession();
-    if ($media_embed_enabled && $can_use_format) {
-      $assert_session->elementExists('css', 'img');
-      $assert_session->responseContains('baz');
+    if ($can_use_format) {
+      $this->waitForEditor();
+      $this->assignNameToCkeditorIframe();
+      $this->getSession()->switchToIFrame('ckeditor');
+      if ($media_embed_enabled) {
+        // The preview rendering, which in this test will use Classy's
+        // media.html.twig template, will fail without the CSRF token/header.
+        // @see ::testEmbeddedMediaPreviewWithCsrfToken()
+        $this->assertNotEmpty($assert_session->waitForElementVisible('css', 'article.media'));
+      }
+      else {
+        // If the filter isn't enabled, there won't be an error, but the
+        // preview shouldn't be rendered.
+        $assert_session->assertWaitOnAjaxRequest();
+        $assert_session->elementNotExists('css', 'article.media');
+      }
     }
     else {
-      $assert_session->responseContains('You are not authorized to access this page.');
+      $assert_session->pageTextContains('This field has been disabled because you do not have sufficient permissions to edit it.');
     }
   }
 
@@ -1169,6 +1174,29 @@ class CKEditorIntegrationTest extends WebDriverTestBase {
       'enabled' => TRUE,
       'label' => 'View Mode 2',
     ])->save();
+    EntityViewMode::create([
+      'id' => 'media.view_mode_3',
+      'targetEntityType' => 'media',
+      'status' => TRUE,
+      'enabled' => TRUE,
+      'label' => 'View Mode 3',
+    ])->save();
+
+    // Only enable view mode 1 & 2 for Image.
+    EntityViewDisplay::create([
+      'id' => 'media.image.view_mode_1',
+      'targetEntityType' => 'media',
+      'status' => TRUE,
+      'bundle' => 'image',
+      'mode' => 'view_mode_1',
+    ])->save();
+    EntityViewDisplay::create([
+      'id' => 'media.image.view_mode_2',
+      'targetEntityType' => 'media',
+      'status' => TRUE,
+      'bundle' => 'image',
+      'mode' => 'view_mode_2',
+    ])->save();
 
     $filter_format = FilterFormat::load('test_format');
     $filter_format->setFilterConfig('media_embed', [
@@ -1179,6 +1207,7 @@ class CKEditorIntegrationTest extends WebDriverTestBase {
         'allowed_view_modes' => [
           'view_mode_1' => 'view_mode_1',
           'view_mode_2' => 'view_mode_2',
+          'view_mode_3' => 'view_mode_3',
         ],
       ],
     ])->save();
@@ -1188,6 +1217,7 @@ class CKEditorIntegrationTest extends WebDriverTestBase {
     $expected_config_dependencies = [
       'core.entity_view_mode.media.view_mode_1',
       'core.entity_view_mode.media.view_mode_2',
+      'core.entity_view_mode.media.view_mode_3',
     ];
     $dependencies = $filter_format->getDependencies();
     $this->assertArrayHasKey('config', $dependencies);
@@ -1207,6 +1237,7 @@ class CKEditorIntegrationTest extends WebDriverTestBase {
     $this->waitForMetadataDialog();
     $assert_session->optionExists('attributes[data-view-mode]', 'view_mode_1');
     $assert_session->optionExists('attributes[data-view-mode]', 'view_mode_2');
+    $assert_session->optionNotExists('attributes[data-view-mode]', 'view_mode_3');
     $assert_session->selectExists('attributes[data-view-mode]')->selectOption('view_mode_2');
     $this->submitDialog();
     $this->getSession()->switchToIFrame('ckeditor');
@@ -1384,11 +1415,13 @@ class CKEditorIntegrationTest extends WebDriverTestBase {
    *
    * @param string $attribute
    *   The attribute to check.
-   * @param mixed $value
+   * @param string|null $value
    *   Either a string value or if NULL, asserts that <drupal-media> element
    *   doesn't have the attribute.
+   *
+   * @internal
    */
-  protected function assertSourceAttributeSame($attribute, $value) {
+  protected function assertSourceAttributeSame(string $attribute, ?string $value): void {
     $this->assertNotEmpty($drupal_media = $this->getDrupalMediaFromSource());
     if ($value === NULL) {
       $this->assertFalse($drupal_media->hasAttribute($attribute));
@@ -1493,8 +1526,10 @@ JS;
    *
    * @param string $label
    *   The `aria-label` attribute value of the context menu item.
+   *
+   * @internal
    */
-  protected function assertContextMenuItemExists($label) {
+  protected function assertContextMenuItemExists(string $label): void {
     $this->assertSession()->elementExists('xpath', '//a[@aria-label="' . $label . '"]');
   }
 
@@ -1503,8 +1538,10 @@ JS;
    *
    * @param string $label
    *   The `aria-label` attribute value of the context menu item.
+   *
+   * @internal
    */
-  protected function assertContextMenuItemNotExists($label) {
+  protected function assertContextMenuItemNotExists(string $label): void {
     $this->assertSession()->elementNotExists('xpath', '//a[@aria-label="' . $label . '"]');
   }
 
