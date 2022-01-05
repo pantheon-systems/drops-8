@@ -22,7 +22,8 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  *
  * For a full list, refer to the methods of this class.
  *
- * For available configuration keys, refer to the parent classes:
+ * For available configuration keys, refer to the parent classes.
+ *
  * @see \Drupal\migrate\Plugin\migrate\source\SqlBase
  * @see \Drupal\migrate\Plugin\migrate\source\SourcePluginBase
  */
@@ -105,8 +106,12 @@ abstract class DrupalSqlBase extends SqlBase implements DependentPluginInterface
     if ($this->pluginDefinition['requirements_met'] === TRUE) {
       if (isset($this->pluginDefinition['source_module'])) {
         if ($this->moduleExists($this->pluginDefinition['source_module'])) {
-          if (isset($this->pluginDefinition['minimum_schema_version']) && !$this->getModuleSchemaVersion($this->pluginDefinition['source_module']) < $this->pluginDefinition['minimum_schema_version']) {
-            throw new RequirementsException('Required minimum schema version ' . $this->pluginDefinition['minimum_schema_version'], ['minimum_schema_version' => $this->pluginDefinition['minimum_schema_version']]);
+          if (isset($this->pluginDefinition['minimum_version'])) {
+            $minimum_version = $this->pluginDefinition['minimum_version'];
+            $installed_version = $this->getModuleSchemaVersion($this->pluginDefinition['source_module']);
+            if ($minimum_version > $installed_version) {
+              throw new RequirementsException('Required minimum version ' . $this->pluginDefinition['minimum_version'], ['minimum_version' => $this->pluginDefinition['minimum_version']]);
+            }
           }
         }
         else {
@@ -128,7 +133,7 @@ abstract class DrupalSqlBase extends SqlBase implements DependentPluginInterface
    */
   protected function getModuleSchemaVersion($module) {
     $system_data = $this->getSystemData();
-    return isset($system_data['module'][$module]['schema_version']) ? $system_data['module'][$module]['schema_version'] : FALSE;
+    return $system_data['module'][$module]['schema_version'] ?? FALSE;
   }
 
   /**

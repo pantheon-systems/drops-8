@@ -15,6 +15,7 @@ use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\DependencyInjection\ServiceModifierInterface;
 use Drupal\Core\DependencyInjection\ServiceProviderInterface;
 use Drupal\Core\DependencyInjection\YamlFileLoader;
+use Drupal\Core\Extension\Extension;
 use Drupal\Core\Extension\ExtensionDiscovery;
 use Drupal\Core\File\MimeType\MimeTypeGuesser;
 use Drupal\Core\Http\TrustedHostsRequestFactory;
@@ -457,7 +458,7 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
     // Provide a default configuration, if not set.
     if (!isset($configuration['default'])) {
       // @todo Use extension_loaded('apcu') for non-testbot
-      //  https://www.drupal.org/node/2447753.
+      //   https://www.drupal.org/node/2447753.
       if (function_exists('apcu_fetch')) {
         $configuration['default']['cache_backend_class'] = '\Drupal\Component\FileCache\ApcuFileCacheBackend';
       }
@@ -513,6 +514,7 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
     }
     $this->container->get('stream_wrapper_manager')->unregister();
     $this->booted = FALSE;
+    $this->configStorage = NULL;
     $this->container = NULL;
     $this->moduleList = NULL;
     $this->moduleData = [];
@@ -633,7 +635,7 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
         $this->containerNeedsDumping = FALSE;
         $GLOBALS['conf']['container_service_providers']['InstallerServiceProvider'] = 'Drupal\Core\Installer\InstallerServiceProvider';
       }
-      $this->moduleList = isset($extensions['module']) ? $extensions['module'] : [];
+      $this->moduleList = $extensions['module'] ?? [];
     }
     $module_filenames = $this->getModuleFileNames();
     $this->classLoaderAddMultiplePsr4($this->getModuleNamespacesPsr4($module_filenames));
@@ -688,7 +690,7 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
   /**
    * {@inheritdoc}
    */
-  public function handle(Request $request, $type = self::MASTER_REQUEST, $catch = TRUE) {
+  public function handle(Request $request, $type = self::MASTER_REQUEST, $catch = TRUE): Response {
     // Ensure sane PHP environment variables.
     static::bootEnvironment();
 
@@ -768,7 +770,7 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
       $all_profiles = $listing->scan('profile');
       $profiles = array_intersect_key($all_profiles, $this->moduleList);
 
-      $profile_directories = array_map(function ($profile) {
+      $profile_directories = array_map(function (Extension $profile) {
         return $profile->getPath();
       }, $profiles);
       $listing->setProfileDirectories($profile_directories);
@@ -776,7 +778,7 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
       // Now find modules.
       $this->moduleData = $profiles + $listing->scan('module');
     }
-    return isset($this->moduleData[$module]) ? $this->moduleData[$module] : FALSE;
+    return $this->moduleData[$module] ?? FALSE;
   }
 
   /**
@@ -927,9 +929,9 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
     }
 
     // The request stack is preserved across container rebuilds. Reinject the
-    // new session into the master request if one was present before.
+    // new session into the main request if one was present before.
     if (($request_stack = $this->container->get('request_stack', ContainerInterface::NULL_ON_INVALID_REFERENCE))) {
-      if ($request = $request_stack->getMasterRequest()) {
+      if ($request = $request_stack->getMainRequest()) {
         $subrequest = TRUE;
         if ($request->hasSession()) {
           $request->setSession($this->container->get('session'));
@@ -1223,7 +1225,7 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
       $path = 'core/lib/Drupal/' . $parent_directory;
       $parent_namespace = 'Drupal\\' . $parent_directory;
       foreach (new \DirectoryIterator($this->root . '/' . $path) as $component) {
-        /** @var $component \DirectoryIterator */
+        /** @var \DirectoryIterator $component */
         $pathname = $component->getPathname();
         if (!$component->isDot() && $component->isDir() && (
           is_dir($pathname . '/Plugin') ||

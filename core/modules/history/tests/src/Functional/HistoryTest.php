@@ -49,6 +49,7 @@ class HistoryTest extends BrowserTestBase {
 
     $this->user = $this->drupalCreateUser([
       'create page content',
+      'edit own page content',
       'access content',
     ]);
     $this->drupalLogin($this->user);
@@ -103,11 +104,16 @@ class HistoryTest extends BrowserTestBase {
   public function testHistory() {
     $nid = $this->testNode->id();
 
+    // Verify that previews of new entities do not create the history.
+    $this->drupalGet("node/add/page");
+    $this->submitForm(['title[0][value]' => 'Unsaved page'], 'Preview');
+    $this->assertArrayNotHasKey('ajaxPageState', $this->getDrupalSettings());
+
     // Retrieve "last read" timestamp for test node, for the current user.
     $response = $this->getNodeReadTimestamps([$nid]);
     $this->assertEquals(200, $response->getStatusCode());
     $json = Json::decode($response->getBody());
-    $this->assertIdentical([1 => 0], $json, 'The node has not yet been read.');
+    $this->assertSame([1 => 0], $json, 'The node has not yet been read.');
 
     // View the node.
     $this->drupalGet('node/' . $nid);
@@ -116,7 +122,7 @@ class HistoryTest extends BrowserTestBase {
     $settings = $this->getDrupalSettings();
     $libraries = explode(',', $settings['ajaxPageState']['libraries']);
     $this->assertContains('history/mark-as-read', $libraries, 'history/mark-as-read library is present.');
-    $this->assertEqual([$nid => TRUE], $settings['history']['nodesToMarkAsRead'], 'drupalSettings to mark node as read are present.');
+    $this->assertEquals([$nid => TRUE], $settings['history']['nodesToMarkAsRead'], 'drupalSettings to mark node as read are present.');
 
     // Simulate JavaScript: perform HTTP request to mark node as read.
     $response = $this->markNodeAsRead($nid);
@@ -128,11 +134,16 @@ class HistoryTest extends BrowserTestBase {
     $response = $this->getNodeReadTimestamps([$nid]);
     $this->assertEquals(200, $response->getStatusCode());
     $json = Json::decode($response->getBody());
-    $this->assertIdentical([1 => $timestamp], $json, 'The node has been read.');
+    $this->assertSame([1 => $timestamp], $json, 'The node has been read.');
 
     // Failing to specify node IDs for the first endpoint should return a 404.
     $response = $this->getNodeReadTimestamps([]);
     $this->assertEquals(404, $response->getStatusCode());
+
+    // Verify that previews of existing entities do not update the history.
+    $this->drupalGet("node/$nid/edit");
+    $this->submitForm([], 'Preview');
+    $this->assertArrayNotHasKey('ajaxPageState', $this->getDrupalSettings());
 
     // Accessing either endpoint as the anonymous user should return a 403.
     $this->drupalLogout();
@@ -142,6 +153,13 @@ class HistoryTest extends BrowserTestBase {
     $this->assertEquals(403, $response->getStatusCode());
     $response = $this->markNodeAsRead($nid);
     $this->assertEquals(403, $response->getStatusCode());
+
+    // Additional check to ensure that we did not forget to verify anything.
+    $rows = \Drupal::database()->query('SELECT * FROM {history}')->fetchAll();
+    $this->assertCount(1, $rows);
+    $this->assertSame($this->user->id(), $rows[0]->uid);
+    $this->assertSame($this->testNode->id(), $rows[0]->nid);
+    $this->assertSame($timestamp, (int) $rows[0]->timestamp);
   }
 
 }

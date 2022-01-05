@@ -19,7 +19,7 @@ class Upsert extends QueryUpsert {
       return NULL;
     }
 
-    $stmt = $this->connection->prepareStatement((string) $this, $this->queryOptions);
+    $stmt = $this->connection->prepareStatement((string) $this, $this->queryOptions, TRUE);
 
     // Fetch the list of blobs and sequences used on that table.
     $table_information = $this->connection->schema()->queryTableInformation($this->table);
@@ -29,7 +29,7 @@ class Upsert extends QueryUpsert {
     $blob_count = 0;
     foreach ($this->insertValues as $insert_values) {
       foreach ($this->insertFields as $idx => $field) {
-        if (isset($table_information->blob_fields[$field])) {
+        if (isset($table_information->blob_fields[$field]) && $insert_values[$idx] !== NULL) {
           $blobs[$blob_count] = fopen('php://memory', 'a');
           fwrite($blobs[$blob_count], $insert_values[$idx]);
           rewind($blobs[$blob_count]);
@@ -80,15 +80,14 @@ class Upsert extends QueryUpsert {
     // example, \Drupal\Core\Cache\DatabaseBackend.
     $this->connection->addSavepoint();
     try {
-      $this->connection->query($stmt, [], $options);
+      $stmt->execute(NULL, $options);
       $this->connection->releaseSavepoint();
+      return $stmt->rowCount();
     }
     catch (\Exception $e) {
       $this->connection->rollbackSavepoint();
-      throw $e;
+      $this->connection->exceptionHandler()->handleExecutionException($e, $stmt, [], $options);
     }
-
-    return TRUE;
   }
 
   /**
@@ -100,8 +99,8 @@ class Upsert extends QueryUpsert {
 
     // Default fields are always placed first for consistency.
     $insert_fields = array_merge($this->defaultFields, $this->insertFields);
-    $insert_fields = array_map(function ($f) {
-      return $this->connection->escapeField($f);
+    $insert_fields = array_map(function ($field) {
+      return $this->connection->escapeField($field);
     }, $insert_fields);
 
     $query = $comments . 'INSERT INTO {' . $this->table . '} (' . implode(', ', $insert_fields) . ') VALUES ';
@@ -114,6 +113,8 @@ class Upsert extends QueryUpsert {
 
     $update = [];
     foreach ($insert_fields as $field) {
+      // The "excluded." prefix causes the field to refer to the value for field
+      // that would have been inserted had there been no conflict.
       $update[] = "$field = EXCLUDED.$field";
     }
 

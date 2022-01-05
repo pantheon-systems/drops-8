@@ -17,9 +17,9 @@ class MediaEmbedFilterTest extends MediaEmbedFilterTestBase {
    * {@inheritdoc}
    */
   protected static $modules = [
-    // @see media_test_filter_entity_access()
-    // @see media_test_filter_entity_view_alter()
-    'media_test_filter',
+    // @see media_test_embed_entity_access()
+    // @see media_test_embed_entity_view_alter()
+    'media_test_embed',
   ];
 
   /**
@@ -34,8 +34,8 @@ class MediaEmbedFilterTest extends MediaEmbedFilterTestBase {
 
     $this->assertCount(1, $this->cssSelect('div[data-media-embed-test-view-mode="' . $expected_view_mode . '"]'));
     $this->assertHasAttributes($this->cssSelect('div[data-media-embed-test-view-mode="' . $expected_view_mode . '"]')[0], $expected_attributes);
-    $this->assertSame($expected_cacheability->getCacheTags(), $result->getCacheTags());
-    $this->assertSame($expected_cacheability->getCacheContexts(), $result->getCacheContexts());
+    $this->assertEqualsCanonicalizing($expected_cacheability->getCacheTags(), $result->getCacheTags());
+    $this->assertEqualsCanonicalizing($expected_cacheability->getCacheContexts(), $result->getCacheContexts());
     $this->assertSame($expected_cacheability->getCacheMaxAge(), $result->getCacheMaxAge());
     $this->assertSame(['library'], array_keys($result->getAttachments()));
     $this->assertSame(['media/filter.caption'], $result->getAttachments()['library']);
@@ -47,8 +47,8 @@ class MediaEmbedFilterTest extends MediaEmbedFilterTestBase {
   public function providerTestBasics() {
     $default_cacheability = (new CacheableMetadata())
       ->setCacheTags([
-        '_media_test_filter_access:media:1',
-        '_media_test_filter_access:user:2',
+        '_media_test_embed_filter_access:media:1',
+        '_media_test_embed_filter_access:user:2',
         'config:image.style.thumbnail',
         'file:1',
         'media:1',
@@ -98,13 +98,13 @@ class MediaEmbedFilterTest extends MediaEmbedFilterTestBase {
         [],
         (new CacheableMetadata())
           ->setCacheTags([
-            '_media_test_filter_access:media:1',
+            '_media_test_embed_filter_access:media:1',
             'config:image.style.medium',
             'file:1',
             'media:1',
             'media_view',
           ])
-          ->setCacheContexts(['url.site', 'user.permissions'])
+          ->setCacheContexts(['user.permissions'])
           ->setCacheMaxAge(Cache::PERMANENT),
       ],
       'custom attributes are retained' => [
@@ -152,8 +152,8 @@ class MediaEmbedFilterTest extends MediaEmbedFilterTestBase {
       $this->assertCount(1, $this->cssSelect('div[data-media-embed-test-view-mode="default"]'));
     }
 
-    $this->assertSame($expected_cacheability->getCacheTags(), $result->getCacheTags());
-    $this->assertSame($expected_cacheability->getCacheContexts(), $result->getCacheContexts());
+    $this->assertEqualsCanonicalizing($expected_cacheability->getCacheTags(), $result->getCacheTags());
+    $this->assertEqualsCanonicalizing($expected_cacheability->getCacheContexts(), $result->getCacheContexts());
     $this->assertSame($expected_cacheability->getCacheMaxAge(), $result->getCacheMaxAge());
     $this->assertSame($expected_attachments, $result->getAttachments());
   }
@@ -168,7 +168,7 @@ class MediaEmbedFilterTest extends MediaEmbedFilterTestBase {
         FALSE,
         (new CacheableMetadata())
           ->setCacheTags([
-            '_media_test_filter_access:media:1',
+            '_media_test_embed_filter_access:media:1',
             'media:1',
             'media_view',
           ])
@@ -181,8 +181,8 @@ class MediaEmbedFilterTest extends MediaEmbedFilterTestBase {
         TRUE,
         (new CacheableMetadata())
           ->setCacheTags([
-            '_media_test_filter_access:media:1',
-            '_media_test_filter_access:user:2',
+            '_media_test_embed_filter_access:media:1',
+            '_media_test_embed_filter_access:user:2',
             'config:image.style.thumbnail',
             'file:1',
             'media:1',
@@ -408,16 +408,16 @@ class MediaEmbedFilterTest extends MediaEmbedFilterTestBase {
     $this->setRawContent($result->getProcessedText());
     $this->assertCount($expected_verification_success ? 1 : 0, $this->cssSelect($verification_selector));
     $this->assertCount(1, $this->cssSelect('div[data-media-embed-test-view-mode="default"]'));
-    $this->assertSame([
-      '_media_test_filter_access:media:1',
-      '_media_test_filter_access:user:2',
+    $this->assertEqualsCanonicalizing([
+      '_media_test_embed_filter_access:media:1',
+      '_media_test_embed_filter_access:user:2',
       'config:image.style.thumbnail',
       'file:1',
       'media:1',
       'media_view',
       'user:2',
     ], $result->getCacheTags());
-    $this->assertSame(['timezone', 'user.permissions'], $result->getCacheContexts());
+    $this->assertEqualsCanonicalizing(['timezone', 'user.permissions'], $result->getCacheContexts());
     $this->assertSame(Cache::PERMANENT, $result->getCacheMaxAge());
     $this->assertSame(['library'], array_keys($result->getAttachments()));
     $this->assertSame($expected_asset_libraries, $result->getAttachments()['library']);

@@ -6,8 +6,8 @@
  * Displays status, error, and warning messages, grouped by type.
  *
  * An invisible heading identifies the messages for assistive technology.
- * Sighted users see a colored box. See http://www.w3.org/TR/WCAG-TECHS/H69.html
- * for info.
+ * Sighted users see a colored box. See
+ * https://www.w3.org/TR/WCAG-TECHS/H69.html for info.
  *
  * Add an ARIA label to the contentinfo area so that assistive technology
  * user agents will better describe this landmark.
@@ -31,8 +31,13 @@
     ]
     %}
 
-    <div role="contentinfo" aria-label="{{ status_headings[type] }}"{{ attributes.addClass(classes)|without('role', 'aria-label') }}>
-      <div class="messages__container"{% if type == 'error' %} role="alert"{% endif %}>
+    <div{{ attributes
+      .addClass(classes)
+      .setAttribute('data-drupal-selector', 'messages')
+      .setAttribute('role', 'contentinfo')
+      .setAttribute('aria-label', status_headings[type])
+      }}>
+      <div class="messages__container" data-drupal-selector="messages-container"{% if type == 'error' %} role="alert"{% endif %}>
         {% if status_headings[type] %}
           <div class="messages__header">
            <h2 class="visually-hidden">{{ status_headings[type] }}</h2>

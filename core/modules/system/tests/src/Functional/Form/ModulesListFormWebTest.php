@@ -44,7 +44,7 @@ class ModulesListFormWebTest extends BrowserTestBase {
     $this->assertSession()->elementExists('xpath', "//a[contains(@href, '/system-test/configure/bar') and text()='Configure ']/span[contains(@class, 'visually-hidden') and text()='the System test module']");
 
     // Check that system_test's permissions link was rendered correctly.
-    $this->assertSession()->elementExists('xpath', "//a[contains(@href, '/admin/people/permissions#module-system_test') and @title='Configure permissions']");
+    $this->assertSession()->elementExists('xpath', "//a[contains(@href, '/admin/people/permissions/module/system_test') and @title='Configure permissions']");
 
     // Check that system_test's help link was rendered correctly.
     $this->assertSession()->elementExists('xpath', "//a[contains(@href, '/admin/help/system_test') and @title='Help']");
@@ -52,7 +52,33 @@ class ModulesListFormWebTest extends BrowserTestBase {
     // Ensure that the Database Logging module's machine name is printed. This
     // module is used because its machine name is different than its human
     // readable name.
-    $this->assertText('dblog');
+    $this->assertSession()->pageTextContains('dblog');
+  }
+
+  /**
+   * Tests the status message when enabling one or more modules.
+   */
+  public function testModulesListFormStatusMessage() {
+    $this->drupalGet('admin/modules');
+
+    // Enable a module that does not define permissions.
+    $edit = ['modules[layout_discovery][enable]' => 'layout_discovery'];
+    $this->submitForm($edit, 'Install');
+    $this->assertSession()->elementTextContains('xpath', "//div[@role='contentinfo' and h2[text()='Status message']]", 'Module Layout Discovery has been enabled.');
+    $this->assertSession()->elementNotExists('xpath', "//div[@role='contentinfo' and h2[text()='Status message']]//a");
+
+    // Enable a module that defines permissions.
+    $edit = ['modules[action][enable]' => 'action'];
+    $this->submitForm($edit, 'Install');
+    $this->assertSession()->elementTextContains('xpath', "//div[@role='contentinfo' and h2[text()='Status message']]", 'Module Actions has been enabled.');
+    $this->assertSession()->elementExists('xpath', "//div[@role='contentinfo' and h2[text()='Status message']]//a[contains(@href, '/admin/people/permissions/module/action')]");
+
+    // Enable a module that has dependencies and both define permissions.
+    $edit = ['modules[content_moderation][enable]' => 'content_moderation'];
+    $this->submitForm($edit, 'Install');
+    $this->submitForm([], 'Continue');
+    $this->assertSession()->elementTextContains('xpath', "//div[@role='contentinfo' and h2[text()='Status message']]", '2 modules have been enabled: Content Moderation, Workflows.');
+    $this->assertSession()->elementExists('xpath', "//div[@role='contentinfo' and h2[text()='Status message']]//a[contains(@href, '/admin/people/permissions/module/content_moderation%2Cworkflows')]");
   }
 
   /**
@@ -142,8 +168,8 @@ BROKEN,
     file_put_contents($file_path, Yaml::encode($compatible_info));
     $edit = ['modules[changing_module][enable]' => 'changing_module'];
     $this->drupalGet('admin/modules');
-    $this->drupalPostForm('admin/modules', $edit, 'Install');
-    $this->assertText('Module Module that changes has been enabled.');
+    $this->submitForm($edit, 'Install');
+    $this->assertSession()->pageTextContains('Module Module that changes has been enabled.');
 
     $incompatible_updates = [
       [
@@ -157,23 +183,24 @@ BROKEN,
       $incompatible_info = $info + $incompatible_update;
       file_put_contents($file_path, Yaml::encode($incompatible_info));
       $this->drupalGet('admin/modules');
-      $this->assertText($incompatible_modules_message);
+      $this->assertSession()->pageTextContains($incompatible_modules_message);
 
       file_put_contents($file_path, Yaml::encode($compatible_info));
       $this->drupalGet('admin/modules');
-      $this->assertNoText($incompatible_modules_message);
+      $this->assertSession()->pageTextNotContains($incompatible_modules_message);
     }
     // Uninstall the module and ensure that incompatible modules message is not
     // displayed for modules that are not installed.
     $edit = ['uninstall[changing_module]' => 'changing_module'];
-    $this->drupalPostForm('admin/modules/uninstall', $edit, 'Uninstall');
+    $this->drupalGet('admin/modules/uninstall');
+    $this->submitForm($edit, 'Uninstall');
     $this->submitForm([], 'Uninstall');
-    $this->assertText('The selected modules have been uninstalled.');
+    $this->assertSession()->pageTextContains('The selected modules have been uninstalled.');
     foreach ($incompatible_updates as $incompatible_update) {
       $incompatible_info = $info + $incompatible_update;
       file_put_contents($file_path, Yaml::encode($incompatible_info));
       $this->drupalGet('admin/modules');
-      $this->assertNoText($incompatible_modules_message);
+      $this->assertSession()->pageTextNotContains($incompatible_modules_message);
     }
   }
 

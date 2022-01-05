@@ -108,10 +108,9 @@ class ToolbarCacheContextsTest extends BrowserTestBase {
    * @param string $message
    *   (optional) A verbose message to output.
    *
-   * @return
-   *   TRUE if the assertion succeeded, FALSE otherwise.
+   * @internal
    */
-  protected function assertToolbarCacheContexts(array $cache_contexts, $message = NULL) {
+  protected function assertToolbarCacheContexts(array $cache_contexts, string $message = NULL): void {
     // Default cache contexts that should exist on all test cases.
     $default_cache_contexts = [
       'languages:language_interface',
@@ -123,16 +122,13 @@ class ToolbarCacheContextsTest extends BrowserTestBase {
     // Assert contexts for user1 which has only default permissions.
     $this->drupalLogin($this->adminUser);
     $this->drupalGet('test-page');
-    $return = $this->assertCacheContexts($cache_contexts);
+    $this->assertCacheContexts($cache_contexts, $message);
     $this->drupalLogout();
 
     // Assert contexts for user2 which has some additional permissions.
     $this->drupalLogin($this->adminUser2);
     $this->drupalGet('test-page');
-    $return = $return && $this->assertCacheContexts($cache_contexts);
-
-    $this->assertTrue($return, $message);
-    return $return;
+    $this->assertCacheContexts($cache_contexts, $message);
   }
 
   /**

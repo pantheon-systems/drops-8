@@ -30,6 +30,7 @@ use Drupal\migrate\Row;
  *       plugin: migration_lookup
  *       migration: users
  *       source: author
+ *       no_stub: true
  *     -
  *       plugin: default_value
  *       default_value: 44
@@ -52,7 +53,7 @@ class DefaultValue extends ProcessPluginBase {
    */
   public function transform($value, MigrateExecutableInterface $migrate_executable, Row $row, $destination_property) {
     if (!empty($this->configuration['strict'])) {
-      return isset($value) ? $value : $this->configuration['default_value'];
+      return $value ?? $this->configuration['default_value'];
     }
     return $value ?: $this->configuration['default_value'];
   }

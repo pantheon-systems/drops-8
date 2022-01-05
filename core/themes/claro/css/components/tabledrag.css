@@ -27,7 +27,7 @@ body.drag {
 /* Empty region message row in table. */
 
 .region-message {
-  color: #82828c;
+  color: #828388;
 }
 
 /* If the region is populated, we shouldn't display the empty message. */
@@ -204,6 +204,12 @@ body.drag {
 
 [dir="rtl"] .tabledrag-toggle-weight-wrapper {
   text-align: left;
+}
+
+/* Hide nested weight toggles as they are redundant. */
+
+.draggable-table .tabledrag-toggle-weight-wrapper {
+  display: none;
 }
 
 /**

@@ -80,6 +80,9 @@ class ContextDefinition implements ContextDefinitionInterface {
    *   The created context definition object.
    */
   public static function create($data_type = 'any') {
+    if (strpos($data_type, 'entity:') === 0) {
+      return new EntityContextDefinition($data_type);
+    }
     return new static(
       $data_type
     );
@@ -215,7 +218,7 @@ class ContextDefinition implements ContextDefinitionInterface {
    */
   public function getConstraint($constraint_name) {
     $constraints = $this->getConstraints();
-    return isset($constraints[$constraint_name]) ? $constraints[$constraint_name] : NULL;
+    return $constraints[$constraint_name] ?? NULL;
   }
 
   /**

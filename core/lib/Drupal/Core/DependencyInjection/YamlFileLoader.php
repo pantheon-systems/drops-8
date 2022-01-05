@@ -1,5 +1,7 @@
 <?php
-// @codingStandardsIgnoreFile
+
+// phpcs:ignoreFile Portions of this file are a direct copy of
+// \Symfony\Component\DependencyInjection\Loader\YamlFileLoader.
 
 namespace Drupal\Core\DependencyInjection;
 
@@ -117,10 +119,12 @@ class YamlFileLoader
         }
         else {
             $basename = basename($file);
-            list($provider, ) = explode('.', $basename, 2);
+            [$provider, ] = explode('.', $basename, 2);
         }
         foreach ($content['services'] as $id => $service) {
-            $service['tags'][] = ['name' => '_provider', 'provider' => $provider];
+            if (is_array($service)) {
+              $service['tags'][] = ['name' => '_provider', 'provider' => $provider];
+            }
             $this->parseDefinition($id, $service, $file);
         }
     }
@@ -143,16 +147,30 @@ class YamlFileLoader
             return;
         }
 
+        if (null === $service) {
+            $service = [];
+        }
+
         if (!is_array($service)) {
             throw new InvalidArgumentException(sprintf('A service definition must be an array or a string starting with "@" but %s found for service "%s" in %s. Check your YAML syntax.', gettype($service), $id, $file));
         }
 
         if (isset($service['alias'])) {
-            $public = !array_key_exists('public', $service) || (bool) $service['public'];
-            $alias = $this->container->setAlias($id, new Alias($service['alias'], $public));
+            $alias = $this->container->setAlias($id, new Alias($service['alias']));
+
+            if (array_key_exists('public', $service)) {
+                $alias->setPublic($service['public']);
+            }
 
             if (array_key_exists('deprecated', $service)) {
-                $alias->setDeprecated(true, $service['deprecated']);
+                if (method_exists($alias, 'getDeprecation')) {
+                    $deprecation = \is_array($service['deprecated']) ? $service['deprecated'] : ['message' => $service['deprecated']];
+                    $alias->setDeprecated($deprecation['package'] ?? '', $deprecation['version'] ?? '', $deprecation['message']);
+                } else {
+                    // @todo Remove when we no longer support Symfony 4 in
+                    // https://www.drupal.org/project/drupal/issues/3197729
+                    $alias->setDeprecated(true, $service['deprecated']);
+                }
             }
 
             return;
@@ -183,13 +201,23 @@ class YamlFileLoader
         if (isset($service['public'])) {
             $definition->setPublic($service['public']);
         }
+        else {
+            $definition->setPublic(true);
+        }
 
         if (isset($service['abstract'])) {
             $definition->setAbstract($service['abstract']);
         }
 
         if (array_key_exists('deprecated', $service)) {
-            $definition->setDeprecated(true, $service['deprecated']);
+            if (method_exists($definition, 'getDeprecation')) {
+                $deprecation = \is_array($service['deprecated']) ? $service['deprecated'] : ['message' => $service['deprecated']];
+                $definition->setDeprecated($deprecation['package'] ?? '', $deprecation['version'] ?? '', $deprecation['message']);
+            } else {
+                // @todo Remove when we no longer support Symfony 4 in
+                // https://www.drupal.org/project/drupal/issues/3197729
+                $definition->setDeprecated(true, $service['deprecated']);
+            }
         }
 
         if (isset($service['factory'])) {
@@ -283,8 +311,8 @@ class YamlFileLoader
         }
 
         if (isset($service['decorates'])) {
-            $renameId = isset($service['decoration_inner_name']) ? $service['decoration_inner_name'] : null;
-            $priority = isset($service['decoration_priority']) ? $service['decoration_priority'] : 0;
+            $renameId = $service['decoration_inner_name'] ?? null;
+            $priority = $service['decoration_priority'] ?? 0;
             $definition->setDecoratedService($service['decorates'], $renameId, $priority);
         }
 

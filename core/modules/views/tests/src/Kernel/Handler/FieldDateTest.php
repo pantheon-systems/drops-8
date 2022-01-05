@@ -3,6 +3,7 @@
 namespace Drupal\Tests\views\Kernel\Handler;
 
 use Drupal\Tests\views\Kernel\ViewsKernelTestBase;
+use Drupal\views\ViewExecutable;
 use Drupal\views\Views;
 
 /**
@@ -75,7 +76,7 @@ class FieldDateTest extends ViewsKernelTestBase {
         'table' => 'views_test_data',
         'field' => 'created',
         'relationship' => 'none',
-        // ISO 8601 format, see http://php.net/manual/function.date.php
+        // ISO 8601 format, see https://www.php.net/manual/datetime.format.php
         'custom_date_format' => 'c',
       ],
       'destroyed' => [
@@ -122,10 +123,10 @@ class FieldDateTest extends ViewsKernelTestBase {
     $time_since = $date_formatter->formatTimeDiffSince($time);
     $intervals = [
       'raw time ago' => $time_since,
-      'time ago' => t('%time ago', ['%time' => $time_since]),
+      'time ago' => "$time_since ago",
       'raw time span' => $time_since,
       'inverse time span' => "-$time_since",
-      'time span' => t('%time ago', ['%time' => $time_since]),
+      'time span' => "$time_since ago",
     ];
     $this->assertRenderedDatesEqual($view, $intervals);
 
@@ -134,9 +135,7 @@ class FieldDateTest extends ViewsKernelTestBase {
     $formatted = $date_formatter->formatTimeDiffUntil($time);
     $intervals = [
       'raw time span' => "-$formatted",
-      'time span' => t('%time hence', [
-        '%time' => $formatted,
-      ]),
+      'time span' => "$formatted hence",
     ];
     $this->assertRenderedFutureDatesEqual($view, $intervals);
   }
@@ -144,52 +143,45 @@ class FieldDateTest extends ViewsKernelTestBase {
   /**
    * Asserts properly formatted display against 'created' field in view.
    *
-   * @param mixed $view
+   * @param \Drupal\views\ViewExecutable $view
    *   View to be tested.
    * @param array $map
    *   Data map.
-   * @param null $timezone
+   * @param string|null $timezone
    *   Optional timezone.
+   *
+   * @internal
    */
-  protected function assertRenderedDatesEqual($view, $map, $timezone = NULL) {
+  protected function assertRenderedDatesEqual(ViewExecutable $view, array $map, ?string $timezone = NULL): void {
     foreach ($map as $date_format => $expected_result) {
       $view->field['created']->options['date_format'] = $date_format;
-      $t_args = [
-        '%value' => $expected_result,
-        '%format' => $date_format,
-      ];
       if (isset($timezone)) {
-        $t_args['%timezone'] = $timezone;
-        $message = t('Value %value in %format format for timezone %timezone matches.', $t_args);
+        $message = "$date_format format for timezone $timezone matches.";
         $view->field['created']->options['timezone'] = $timezone;
       }
       else {
-        $message = t('Value %value in %format format matches.', $t_args);
+        $message = "$date_format format matches.";
       }
       $actual_result = $view->field['created']->advancedRender($view->result[0]);
-      $this->assertEqual($expected_result, $actual_result, $message);
+      $this->assertEquals($expected_result, strip_tags($actual_result), $message);
     }
   }
 
   /**
    * Asserts properly formatted display against 'destroyed' field in view.
    *
-   * @param mixed $view
+   * @param \Drupal\views\ViewExecutable $view
    *   View to be tested.
    * @param array $map
    *   Data map.
+   *
+   * @internal
    */
-  protected function assertRenderedFutureDatesEqual($view, $map) {
+  protected function assertRenderedFutureDatesEqual(ViewExecutable $view, array $map): void {
     foreach ($map as $format => $result) {
       $view->field['destroyed']->options['date_format'] = $format;
       $view_result = $view->field['destroyed']->advancedRender($view->result[0]);
-      $t_args = [
-        '%value' => $result,
-        '%format' => $format,
-        '%actual' => $view_result,
-      ];
-      $message = t('Value %value in %format matches %actual', $t_args);
-      $this->assertEqual($view_result, $result, $message);
+      $this->assertEquals($result, strip_tags($view_result), "$format format matches.");
     }
   }
 
