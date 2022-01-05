@@ -1,17 +1,19 @@
 /**
  * @file
- * Messages.
+ * Customization of messages.
  */
 
-((Drupal) => {
+((Drupal, once) => {
   /**
-   * Adds close button to the message.
+   * Adds a close button to the message.
    *
    * @param {object} message
    *   The message object.
    */
   const closeMessage = (message) => {
-    const messageContainer = message.querySelector('.messages__container');
+    const messageContainer = message.querySelector(
+      '[data-drupal-selector="messages-container"]',
+    );
 
     const closeBtnWrapper = document.createElement('div');
     closeBtnWrapper.setAttribute('class', 'messages__button');
@@ -27,8 +29,6 @@
     messageContainer.appendChild(closeBtnWrapper);
     closeBtnWrapper.appendChild(closeBtn);
     closeBtn.appendChild(closeBtnText);
-
-    message.classList.add('messages-processed');
 
     closeBtn.addEventListener('click', () => {
       message.classList.add('hidden');
@@ -58,8 +58,9 @@
 
     messageWrapper.setAttribute(
       'class',
-      `messages-list__item messages messages--${type} messages-processed`,
+      `messages-list__item messages messages--${type}`,
     );
+    messageWrapper.setAttribute('data-drupal-selector', 'messages');
     messageWrapper.setAttribute(
       'role',
       type === 'error' || type === 'warning' ? 'alert' : 'status',
@@ -93,7 +94,7 @@
     }
 
     messageWrapper.innerHTML = `
-    <div class="messages__container">
+    <div class="messages__container" data-drupal-selector="messages-container">
       <div class="messages__header${!svg ? ' no-icon' : ''}">
         <h2 class="visually-hidden">${messagesTypes[type]}</h2>
         ${svg}
@@ -110,17 +111,18 @@
   };
 
   /**
-   * Getting messages from context.
+   * Get messages from context.
+   *
+   * @type {Drupal~behavior}
+   *
+   * @prop {Drupal~behaviorAttach} attach
+   *   Attaches the close button behavior for messages.
    */
   Drupal.behaviors.messages = {
     attach(context) {
-      const messages = context.querySelectorAll(
-        '.messages:not(.messages-processed)',
+      once('messages', '[data-drupal-selector="messages"]', context).forEach(
+        closeMessage,
       );
-
-      messages.forEach((message) => {
-        closeMessage(message);
-      });
     },
   };
-})(Drupal);
+})(Drupal, once);

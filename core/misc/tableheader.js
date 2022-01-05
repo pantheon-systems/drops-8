@@ -39,13 +39,9 @@
   }
 
   function tableHeaderInitHandler(e) {
-    var $tables = $(e.data.context).find('table.sticky-enabled').once('tableheader');
-    var il = $tables.length;
-
-    for (var i = 0; i < il; i++) {
-      TableHeader.tables.push(new TableHeader($tables[i]));
-    }
-
+    once('tableheader', $(e.data.context).find('table.sticky-enabled')).forEach(function (table) {
+      TableHeader.tables.push(new TableHeader(table));
+    });
     forTables('onScroll');
   }
 
@@ -90,6 +86,7 @@
     tableHeight: null,
     stickyVisible: false,
     createSticky: function createSticky() {
+      this.$html = $('html');
       var $stickyHeader = this.$originalHeader.clone(true);
       this.$stickyTable = $('<table class="sticky-header"></table>').css({
         visibility: 'hidden',
@@ -110,6 +107,7 @@
         css.left = "".concat(this.tableOffset.left - offsetLeft, "px");
       }
 
+      this.$html.css('scroll-padding-top', displace.offsets.top + (this.stickyVisible ? this.$stickyTable.height() : 0));
       return this.$stickyTable.css(css);
     },
     checkStickyVisible: function checkStickyVisible() {

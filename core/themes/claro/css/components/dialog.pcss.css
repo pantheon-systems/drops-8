@@ -95,7 +95,7 @@
   color: var(--color-text);
   border-bottom-right-radius: var(--jui-dialog-border-radius);
   border-bottom-left-radius: var(--jui-dialog-border-radius);
-  background: var(--color-whitesmoke);
+  background: var(--color-gray-050);
 }
 
 .ui-dialog-buttonpane .ui-dialog-buttonset {
@@ -148,5 +148,11 @@
     left: 60%;
     transform: rotate(-45deg);
     border-top: 2px white solid;
+  }
+}
+
+#drupal-off-canvas {
+  & .form-type--boolean {
+    margin-left: 0;
   }
 }

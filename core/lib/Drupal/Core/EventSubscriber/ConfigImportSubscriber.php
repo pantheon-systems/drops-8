@@ -92,7 +92,7 @@ class ConfigImportSubscriber extends ConfigImportValidateEventSubscriberBase {
 
     // Get the install profile from the site's configuration.
     $current_core_extension = $config_importer->getStorageComparer()->getTargetStorage()->read('core.extension');
-    $install_profile = isset($current_core_extension['profile']) ? $current_core_extension['profile'] : NULL;
+    $install_profile = $current_core_extension['profile'] ?? NULL;
 
     // Ensure the profile is not changing.
     if ($install_profile !== $core_extension['profile']) {
@@ -227,7 +227,7 @@ class ConfigImportSubscriber extends ConfigImportValidateEventSubscriberBase {
     foreach ($config_importer->getStorageComparer()->getSourceStorage()->listAll() as $name) {
       // Ensure that the config owner is installed. This checks all
       // configuration including configuration entities.
-      list($owner,) = explode('.', $name, 2);
+      [$owner] = explode('.', $name, 2);
       if ($owner !== 'core') {
         $message = FALSE;
         if (!isset($core_extension['module'][$owner]) && isset($module_data[$owner])) {

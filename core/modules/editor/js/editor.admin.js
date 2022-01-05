@@ -32,8 +32,7 @@
           for (var t = 0; t < requiredTags.length; t++) {
             universe[requiredTags[t]] = {
               tag: false,
-              touchedByAllowedPropertyRule: false,
-              touchedBytouchedByForbiddenPropertyRule: false
+              touchedByAllowedPropertyRule: false
             };
           }
 
@@ -361,9 +360,8 @@
   };
   Drupal.behaviors.initializeFilterConfiguration = {
     attach: function attach(context, settings) {
-      var $context = $(context);
-      $context.find('#filters-status-wrapper input.form-checkbox').once('filter-editor-status').each(function () {
-        var $checkbox = $(this);
+      once('filter-editor-status', '#filters-status-wrapper input.form-checkbox', context).forEach(function (checkbox) {
+        var $checkbox = $(checkbox);
         var nameAttribute = $checkbox.attr('name');
         var filterID = nameAttribute.substring(8, nameAttribute.indexOf(']'));
         Drupal.filterConfiguration.statuses[filterID] = new Drupal.FilterStatus(filterID);

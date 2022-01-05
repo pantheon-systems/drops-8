@@ -38,16 +38,13 @@ class BubbleableMetadataTest extends UnitTestCase {
     if (!$b instanceof BubbleableMetadata) {
       $renderer = $this->getMockBuilder('Drupal\Core\Render\Renderer')
         ->disableOriginalConstructor()
-        ->setMethods(['mergeAttachments'])
         ->getMock();
-      $renderer->expects($this->never())
-        ->method('mergeAttachments');
     }
     // Otherwise, let the original ::mergeAttachments() method be executed.
     else {
       $renderer = $this->getMockBuilder('Drupal\Core\Render\Renderer')
         ->disableOriginalConstructor()
-        ->setMethods(NULL)
+        ->onlyMethods([])
         ->getMock();
     }
 
@@ -60,7 +57,7 @@ class BubbleableMetadataTest extends UnitTestCase {
     $container->set('renderer', $renderer);
     \Drupal::setContainer($container);
 
-    $this->assertEquals($expected, $a->merge($b));
+    $this->assertEqualsCanonicalizing($expected, $a->merge($b));
   }
 
   /**
@@ -76,7 +73,7 @@ class BubbleableMetadataTest extends UnitTestCase {
       // Cache contexts.
       [(new BubbleableMetadata())->setCacheContexts(['foo']), (new BubbleableMetadata())->setCacheContexts(['bar']), (new BubbleableMetadata())->setCacheContexts(['bar', 'foo'])],
       // Cache tags.
-      [(new BubbleableMetadata())->setCacheTags(['foo']), (new BubbleableMetadata())->setCacheTags(['bar']), (new BubbleableMetadata())->setCacheTags(['bar', 'foo'])],
+      [(new BubbleableMetadata())->setCacheTags(['foo']), (new BubbleableMetadata())->setCacheTags(['bar']), (new BubbleableMetadata())->setCacheTags(['foo', 'bar'])],
       // Cache max-ages.
       [(new BubbleableMetadata())->setCacheMaxAge(60), (new BubbleableMetadata())->setCacheMaxAge(Cache::PERMANENT), (new BubbleableMetadata())->setCacheMaxAge(60)],
       // Assets.
@@ -90,7 +87,7 @@ class BubbleableMetadataTest extends UnitTestCase {
       // Cache contexts.
       [(new BubbleableMetadata())->setCacheContexts(['foo']), (new CacheableMetadata())->setCacheContexts(['bar']), (new BubbleableMetadata())->setCacheContexts(['bar', 'foo'])],
       // Cache tags.
-      [(new BubbleableMetadata())->setCacheTags(['foo']), (new CacheableMetadata())->setCacheTags(['bar']), (new BubbleableMetadata())->setCacheTags(['bar', 'foo'])],
+      [(new BubbleableMetadata())->setCacheTags(['foo']), (new CacheableMetadata())->setCacheTags(['bar']), (new BubbleableMetadata())->setCacheTags(['foo', 'bar'])],
       // Cache max-ages.
       [(new BubbleableMetadata())->setCacheMaxAge(60), (new CacheableMetadata())->setCacheMaxAge(Cache::PERMANENT), (new BubbleableMetadata())->setCacheMaxAge(60)],
     ];
@@ -661,7 +658,7 @@ class BubbleableMetadataTest extends UnitTestCase {
     $container->set('cache_contexts_manager', $cache_contexts_manager);
     \Drupal::setContainer($container);
 
-    $this->assertEquals($expected, $a->addCacheableDependency($b));
+    $this->assertEqualsCanonicalizing($expected, $a->addCacheableDependency($b));
   }
 
   /**
