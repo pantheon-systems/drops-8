@@ -59,7 +59,7 @@ class ModuleHandlerTest extends UnitTestCase {
   }
 
   /**
-   * Test loading a module.
+   * Tests loading a module.
    *
    * @covers ::load
    */
@@ -79,7 +79,7 @@ class ModuleHandlerTest extends UnitTestCase {
   }
 
   /**
-   * Test loading all modules.
+   * Tests loading all modules.
    *
    * @covers ::loadAll
    */
@@ -95,7 +95,7 @@ class ModuleHandlerTest extends UnitTestCase {
   }
 
   /**
-   * Test reload method.
+   * Tests reload method.
    *
    * @covers ::reload
    */
@@ -111,26 +111,24 @@ class ModuleHandlerTest extends UnitTestCase {
           ],
         ], $this->cacheBackend,
       ])
-      ->setMethods(['load'])
+      ->onlyMethods(['load'])
       ->getMock();
-    // First reload.
-    $module_handler->expects($this->at(0))
+    $module_handler->expects($this->exactly(3))
       ->method('load')
-      ->with($this->equalTo('module_handler_test'));
-    // Second reload.
-    $module_handler->expects($this->at(1))
-      ->method('load')
-      ->with($this->equalTo('module_handler_test'));
-    $module_handler->expects($this->at(2))
-      ->method('load')
-      ->with($this->equalTo('module_handler_test_added'));
+      ->withConsecutive(
+        // First reload.
+        ['module_handler_test'],
+        // Second reload.
+        ['module_handler_test'],
+        ['module_handler_test_added'],
+      );
     $module_handler->reload();
     $module_handler->addModule('module_handler_test_added', 'core/tests/Drupal/Tests/Core/Extension/modules/module_handler_test_added');
     $module_handler->reload();
   }
 
   /**
-   * Test isLoaded accessor.
+   * Tests isLoaded accessor.
    *
    * @covers ::isLoaded
    */
@@ -180,14 +178,14 @@ class ModuleHandlerTest extends UnitTestCase {
       ->setConstructorArgs([
         $this->root, [], $this->cacheBackend,
       ])
-      ->setMethods(['resetImplementations'])
+      ->onlyMethods(['resetImplementations'])
       ->getMock();
 
     // Ensure we reset implementations when settings a new modules list.
     $module_handler->expects($this->once())->method('resetImplementations');
 
     // Make sure we're starting empty.
-    $this->assertEquals($module_handler->getModuleList(), []);
+    $this->assertEquals([], $module_handler->getModuleList());
 
     // Replace the list with a prebuilt list.
     $module_handler->setModuleList($fixture_module_handler->getModuleList());
@@ -197,7 +195,7 @@ class ModuleHandlerTest extends UnitTestCase {
   }
 
   /**
-   * Test adding a module.
+   * Tests adding a module.
    *
    * @covers ::addModule
    * @covers ::add
@@ -208,7 +206,7 @@ class ModuleHandlerTest extends UnitTestCase {
       ->setConstructorArgs([
         $this->root, [], $this->cacheBackend,
       ])
-      ->setMethods(['resetImplementations'])
+      ->onlyMethods(['resetImplementations'])
       ->getMock();
 
     // Ensure we reset implementations when settings a new modules list.
@@ -219,7 +217,7 @@ class ModuleHandlerTest extends UnitTestCase {
   }
 
   /**
-   * Test adding a profile.
+   * Tests adding a profile.
    *
    * @covers ::addProfile
    * @covers ::add
@@ -230,7 +228,7 @@ class ModuleHandlerTest extends UnitTestCase {
       ->setConstructorArgs([
         $this->root, [], $this->cacheBackend,
       ])
-      ->setMethods(['resetImplementations'])
+      ->onlyMethods(['resetImplementations'])
       ->getMock();
 
     // Ensure we reset implementations when settings a new modules list.
@@ -242,7 +240,7 @@ class ModuleHandlerTest extends UnitTestCase {
   }
 
   /**
-   * Test module exists returns correct module status.
+   * Tests module exists returns correct module status.
    *
    * @covers ::moduleExists
    */
@@ -268,7 +266,7 @@ class ModuleHandlerTest extends UnitTestCase {
           ],
         ], $this->cacheBackend,
       ])
-      ->setMethods(['loadInclude'])
+      ->onlyMethods(['loadInclude'])
       ->getMock();
 
     // Ensure we reset implementations when settings a new modules list.
@@ -294,7 +292,7 @@ class ModuleHandlerTest extends UnitTestCase {
   }
 
   /**
-   * Test invoke methods when module is enabled.
+   * Tests invoke methods when module is enabled.
    *
    * @covers ::invoke
    */
@@ -306,7 +304,7 @@ class ModuleHandlerTest extends UnitTestCase {
   }
 
   /**
-   * Test implementations methods when module is enabled.
+   * Tests implementations methods when module is enabled.
    *
    * @covers ::implementsHook
    * @covers ::loadAllIncludes
@@ -323,7 +321,7 @@ class ModuleHandlerTest extends UnitTestCase {
   }
 
   /**
-   * Test getImplementations.
+   * Tests getImplementations.
    *
    * @covers ::getImplementations
    * @covers ::getImplementationInfo
@@ -334,7 +332,7 @@ class ModuleHandlerTest extends UnitTestCase {
   }
 
   /**
-   * Test getImplementations.
+   * Tests getImplementations.
    *
    * @covers ::getImplementations
    * @covers ::getImplementationInfo
@@ -357,7 +355,7 @@ class ModuleHandlerTest extends UnitTestCase {
           ],
         ], $this->cacheBackend,
       ])
-      ->setMethods(['buildImplementationInfo', 'loadInclude'])
+      ->onlyMethods(['buildImplementationInfo', 'loadInclude'])
       ->getMock();
     $module_handler->load('module_handler_test');
 
@@ -367,7 +365,7 @@ class ModuleHandlerTest extends UnitTestCase {
   }
 
   /**
-   * Test getImplementations.
+   * Tests getImplementations.
    *
    * @covers ::getImplementations
    * @covers ::getImplementationInfo
@@ -395,7 +393,7 @@ class ModuleHandlerTest extends UnitTestCase {
           ],
         ], $this->cacheBackend,
       ])
-      ->setMethods(['buildImplementationInfo'])
+      ->onlyMethods(['buildImplementationInfo'])
       ->getMock();
     $module_handler->load('module_handler_test');
 
@@ -404,7 +402,7 @@ class ModuleHandlerTest extends UnitTestCase {
   }
 
   /**
-   * Test invoke all.
+   * Tests invoke all.
    *
    * @covers ::invokeAll
    */
@@ -416,7 +414,7 @@ class ModuleHandlerTest extends UnitTestCase {
   }
 
   /**
-   * Test that write cache calls through to cache library correctly.
+   * Tests that write cache calls through to cache library correctly.
    *
    * @covers ::writeCache
    */
@@ -435,7 +433,7 @@ class ModuleHandlerTest extends UnitTestCase {
   }
 
   /**
-   * Test hook_hook_info() fetching through getHookInfo().
+   * Tests hook_hook_info() fetching through getHookInfo().
    *
    * @covers ::getHookInfo
    * @covers ::buildHookInfo
@@ -464,7 +462,7 @@ class ModuleHandlerTest extends UnitTestCase {
   }
 
   /**
-   * Test internal implementation cache reset.
+   * Tests internal implementation cache reset.
    *
    * @covers ::resetImplementations
    */

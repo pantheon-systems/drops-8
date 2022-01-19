@@ -34,8 +34,8 @@ class FastTest extends BrowserTestBase {
   public function testUserAutocomplete() {
     $this->drupalLogin($this->account);
     $this->drupalGet('user/autocomplete', ['query' => ['q' => $this->account->getAccountName()]]);
-    $this->assertRaw($this->account->getAccountName());
-    $this->assertNoText('registry initialized', 'The registry was not initialized');
+    $this->assertSession()->responseContains($this->account->getAccountName());
+    $this->assertSession()->pageTextNotContains('registry initialized');
   }
 
 }

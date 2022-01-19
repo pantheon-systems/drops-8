@@ -213,7 +213,7 @@ class StandardProfileTest extends BrowserTestBase {
 
     // Ensure that both articles are listed.
     // $this->assertCount(2, $this->getRdfGraph(Url::fromRoute('<front>'), $this->baseUri)->allOfType('http://schema.org/Article'), 'Two articles found on front page.');
-    $this->assertEqual(2, $this->getElementByRdfTypeCount(Url::fromRoute('<front>'), $this->baseUri, 'http://schema.org/Article'), 'Two articles found on front page.');
+    $this->assertEquals(2, $this->getElementByRdfTypeCount(Url::fromRoute('<front>'), $this->baseUri, 'http://schema.org/Article'), 'Two articles found on front page.');
 
     // Test interaction count.
     $expected_value = [
@@ -250,7 +250,7 @@ class StandardProfileTest extends BrowserTestBase {
     $this->drupalGet($this->article->toUrl());
 
     // Type.
-    $this->assertEqual($this->getElementRdfType($this->article->toUrl(), $this->baseUri, $this->articleUri), 'schema:Article', 'Article type was found (schema:Article).');
+    $this->assertEquals('schema:Article', $this->getElementRdfType($this->article->toUrl(), $this->baseUri, $this->articleUri), 'Article type was found (schema:Article).');
 
     // Test the properties that are common between pages and articles.
     $this->assertRdfaCommonNodeProperties($this->article, "Article");
@@ -285,7 +285,7 @@ class StandardProfileTest extends BrowserTestBase {
     $node_type->save();
 
     // Type.
-    $this->assertEqual($this->getElementRdfType($this->page->toUrl(), $this->baseUri, $this->pageUri), 'schema:WebPage', 'Page type was found (schema:WebPage).');
+    $this->assertEquals('schema:WebPage', $this->getElementRdfType($this->page->toUrl(), $this->baseUri, $this->pageUri), 'Page type was found (schema:WebPage).');
 
     // Test the properties that are common between pages and articles.
     $this->assertRdfaCommonNodeProperties($this->page, "Page");
@@ -298,7 +298,7 @@ class StandardProfileTest extends BrowserTestBase {
     $this->drupalLogin($this->rootUser);
 
     // User type.
-    $this->assertEqual($this->getElementRdfType($this->adminUser->toUrl(), $this->baseUri, $this->authorUri), 'schema:Person', 'User type was found (schema:Person) on user page.');
+    $this->assertEquals('schema:Person', $this->getElementRdfType($this->adminUser->toUrl(), $this->baseUri, $this->authorUri), 'User type was found (schema:Person) on user page.');
 
     // User name.
     $expected_value = [
@@ -316,7 +316,7 @@ class StandardProfileTest extends BrowserTestBase {
   protected function doTermRdfaTests() {
 
     // Term type.
-    $this->assertEqual($this->getElementRdfType($this->term->toUrl(), $this->baseUri, $this->termUri), 'schema:Thing', 'Term type was found (schema:Thing) on term page.');
+    $this->assertEquals('schema:Thing', $this->getElementRdfType($this->term->toUrl(), $this->baseUri, $this->termUri), 'Term type was found (schema:Thing) on term page.');
 
     // Term name.
     $expected_value = [
@@ -338,8 +338,10 @@ class StandardProfileTest extends BrowserTestBase {
    *   The word to use in the test assertion message.
    *
    * @throws \Drupal\Core\Entity\EntityMalformedException
+   *
+   * @internal
    */
-  protected function assertRdfaCommonNodeProperties(NodeInterface $node, $message_prefix) {
+  protected function assertRdfaCommonNodeProperties(NodeInterface $node, string $message_prefix): void {
     $this->drupalGet($node->toUrl());
     $uri = $node->toUrl('canonical', ['absolute' => TRUE])->toString();
 
@@ -375,7 +377,7 @@ class StandardProfileTest extends BrowserTestBase {
     $this->assertTrue($this->hasRdfProperty($this->getSession()->getPage()->getContent(), $this->baseUri, $uri, 'http://schema.org/author', $expected_value), "$message_prefix author was found (schema:author) in teaser.");
 
     // Author type.
-    $this->assertEqual($this->getElementRdfType($node->toUrl(), $this->baseUri, $this->authorUri), 'schema:Person', '$message_prefix author type was found (schema:Person).');
+    $this->assertEquals('schema:Person', $this->getElementRdfType($node->toUrl(), $this->baseUri, $this->authorUri), '$message_prefix author type was found (schema:Person).');
 
     // Author name.
     $expected_value = [
@@ -390,8 +392,10 @@ class StandardProfileTest extends BrowserTestBase {
    *
    * @param string $message_prefix
    *   The word to use in the test assertion message.
+   *
+   * @internal
    */
-  protected function assertRdfaArticleProperties($message_prefix) {
+  protected function assertRdfaArticleProperties(string $message_prefix): void {
     // Tags.
     $expected_value = [
       'type' => 'uri',
@@ -401,7 +405,7 @@ class StandardProfileTest extends BrowserTestBase {
 
     // Tag type.
     // @todo Enable with https://www.drupal.org/node/2072791.
-    // $this->assertEqual($graph->type($this->termUri), 'schema:Thing', 'Tag type was found (schema:Thing).');
+    // $this->assertEquals('schema:Thing', $graph->type($this->termUri), 'Tag type was found (schema:Thing).');
 
     // Tag name.
     $expected_value = [
@@ -415,8 +419,10 @@ class StandardProfileTest extends BrowserTestBase {
 
   /**
    * Tests output for comment properties on nodes in full page view mode.
+   *
+   * @internal
    */
-  protected function assertRdfaNodeCommentProperties() {
+  protected function assertRdfaNodeCommentProperties(): void {
 
     $this->drupalGet($this->article->toUrl());
     // Relationship between node and comment.
@@ -427,7 +433,7 @@ class StandardProfileTest extends BrowserTestBase {
     $this->assertTrue($this->hasRdfProperty($this->getSession()->getPage()->getContent(), $this->baseUri, $this->articleUri, 'http://schema.org/comment', $expected_value), "Relationship between node and comment found (schema:comment).");
 
     // Comment type.
-    $this->assertEqual($this->getElementRdfType($this->article->toUrl(), $this->baseUri, $this->articleCommentUri), 'schema:Comment', 'Comment type was found (schema:Comment).');
+    $this->assertEquals('schema:Comment', $this->getElementRdfType($this->article->toUrl(), $this->baseUri, $this->articleCommentUri), 'Comment type was found (schema:Comment).');
 
     // Comment title.
     $expected_value = [
@@ -465,7 +471,7 @@ class StandardProfileTest extends BrowserTestBase {
     $this->assertTrue($this->hasRdfProperty($this->getSession()->getPage()->getContent(), $this->baseUri, $this->articleCommentUri, 'http://schema.org/author', $expected_value), "Article comment author was found (schema:author).");
 
     // Comment author type.
-    $this->assertEqual($this->getElementRdfType($this->article->toUrl(), $this->baseUri, $this->commenterUri), 'schema:Person', 'Comment author type was found (schema:Person).');
+    $this->assertEquals('schema:Person', $this->getElementRdfType($this->article->toUrl(), $this->baseUri, $this->commenterUri), 'Comment author type was found (schema:Person).');
 
     // Comment author name.
     $expected_value = [

@@ -4,6 +4,7 @@ namespace Drupal\Core\Validation;
 
 use Drupal\Component\Render\MarkupInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * Translates strings using Drupal's translation system.
@@ -28,6 +29,14 @@ class DrupalTranslator implements TranslatorInterface {
     if ($id instanceof TranslatableMarkup) {
       return $id;
     }
+
+    // Symfony violation messages may separate singular and plural versions
+    // with "|".
+    $ids = explode('|', $id);
+    if ((count($ids) > 1) && isset($parameters['%count%'])) {
+      return \Drupal::translation()->formatPlural($parameters['%count%'], $ids[0], $ids[1], $this->processParameters($parameters), $this->getOptions($domain, $locale));
+    }
+
     return new TranslatableMarkup($id, $this->processParameters($parameters), $this->getOptions($domain, $locale));
   }
 
@@ -43,7 +52,7 @@ class DrupalTranslator implements TranslatorInterface {
     }
 
     // Normally, calls to formatPlural() need to use literal strings, like
-    //   formatPlural($count, '1 item', '@count items')
+    // formatPlural($count, '1 item', '@count items')
     // so that the Drupal project POTX string extractor will correctly
     // extract the strings for translation and save them in a format that
     // formatPlural() can work with. However, this is a special case, because
@@ -105,7 +114,7 @@ class DrupalTranslator implements TranslatorInterface {
     // We do not support domains, so we ignore this parameter.
     // If locale is left NULL, TranslatableMarkup will default to the interface
     // language.
-    $locale = isset($locale) ? $locale : $this->locale;
+    $locale = $locale ?? $this->locale;
     return ['langcode' => $locale];
   }
 

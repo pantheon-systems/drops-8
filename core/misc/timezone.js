@@ -8,9 +8,10 @@
 (function ($, Drupal) {
   Drupal.behaviors.setTimezone = {
     attach: function attach(context, settings) {
-      var $timezone = $(context).find('.timezone-detect').once('timezone');
+      var timezone = once('timezone', '.timezone-detect', context);
 
-      if ($timezone.length) {
+      if (timezone.length) {
+        var $timezone = $(timezone);
         var tz = new Intl.DateTimeFormat().resolvedOptions().timeZone;
 
         if (tz && $timezone.find("option[value=\"".concat(tz, "\"]")).length) {
@@ -32,10 +33,10 @@
         if (offsetJan === offsetJul) {
           isDaylightSavingTime = '';
         } else if (Math.max(offsetJan, offsetJul) === offsetNow) {
-            isDaylightSavingTime = 1;
-          } else {
-              isDaylightSavingTime = 0;
-            }
+          isDaylightSavingTime = 1;
+        } else {
+          isDaylightSavingTime = 0;
+        }
 
         var path = "system/timezone/".concat(abbreviation, "/").concat(offsetNow, "/").concat(isDaylightSavingTime);
         $.ajax({

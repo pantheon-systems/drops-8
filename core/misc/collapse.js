@@ -24,6 +24,7 @@
   $.extend(CollapsibleDetails.prototype, {
     setupSummaryPolyfill: function setupSummaryPolyfill() {
       var $summary = this.$node.find('> summary');
+      $summary.attr('tabindex', '-1');
       $('<span class="details-summary-prefix visually-hidden"></span>').append(this.$node.attr('open') ? Drupal.t('Hide') : Drupal.t('Show')).prependTo($summary).after(document.createTextNode(' '));
       $('<a class="details-title"></a>').attr('href', "#".concat(this.$node.attr('id'))).prepend($summary.contents()).appendTo($summary);
       $summary.append(this.$summary).on('click', $.proxy(this.onSummaryClick, this));
@@ -55,13 +56,10 @@
         return;
       }
 
-      var $collapsibleDetails = $(context).find('details').once('collapse').addClass('collapse-processed');
-
-      if ($collapsibleDetails.length) {
-        for (var i = 0; i < $collapsibleDetails.length; i++) {
-          CollapsibleDetails.instances.push(new CollapsibleDetails($collapsibleDetails[i]));
-        }
-      }
+      once('collapse', 'details', context).forEach(function (detail) {
+        detail.classList.add('collapse-processed');
+        CollapsibleDetails.instances.push(new CollapsibleDetails(detail));
+      });
     }
   };
 

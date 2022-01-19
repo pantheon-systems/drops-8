@@ -4,6 +4,8 @@ namespace Drupal\Tests\migrate_drupal_ui\Functional\d7;
 
 use Drupal\Tests\migrate_drupal_ui\Functional\NoMultilingualReviewPageTestBase;
 
+// cspell:ignore Filefield Multiupload Imagefield
+
 /**
  * Tests Drupal 7 upgrade without translations.
  *
@@ -21,6 +23,7 @@ class NoMultilingualReviewPageTest extends NoMultilingualReviewPageTestBase {
     'book',
     'config_translation',
     'content_translation',
+    'datetime_range',
     'file',
     'forum',
     'language',
@@ -34,7 +37,7 @@ class NoMultilingualReviewPageTest extends NoMultilingualReviewPageTestBase {
    */
   protected function setUp(): void {
     parent::setUp();
-    $this->loadFixture(drupal_get_path('module', 'migrate_drupal') . '/tests/fixtures/drupal7.php');
+    $this->loadFixture($this->getModulePath('migrate_drupal') . '/tests/fixtures/drupal7.php');
   }
 
   /**
@@ -77,17 +80,23 @@ class NoMultilingualReviewPageTest extends NoMultilingualReviewPageTestBase {
       'Entity Translation',
       'Entity feature module',
       'Entity tokens',
+      'Field translation',
       'Field',
       'Field SQL storage',
       'File',
       'Filter',
       'Forum',
       'Image',
+      'Internationalization',
       'Link',
       'List',
+      'Locale',
       'Menu',
       'Menu translation',
+      'Multiupload Filefield Widget',
+      'Multiupload Imagefield Widget',
       'Node',
+      'Node Reference',
       'Number',
       'OpenID',
       'Options',
@@ -102,16 +111,20 @@ class NoMultilingualReviewPageTest extends NoMultilingualReviewPageTestBase {
       'Search embedded form',
       'Shortcut',
       'Statistics',
+      'String translation',
       'Stylizer',
       'Synchronize translations',
       'System',
+      'Taxonomy translation',
       'Taxonomy',
+      'Telephone',
       'Term Depth access',
       'Test search node tags',
       'Test search type',
       'Text',
       'Title',
       'User',
+      'User Reference',
       'Variable translation',
       'Views UI',
       'Views content panes',
@@ -147,17 +160,14 @@ class NoMultilingualReviewPageTest extends NoMultilingualReviewPageTestBase {
       'Contact translation',
       'Entity Translation Menu',
       'Entity Translation Upgrade',
-      'Field translation',
       'FlexSlider Picture',
-      'Internationalization',
-      'Locale',
       'Multilingual content',
       'Multilingual forum',
       'Multilingual select',
       'Path translation',
       'Picture',
-      'String translation',
-      'Taxonomy translation',
+      'References',
+      'References UUID',
       'Translation redirect',
       'Translation sets',
       'User mail translation',

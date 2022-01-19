@@ -75,7 +75,7 @@ class ResourceIdentifierNormalizer extends NormalizerBase implements Denormalize
     if (empty($context['related']) || empty($field_definitions[$context['related']])) {
       throw new BadRequestHttpException('Invalid or missing related field.');
     }
-    /* @var \Drupal\field\Entity\FieldConfig $field_definition */
+    /** @var \Drupal\field\Entity\FieldConfig $field_definition */
     $field_definition = $field_definitions[$context['related']];
     // This is typically 'target_id'.
     $item_definition = $field_definition->getItemDefinition();
@@ -97,7 +97,7 @@ class ResourceIdentifierNormalizer extends NormalizerBase implements Denormalize
           implode(', ', $target_resource_type_names)
         ));
       }
-      return new ResourceIdentifier($value['type'], $value['id'], isset($value['meta']) ? $value['meta'] : []);
+      return new ResourceIdentifier($value['type'], $value['id'], $value['meta'] ?? []);
     }, $data['data']);
     if (!ResourceIdentifier::areResourceIdentifiersUnique($resource_identifiers)) {
       throw new BadRequestHttpException('Duplicate relationships are not permitted. Use `meta.arity` to distinguish resource identifiers with matching `type` and `id` values.');

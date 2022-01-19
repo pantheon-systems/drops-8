@@ -5,6 +5,7 @@
  * The API for comparing project translation status with available translation.
  */
 
+use Drupal\Core\Batch\BatchBuilder;
 use Drupal\Core\Utility\ProjectInfo;
 
 /**
@@ -68,7 +69,7 @@ function locale_translation_build_projects() {
     // For every project store information.
     $data += [
       'name' => $name,
-      'version' => isset($data['info']['version']) ? $data['info']['version'] : '',
+      'version' => $data['info']['version'] ?? '',
       'core' => 'all',
       // A project can provide the path and filename pattern to download the
       // gettext file. Use the default if not.
@@ -238,15 +239,17 @@ function locale_translation_batch_status_build($projects = [], $langcodes = []) 
 
   $operations = _locale_translation_batch_status_operations($projects, $langcodes, $options);
 
-  $batch = [
-    'operations' => $operations,
-    'title' => t('Checking translations'),
-    'progress_message' => '',
-    'finished' => 'locale_translation_batch_status_finished',
-    'error_message' => t('Error checking translation updates.'),
-    'file' => drupal_get_path('module', 'locale') . '/locale.batch.inc',
-  ];
-  return $batch;
+  $batch_builder = (new BatchBuilder())
+    ->setFile(\Drupal::service('extension.list.module')->getPath('locale') . '/locale.batch.inc')
+    ->setTitle(t('Checking translations'))
+    ->setErrorMessage(t('Error checking translation updates.'))
+    ->setFinishCallback('locale_translation_batch_status_finished');
+
+  array_walk($operations, function ($operation) use ($batch_builder) {
+    call_user_func_array([$batch_builder, 'addOperation'], $operation);
+  });
+
+  return $batch_builder->toArray();
 }
 
 /**

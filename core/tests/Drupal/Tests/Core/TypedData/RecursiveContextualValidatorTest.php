@@ -12,11 +12,11 @@ use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\TypedData\DataDefinition;
 use Drupal\Core\TypedData\MapDataDefinition;
 use Drupal\Core\TypedData\TypedDataManager;
-use Drupal\Core\TypedData\Validation\ExecutionContextFactory;
 use Drupal\Core\TypedData\Validation\RecursiveValidator;
 use Drupal\Core\Validation\ConstraintManager;
 use Drupal\Tests\UnitTestCase;
 use Symfony\Component\Validator\ConstraintValidatorFactory;
+use Symfony\Component\Validator\Context\ExecutionContextFactory;
 use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 /**
@@ -49,7 +49,7 @@ class RecursiveContextualValidatorTest extends UnitTestCase {
   /**
    * The execution context factory.
    *
-   * @var \Drupal\Core\TypedData\Validation\ExecutionContextFactory
+   * @var \Symfony\Component\Validator\Context\ExecutionContextFactory
    */
   protected $contextFactory;
 
@@ -80,7 +80,7 @@ class RecursiveContextualValidatorTest extends UnitTestCase {
     $container->set('typed_data_manager', $this->typedDataManager);
     \Drupal::setContainer($container);
 
-    $translator = $this->createMock('Drupal\Core\Validation\TranslatorInterface');
+    $translator = $this->createMock('Symfony\Contracts\Translation\TranslatorInterface');
     $translator->expects($this->any())
       ->method('trans')
       ->willReturnCallback(function ($id) {
@@ -188,6 +188,8 @@ class RecursiveContextualValidatorTest extends UnitTestCase {
    *
    * @param array $tree
    *   An array of value, constraints and properties.
+   * @param string $name
+   *   The name to use for the object.
    *
    * @return \Drupal\Core\TypedData\TypedDataInterface|\PHPUnit\Framework\MockObject\MockObject
    */
