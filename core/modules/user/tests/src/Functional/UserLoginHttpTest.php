@@ -325,12 +325,14 @@ class UserLoginHttpTest extends BrowserTestBase {
    *   The response object.
    * @param int $expected_code
    *   The expected status code.
-   * @param mixed $expected_body
+   * @param string $expected_body
    *   The expected response body.
+   *
+   * @internal
    */
-  protected function assertHttpResponse(ResponseInterface $response, $expected_code, $expected_body) {
+  protected function assertHttpResponse(ResponseInterface $response, int $expected_code, string $expected_body): void {
     $this->assertEquals($expected_code, $response->getStatusCode());
-    $this->assertEquals($expected_body, (string) $response->getBody());
+    $this->assertEquals($expected_body, $response->getBody());
   }
 
   /**
@@ -344,14 +346,16 @@ class UserLoginHttpTest extends BrowserTestBase {
    *   The expected message encoded in response.
    * @param string $format
    *   The format that the response is encoded in.
+   *
+   * @internal
    */
-  protected function assertHttpResponseWithMessage(ResponseInterface $response, $expected_code, $expected_message, $format = 'json') {
+  protected function assertHttpResponseWithMessage(ResponseInterface $response, int $expected_code, string $expected_message, string $format = 'json'): void {
     $this->assertEquals($expected_code, $response->getStatusCode());
     $this->assertEquals($expected_message, $this->getResultValue($response, 'message', $format));
   }
 
   /**
-   * Test the per-user login flood control.
+   * Tests the per-user login flood control.
    *
    * @see \Drupal\user\Tests\UserLoginTest::testPerUserLoginFloodControl
    * @see \Drupal\basic_auth\Tests\Authentication\BasicAuthTest::testPerUserLoginFloodControl
@@ -452,7 +456,7 @@ class UserLoginHttpTest extends BrowserTestBase {
   }
 
   /**
-   * Test csrf protection of User Logout route.
+   * Tests csrf protection of User Logout route.
    */
   public function testLogoutCsrfProtection() {
     $client = \Drupal::httpClient();

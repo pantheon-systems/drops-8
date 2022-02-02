@@ -5,7 +5,22 @@
 * @preserve
 **/
 
-(function ($, Drupal) {
+function _toConsumableArray(arr) { return _arrayWithoutHoles(arr) || _iterableToArray(arr) || _unsupportedIterableToArray(arr) || _nonIterableSpread(); }
+
+function _nonIterableSpread() { throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
+
+function _unsupportedIterableToArray(o, minLen) { if (!o) return; if (typeof o === "string") return _arrayLikeToArray(o, minLen); var n = Object.prototype.toString.call(o).slice(8, -1); if (n === "Object" && o.constructor) n = o.constructor.name; if (n === "Map" || n === "Set") return Array.from(o); if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray(o, minLen); }
+
+function _iterableToArray(iter) { if (typeof Symbol !== "undefined" && iter[Symbol.iterator] != null || iter["@@iterator"] != null) return Array.from(iter); }
+
+function _arrayWithoutHoles(arr) { if (Array.isArray(arr)) return _arrayLikeToArray(arr); }
+
+function _arrayLikeToArray(arr, len) { if (len == null || len > arr.length) len = arr.length; for (var i = 0, arr2 = new Array(len); i < len; i++) { arr2[i] = arr[i]; } return arr2; }
+
+(function ($, Drupal, _ref) {
+  var tabbable = _ref.tabbable,
+      isTabbable = _ref.isTabbable;
+
   function TabbingManager() {
     this.stack = [];
   }
@@ -16,22 +31,35 @@
       $tabbableElements: $(),
       $disabledElements: $(),
       released: false,
-      active: false
+      active: false,
+      trapFocus: false
     }, options);
   }
 
   $.extend(TabbingManager.prototype, {
     constrain: function constrain(elements) {
+      var _ref2 = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {},
+          _ref2$trapFocus = _ref2.trapFocus,
+          trapFocus = _ref2$trapFocus === void 0 ? false : _ref2$trapFocus;
+
       var il = this.stack.length;
 
       for (var i = 0; i < il; i++) {
         this.stack[i].deactivate();
       }
 
-      var $elements = $(elements).find(':tabbable').addBack(':tabbable');
+      var tabbableElements = [];
+      $(elements).each(function (index, rootElement) {
+        tabbableElements = [].concat(_toConsumableArray(tabbableElements), _toConsumableArray(tabbable(rootElement)));
+
+        if (isTabbable(rootElement)) {
+          tabbableElements = [].concat(_toConsumableArray(tabbableElements), [rootElement]);
+        }
+      });
       var tabbingContext = new TabbingContext({
         level: this.stack.length,
-        $tabbableElements: $elements
+        $tabbableElements: $(tabbableElements),
+        trapFocus: trapFocus
       });
       this.stack.push(tabbingContext);
       tabbingContext.activate();
@@ -54,7 +82,7 @@
     activate: function activate(tabbingContext) {
       var $set = tabbingContext.$tabbableElements;
       var level = tabbingContext.level;
-      var $disabledSet = $(':tabbable').not($set);
+      var $disabledSet = $(tabbable(document.body)).not($set);
       tabbingContext.$disabledElements = $disabledSet;
       var il = $disabledSet.length;
 
@@ -70,11 +98,28 @@
       }
 
       $hasFocus.trigger('focus');
+
+      if ($set.length && tabbingContext.trapFocus) {
+        $set.last().on('keydown.focus-trap', function (event) {
+          if (event.key === 'Tab' && !event.shiftKey) {
+            event.preventDefault();
+            $set.first().focus();
+          }
+        });
+        $set.first().on('keydown.focus-trap', function (event) {
+          if (event.key === 'Tab' && event.shiftKey) {
+            event.preventDefault();
+            $set.last().focus();
+          }
+        });
+      }
     },
     deactivate: function deactivate(tabbingContext) {
       var $set = tabbingContext.$disabledElements;
       var level = tabbingContext.level;
       var il = $set.length;
+      tabbingContext.$tabbableElements.first().off('keydown.focus-trap');
+      tabbingContext.$tabbableElements.last().off('keydown.focus-trap');
 
       for (var i = 0; i < il; i++) {
         this.restoreTabindex($set.eq(i), level);
@@ -97,8 +142,8 @@
         if (data.tabindex) {
           $el[0].setAttribute('tabindex', data.tabindex);
         } else {
-            $el[0].removeAttribute('tabindex');
-          }
+          $el[0].removeAttribute('tabindex');
+        }
 
         if (data.autofocus) {
           $el[0].setAttribute('autofocus', 'autofocus');
@@ -149,4 +194,4 @@
   }
 
   Drupal.tabbingManager = new TabbingManager();
-})(jQuery, Drupal);
+})(jQuery, Drupal, window.tabbable);

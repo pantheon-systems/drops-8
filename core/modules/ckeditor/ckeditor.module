@@ -34,7 +34,14 @@ function ckeditor_help($route_name, RouteMatchInterface $route_match) {
       $output .= '<dt>' . t('Accessibility features') . '</dt>';
       $output .= '<dd>' . t('The built in WYSIWYG editor (CKEditor) comes with a number of <a href=":features">accessibility features</a>. CKEditor comes with built in <a href=":shortcuts">keyboard shortcuts</a>, which can be beneficial for both power users and keyboard only users.', [':features' => 'http://docs.ckeditor.com/#!/guide/dev_a11y', ':shortcuts' => 'http://docs.ckeditor.com/#!/guide/dev_shortcuts']) . '</dd>';
       $output .= '<dt>' . t('Generating accessible content') . '</dt>';
-      $output .= '<dd>' . t('HTML tables can be created with both table headers as well as caption/summary elements. Alt text is required by default on images added through CKEditor (note that this can be overridden). Semantic HTML5 figure/figcaption are available to add captions to images.') . '</dd>';
+      $output .= '<dd>';
+      $output .= '<ul>';
+      $output .= '<li>' . t('HTML tables can be created with table headers and caption/summary elements.') . '</li>';
+      $output .= '<li>' . t('Alt text is required by default on images added through CKEditor (note that this can be overridden).') . '</li>';
+      $output .= '<li>' . t('Semantic HTML5 figure/figcaption are available to add captions to images.') . '</li>';
+      $output .= '<li>' . t('To support multilingual page content, CKEditor can be configured to include a language button in the toolbar.') . '</li>';
+      $output .= '</ul>';
+      $output .= '</dd>';
       $output .= '</dl>';
       return $output;
   }
@@ -64,7 +71,7 @@ function ckeditor_ckeditor_css_alter(array &$css, Editor $editor) {
   // editor uses the filter_caption filter. This is used by the included
   // CKEditor DrupalImageCaption plugin.
   if ($editor->getFilterFormat()->filters('filter_caption')->status) {
-    $css[] = drupal_get_path('module', 'filter') . '/css/filter.caption.css';
+    $css[] = \Drupal::service('extension.list.module')->getPath('filter') . '/css/filter.caption.css';
   }
 }
 
@@ -84,8 +91,10 @@ function _ckeditor_theme_css($theme = NULL) {
   if (!isset($theme)) {
     $theme = \Drupal::config('system.theme')->get('default');
   }
-  if (isset($theme) && $theme_path = drupal_get_path('theme', $theme)) {
-    $info = \Drupal::service('extension.list.theme')->getExtensionInfo($theme);
+  /** @var \Drupal\Core\Extension\ThemeExtensionList $theme_list */
+  $theme_list = \Drupal::service('extension.list.theme');
+  if (isset($theme) && $theme_path = $theme_list->getPath($theme)) {
+    $info = $theme_list->getExtensionInfo($theme);
     if (isset($info['ckeditor_stylesheets'])) {
       $css = $info['ckeditor_stylesheets'];
       foreach ($css as $key => $url) {

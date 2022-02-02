@@ -59,17 +59,17 @@ class ConfigEntityListTest extends BrowserTestBase {
     // Test getOperations() method.
     $expected_operations = [
       'edit' => [
-        'title' => t('Edit'),
+        'title' => 'Edit',
         'weight' => 10,
         'url' => $entity->toUrl()->setOption('query', $this->getRedirectDestination()->getAsArray()),
       ],
       'disable' => [
-        'title' => t('Disable'),
+        'title' => 'Disable',
         'weight' => 40,
         'url' => $entity->toUrl('disable')->setOption('query', $this->getRedirectDestination()->getAsArray()),
       ],
       'delete' => [
-        'title' => t('Delete'),
+        'title' => 'Delete',
         'weight' => 100,
         'url' => $entity->toUrl('delete-form')->setOption('query', $this->getRedirectDestination()->getAsArray()),
       ],
@@ -121,7 +121,7 @@ class ConfigEntityListTest extends BrowserTestBase {
     ]);
     $entity->save();
     $list = $controller->load();
-    $this->assertIdentical(array_keys($list), ['beta', 'dotted.default', 'alpha', 'omega']);
+    $this->assertSame(['beta', 'dotted.default', 'alpha', 'omega'], array_keys($list));
 
     // Test that config entities that do not support status, do not have
     // enable/disable operations.
@@ -134,12 +134,12 @@ class ConfigEntityListTest extends BrowserTestBase {
     // Test getOperations() method.
     $expected_operations = [
       'edit' => [
-        'title' => t('Edit'),
+        'title' => 'Edit',
         'weight' => 10,
         'url' => $entity->toUrl()->setOption('query', $this->getRedirectDestination()->getAsArray()),
       ],
       'delete' => [
-        'title' => t('Delete'),
+        'title' => 'Delete',
         'weight' => 100,
         'url' => $entity->toUrl('delete-form')->setOption('query', $this->getRedirectDestination()->getAsArray()),
       ],
@@ -168,29 +168,25 @@ class ConfigEntityListTest extends BrowserTestBase {
     $this->assertSession()->titleEquals('Test configuration | Drupal');
 
     // Test for the table.
-    $element = $this->xpath('//div[@class="layout-content"]//table');
-    $this->assertCount(1, $element, 'Configuration entity list table found.');
+    $this->assertSession()->elementsCount('xpath', '//div[@class="layout-content"]//table', 1);
 
     // Test the table header.
-    $elements = $this->xpath('//div[@class="layout-content"]//table/thead/tr/th');
-    $this->assertCount(3, $elements, 'Correct number of table header cells found.');
+    $this->assertSession()->elementsCount('xpath', '//div[@class="layout-content"]//table/thead/tr/th', 3);
 
     // Test the contents of each th cell.
-    $expected_items = ['Label', 'Machine name', 'Operations'];
-    foreach ($elements as $key => $element) {
-      $this->assertIdentical($element->getText(), $expected_items[$key]);
-    }
+    $this->assertSession()->elementTextEquals('xpath', '//div[@class="layout-content"]//table/thead/tr/th[1]', 'Label');
+    $this->assertSession()->elementTextEquals('xpath', '//div[@class="layout-content"]//table/thead/tr/th[2]', 'Machine name');
+    $this->assertSession()->elementTextEquals('xpath', '//div[@class="layout-content"]//table/thead/tr/th[3]', 'Operations');
 
     // Check the number of table row cells.
-    $elements = $this->xpath('//div[@class="layout-content"]//table/tbody/tr[@class="odd"]/td');
-    $this->assertCount(3, $elements, 'Correct number of table row cells found.');
+    $this->assertSession()->elementsCount('xpath', '//div[@class="layout-content"]//table/tbody/tr[@class="odd"]/td', 3);
 
     // Check the contents of each row cell. The first cell contains the label,
     // the second contains the machine name, and the third contains the
     // operations list.
-    $this->assertIdentical($elements[0]->getText(), 'Default');
-    $this->assertIdentical($elements[1]->getText(), 'dotted.default');
-    $this->assertNotEmpty($elements[2]->find('xpath', '//ul'), 'Operations list found.');
+    $this->assertSession()->elementTextEquals('xpath', '//div[@class="layout-content"]//table/tbody/tr[@class="odd"]/td[1]', 'Default');
+    $this->assertSession()->elementTextEquals('xpath', '//div[@class="layout-content"]//table/tbody/tr[@class="odd"]/td[2]', 'dotted.default');
+    $this->assertSession()->elementExists('xpath', '//div[@class="layout-content"]//table/tbody/tr[@class="odd"]/td[3]//ul');
 
     // Add a new entity using the operations link.
     $this->assertSession()->linkExists('Add test configuration');
@@ -250,11 +246,11 @@ class ConfigEntityListTest extends BrowserTestBase {
     $this->assertSession()->elementNotExists('xpath', '//td[text() = "dotted.default"]');
 
     // Confirm that the empty text is displayed.
-    $this->assertText('There are no test configuration entities yet.');
+    $this->assertSession()->pageTextContains('There are no test configuration entities yet.');
   }
 
   /**
-   * Test paging.
+   * Tests paging.
    */
   public function testPager() {
     $this->drupalLogin($this->drupalCreateUser([
@@ -277,14 +273,14 @@ class ConfigEntityListTest extends BrowserTestBase {
     $this->drupalGet('admin/structure/config_test');
 
     // Item 51 should not be present.
-    $this->assertRaw('Test config entity 50');
-    $this->assertNoRaw('Test config entity 51');
+    $this->assertSession()->pageTextContains('Test config entity 50');
+    $this->assertSession()->responseNotContains('Test config entity 51');
 
     // Browse to the next page, test config entity 51 is on page 2.
-    $this->clickLink(t('Page 2'));
-    $this->assertNoRaw('Test config entity 50');
-    $this->assertRaw('dotted.default');
-    $this->assertRaw('Test config entity 51');
+    $this->clickLink('Page 2');
+    $this->assertSession()->responseNotContains('Test config entity 50');
+    $this->assertSession()->responseContains('dotted.default');
+    $this->assertSession()->pageTextContains('Test config entity 51');
   }
 
 }
