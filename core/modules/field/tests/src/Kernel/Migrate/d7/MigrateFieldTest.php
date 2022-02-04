@@ -32,15 +32,6 @@ class MigrateFieldTest extends MigrateDrupal7TestBase {
   ];
 
   /**
-   * {@inheritdoc}
-   */
-  protected function setUp(): void {
-    parent::setUp();
-    $this->installConfig(static::$modules);
-    $this->executeMigration('d7_field');
-  }
-
-  /**
    * Asserts various aspects of a field_storage_config entity.
    *
    * @param string $id
@@ -51,9 +42,11 @@ class MigrateFieldTest extends MigrateDrupal7TestBase {
    *   Whether or not the field is expected to be translatable.
    * @param int $expected_cardinality
    *   The expected cardinality of the field.
+   *
+   * @internal
    */
-  protected function assertEntity($id, $expected_type, $expected_translatable, $expected_cardinality) {
-    list ($expected_entity_type, $expected_name) = explode('.', $id);
+  protected function assertEntity(string $id, string $expected_type, bool $expected_translatable, int $expected_cardinality): void {
+    [$expected_entity_type, $expected_name] = explode('.', $id);
 
     /** @var \Drupal\field\FieldStorageConfigInterface $field */
     $field = FieldStorageConfig::load($id);
@@ -76,6 +69,10 @@ class MigrateFieldTest extends MigrateDrupal7TestBase {
    * Tests migrating D7 fields to field_storage_config entities.
    */
   public function testFields() {
+    \Drupal::service('module_installer')->install(['datetime_range']);
+    $this->installConfig(static::$modules);
+    $this->executeMigration('d7_field');
+
     $this->assertEntity('node.body', 'text_with_summary', TRUE, 1);
     $this->assertEntity('node.field_long_text', 'text_with_summary', TRUE, 1);
     $this->assertEntity('comment.comment_body', 'text_long', TRUE, 1);
@@ -104,6 +101,8 @@ class MigrateFieldTest extends MigrateDrupal7TestBase {
     $this->assertEntity('node.field_term_entityreference', 'entity_reference', TRUE, -1);
     $this->assertEntity('node.field_date_without_time', 'datetime', TRUE, 1);
     $this->assertEntity('node.field_datetime_without_time', 'datetime', TRUE, 1);
+    $this->assertEntity('node.field_file_mfw', 'file', TRUE, 1);
+    $this->assertEntity('node.field_image_miw', 'image', TRUE, 1);
 
     // Tests that fields created by the Title module are not migrated.
     $title_field = FieldStorageConfig::load('node.title_field');
@@ -143,6 +142,18 @@ class MigrateFieldTest extends MigrateDrupal7TestBase {
     $field = FieldStorageConfig::load('node.field_date_with_end_time');
     $this->assertNull($field->getSetting('datetime_type'));
 
+    // Assert node and user reference fields.
+    $field = FieldStorageConfig::load('node.field_node_reference');
+    $this->assertEquals('node', $field->getSetting('target_type'));
+    $field = FieldStorageConfig::load('node.field_user_reference');
+    $this->assertEquals('user', $field->getSetting('target_type'));
+
+    // Make sure a datetime field with a todate is now a daterange type.
+    $field = FieldStorageConfig::load('node.field_event');
+    $this->assertSame('daterange', $field->getType());
+    $this->assertSame('datetime_range', $field->getTypeProvider());
+    $this->assertEquals('datetime', $field->getSetting('datetime_type'));
+
     // Test the migration of text fields with different text processing.
     // All text and text_long field bases that have only plain text instances
     // should be migrated to string and string_long fields.
@@ -174,10 +185,30 @@ class MigrateFieldTest extends MigrateDrupal7TestBase {
     }, iterator_to_array($migration->getIdMap()->getMessages()));
     sort($errors);
     $this->assertCount(4, $errors);
-    $this->assertEquals($errors[0], 'Can\'t migrate source field field_text_long_plain_filtered configured with both plain text and filtered text processing. See https://www.drupal.org/docs/8/upgrade/known-issues-when-upgrading-from-drupal-6-or-7-to-drupal-8#plain-text');
-    $this->assertEquals($errors[1], 'Can\'t migrate source field field_text_plain_filtered configured with both plain text and filtered text processing. See https://www.drupal.org/docs/8/upgrade/known-issues-when-upgrading-from-drupal-6-or-7-to-drupal-8#plain-text');
-    $this->assertEquals($errors[2], 'Can\'t migrate source field field_text_sum_plain of type text_with_summary configured with plain text processing. See https://www.drupal.org/docs/8/upgrade/known-issues-when-upgrading-from-drupal-6-or-7-to-drupal-8#plain-text');
-    $this->assertEquals($errors[3], 'Can\'t migrate source field field_text_sum_plain_filtered of type text_with_summary configured with plain text processing. See https://www.drupal.org/docs/8/upgrade/known-issues-when-upgrading-from-drupal-6-or-7-to-drupal-8#plain-text');
+    $this->assertEquals('d7_field:type: Can\'t migrate source field field_text_long_plain_filtered configured with both plain text and filtered text processing. See https://www.drupal.org/docs/8/upgrade/known-issues-when-upgrading-from-drupal-6-or-7-to-drupal-8#plain-text', $errors[0]);
+    $this->assertEquals('d7_field:type: Can\'t migrate source field field_text_plain_filtered configured with both plain text and filtered text processing. See https://www.drupal.org/docs/8/upgrade/known-issues-when-upgrading-from-drupal-6-or-7-to-drupal-8#plain-text', $errors[1]);
+    $this->assertEquals('d7_field:type: Can\'t migrate source field field_text_sum_plain of type text_with_summary configured with plain text processing. See https://www.drupal.org/docs/8/upgrade/known-issues-when-upgrading-from-drupal-6-or-7-to-drupal-8#plain-text', $errors[2]);
+    $this->assertEquals('d7_field:type: Can\'t migrate source field field_text_sum_plain_filtered of type text_with_summary configured with plain text processing. See https://www.drupal.org/docs/8/upgrade/known-issues-when-upgrading-from-drupal-6-or-7-to-drupal-8#plain-text', $errors[3]);
+  }
+
+  /**
+   * Tests migrating D7 datetime fields.
+   */
+  public function testDatetimeFields() {
+    $this->installConfig(static::$modules);
+    $this->executeMigration('d7_field');
+
+    // Datetime field with 'todate' settings is not migrated.
+    $this->assertNull(FieldStorageConfig::load('node.field_event'));
+
+    // Check that we've reported on a conflict in widget_types.
+    // Validate that the source count and processed count match up.
+    /** @var \Drupal\migrate\Plugin\MigrationInterface $migration */
+    $migration = $this->getMigration('d7_field');
+    $messages = iterator_to_array($migration->getIdMap()->getMessages());
+    $this->assertCount(5, $messages);
+    $msg = "d7_field:type: Can't migrate field 'field_event' with 'todate' settings. Enable the datetime_range module. See https://www.drupal.org/docs/8/upgrade/known-issues-when-upgrading-from-drupal-6-or-7-to-drupal-8#datetime";
+    $this->assertSame($messages[4]->message, $msg);
   }
 
 }

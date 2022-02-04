@@ -3,16 +3,31 @@
 namespace Drupal\Tests\system\Functional\FileTransfer;
 
 use Drupal\Core\FileTransfer\FileTransfer;
-use Drupal\Core\FileTransfer\FileTransferException;
 
 /**
  * Mock FileTransfer object for test case.
  */
 class TestFileTransfer extends FileTransfer {
-  protected $host = NULL;
-  protected $username = NULL;
-  protected $password = NULL;
-  protected $port = NULL;
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $host = '';
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $username = '';
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $password = '';
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $port = 0;
 
   /**
    * This is for testing the CopyRecursive logic.
@@ -47,9 +62,7 @@ class TestFileTransfer extends FileTransfer {
   }
 
   public function removeFileJailed($destination) {
-    if (!ftp_delete($this->connection, $item)) {
-      throw new FileTransferException('Unable to remove the file @file.', NULL, ['@file' => $item]);
-    }
+    $this->connection->run("rm $destination");
   }
 
   public function isDirectory($path) {

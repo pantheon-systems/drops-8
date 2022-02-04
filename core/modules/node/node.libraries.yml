@@ -18,7 +18,8 @@ drupal.node.preview:
     node.preview.js: {}
   dependencies:
     - core/jquery
-    - core/jquery.once
+    - core/once
+    - core/jquery.once.bc
     - core/drupal
     - core/drupal.dialog
     - core/drupal.form

@@ -53,7 +53,7 @@ class MigrateMenuLinkTest extends MigrateNodeTestBase {
    *   The expected title of the link.
    * @param string $menu
    *   The expected ID of the menu to which the link will belong.
-   * @param string $description
+   * @param string|null $description
    *   The link's expected description.
    * @param bool $enabled
    *   Whether the link is enabled.
@@ -66,10 +66,9 @@ class MigrateMenuLinkTest extends MigrateNodeTestBase {
    * @param int $weight
    *   The expected weight of the link.
    *
-   * @return \Drupal\menu_link_content\MenuLinkContentInterface
-   *   The menu link content.
+   * @internal
    */
-  protected function assertEntity($id, $title, $menu, $description, $enabled, $expanded, array $attributes, $uri, $weight) {
+  protected function assertEntity(string $id, string $title, string $menu, ?string $description, bool $enabled, bool $expanded, array $attributes, string $uri, int $weight): void {
     /** @var \Drupal\menu_link_content\MenuLinkContentInterface $menu_link */
     $menu_link = MenuLinkContent::load($id);
     $this->assertInstanceOf(MenuLinkContentInterface::class, $menu_link);
@@ -81,7 +80,6 @@ class MigrateMenuLinkTest extends MigrateNodeTestBase {
     $this->assertSame($attributes, $menu_link->link->options);
     $this->assertSame($uri, $menu_link->link->uri);
     $this->assertSame($weight, $menu_link->getWeight());
-    return $menu_link;
   }
 
   /**
@@ -89,7 +87,7 @@ class MigrateMenuLinkTest extends MigrateNodeTestBase {
    */
   public function testMenuLinks() {
     $this->assertEntity('138', 'Test 1', 'secondary-links', 'Test menu link 1', TRUE, FALSE, ['attributes' => ['title' => 'Test menu link 1'], 'langcode' => 'en'], 'internal:/user/login', -50);
-    $this->assertEntity('139', 'Test 2', 'secondary-links', 'Test menu link 2', TRUE, TRUE, ['query' => 'foo=bar', 'attributes' => ['title' => 'Test menu link 2']], 'internal:/admin', -49);
+    $this->assertEntity('139', 'Test 2', 'secondary-links', 'Test menu link 2', TRUE, TRUE, ['query' => ['foo' => 'bar'], 'attributes' => ['title' => 'Test menu link 2']], 'internal:/admin', -49);
     $this->assertEntity('140', 'Drupal.org', 'secondary-links', NULL, TRUE, FALSE, ['attributes' => ['title' => '']], 'https://www.drupal.org', -50);
 
     // Assert that missing title attributes don't stop or break migration.

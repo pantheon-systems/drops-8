@@ -14,7 +14,7 @@ use Drupal\layout_builder\LayoutBuilderEvents;
 use Drupal\layout_builder\LayoutBuilderHighlightTrait;
 use Drupal\layout_builder\SectionStorageInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Symfony\Component\EventDispatcher\EventDispatcherInterface;
+use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 /**
  * Defines a render element for building the Layout Builder UI.
@@ -33,7 +33,7 @@ class LayoutBuilder extends RenderElement implements ContainerFactoryPluginInter
   /**
    * The event dispatcher.
    *
-   * @var \Symfony\Component\EventDispatcher\EventDispatcherInterface
+   * @var \Symfony\Contracts\EventDispatcher\EventDispatcherInterface
    */
   protected $eventDispatcher;
 
@@ -46,7 +46,7 @@ class LayoutBuilder extends RenderElement implements ContainerFactoryPluginInter
    *   The plugin ID for the plugin instance.
    * @param mixed $plugin_definition
    *   The plugin implementation definition.
-   * @param \Symfony\Component\EventDispatcher\EventDispatcherInterface $event_dispatcher
+   * @param \Symfony\Contracts\EventDispatcher\EventDispatcherInterface $event_dispatcher
    *   The event dispatcher service.
    * @param \Drupal\Core\Messenger\MessengerInterface|null $messenger
    *   The messenger service. This is no longer used and will be removed in
@@ -233,11 +233,11 @@ class LayoutBuilder extends RenderElement implements ContainerFactoryPluginInter
     $storage_id = $section_storage->getStorageId();
     $section = $section_storage->getSection($delta);
 
-    $layout = $section->getLayout();
+    $layout = $section->getLayout($this->getPopulatedContexts($section_storage));
     $layout_settings = $section->getLayoutSettings();
     $section_label = !empty($layout_settings['label']) ? $layout_settings['label'] : $this->t('Section @section', ['@section' => $delta + 1]);
 
-    $build = $section->toRenderArray($this->getAvailableContexts($section_storage), TRUE);
+    $build = $section->toRenderArray($this->getPopulatedContexts($section_storage), TRUE);
     $layout_definition = $layout->getPluginDefinition();
 
     $region_labels = $layout_definition->getRegionLabels();
@@ -310,7 +310,7 @@ class LayoutBuilder extends RenderElement implements ContainerFactoryPluginInter
 
       // Get weights of all children for use by the region label.
       $weights = array_map(function ($a) {
-        return isset($a['#weight']) ? $a['#weight'] : 0;
+        return $a['#weight'] ?? 0;
       }, $build[$region]);
 
       // The region label is made visible when the move block dialog is open.

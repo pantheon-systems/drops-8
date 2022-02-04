@@ -125,6 +125,10 @@ class ResolvedLibraryDefinitionsFilesMatchTest extends KernelTestBase {
     $this->allModules[] = 'system';
     $this->allModules[] = 'user';
     $this->allModules[] = 'path_alias';
+    $database_module = \Drupal::database()->getProvider();
+    if ($database_module !== 'core') {
+      $this->allModules[] = $database_module;
+    }
     sort($this->allModules);
     $this->container->get('module_installer')->install($this->allModules);
 
@@ -192,13 +196,13 @@ class ResolvedLibraryDefinitionsFilesMatchTest extends KernelTestBase {
     $extensions = $modules;
     $module_list = array_keys($modules);
     sort($module_list);
-    $this->assertEqual($this->allModules, $module_list, 'All core modules are installed.');
+    $this->assertEquals($this->allModules, $module_list, 'All core modules are installed.');
 
     $themes = $this->themeHandler->listInfo();
     $extensions += $themes;
     $theme_list = array_keys($themes);
     sort($theme_list);
-    $this->assertEqual($this->allThemes, $theme_list, 'All core themes are installed.');
+    $this->assertEquals($this->allThemes, $theme_list, 'All core themes are installed.');
 
     $libraries['core'] = $this->libraryDiscovery->getLibrariesByExtension('core');
 

@@ -58,7 +58,7 @@ abstract class LocalTaskIntegrationTestBase extends UnitTestCase {
     $manager = $this
       ->getMockBuilder('Drupal\Core\Menu\LocalTaskManager')
       ->disableOriginalConstructor()
-      ->setMethods(NULL)
+      ->onlyMethods([])
       ->getMock();
 
     $argumentResolver = $this->createMock('Symfony\Component\HttpKernel\Controller\ArgumentResolverInterface');
@@ -91,9 +91,9 @@ abstract class LocalTaskIntegrationTestBase extends UnitTestCase {
     // Set all the modules as being existent.
     $module_handler->expects($this->any())
       ->method('moduleExists')
-      ->will($this->returnCallback(function ($module) use ($module_dirs) {
+      ->willReturnCallback(function ($module) use ($module_dirs) {
         return isset($module_dirs[$module]);
-      }));
+      });
 
     $pluginDiscovery = new YamlDiscovery('links.task', $module_dirs);
     $pluginDiscovery = new ContainerDerivativeDiscoveryDecorator($pluginDiscovery);

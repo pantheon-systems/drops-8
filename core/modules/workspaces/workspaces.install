@@ -50,14 +50,15 @@ function workspaces_module_preinstall($module) {
  * Implements hook_install().
  */
 function workspaces_install() {
-  // Set the owner of these default workspaces to be first user which which has
-  // the 'administrator' role. This way we avoid hard coding user ID 1 for sites
+  // Set the owner of these default workspaces to be first user which has the
+  // 'administrator' role. This way we avoid hard coding user ID 1 for sites
   // that prefer to not give it any special meaning.
   $admin_roles = \Drupal::entityTypeManager()->getStorage('user_role')->getQuery()
     ->condition('is_admin', TRUE)
     ->execute();
   if (!empty($admin_roles)) {
     $query = \Drupal::entityTypeManager()->getStorage('user')->getQuery()
+      ->accessCheck(FALSE)
       ->condition('roles', $admin_roles, 'IN')
       ->condition('status', 1)
       ->sort('uid', 'ASC')

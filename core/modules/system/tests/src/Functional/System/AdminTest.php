@@ -66,7 +66,7 @@ class AdminTest extends BrowserTestBase {
       $this->assertSession()->linkExists($item->getTitle());
       $this->assertSession()->linkByHrefExists($item->getUrlObject()->toString());
       // The description should appear below the link.
-      $this->assertText($item->getDescription());
+      $this->assertSession()->pageTextContains($item->getDescription());
     }
 
     // For each administrative listing page on which the Locale module appears,
@@ -96,7 +96,7 @@ class AdminTest extends BrowserTestBase {
       // On admin/index only, the administrator should also see a "Configure
       // permissions" link for the Locale module.
       if ($page == 'admin/index') {
-        $this->assertSession()->linkByHrefExists("admin/people/permissions#module-locale");
+        $this->assertSession()->linkByHrefExists("admin/people/permissions/module/locale");
       }
 
       // For a less privileged user, verify that there are no links to Locale's
@@ -146,7 +146,7 @@ class AdminTest extends BrowserTestBase {
   }
 
   /**
-   * Test compact mode.
+   * Tests compact mode.
    */
   public function testCompactMode() {
     $session = $this->getSession();
