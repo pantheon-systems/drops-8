@@ -47,7 +47,8 @@ class CommentAnonymousTest extends CommentTestBase {
     $body = 'comment body with skip comment approval';
     $edit['subject[0][value]'] = $title;
     $edit['comment_body[0][value]'] = $body;
-    $this->drupalPostForm($this->node->toUrl(), $edit, 'Preview');
+    $this->drupalGet($this->node->toUrl());
+    $this->submitForm($edit, 'Preview');
     // Cannot use assertRaw here since both title and body are in the form.
     $preview = (string) $this->cssSelect('.preview')[0]->getHtml();
     $this->assertStringContainsString($title, $preview, 'Anonymous user can preview comment title.');
@@ -60,7 +61,8 @@ class CommentAnonymousTest extends CommentTestBase {
     $body = 'comment body without skip comment approval';
     $edit['subject[0][value]'] = $title;
     $edit['comment_body[0][value]'] = $body;
-    $this->drupalPostForm($this->node->toUrl(), $edit, 'Preview');
+    $this->drupalGet($this->node->toUrl());
+    $this->submitForm($edit, 'Preview');
     // Cannot use assertRaw here since both title and body are in the form.
     $preview = (string) $this->cssSelect('.preview')[0]->getHtml();
     $this->assertStringContainsString($title, $preview, 'Anonymous user can preview comment title.');
@@ -76,10 +78,9 @@ class CommentAnonymousTest extends CommentTestBase {
       'name' => $this->adminUser->getAccountName(),
       'comment_body[0][value]' => $this->randomMachineName(),
     ];
-    $this->drupalPostForm('comment/reply/node/' . $this->node->id() . '/comment', $edit, 'Save');
-    $this->assertRaw(t('The name you used (%name) belongs to a registered user.', [
-      '%name' => $this->adminUser->getAccountName(),
-    ]));
+    $this->drupalGet('comment/reply/node/' . $this->node->id() . '/comment');
+    $this->submitForm($edit, 'Save');
+    $this->assertSession()->pageTextContains('The name you used (' . $this->adminUser->getAccountName() . ') belongs to a registered user.');
 
     // Allow contact info.
     $this->drupalLogin($this->adminUser);
@@ -109,10 +110,9 @@ class CommentAnonymousTest extends CommentTestBase {
       'subject[0][value]' => $this->randomMachineName(),
       'comment_body[0][value]' => $this->randomMachineName(),
     ];
-    $this->drupalPostForm('comment/reply/node/' . $this->node->id() . '/comment', $edit, 'Save');
-    $this->assertRaw(t('The name you used (%name) belongs to a registered user.', [
-      '%name' => $this->adminUser->getAccountName(),
-    ]));
+    $this->drupalGet('comment/reply/node/' . $this->node->id() . '/comment');
+    $this->submitForm($edit, 'Save');
+    $this->assertSession()->pageTextContains('The name you used (' . $this->adminUser->getAccountName() . ') belongs to a registered user.');
 
     // Require contact info.
     $this->drupalLogin($this->adminUser);
@@ -125,7 +125,7 @@ class CommentAnonymousTest extends CommentTestBase {
 
     $anonymous_comment3 = $this->postComment($this->node, $this->randomMachineName(), $this->randomMachineName(), TRUE);
     // Name should have 'Anonymous' for value by default.
-    $this->assertText('Email field is required.', 'Email required.');
+    $this->assertSession()->pageTextContains('Email field is required.');
     $this->assertFalse($this->commentExists($anonymous_comment3), 'Anonymous comment with contact info (required) not found.');
 
     // Post comment with contact info (required).
@@ -137,28 +137,28 @@ class CommentAnonymousTest extends CommentTestBase {
     // Make sure the user data appears correctly when editing the comment.
     $this->drupalLogin($this->adminUser);
     $this->drupalGet('comment/' . $anonymous_comment3->id() . '/edit');
-    $this->assertRaw($author_name);
+    $this->assertSession()->responseContains($author_name);
     // Check the author field is empty (i.e. anonymous) when editing the comment.
     $this->assertSession()->fieldValueEquals('uid', '');
-    $this->assertRaw($author_mail);
+    $this->assertSession()->responseContains($author_mail);
 
     // Unpublish comment.
     $this->performCommentOperation($anonymous_comment3, 'unpublish');
 
     $this->drupalGet('admin/content/comment/approval');
-    $this->assertRaw('comments[' . $anonymous_comment3->id() . ']');
+    $this->assertSession()->responseContains('comments[' . $anonymous_comment3->id() . ']');
 
     // Publish comment.
     $this->performCommentOperation($anonymous_comment3, 'publish', TRUE);
 
     $this->drupalGet('admin/content/comment');
-    $this->assertRaw('comments[' . $anonymous_comment3->id() . ']');
+    $this->assertSession()->responseContains('comments[' . $anonymous_comment3->id() . ']');
 
     // Delete comment.
     $this->performCommentOperation($anonymous_comment3, 'delete');
 
     $this->drupalGet('admin/content/comment');
-    $this->assertNoRaw('comments[' . $anonymous_comment3->id() . ']');
+    $this->assertSession()->responseNotContains('comments[' . $anonymous_comment3->id() . ']');
     $this->drupalLogout();
 
     // Comment 3 was deleted.

@@ -1,17 +1,18 @@
 <?php
 
-/**
- * @see       https://github.com/laminas/laminas-feed for the canonical source repository
- * @copyright https://github.com/laminas/laminas-feed/blob/master/COPYRIGHT.md
- * @license   https://github.com/laminas/laminas-feed/blob/master/LICENSE.md New BSD License
- */
-
 namespace Laminas\Feed\Writer;
 
 use Laminas\Feed\Writer\Exception\InvalidArgumentException;
 
+use function array_key_exists;
+use function is_a;
+use function is_string;
+use function sprintf;
+use function substr;
+
 class StandaloneExtensionManager implements ExtensionManagerInterface
 {
+    /** @var array<string, class-string> */
     private $extensions = [
         'Atom\Renderer\Feed'               => Extension\Atom\Renderer\Feed::class,
         'Content\Renderer\Entry'           => Extension\Content\Renderer\Entry::class,
@@ -25,6 +26,10 @@ class StandaloneExtensionManager implements ExtensionManagerInterface
         'ITunes\Feed'                      => Extension\ITunes\Feed::class,
         'ITunes\Renderer\Entry'            => Extension\ITunes\Renderer\Entry::class,
         'ITunes\Renderer\Feed'             => Extension\ITunes\Renderer\Feed::class,
+        'PodcastIndex\Entry'               => Extension\PodcastIndex\Entry::class,
+        'PodcastIndex\Feed'                => Extension\PodcastIndex\Feed::class,
+        'PodcastIndex\Renderer\Entry'      => Extension\PodcastIndex\Renderer\Entry::class,
+        'PodcastIndex\Renderer\Feed'       => Extension\PodcastIndex\Renderer\Feed::class,
         'Slash\Renderer\Entry'             => Extension\Slash\Renderer\Entry::class,
         'Threading\Renderer\Entry'         => Extension\Threading\Renderer\Entry::class,
         'WellFormedWeb\Renderer\Entry'     => Extension\WellFormedWeb\Renderer\Entry::class,
@@ -58,11 +63,13 @@ class StandaloneExtensionManager implements ExtensionManagerInterface
      *
      * @param string $name
      * @param string $class
+     * @psalm-param class-string $class
      * @return void
      */
     public function add($name, $class)
     {
-        if (is_string($class)
+        if (
+            is_string($class)
             && (is_a($class, Extension\AbstractRenderer::class, true)
                 || 'Feed' === substr($class, -4)
                 || 'Entry' === substr($class, -5))

@@ -88,9 +88,9 @@
         }
       };
 
-      $('input.js-layout-builder-filter', context)
-        .once('block-filter-text')
-        .on('keyup', debounce(filterBlockList, 200));
+      $(
+        once('block-filter-text', 'input.js-layout-builder-filter', context),
+      ).on('keyup', debounce(filterBlockList, 200));
     },
   };
 
@@ -324,9 +324,8 @@
       const $layoutBuilderContentPreview = $('#layout-builder-content-preview');
 
       // data-content-preview-id specifies the layout being edited.
-      const contentPreviewId = $layoutBuilderContentPreview.data(
-        'content-preview-id',
-      );
+      const contentPreviewId =
+        $layoutBuilderContentPreview.data('content-preview-id');
 
       /**
        * Tracks if content preview is enabled for this layout. Defaults to true

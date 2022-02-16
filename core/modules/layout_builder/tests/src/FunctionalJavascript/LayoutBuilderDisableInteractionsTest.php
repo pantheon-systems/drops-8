@@ -6,6 +6,7 @@ use Behat\Mink\Element\NodeElement;
 use Drupal\block_content\Entity\BlockContent;
 use Drupal\block_content\Entity\BlockContentType;
 use Drupal\Component\Render\FormattableMarkup;
+use Drupal\FunctionalJavascriptTests\JSWebAssert;
 use Drupal\FunctionalJavascriptTests\WebDriverTestBase;
 use Drupal\Tests\contextual\FunctionalJavascript\ContextualLinkClickTrait;
 
@@ -104,7 +105,8 @@ class LayoutBuilderDisableInteractionsTest extends WebDriverTestBase {
 
     $field_ui_prefix = 'admin/structure/types/manage/bundle_with_section_field';
 
-    $this->drupalPostForm("$field_ui_prefix/display", ['layout[enabled]' => TRUE], 'Save');
+    $this->drupalGet("{$field_ui_prefix}/display");
+    $this->submitForm(['layout[enabled]' => TRUE], 'Save');
     $assert_session->linkExists('Manage layout');
     $this->clickLink('Manage layout');
 
@@ -126,7 +128,8 @@ class LayoutBuilderDisableInteractionsTest extends WebDriverTestBase {
     // Ensure contextual links were not disabled.
     $this->assertContextualLinksClickable();
 
-    $this->drupalPostForm("$field_ui_prefix/display/default", ['layout[allow_custom]' => TRUE], 'Save');
+    $this->drupalGet("{$field_ui_prefix}/display/default");
+    $this->submitForm(['layout[allow_custom]' => TRUE], 'Save');
     $this->drupalGet('node/1/layout');
 
     // Ensure the links and forms are also disabled in using the override.
@@ -171,22 +174,26 @@ class LayoutBuilderDisableInteractionsTest extends WebDriverTestBase {
    *
    * @param \Behat\Mink\Element\NodeElement $element
    *   Element being checked for.
+   *
+   * @internal
    */
-  protected function assertElementUnclickable(NodeElement $element) {
+  protected function assertElementUnclickable(NodeElement $element): void {
     try {
       $element->click();
       $tag_name = $element->getTagName();
       $this->fail(new FormattableMarkup("@tag_name was clickable when it shouldn't have been", ['@tag_name' => $tag_name]));
     }
     catch (\Exception $e) {
-      $this->assertStringContainsString('is not clickable at point', $e->getMessage());
+      $this->assertTrue(JSWebAssert::isExceptionNotClickable($e));
     }
   }
 
   /**
    * Asserts that forms, links, and iframes in preview are non-interactive.
+   *
+   * @internal
    */
-  protected function assertLinksFormIframeNotInteractive() {
+  protected function assertLinksFormIframeNotInteractive(): void {
     $assert_session = $this->assertSession();
     $page = $this->getSession()->getPage();
 
@@ -201,8 +208,10 @@ class LayoutBuilderDisableInteractionsTest extends WebDriverTestBase {
 
   /**
    * Confirms that Layout Builder contextual links remain active.
+   *
+   * @internal
    */
-  protected function assertContextualLinksClickable() {
+  protected function assertContextualLinksClickable(): void {
     $assert_session = $this->assertSession();
     $page = $this->getSession()->getPage();
     $this->drupalGet($this->getUrl());
@@ -230,8 +239,10 @@ class LayoutBuilderDisableInteractionsTest extends WebDriverTestBase {
    * This is confirmed by clicking a contextual link then moving the mouse
    * pointer. If mouseup is working properly, the draggable element will not
    * be moved by the pointer moving.
+   *
+   * @internal
    */
-  protected function assertContextualLinkRetainsMouseup() {
+  protected function assertContextualLinkRetainsMouseup(): void {
     $assert_session = $this->assertSession();
     $page = $this->getSession()->getPage();
     $body_field_selector = '.block-field-blocknodebundle-with-section-fieldbody';

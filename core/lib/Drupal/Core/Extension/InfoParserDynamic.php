@@ -102,10 +102,29 @@ class InfoParserDynamic implements InfoParserInterface {
 
       // Determine if the extension is compatible with the current version of
       // Drupal core.
-      $core_version_constraint = isset($parsed_info['core_version_requirement']) ? $parsed_info['core_version_requirement'] : $parsed_info['core'];
+      $core_version_constraint = $parsed_info['core_version_requirement'] ?? $parsed_info['core'];
       $parsed_info['core_incompatible'] = !Semver::satisfies(\Drupal::VERSION, $core_version_constraint);
       if (isset($parsed_info['version']) && $parsed_info['version'] === 'VERSION') {
         $parsed_info['version'] = \Drupal::VERSION;
+      }
+      $parsed_info += [ExtensionLifecycle::LIFECYCLE_IDENTIFIER => ExtensionLifecycle::STABLE];
+      $lifecycle = $parsed_info[ExtensionLifecycle::LIFECYCLE_IDENTIFIER];
+      if (!ExtensionLifecycle::isValid($lifecycle)) {
+        $valid_values = [
+          ExtensionLifecycle::EXPERIMENTAL,
+          ExtensionLifecycle::STABLE,
+          ExtensionLifecycle::DEPRECATED,
+          ExtensionLifecycle::OBSOLETE,
+        ];
+        throw new InfoParserException("'lifecycle: {$lifecycle}' is not valid in $filename. Valid values are: '" . implode("', '", $valid_values) . "'.");
+      }
+      if (in_array($lifecycle, [ExtensionLifecycle::DEPRECATED, ExtensionLifecycle::OBSOLETE], TRUE)) {
+        if (empty($parsed_info[ExtensionLifecycle::LIFECYCLE_LINK_IDENTIFIER])) {
+          throw new InfoParserException(sprintf("Extension %s (%s) has 'lifecycle: %s' but is missing a '%s' entry.", $parsed_info['name'], $filename, $lifecycle, ExtensionLifecycle::LIFECYCLE_LINK_IDENTIFIER));
+        }
+        if (!filter_var($parsed_info[ExtensionLifecycle::LIFECYCLE_LINK_IDENTIFIER], FILTER_VALIDATE_URL)) {
+          throw new InfoParserException(sprintf("Extension %s (%s) has a '%s' entry that is not a valid URL.", $parsed_info['name'], $filename, ExtensionLifecycle::LIFECYCLE_LINK_IDENTIFIER));
+        }
       }
     }
     return $parsed_info;
