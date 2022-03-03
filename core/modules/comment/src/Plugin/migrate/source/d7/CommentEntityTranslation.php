@@ -2,11 +2,17 @@
 
 namespace Drupal\comment\Plugin\migrate\source\d7;
 
+use Drupal\migrate\Exception\RequirementsException;
 use Drupal\migrate\Row;
 use Drupal\migrate_drupal\Plugin\migrate\source\d7\FieldableEntity;
 
 /**
- * Provides Drupal 7 comment entity translation source plugin.
+ * Drupal 7 comment entity translation source plugin.
+ *
+ * For available configuration keys, refer to the parent classes.
+ *
+ * @see \Drupal\migrate\Plugin\migrate\source\SqlBase
+ * @see \Drupal\migrate\Plugin\migrate\source\SourcePluginBase
  *
  * @MigrateSource(
  *   id = "d7_comment_entity_translation",
@@ -27,8 +33,8 @@ class CommentEntityTranslation extends FieldableEntity {
       ->condition('et.entity_type', 'comment')
       ->condition('et.source', '', '<>');
 
-    $query->innerJoin('comment', 'c', 'c.cid = et.entity_id');
-    $query->innerJoin('node', 'n', 'n.nid = c.nid');
+    $query->innerJoin('comment', 'c', '[c].[cid] = [et].[entity_id]');
+    $query->innerJoin('node', 'n', '[n].[nid] = [c].[nid]');
 
     $query->addField('n', 'type', 'node_type');
 
@@ -98,6 +104,22 @@ class CommentEntityTranslation extends FieldableEntity {
         'alias' => 'et',
       ],
     ];
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function checkRequirements() {
+    parent::checkRequirements();
+
+    if (!$this->moduleExists('comment')) {
+      // If we make it to here, the comment module isn't installed.
+      throw new RequirementsException('The module comment is not enabled in the source site');
+    }
+    if (!$this->moduleExists('node')) {
+      // Node module is also a requirement.
+      throw new RequirementsException('The module node is not enabled in the source site');
+    }
   }
 
 }

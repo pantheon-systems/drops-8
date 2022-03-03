@@ -9,7 +9,7 @@ use Drupal\node\Entity\NodeType;
 use Drupal\views\Tests\ViewTestData;
 
 /**
- * Tests the field field handler UI.
+ * Tests the field handler UI.
  *
  * @group views
  */
@@ -85,7 +85,7 @@ class FieldTest extends WebDriverTestBase {
     $web_assert->assertWaitOnAjaxRequest();
     $page->fillField('options[settings][trim_length]', '700');
     $apply_button = $page->find('css', '.views-ui-dialog button.button--primary');
-    $this->assertTrue(!empty($apply_button));
+    $this->assertNotEmpty($apply_button);
     $apply_button->press();
     $web_assert->assertWaitOnAjaxRequest();
 

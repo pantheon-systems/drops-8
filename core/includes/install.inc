@@ -8,6 +8,7 @@
 use Drupal\Component\Utility\OpCodeCache;
 use Drupal\Component\Utility\Unicode;
 use Drupal\Component\Utility\UrlHelper;
+use Drupal\Core\Database\Database;
 use Drupal\Core\Extension\Dependency;
 use Drupal\Core\Extension\ExtensionDiscovery;
 use Drupal\Core\Installer\InstallerKernel;
@@ -80,7 +81,7 @@ const FILE_NOT_EXECUTABLE = 128;
 function drupal_load_updates() {
   /** @var \Drupal\Core\Extension\ModuleExtensionList $extension_list_module */
   $extension_list_module = \Drupal::service('extension.list.module');
-  foreach (drupal_get_installed_schema_version(NULL, FALSE, TRUE) as $module => $schema_version) {
+  foreach (\Drupal::service('update.update_hook_registry')->getAllInstalledVersions() as $module => $schema_version) {
     if ($extension_list_module->exists($module) && !$extension_list_module->checkIncompatibility($module)) {
       if ($schema_version > -1) {
         module_load_install($module);
@@ -113,7 +114,7 @@ function drupal_install_profile_distribution_name() {
     $profile = \Drupal::installProfile();
     $info = \Drupal::service('extension.list.profile')->getExtensionInfo($profile);
   }
-  return isset($info['distribution']['name']) ? $info['distribution']['name'] : 'Drupal';
+  return $info['distribution']['name'] ?? 'Drupal';
 }
 
 /**
@@ -131,7 +132,7 @@ function drupal_install_profile_distribution_version() {
   // installation state (it might not be saved anywhere yet).
   if (InstallerKernel::installationAttempted()) {
     global $install_state;
-    return isset($install_state['profile_info']['version']) ? $install_state['profile_info']['version'] : \Drupal::VERSION;
+    return $install_state['profile_info']['version'] ?? \Drupal::VERSION;
   }
   // At all other times, we load the profile via standard methods.
   else {
@@ -281,7 +282,7 @@ function drupal_rewrite_settings($settings = [], $settings_file = NULL) {
     $state = 'default';
     foreach (token_get_all($contents) as $token) {
       if (is_array($token)) {
-        list($type, $value) = $token;
+        [$type, $value] = $token;
       }
       else {
         $type = -1;
@@ -618,6 +619,18 @@ function drupal_install_system($install_state) {
   \Drupal::configFactory()->getEditable('core.extension')
     ->set('profile', $install_state['parameters']['profile'])
     ->save();
+
+  $connection = Database::getConnection();
+  $provider = $connection->getProvider();
+  // When the database driver is provided by a module, then install that module.
+  // This module must be installed before any other module, as it must be able
+  // to override any call to hook_schema() or any "backend_overridable" service.
+  if ($provider !== 'core') {
+    $autoload = $connection->getConnectionOptions()['autoload'] ?? '';
+    if (($pos = strpos($autoload, 'src/Driver/Database/')) !== FALSE) {
+      $kernel->getContainer()->get('module_installer')->install([$provider], FALSE);
+    }
+  }
 
   // Install System module.
   $kernel->getContainer()->get('module_installer')->install(['system'], FALSE);
@@ -1101,7 +1114,7 @@ function install_profile_info($profile, $langcode = 'en') {
       'php' => \Drupal::MINIMUM_PHP,
       'config_install_path' => NULL,
     ];
-    $profile_path = drupal_get_path('profile', $profile);
+    $profile_path = \Drupal::service('extension.list.profile')->getPath($profile);
     $info = \Drupal::service('info_parser')->parse("$profile_path/$profile.info.yml");
     $info += $defaults;
 

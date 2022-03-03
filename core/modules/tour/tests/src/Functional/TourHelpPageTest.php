@@ -77,17 +77,17 @@ class TourHelpPageTest extends BrowserTestBase {
     $this->drupalGet('admin/help');
 
     // All users should be able to see the module section.
-    $this->assertText('Module overviews are provided by modules');
+    $this->assertSession()->pageTextContains('Module overviews are provided by modules');
     foreach ($this->getModuleList() as $name) {
       $this->assertSession()->linkExists($name);
     }
 
     // Some users should be able to see the tour section.
     if ($tours_ok) {
-      $this->assertText('Tours guide you through workflows');
+      $this->assertSession()->pageTextContains('Tours guide you through workflows');
     }
     else {
-      $this->assertNoText('Tours guide you through workflows');
+      $this->assertSession()->pageTextNotContains('Tours guide you through workflows');
     }
 
     $titles = $this->getTourList();
@@ -111,11 +111,11 @@ class TourHelpPageTest extends BrowserTestBase {
     // Test the titles that should not be links.
     foreach ($titles[1] as $title) {
       if ($tours_ok) {
-        $this->assertText($title);
+        $this->assertSession()->pageTextContains($title);
         $this->assertSession()->linkNotExistsExact($title);
       }
       else {
-        $this->assertNoText($title);
+        $this->assertSession()->pageTextNotContains($title);
         // Just test the first item in the list of text that should not
         // be there, because the second matches part of the name of a module
         // that is in the Module overviews section, so the text will be there

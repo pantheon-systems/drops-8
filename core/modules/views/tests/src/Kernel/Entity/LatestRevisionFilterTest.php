@@ -100,7 +100,7 @@ class LatestRevisionFilterTest extends ViewsKernelTestBase {
     $this->executeView($view);
 
     // Check that we have all the results.
-    $this->assertCount(count($latest_revisions), $view->result);
+    $this->assertSameSize($latest_revisions, $view->result);
 
     $expected = $not_expected = [];
     foreach ($all_revisions as $revision_id => $revision) {
@@ -126,8 +126,10 @@ class LatestRevisionFilterTest extends ViewsKernelTestBase {
    *   An executed View.
    * @param array $not_expected_revision_ids
    *   An array of revision IDs which should not be part of the result set.
+   *
+   * @internal
    */
-  protected function assertNotInResultSet(ViewExecutable $view, array $not_expected_revision_ids) {
+  protected function assertNotInResultSet(ViewExecutable $view, array $not_expected_revision_ids): void {
     $found_revision_ids = array_filter($view->result, function ($row) use ($not_expected_revision_ids) {
       return in_array($row->vid, $not_expected_revision_ids);
     });

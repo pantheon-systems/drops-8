@@ -115,7 +115,7 @@ abstract class FormTestBase extends UnitTestCase {
   /**
    * The event dispatcher.
    *
-   * @var \Symfony\Component\EventDispatcher\EventDispatcherInterface|\PHPUnit\Framework\MockObject\MockObject
+   * @var \Symfony\Contracts\EventDispatcher\EventDispatcherInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $eventDispatcher;
 
@@ -163,7 +163,7 @@ abstract class FormTestBase extends UnitTestCase {
       ->getMock();
     $this->elementInfo->expects($this->any())
       ->method('getInfo')
-      ->will($this->returnCallback([$this, 'getInfo']));
+      ->willReturnCallback([$this, 'getInfo']);
 
     $this->csrfToken = $this->getMockBuilder('Drupal\Core\Access\CsrfTokenGenerator')
       ->disableOriginalConstructor()
@@ -174,18 +174,18 @@ abstract class FormTestBase extends UnitTestCase {
     $this->account = $this->createMock('Drupal\Core\Session\AccountInterface');
     $this->themeManager = $this->createMock('Drupal\Core\Theme\ThemeManagerInterface');
     $this->request = Request::createFromGlobals();
-    $this->eventDispatcher = $this->createMock('Symfony\Component\EventDispatcher\EventDispatcherInterface');
+    $this->eventDispatcher = $this->createMock('Symfony\Contracts\EventDispatcher\EventDispatcherInterface');
     $this->requestStack = new RequestStack();
     $this->requestStack->push($this->request);
     $this->logger = $this->createMock('Drupal\Core\Logger\LoggerChannelInterface');
     $form_error_handler = $this->createMock('Drupal\Core\Form\FormErrorHandlerInterface');
     $this->formValidator = $this->getMockBuilder('Drupal\Core\Form\FormValidator')
       ->setConstructorArgs([$this->requestStack, $this->getStringTranslationStub(), $this->csrfToken, $this->logger, $form_error_handler])
-      ->setMethods(NULL)
+      ->onlyMethods([])
       ->getMock();
     $this->formSubmitter = $this->getMockBuilder('Drupal\Core\Form\FormSubmitter')
       ->setConstructorArgs([$this->requestStack, $this->urlGenerator])
-      ->setMethods(['batchGet', 'drupalInstallationAttempted'])
+      ->onlyMethods(['batchGet'])
       ->getMock();
     $this->root = dirname(substr(__DIR__, 0, -strlen(__NAMESPACE__)), 2);
 

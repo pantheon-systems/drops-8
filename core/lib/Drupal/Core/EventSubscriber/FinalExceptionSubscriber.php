@@ -86,15 +86,13 @@ class FinalExceptionSubscriber implements EventSubscriberInterface {
     if ($this->isErrorDisplayable($error)) {
       // If error type is 'User notice' then treat it as debug information
       // instead of an error message.
-      // @see debug()
       if ($error['%type'] == 'User notice') {
         $error['%type'] = 'Debug';
       }
 
       $error = $this->simplifyFileInError($error);
 
-      unset($error['backtrace']);
-      unset($error['severity_level']);
+      unset($error['backtrace'], $error['exception'], $error['severity_level']);
 
       if (!$this->isErrorLevelVerbose()) {
         // Without verbose logging, use a simple message.
@@ -126,7 +124,7 @@ class FinalExceptionSubscriber implements EventSubscriberInterface {
 
     $content_type = $event->getRequest()->getRequestFormat() == 'html' ? 'text/html' : 'text/plain';
     $content = $this->t('The website encountered an unexpected error. Please try again later.');
-    $content .= $message ? '</br></br>' . $message : '';
+    $content .= $message ? '<br><br>' . $message : '';
     $response = new Response($content, 500, ['Content-Type' => $content_type]);
 
     if ($exception instanceof HttpExceptionInterface) {

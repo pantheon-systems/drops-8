@@ -39,7 +39,7 @@ class BlockDependenciesTest extends ViewsKernelTestBase {
       'module' => ['views'],
       'theme' => ['stark'],
     ];
-    $this->assertIdentical($expected, $dependencies);
+    $this->assertSame($expected, $dependencies);
   }
 
   /**
@@ -55,7 +55,7 @@ class BlockDependenciesTest extends ViewsKernelTestBase {
       'module' => ['views'],
       'theme' => ['stark'],
     ];
-    $this->assertIdentical($expected, $dependencies);
+    $this->assertSame($expected, $dependencies);
   }
 
   /**
@@ -69,7 +69,7 @@ class BlockDependenciesTest extends ViewsKernelTestBase {
    *   example:
    *   @code
    *     $this->createBlock('system_powered_by_block', array(
-   *       'label' => t('Hello, world!'),
+   *       'label' => 'Hello, world!',
    *     ));
    *   @endcode
    *   The following defaults are provided:

@@ -78,9 +78,9 @@ class FieldStorageConfigAccessControlHandlerTest extends UnitTestCase {
     $this->member
       ->expects($this->any())
       ->method('hasPermission')
-      ->will($this->returnValueMap([
+      ->willReturnMap([
         ['administer node fields', TRUE],
-      ]));
+      ]);
     $this->member
       ->expects($this->any())
       ->method('id')
@@ -164,8 +164,10 @@ class FieldStorageConfigAccessControlHandlerTest extends UnitTestCase {
    *   A list of allowed operations.
    * @param \Drupal\Core\Session\AccountInterface $user
    *   The account to use for get access.
+   *
+   * @internal
    */
-  public function assertAllowOperations(array $allow_operations, AccountInterface $user) {
+  public function assertAllowOperations(array $allow_operations, AccountInterface $user): void {
     foreach (['view', 'update', 'delete'] as $operation) {
       $expected = in_array($operation, $allow_operations);
       $actual = $this->accessControlHandler->access($this->entity, $operation, $user);

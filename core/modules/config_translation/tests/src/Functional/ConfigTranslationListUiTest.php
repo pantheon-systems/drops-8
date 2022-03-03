@@ -110,7 +110,7 @@ class ConfigTranslationListUiTest extends BrowserTestBase {
 
     // Test if the link to translate actually goes to the translate page.
     $this->drupalGet($translate_link);
-    $this->assertRaw('<th>' . t('Language') . '</th>');
+    $this->assertSession()->responseContains('<th>Language</th>');
   }
 
   /**
@@ -129,7 +129,8 @@ class ConfigTranslationListUiTest extends BrowserTestBase {
       'label' => $label,
     ];
     // Create the menu by posting the form.
-    $this->drupalPostForm('admin/structure/menu/add', $edit, 'Save');
+    $this->drupalGet('admin/structure/menu/add');
+    $this->submitForm($edit, 'Save');
 
     // Get the Menu listing.
     $this->drupalGet('admin/structure/menu');
@@ -157,7 +158,7 @@ class ConfigTranslationListUiTest extends BrowserTestBase {
 
     // Test if the link to translate actually goes to the translate page.
     $this->drupalGet($translate_link);
-    $this->assertRaw('<th>' . t('Language') . '</th>');
+    $this->assertSession()->responseContains('<th>Language</th>');
   }
 
   /**
@@ -182,7 +183,7 @@ class ConfigTranslationListUiTest extends BrowserTestBase {
 
     // Test if the link to translate actually goes to the translate page.
     $this->drupalGet($translate_link);
-    $this->assertRaw('<th>' . t('Language') . '</th>');
+    $this->assertSession()->responseContains('<th>Language</th>');
   }
 
   /**
@@ -207,7 +208,7 @@ class ConfigTranslationListUiTest extends BrowserTestBase {
 
     // Test if the link to translate actually goes to the translate page.
     $this->drupalGet($translate_link);
-    $this->assertRaw('<th>' . t('Language') . '</th>');
+    $this->assertSession()->responseContains('<th>Language</th>');
   }
 
   /**
@@ -231,7 +232,7 @@ class ConfigTranslationListUiTest extends BrowserTestBase {
 
     // Test if the link to translate actually goes to the translate page.
     $this->drupalGet($translate_link);
-    $this->assertRaw('<th>' . t('Language') . '</th>');
+    $this->assertSession()->responseContains('<th>Language</th>');
   }
 
   /**
@@ -254,7 +255,7 @@ class ConfigTranslationListUiTest extends BrowserTestBase {
 
     // Test if the link to translate actually goes to the translate page.
     $this->drupalGet($translate_link);
-    $this->assertRaw('<th>' . t('Language') . '</th>');
+    $this->assertSession()->responseContains('<th>Language</th>');
   }
 
   /**
@@ -278,7 +279,7 @@ class ConfigTranslationListUiTest extends BrowserTestBase {
 
     // Test if the link to translate actually goes to the translate page.
     $this->drupalGet($translate_link);
-    $this->assertRaw('<th>' . t('Language') . '</th>');
+    $this->assertSession()->responseContains('<th>Language</th>');
   }
 
   /**
@@ -302,7 +303,7 @@ class ConfigTranslationListUiTest extends BrowserTestBase {
 
     // Test if the link to translate actually goes to the translate page.
     $this->drupalGet($translate_link);
-    $this->assertRaw('<th>' . t('Language') . '</th>');
+    $this->assertSession()->responseContains('<th>Language</th>');
   }
 
   /**
@@ -323,7 +324,7 @@ class ConfigTranslationListUiTest extends BrowserTestBase {
 
     // Test if the link to translate actually goes to the translate page.
     $this->drupalGet($translate_link);
-    $this->assertRaw('<th>' . t('Language') . '</th>');
+    $this->assertSession()->responseContains('<th>Language</th>');
   }
 
   /**
@@ -343,7 +344,7 @@ class ConfigTranslationListUiTest extends BrowserTestBase {
 
     // Test if the link to translate actually goes to the translate page.
     $this->drupalGet($translate_link);
-    $this->assertRaw('<th>' . t('Language') . '</th>');
+    $this->assertSession()->responseContains('<th>Language</th>');
   }
 
   /**
@@ -359,7 +360,7 @@ class ConfigTranslationListUiTest extends BrowserTestBase {
 
     // Test if the link to translate actually goes to the translate page.
     $this->drupalGet($translate_link);
-    $this->assertRaw('<th>' . t('Language') . '</th>');
+    $this->assertSession()->responseContains('<th>Language</th>');
   }
 
   /**
@@ -371,8 +372,9 @@ class ConfigTranslationListUiTest extends BrowserTestBase {
     $edit['id'] = strtolower($edit['label']);
     $edit['fallback_image_style'] = 'thumbnail';
 
-    $this->drupalPostForm('admin/config/media/responsive-image-style/add', $edit, 'Save');
-    $this->assertRaw(t('Responsive image style %label saved.', ['%label' => $edit['label']]));
+    $this->drupalGet('admin/config/media/responsive-image-style/add');
+    $this->submitForm($edit, 'Save');
+    $this->assertSession()->pageTextContains("Responsive image style {$edit['label']} saved.");
 
     // Get the responsive image style listing.
     $this->drupalGet('admin/config/media/responsive-image-style');
@@ -383,7 +385,7 @@ class ConfigTranslationListUiTest extends BrowserTestBase {
 
     // Test if the link to translate actually goes to the translate page.
     $this->drupalGet($translate_link);
-    $this->assertRaw('<th>' . t('Language') . '</th>');
+    $this->assertSession()->responseContains('<th>Language</th>');
   }
 
   /**
@@ -435,7 +437,7 @@ class ConfigTranslationListUiTest extends BrowserTestBase {
 
       // Test if the link to translate actually goes to the translate page.
       $this->drupalGet($translate_link);
-      $this->assertRaw('<th>' . t('Language') . '</th>');
+      $this->assertSession()->responseContains('<th>Language</th>');
     }
   }
 
@@ -452,7 +454,7 @@ class ConfigTranslationListUiTest extends BrowserTestBase {
 
     // Test if the link to translate actually goes to the translate page.
     $this->drupalGet($translate_link);
-    $this->assertRaw('<th>' . t('Language') . '</th>');
+    $this->assertSession()->responseContains('<th>Language</th>');
   }
 
   /**
@@ -471,7 +473,7 @@ class ConfigTranslationListUiTest extends BrowserTestBase {
 
     // Test if the link to translate actually goes to the translate page.
     $this->drupalGet($translate_link);
-    $this->assertRaw('<th>' . t('Language') . '</th>');
+    $this->assertSession()->responseContains('<th>Language</th>');
   }
 
   /**
@@ -502,8 +504,6 @@ class ConfigTranslationListUiTest extends BrowserTestBase {
     $this->doSettingsPageTest('admin/config/system/site-information');
     // Test the account settings page.
     $this->doSettingsPageTest('admin/config/people/accounts');
-    // Test the RSS settings page.
-    $this->doSettingsPageTest('admin/config/services/rss-publishing');
   }
 
 }

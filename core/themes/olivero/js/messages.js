@@ -5,9 +5,9 @@
 * @preserve
 **/
 
-(function (Drupal) {
+(function (Drupal, once) {
   var closeMessage = function closeMessage(message) {
-    var messageContainer = message.querySelector('.messages__container');
+    var messageContainer = message.querySelector('[data-drupal-selector="messages-container"]');
     var closeBtnWrapper = document.createElement('div');
     closeBtnWrapper.setAttribute('class', 'messages__button');
     var closeBtn = document.createElement('button');
@@ -19,7 +19,6 @@
     messageContainer.appendChild(closeBtnWrapper);
     closeBtnWrapper.appendChild(closeBtn);
     closeBtn.appendChild(closeBtnText);
-    message.classList.add('messages-processed');
     closeBtn.addEventListener('click', function () {
       message.classList.add('hidden');
     });
@@ -31,7 +30,8 @@
         id = _ref2.id;
     var messagesTypes = Drupal.Message.getMessageTypeLabels();
     var messageWrapper = document.createElement('div');
-    messageWrapper.setAttribute('class', "messages-list__item messages messages--".concat(type, " messages-processed"));
+    messageWrapper.setAttribute('class', "messages-list__item messages messages--".concat(type));
+    messageWrapper.setAttribute('data-drupal-selector', 'messages');
     messageWrapper.setAttribute('role', type === 'error' || type === 'warning' ? 'alert' : 'status');
     messageWrapper.setAttribute('aria-labelledby', "".concat(id, "-title"));
     messageWrapper.setAttribute('data-drupal-message-id', id);
@@ -56,17 +56,14 @@
       svg += '</svg></div>';
     }
 
-    messageWrapper.innerHTML = "\n    <div class=\"messages__container\">\n      <div class=\"messages__header".concat(!svg ? ' no-icon' : '', "\">\n        <h2 class=\"visually-hidden\">").concat(messagesTypes[type], "</h2>\n        ").concat(svg, "\n      </div>\n      <div class=\"messages__content\">\n        ").concat(text, "\n      </div>\n    </div>\n    ");
+    messageWrapper.innerHTML = "\n    <div class=\"messages__container\" data-drupal-selector=\"messages-container\">\n      <div class=\"messages__header".concat(!svg ? ' no-icon' : '', "\">\n        <h2 class=\"visually-hidden\">").concat(messagesTypes[type], "</h2>\n        ").concat(svg, "\n      </div>\n      <div class=\"messages__content\">\n        ").concat(text, "\n      </div>\n    </div>\n    ");
     closeMessage(messageWrapper);
     return messageWrapper;
   };
 
   Drupal.behaviors.messages = {
     attach: function attach(context) {
-      var messages = context.querySelectorAll('.messages:not(.messages-processed)');
-      messages.forEach(function (message) {
-        closeMessage(message);
-      });
+      once('messages', '[data-drupal-selector="messages"]', context).forEach(closeMessage);
     }
   };
-})(Drupal);
+})(Drupal, once);

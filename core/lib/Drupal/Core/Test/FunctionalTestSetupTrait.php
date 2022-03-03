@@ -102,6 +102,16 @@ trait FunctionalTestSetupTrait {
       'value' => $this->apcuEnsureUniquePrefix,
       'required' => TRUE,
     ];
+    // Disable fetching of advisories during tests to avoid outbound calls. This
+    // cannot be set in ::initConfig() because it would not stop these calls
+    // during install. Tests that need to have the security advisories
+    // functionality enabled should override this method and unset this
+    // variable.
+    // @see \Drupal\Tests\system\Functional\SecurityAdvisories\SecurityAdvisoryTest::writeSettings()
+    $settings['config']['system.advisories']['enabled'] = (object) [
+      'value' => FALSE,
+      'required' => TRUE,
+    ];
     $this->writeSettings($settings);
     // Allow for test-specific overrides.
     $settings_testing_file = DRUPAL_ROOT . '/' . $this->originalSite . '/settings.testing.php';
@@ -188,7 +198,7 @@ trait FunctionalTestSetupTrait {
    * @see TestBase::prepareEnvironment()
    * @see TestBase::restoreEnvironment()
    *
-   * @todo Fix https://www.drupal.org/node/2021959 so that module enable/disable
+   * @todo Fix https://www.drupal.org/node/2941757 so that module enable/disable
    *   changes are immediately reflected in \Drupal::getContainer(). Until then,
    *   tests can invoke this workaround when requiring services from newly
    *   enabled modules to be immediately available in the same request.
@@ -211,7 +221,6 @@ trait FunctionalTestSetupTrait {
    *
    * @see \Drupal\Core\Test\FunctionalTestSetupTrait::rebuildAll()
    * @see \Drupal\Tests\BrowserTestBase::installDrupal()
-   * @see \Drupal\simpletest\WebTestBase::setUp()
    */
   protected function resetAll() {
     // Clear all database and static caches and rebuild data structures.
@@ -283,7 +292,11 @@ trait FunctionalTestSetupTrait {
    */
   protected function doInstall() {
     require_once DRUPAL_ROOT . '/core/includes/install.core.inc';
-    install_drupal($this->classLoader, $this->installParameters());
+    $parameters = $this->installParameters();
+    // Simulate a real install which does not start with the any connections set
+    // in \Drupal\Core\Database\Database::$connections.
+    Database::removeConnection('default');
+    install_drupal($this->classLoader, $parameters);
   }
 
   /**
@@ -378,9 +391,6 @@ trait FunctionalTestSetupTrait {
    */
   protected function initKernel(Request $request) {
     $this->kernel = DrupalKernel::createFromRequest($request, $this->classLoader, 'prod', TRUE);
-    // Force the container to be built from scratch instead of loaded from the
-    // disk. This forces us to not accidentally load the parent site.
-    $this->kernel->invalidateContainer();
     $this->kernel->boot();
     // Add our request to the stack and route context.
     $request->attributes->set(RouteObjectInterface::ROUTE_OBJECT, new Route('<none>'));
@@ -409,13 +419,13 @@ trait FunctionalTestSetupTrait {
     // not already specified.
     $profile = $container->getParameter('install_profile');
 
-    $default_sync_path = drupal_get_path('profile', $profile) . '/config/sync';
+    $default_sync_path = $container->get('extension.list.profile')->getPath($profile) . '/config/sync';
     $profile_config_storage = new FileStorage($default_sync_path, StorageInterface::DEFAULT_COLLECTION);
     if (!isset($this->defaultTheme) && $profile_config_storage->exists('system.theme')) {
       $this->defaultTheme = $profile_config_storage->read('system.theme')['default'];
     }
 
-    $default_install_path = drupal_get_path('profile', $profile) . '/' . InstallStorage::CONFIG_INSTALL_DIRECTORY;
+    $default_install_path = $container->get('extension.list.profile')->getPath($profile) . '/' . InstallStorage::CONFIG_INSTALL_DIRECTORY;
     $profile_config_storage = new FileStorage($default_install_path, StorageInterface::DEFAULT_COLLECTION);
     if (!isset($this->defaultTheme) && $profile_config_storage->exists('system.theme')) {
       $this->defaultTheme = $profile_config_storage->read('system.theme')['default'];
@@ -504,7 +514,6 @@ trait FunctionalTestSetupTrait {
   protected function installParameters() {
     $connection_info = Database::getConnectionInfo();
     $driver = $connection_info['default']['driver'];
-    $connection_info['default']['prefix'] = $connection_info['default']['prefix']['default'];
     unset($connection_info['default']['driver']);
     unset($connection_info['default']['namespace']);
     unset($connection_info['default']['pdo']);
@@ -534,8 +543,8 @@ trait FunctionalTestSetupTrait {
             'name' => $this->rootUser->name,
             'mail' => $this->rootUser->getEmail(),
             'pass' => [
-              'pass1' => isset($this->rootUser->pass_raw) ? $this->rootUser->pass_raw : $this->rootUser->passRaw,
-              'pass2' => isset($this->rootUser->pass_raw) ? $this->rootUser->pass_raw : $this->rootUser->passRaw,
+              'pass1' => $this->rootUser->pass_raw ?? $this->rootUser->passRaw,
+              'pass2' => $this->rootUser->pass_raw ?? $this->rootUser->passRaw,
             ],
           ],
           // form_type_checkboxes_value() requires NULL instead of FALSE values
@@ -558,7 +567,7 @@ trait FunctionalTestSetupTrait {
    * Sets up the base URL based upon the environment variable.
    *
    * @throws \Exception
-   *   Thrown when no SIMPLETEST_BASE_URL environment variable is provided.
+   *   Thrown when no SIMPLETEST_BASE_URL environment variable is provided or uses an invalid scheme.
    */
   protected function setupBaseUrl() {
     global $base_url;
@@ -576,7 +585,14 @@ trait FunctionalTestSetupTrait {
     $parsed_url = parse_url($base_url);
     $host = $parsed_url['host'] . (isset($parsed_url['port']) ? ':' . $parsed_url['port'] : '');
     $path = isset($parsed_url['path']) ? rtrim(rtrim($parsed_url['path']), '/') : '';
-    $port = isset($parsed_url['port']) ? $parsed_url['port'] : 80;
+    $port = $parsed_url['port'] ?? 80;
+
+    $valid_url_schemes = ['http', 'https'];
+    if (!in_array(strtolower($parsed_url['scheme']), $valid_url_schemes, TRUE)) {
+      throw new \Exception(
+        'You must provide valid scheme for the SIMPLETEST_BASE_URL environment variable. Valid schema are: http, https.'
+      );
+    }
 
     $this->baseUrl = $base_url;
 
