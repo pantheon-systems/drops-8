@@ -12,6 +12,7 @@ use Drupal\Component\Utility\Bytes;
 use Drupal\Component\Utility\Html;
 use Drupal\Component\Utility\SortArray;
 use Drupal\Core\Cache\Cache;
+use Drupal\Core\DrupalKernel;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 
 /**
@@ -354,8 +355,8 @@ function drupal_attach_tabledrag(&$element, array $options) {
   $tabledrag_id = (!isset($tabledrag_id)) ? 0 : $tabledrag_id + 1;
 
   // If a subgroup or source isn't set, assume it is the same as the group.
-  $target = isset($options['subgroup']) ? $options['subgroup'] : $group;
-  $source = isset($options['source']) ? $options['source'] : $target;
+  $target = $options['subgroup'] ?? $group;
+  $source = $options['source'] ?? $target;
   $element['#attached']['drupalSettings']['tableDrag'][$options['table_id']][$group][$tabledrag_id] = [
     'target' => $target,
     'source' => $source,
@@ -381,11 +382,16 @@ function drupal_attach_tabledrag(&$element, array $options) {
  * @return
  *   The rendered element.
  *
+ * @deprecated in drupal:9.3.0 and is removed from drupal:10.0.0. Use
+ *   \Drupal\Core\Render\RendererInterface::render() instead.
+ *
+ * @see https://www.drupal.org/node/2939099
  * @see \Drupal\Core\Render\RendererInterface
  * @see show()
  * @see hide()
  */
 function render(&$element) {
+  @trigger_error('The render() function is deprecated in drupal:9.3.0 and is removed from drupal:10.0.0. Use \Drupal\Core\Render\RendererInterface::render() instead. See https://www.drupal.org/node/2939099', E_USER_DEPRECATED);
   if (!$element && $element !== 0) {
     return NULL;
   }
@@ -407,13 +413,13 @@ function render(&$element) {
 /**
  * Hides an element from later rendering.
  *
- * The first time render() or drupal_render() is called on an element tree,
- * as each element in the tree is rendered, it is marked with a #printed flag
- * and the rendered children of the element are cached. Subsequent calls to
- * render() or drupal_render() will not traverse the child tree of this element
- * again: they will just use the cached children. So if you want to hide an
- * element, be sure to call hide() on the element before its parent tree is
- * rendered for the first time, as it will have no effect on subsequent
+ * The first time render() or RenderInterface::render() is called on an element
+ * tree, as each element in the tree is rendered, it is marked with a #printed
+ * flag and the rendered children of the element are cached. Subsequent calls to
+ * render() or RenderInterface::render() will not traverse the child tree of
+ * this element again: they will just use the cached children. So if you want to
+ * hide an element, be sure to call hide() on the element before its parent tree
+ * is rendered for the first time, as it will have no effect on subsequent
  * renderings of the parent tree.
  *
  * @param $element
@@ -422,6 +428,7 @@ function render(&$element) {
  * @return
  *   The element.
  *
+ * @see \Drupal\Core\Render\RendererInterface
  * @see render()
  * @see show()
  */
@@ -436,13 +443,13 @@ function hide(&$element) {
  * You can also use render($element), which shows the element while rendering
  * it.
  *
- * The first time render() or drupal_render() is called on an element tree,
- * as each element in the tree is rendered, it is marked with a #printed flag
- * and the rendered children of the element are cached. Subsequent calls to
- * render() or drupal_render() will not traverse the child tree of this element
- * again: they will just use the cached children. So if you want to show an
- * element, be sure to call show() on the element before its parent tree is
- * rendered for the first time, as it will have no effect on subsequent
+ * The first time render() or RenderInterface::render() is called on an element
+ * tree, as each element in the tree is rendered, it is marked with a #printed
+ * flag and the rendered children of the element are cached. Subsequent calls to
+ * render() or RenderInterface::render() will not traverse the child tree of
+ * this element again: they will just use the cached children. So if you want to
+ * show an element, be sure to call show() on the element before its parent tree
+ * is rendered for the first time, as it will have no effect on subsequent
  * renderings of the parent tree.
  *
  * @param $element
@@ -451,6 +458,7 @@ function hide(&$element) {
  * @return
  *   The element.
  *
+ * @see \Drupal\Core\Render\RendererInterface
  * @see render()
  * @see hide()
  */
@@ -460,10 +468,11 @@ function show(&$element) {
 }
 
 /**
- * Flushes all persistent caches, resets all variables, and rebuilds all data structures.
+ * Rebuilds the container, flushes all persistent caches, resets all variables, and rebuilds all data structures.
  *
  * At times, it is necessary to re-initialize the entire system to account for
  * changed or new code. This function:
+ * - Rebuilds the container if $kernel is not passed in.
  * - Clears all persistent caches:
  *   - The bootstrap cache bin containing base system, module system, and theme
  *     system information.
@@ -482,6 +491,10 @@ function show(&$element) {
  *     database
  *   - The 'active' status of fields is refreshed.
  * - Rebuilds the menu router.
+ *
+ * It's discouraged to call this during a regular page request.
+ * If you call this function in tests, every code afterwards should use the new
+ * container.
  *
  * This means the entire system is reset so all caches and static variables are
  * effectively empty. After that is guaranteed, information about the currently
@@ -512,12 +525,19 @@ function show(&$element) {
  *   cache though.)
  * @todo Add a global lock to ensure that caches are not primed in concurrent
  *   requests.
+ *
+ * @param \Drupal\Core\DrupalKernel|array $kernel
+ *   (optional) The Drupal Kernel. It is the caller's responsibility to rebuild
+ *   the container if this is passed in. Sometimes drupal_flush_all_caches is
+ *   used as a batch operation so $kernel will be an array, in this instance it
+ *   will be treated as if it it NULL.
  */
-function drupal_flush_all_caches() {
+function drupal_flush_all_caches($kernel = NULL) {
+  // This is executed based on old/previously known information if $kernel is
+  // not passed in, which is sufficient, since new extensions cannot have any
+  // primed caches yet.
   $module_handler = \Drupal::moduleHandler();
   // Flush all persistent caches.
-  // This is executed based on old/previously known information, which is
-  // sufficient, since new extensions cannot have any primed caches yet.
   $module_handler->invokeAll('cache_flush');
   foreach (Cache::getBins() as $service_id => $cache_backend) {
     $cache_backend->deleteAll();
@@ -531,43 +551,26 @@ function drupal_flush_all_caches() {
   // Reset all static caches.
   drupal_static_reset();
 
-  // Invalidate the container.
-  \Drupal::service('kernel')->invalidateContainer();
-
   // Wipe the Twig PHP Storage cache.
   \Drupal::service('twig')->invalidate();
 
-  // Rebuild module and theme data.
-  $module_data = \Drupal::service('extension.list.module')->reset()->getList();
-  /** @var \Drupal\Core\Extension\ThemeHandlerInterface $theme_handler */
-  $theme_handler = \Drupal::service('theme_handler');
-  $theme_handler->refreshInfo();
+  // Rebuild theme data that is stored in state.
+  \Drupal::service('theme_handler')->refreshInfo();
   // In case the active theme gets requested later in the same request we need
   // to reset the theme manager.
   \Drupal::theme()->resetActiveTheme();
 
-  // Rebuild and reboot a new kernel. A simple DrupalKernel reboot is not
-  // sufficient, since the list of enabled modules might have been adjusted
-  // above due to changed code.
-  $files = [];
-  $modules = [];
-  foreach ($module_data as $name => $extension) {
-    if ($extension->status) {
-      $files[$name] = $extension;
-      $modules[$name] = $extension->weight;
-    }
+  if (!$kernel instanceof DrupalKernel) {
+    $kernel = \Drupal::service('kernel');
+    $kernel->invalidateContainer();
+    $kernel->rebuildContainer();
   }
-  $modules = module_config_sort($modules);
-  \Drupal::service('kernel')->updateModules($modules, $files);
-  // New container, new module handler.
-  $module_handler = \Drupal::moduleHandler();
 
-  // Ensure that all modules that are currently supposed to be enabled are
-  // actually loaded.
-  $module_handler->loadAll();
+  // Rebuild module data that is stored in state.
+  \Drupal::service('extension.list.module')->reset();
 
   // Rebuild all information based on new module data.
-  $module_handler->invokeAll('rebuild');
+  \Drupal::moduleHandler()->invokeAll('rebuild');
 
   // Clear all plugin caches.
   \Drupal::service('plugin.cache_clearer')->clearCachedDefinitions();
@@ -601,7 +604,7 @@ function _drupal_flush_css_js() {
  * Outputs debug information.
  *
  * The debug information is passed on to trigger_error() after being converted
- * to a string using _drupal_debug_message().
+ * to a string using print_r() or var_export().
  *
  * @param $data
  *   Data to be output.
@@ -611,8 +614,14 @@ function _drupal_flush_css_js() {
  *   Flag to switch between print_r() and var_export() for data conversion to
  *   string. Set $print_r to FALSE to use var_export() instead of print_r().
  *   Passing recursive data structures to var_export() will generate an error.
+ *
+ * @deprecated in drupal:9.2.0 and is removed from drupal:10.0.0. Use dump()
+ *   instead.
+ *
+ * @see https://www.drupal.org/node/3192283
  */
 function debug($data, $label = NULL, $print_r = TRUE) {
+  @trigger_error('debug() is deprecated in drupal:9.2.0 and is removed from drupal:10.0.0. Use dump() instead. See https://www.drupal.org/node/3192283', E_USER_DEPRECATED);
   // Print $data contents to string.
   $string = Html::escape($print_r ? print_r($data, TRUE) : var_export($data, TRUE));
 

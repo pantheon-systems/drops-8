@@ -2,6 +2,7 @@
 
 namespace Drupal\KernelTests\Core\Theme;
 
+use Drupal\Core\Extension\ExtensionLifecycle;
 use Drupal\KernelTests\KernelTestBase;
 
 /**
@@ -64,7 +65,7 @@ class Stable9LibraryOverrideTest extends KernelTestBase {
     $all_modules = array_filter($all_modules, function ($module) {
       // Filter contrib, hidden, experimental, already enabled modules, and
       // modules in the Testing package.
-      if ($module->origin !== 'core' || !empty($module->info['hidden']) || $module->status == TRUE || $module->info['package'] == 'Testing' || $module->info['package'] == 'Core (Experimental)') {
+      if ($module->origin !== 'core' || !empty($module->info['hidden']) || $module->status == TRUE || $module->info['package'] == 'Testing' || $module->info[ExtensionLifecycle::LIFECYCLE_IDENTIFIER] === ExtensionLifecycle::EXPERIMENTAL) {
         return FALSE;
       }
       return TRUE;
@@ -73,6 +74,10 @@ class Stable9LibraryOverrideTest extends KernelTestBase {
     $this->allModules[] = 'system';
     $this->allModules[] = 'user';
     $this->allModules[] = 'path_alias';
+    $database_module = \Drupal::database()->getProvider();
+    if ($database_module !== 'core') {
+      $this->allModules[] = $database_module;
+    }
     sort($this->allModules);
     $this->container->get('module_installer')->install($this->allModules);
 
@@ -124,7 +129,7 @@ class Stable9LibraryOverrideTest extends KernelTestBase {
           $expected_path = strtr($expected_path, $replacements);
           $assert_path = str_replace("core/modules/$extension/", '', $clean_path);
 
-          $this->assertEqual($expected_path, $stable_path, "$assert_path from the $extension/$library_name library is overridden in Stable 9.");
+          $this->assertEquals($expected_path, $stable_path, "$assert_path from the $extension/$library_name library is overridden in Stable 9.");
           $this->assertFileExists("{$this->root}/$clean_path");
           $this->assertFileExists("{$this->root}/$stable_path");
         }
@@ -176,7 +181,7 @@ class Stable9LibraryOverrideTest extends KernelTestBase {
     $modules = \Drupal::moduleHandler()->getModuleList();
     $module_list = array_keys($modules);
     sort($module_list);
-    $this->assertEqual($this->allModules, $module_list, 'All core modules are installed.');
+    $this->assertEquals($this->allModules, $module_list, 'All core modules are installed.');
 
     $libraries['core'] = $this->libraryDiscovery->getLibrariesByExtension('core');
 

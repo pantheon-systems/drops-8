@@ -77,7 +77,7 @@ class QuickEditCustomPipelineTest extends BrowserTestBase {
       'body[0][summary]' => '',
       'body[0][value]' => '<p>Fine thanks.</p>',
       'body[0][format]' => 'filtered_html',
-      'op' => t('Save'),
+      'op' => 'Save',
     ];
     // Assume there is another field on this page, which doesn't use a custom
     // render pipeline, but the default one, and it uses the "full" view mode.
@@ -97,10 +97,10 @@ class QuickEditCustomPipelineTest extends BrowserTestBase {
     ]);
     $ajax_commands = Json::decode($response->getBody());
     $this->assertCount(1, $ajax_commands, 'The field form HTTP request results in one AJAX command.');
-    $this->assertIdentical('quickeditFieldFormSaved', $ajax_commands[0]['command'], 'The first AJAX command is a quickeditFieldFormSaved command.');
+    $this->assertSame('quickeditFieldFormSaved', $ajax_commands[0]['command'], 'The first AJAX command is a quickeditFieldFormSaved command.');
     $this->assertStringContainsString('Fine thanks.', $ajax_commands[0]['data'], 'Form value saved and printed back.');
     $this->assertStringContainsString('<div class="quickedit-test-wrapper">', $ajax_commands[0]['data'], 'Custom render pipeline used to render the value.');
-    $this->assertIdentical(array_keys($ajax_commands[0]['other_view_modes']), ['full'], 'Field was also rendered in the "full" view mode.');
+    $this->assertSame(['full'], array_keys($ajax_commands[0]['other_view_modes']), 'Field was also rendered in the "full" view mode.');
     $this->assertStringContainsString('Fine thanks.', $ajax_commands[0]['other_view_modes']['full'], '"full" version of field contains the form value.');
   }
 

@@ -65,7 +65,7 @@ class RouteSubscriberTest extends UnitTestCase {
    * @covers ::routeRebuildFinished
    */
   public function testRouteRebuildFinished() {
-    list($display_1, $display_2) = $this->setupMocks();
+    [$display_1, $display_2] = $this->setupMocks();
 
     $display_1->expects($this->once())
       ->method('collectRoutes')
@@ -96,7 +96,7 @@ class RouteSubscriberTest extends UnitTestCase {
 
     $route_event = new RouteBuildEvent($collection, 'views');
 
-    list($display_1, $display_2) = $this->setupMocks();
+    [$display_1, $display_2] = $this->setupMocks();
 
     // The page_1 display overrides an existing route, so the dynamicRoutes
     // should only call the second display.
@@ -164,11 +164,11 @@ class RouteSubscriberTest extends UnitTestCase {
 
     $executable->expects($this->any())
       ->method('setDisplay')
-      ->will($this->returnValueMap([
+      ->willReturnMap([
         ['page_1', TRUE],
         ['page_2', TRUE],
         ['page_3', FALSE],
-      ]));
+      ]);
 
     // Ensure that only the first two displays are actually called.
     $display_1 = $this->createMock('Drupal\views\Plugin\views\display\DisplayRouterInterface');
@@ -179,10 +179,10 @@ class RouteSubscriberTest extends UnitTestCase {
       ->getMock();
     $display_collection->expects($this->any())
       ->method('get')
-      ->will($this->returnValueMap([
+      ->willReturnMap([
         ['page_1', $display_1],
         ['page_2', $display_2],
-      ]));
+      ]);
     $executable->displayHandlers = $display_collection;
 
     $this->routeSubscriber->applicableViews = [];

@@ -298,7 +298,7 @@ function locale_get_plural($count, $langcode = NULL) {
       // modulo used but storing 0-99 is not enough because below 100 we often
       // find exceptions (1, 2, etc).
       $index = $count > 199 ? 100 + ($count % 100) : $count;
-      $plural_indexes[$langcode][$count] = isset($plural_formulas[$index]) ? $plural_formulas[$index] : $plural_formulas['default'];
+      $plural_indexes[$langcode][$count] = $plural_formulas[$index] ?? $plural_formulas['default'];
     }
     // In case there is no plural formula for English (no imported translation
     // for English), use a default formula.
@@ -768,7 +768,7 @@ function locale_system_file_system_settings_submit(&$form, FormStateInterface $f
  * Implements hook_preprocess_HOOK() for node templates.
  */
 function locale_preprocess_node(&$variables) {
-  /* @var $node \Drupal\node\NodeInterface */
+  /** @var \Drupal\node\NodeInterface $node */
   $node = $variables['node'];
   if ($node->language()->getId() != LanguageInterface::LANGCODE_NOT_SPECIFIED) {
     $interface_language = \Drupal::languageManager()->getCurrentLanguage();
@@ -799,7 +799,7 @@ function locale_translation_get_file_history() {
 
   if (empty($history)) {
     // Get file history from the database.
-    $result = \Drupal::database()->query('SELECT project, langcode, filename, version, uri, timestamp, last_checked FROM {locale_file}');
+    $result = \Drupal::database()->query('SELECT [project], [langcode], [filename], [version], [uri], [timestamp], [last_checked] FROM {locale_file}');
     foreach ($result as $file) {
       $file->type = $file->timestamp ? LOCALE_TRANSLATION_CURRENT : '';
       $history[$file->project][$file->langcode] = $file;

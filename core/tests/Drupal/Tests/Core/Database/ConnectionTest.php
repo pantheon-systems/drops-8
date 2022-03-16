@@ -4,10 +4,8 @@ namespace Drupal\Tests\Core\Database;
 
 use Composer\Autoload\ClassLoader;
 use Drupal\Core\Database\Statement;
-use Drupal\Core\Database\StatementWrapper;
 use Drupal\Tests\Core\Database\Stub\StubConnection;
 use Drupal\Tests\Core\Database\Stub\StubPDO;
-use Drupal\Tests\Core\Database\Stub\Driver;
 use Drupal\Tests\UnitTestCase;
 
 /**
@@ -75,6 +73,7 @@ class ConnectionTest extends UnitTestCase {
    *   - Expected result.
    *   - Table prefix.
    *   - Query to be prefixed.
+   *   - Quote identifier.
    */
   public function providerTestPrefixTables() {
     return [
@@ -85,23 +84,23 @@ class ConnectionTest extends UnitTestCase {
         ['', ''],
       ],
       [
-        'SELECT * FROM "first_table" JOIN "second"."thingie"',
-        [
-          'table' => 'first_',
-          'thingie' => 'second.',
-        ],
-        'SELECT * FROM {table} JOIN {thingie}',
+        'SELECT * FROM "test_table"',
+        'test_',
+        'SELECT * FROM {table}',
+        ['"', '"'],
       ],
       [
-        'SELECT * FROM [first_table] JOIN [second].[thingie]',
-        [
-          'table' => 'first_',
-          'thingie' => 'second.',
-        ],
-        'SELECT * FROM {table} JOIN {thingie}',
+        "SELECT * FROM 'test_table'",
+        'test_',
+        'SELECT * FROM {table}',
+        ["'", "'"],
+      ],
+      [
+        "SELECT * FROM [test_table]",
+        'test_',
+        'SELECT * FROM {table}',
         ['[', ']'],
       ],
-
     ];
   }
 
@@ -150,6 +149,11 @@ class ConnectionTest extends UnitTestCase {
         'Delete',
       ],
       [
+        'Drupal\Core\Database\ExceptionHandler',
+        'Drupal\corefake\Driver\Database\corefake',
+        'ExceptionHandler',
+      ],
+      [
         'Drupal\Core\Database\Query\Insert',
         'Drupal\corefake\Driver\Database\corefake',
         'Insert',
@@ -160,9 +164,19 @@ class ConnectionTest extends UnitTestCase {
         'Merge',
       ],
       [
+        'PagerSelectExtender',
+        'Drupal\corefake\Driver\Database\corefake',
+        'PagerSelectExtender',
+      ],
+      [
         'Drupal\Core\Database\Schema',
         'Drupal\corefake\Driver\Database\corefake',
         'Schema',
+      ],
+      [
+        'SearchQuery',
+        'Drupal\corefake\Driver\Database\corefake',
+        'SearchQuery',
       ],
       [
         'Drupal\Core\Database\Query\Select',
@@ -173,6 +187,11 @@ class ConnectionTest extends UnitTestCase {
         'Drupal\Core\Database\Transaction',
         'Drupal\corefake\Driver\Database\corefake',
         'Transaction',
+      ],
+      [
+        'TableSortExtender',
+        'Drupal\corefake\Driver\Database\corefake',
+        'TableSortExtender',
       ],
       [
         'Drupal\Core\Database\Query\Truncate',
@@ -202,6 +221,11 @@ class ConnectionTest extends UnitTestCase {
         'Delete',
       ],
       [
+        'Drupal\corefake\Driver\Database\corefakeWithAllCustomClasses\ExceptionHandler',
+        'Drupal\corefake\Driver\Database\corefakeWithAllCustomClasses',
+        'ExceptionHandler',
+      ],
+      [
         'Drupal\corefake\Driver\Database\corefakeWithAllCustomClasses\Insert',
         'Drupal\corefake\Driver\Database\corefakeWithAllCustomClasses',
         'Insert',
@@ -212,14 +236,29 @@ class ConnectionTest extends UnitTestCase {
         'Merge',
       ],
       [
+        'Drupal\corefake\Driver\Database\corefakeWithAllCustomClasses\PagerSelectExtender',
+        'Drupal\corefake\Driver\Database\corefakeWithAllCustomClasses',
+        'PagerSelectExtender',
+      ],
+      [
         'Drupal\corefake\Driver\Database\corefakeWithAllCustomClasses\Schema',
         'Drupal\corefake\Driver\Database\corefakeWithAllCustomClasses',
         'Schema',
       ],
       [
+        'Drupal\corefake\Driver\Database\corefakeWithAllCustomClasses\SearchQuery',
+        'Drupal\corefake\Driver\Database\corefakeWithAllCustomClasses',
+        'SearchQuery',
+      ],
+      [
         'Drupal\corefake\Driver\Database\corefakeWithAllCustomClasses\Select',
         'Drupal\corefake\Driver\Database\corefakeWithAllCustomClasses',
         'Select',
+      ],
+      [
+        'Drupal\corefake\Driver\Database\corefakeWithAllCustomClasses\TableSortExtender',
+        'Drupal\corefake\Driver\Database\corefakeWithAllCustomClasses',
+        'TableSortExtender',
       ],
       [
         'Drupal\corefake\Driver\Database\corefakeWithAllCustomClasses\Transaction',
@@ -309,7 +348,7 @@ class ConnectionTest extends UnitTestCase {
   }
 
   /**
-   * Test Connection::schema().
+   * Tests Connection::schema().
    *
    * @dataProvider providerSchema
    */
@@ -321,7 +360,7 @@ class ConnectionTest extends UnitTestCase {
   }
 
   /**
-   * Test Connection::destroy().
+   * Tests Connection::destroy().
    *
    * @group legacy
    */
@@ -343,7 +382,7 @@ class ConnectionTest extends UnitTestCase {
   }
 
   /**
-   * Test Connection::__destruct().
+   * Tests Connection::__destruct().
    *
    * @group legacy
    */
@@ -391,7 +430,7 @@ class ConnectionTest extends UnitTestCase {
   }
 
   /**
-   * Test Connection::makeComments().
+   * Tests Connection::makeComments().
    *
    * @dataProvider providerMakeComments
    */
@@ -418,7 +457,7 @@ class ConnectionTest extends UnitTestCase {
   }
 
   /**
-   * Test Connection::filterComments().
+   * Tests Connection::filterComments().
    *
    * @dataProvider providerFilterComments
    */
@@ -626,21 +665,12 @@ class ConnectionTest extends UnitTestCase {
    * @dataProvider provideQueriesToTrim
    */
   public function testQueryTrim($expected, $query, $options) {
-    $mock_pdo = $this->getMockBuilder(StubPdo::class)
-      ->setMethods(['execute', 'prepare', 'setAttribute'])
-      ->getMock();
-    $mock_statement = $this->getMockBuilder(StatementWrapper::class)
-      ->disableOriginalConstructor()
-      ->getMock();
-
-    // Ensure that PDO::prepare() is called only once, and with the
-    // correctly trimmed query string.
-    $mock_pdo->expects($this->once())
-      ->method('prepare')
-      ->with($expected)
-      ->willReturn($mock_statement);
+    $mock_pdo = $this->getMockBuilder(StubPdo::class)->getMock();
     $connection = new StubConnection($mock_pdo, []);
-    $connection->query($query, [], $options);
+
+    $preprocess_method = new \ReflectionMethod($connection, 'preprocessStatement');
+    $preprocess_method->setAccessible(TRUE);
+    $this->assertSame($expected, $preprocess_method->invoke($connection, $query, $options));
   }
 
   /**

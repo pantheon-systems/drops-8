@@ -313,7 +313,7 @@ class Schema extends DatabaseSchema {
    *   Thrown if field specification is missing.
    */
   protected function getNormalizedIndexes(array $spec) {
-    $indexes = isset($spec['indexes']) ? $spec['indexes'] : [];
+    $indexes = $spec['indexes'] ?? [];
     foreach ($indexes as $index_name => $index_fields) {
       foreach ($index_fields as $index_key => $index_field) {
         // Get the name of the field from the index specification.
@@ -634,6 +634,11 @@ class Schema extends DatabaseSchema {
       $sql .= ', ADD ' . implode(', ADD ', $keys_sql);
     }
     $this->connection->query($sql);
+
+    if ($spec['type'] === 'serial') {
+      $max = $this->connection->query('SELECT MAX(`' . $field_new . '`) FROM {' . $table . '}')->fetchField();
+      $this->connection->query("ALTER TABLE {" . $table . "} AUTO_INCREMENT = " . ($max + 1));
+    }
   }
 
   /**

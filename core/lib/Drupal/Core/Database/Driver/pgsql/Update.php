@@ -2,7 +2,6 @@
 
 namespace Drupal\Core\Database\Driver\pgsql;
 
-use Drupal\Core\Database\Database;
 use Drupal\Core\Database\Query\Update as QueryUpdate;
 use Drupal\Core\Database\Query\SelectInterface;
 
@@ -18,7 +17,7 @@ class Update extends QueryUpdate {
 
     // Because we filter $fields the same way here and in __toString(), the
     // placeholders will all match up properly.
-    $stmt = $this->connection->prepareStatement((string) $this, $this->queryOptions);
+    $stmt = $this->connection->prepareStatement((string) $this, $this->queryOptions, TRUE);
 
     // Fetch the list of blobs and sequences used on that table.
     $table_information = $this->connection->schema()->queryTableInformation($this->table);
@@ -48,7 +47,7 @@ class Update extends QueryUpdate {
     foreach ($fields as $field => $value) {
       $placeholder = ':db_update_placeholder_' . ($max_placeholder++);
 
-      if (isset($table_information->blob_fields[$field])) {
+      if (isset($table_information->blob_fields[$field]) && $value !== NULL) {
         $blobs[$blob_count] = fopen('php://memory', 'a');
         fwrite($blobs[$blob_count], $value);
         rewind($blobs[$blob_count]);
@@ -69,19 +68,15 @@ class Update extends QueryUpdate {
       }
     }
 
-    $options = $this->queryOptions;
-    $options['already_prepared'] = TRUE;
-    $options['return'] = Database::RETURN_AFFECTED;
-
     $this->connection->addSavepoint();
     try {
-      $result = $this->connection->query($stmt, [], $options);
+      $stmt->execute(NULL, $this->queryOptions);
       $this->connection->releaseSavepoint();
-      return $result;
+      return $stmt->rowCount();
     }
     catch (\Exception $e) {
       $this->connection->rollbackSavepoint();
-      throw $e;
+      $this->connection->exceptionHandler()->handleExecutionException($e, $stmt, [], $this->queryOptions);
     }
   }
 
