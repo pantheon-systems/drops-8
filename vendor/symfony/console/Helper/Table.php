@@ -374,6 +374,7 @@ class Table
 
         $isHeader = !$this->horizontal;
         $isFirstRow = $this->horizontal;
+        $hasTitle = (bool) $this->headerTitle;
         foreach ($rows as $row) {
             if ($divider === $row) {
                 $isHeader = false;
@@ -391,12 +392,13 @@ class Table
             }
 
             if ($isHeader || $isFirstRow) {
-                if ($isFirstRow) {
-                    $this->renderRowSeparator(self::SEPARATOR_TOP_BOTTOM);
-                    $isFirstRow = false;
-                } else {
-                    $this->renderRowSeparator(self::SEPARATOR_TOP, $this->headerTitle, $this->style->getHeaderTitleFormat());
-                }
+                $this->renderRowSeparator(
+                    $isHeader ? self::SEPARATOR_TOP : self::SEPARATOR_TOP_BOTTOM,
+                    $hasTitle ? $this->headerTitle : null,
+                    $hasTitle ? $this->style->getHeaderTitleFormat() : null
+                );
+                $isFirstRow = false;
+                $hasTitle = false;
             }
             if ($this->horizontal) {
                 $this->renderRow($row, $this->style->getCellRowFormat(), $this->style->getCellHeaderFormat());
@@ -430,13 +432,13 @@ class Table
 
         $crossings = $this->style->getCrossingChars();
         if (self::SEPARATOR_MID === $type) {
-            list($horizontal, $leftChar, $midChar, $rightChar) = [$borders[2], $crossings[8], $crossings[0], $crossings[4]];
+            [$horizontal, $leftChar, $midChar, $rightChar] = [$borders[2], $crossings[8], $crossings[0], $crossings[4]];
         } elseif (self::SEPARATOR_TOP === $type) {
-            list($horizontal, $leftChar, $midChar, $rightChar) = [$borders[0], $crossings[1], $crossings[2], $crossings[3]];
+            [$horizontal, $leftChar, $midChar, $rightChar] = [$borders[0], $crossings[1], $crossings[2], $crossings[3]];
         } elseif (self::SEPARATOR_TOP_BOTTOM === $type) {
-            list($horizontal, $leftChar, $midChar, $rightChar) = [$borders[0], $crossings[9], $crossings[10], $crossings[11]];
+            [$horizontal, $leftChar, $midChar, $rightChar] = [$borders[0], $crossings[9], $crossings[10], $crossings[11]];
         } else {
-            list($horizontal, $leftChar, $midChar, $rightChar) = [$borders[0], $crossings[7], $crossings[6], $crossings[5]];
+            [$horizontal, $leftChar, $midChar, $rightChar] = [$borders[0], $crossings[7], $crossings[6], $crossings[5]];
         }
 
         $markup = $leftChar;
@@ -454,7 +456,7 @@ class Table
                 $formattedTitle = sprintf($titleFormat, Helper::substr($title, 0, $limit - $formatLength - 3).'...');
             }
 
-            $titleStart = ($markupLength - $titleLength) / 2;
+            $titleStart = intdiv($markupLength - $titleLength, 2);
             if (false === mb_detect_encoding($markup, null, true)) {
                 $markup = substr_replace($markup, $formattedTitle, $titleStart, $titleLength);
             } else {
@@ -503,7 +505,7 @@ class Table
      */
     private function renderCell(array $row, int $column, string $cellFormat): string
     {
-        $cell = isset($row[$column]) ? $row[$column] : '';
+        $cell = $row[$column] ?? '';
         $width = $this->effectiveColumnWidths[$column];
         if ($cell instanceof TableCell && $cell->getColspan() > 1) {
             // add the width of the following columns(numbers of colspan).
@@ -561,7 +563,7 @@ class Table
                 if (isset($this->columnMaxWidths[$column]) && Helper::strlenWithoutDecoration($formatter, $cell) > $this->columnMaxWidths[$column]) {
                     $cell = $formatter->formatAndWrap($cell, $this->columnMaxWidths[$column] * $colspan);
                 }
-                if (!strstr($cell, "\n")) {
+                if (!strstr($cell ?? '', "\n")) {
                     continue;
                 }
                 $escaped = implode("\n", array_map([OutputFormatter::class, 'escapeTrailingBackslash'], explode("\n", $cell)));
@@ -585,11 +587,11 @@ class Table
 
         return new TableRows(function () use ($rows, $unmergedRows): \Traversable {
             foreach ($rows as $rowKey => $row) {
-                yield $this->fillCells($row);
+                yield $row instanceof TableSeparator ? $row : $this->fillCells($row);
 
                 if (isset($unmergedRows[$rowKey])) {
-                    foreach ($unmergedRows[$rowKey] as $unmergedRow) {
-                        yield $this->fillCells($unmergedRow);
+                    foreach ($unmergedRows[$rowKey] as $row) {
+                        yield $row instanceof TableSeparator ? $row : $this->fillCells($row);
                     }
                 }
             }
@@ -637,7 +639,7 @@ class Table
                 // create a two dimensional array (rowspan x colspan)
                 $unmergedRows = array_replace_recursive(array_fill($line + 1, $nbLines, []), $unmergedRows);
                 foreach ($unmergedRows as $unmergedRowKey => $unmergedRow) {
-                    $value = isset($lines[$unmergedRowKey - $line]) ? $lines[$unmergedRowKey - $line] : '';
+                    $value = $lines[$unmergedRowKey - $line] ?? '';
                     $unmergedRows[$unmergedRowKey][$column] = new TableCell($value, ['colspan' => $cell->getColspan()]);
                     if ($nbLines === $unmergedRowKey - $line) {
                         break;
@@ -670,7 +672,7 @@ class Table
     /**
      * fill cells for a row that contains colspan > 1.
      */
-    private function fillCells($row)
+    private function fillCells(iterable $row)
     {
         $newRow = [];
 
@@ -775,7 +777,7 @@ class Table
             $cellWidth = Helper::strlenWithoutDecoration($this->output->getFormatter(), $cell);
         }
 
-        $columnWidth = isset($this->columnWidths[$column]) ? $this->columnWidths[$column] : 0;
+        $columnWidth = $this->columnWidths[$column] ?? 0;
         $cellWidth = max($cellWidth, $columnWidth);
 
         return isset($this->columnMaxWidths[$column]) ? min($this->columnMaxWidths[$column], $cellWidth) : $cellWidth;

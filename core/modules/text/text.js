@@ -8,8 +8,8 @@
 (function ($, Drupal) {
   Drupal.behaviors.textSummary = {
     attach: function attach(context, settings) {
-      $(context).find('.js-text-summary').once('text-summary').each(function () {
-        var $widget = $(this).closest('.js-text-format-wrapper');
+      once('text-summary', '.js-text-summary', context).forEach(function (summary) {
+        var $widget = $(summary).closest('.js-text-format-wrapper');
         var $summary = $widget.find('.js-text-summary-wrapper');
         var $summaryLabel = $summary.find('label').eq(0);
         var $full = $widget.children('.js-form-type-textarea');
@@ -17,6 +17,13 @@
 
         if ($fullLabel.length === 0) {
           $fullLabel = $('<label></label>').prependTo($full);
+        }
+
+        if ($fullLabel.hasClass('visually-hidden')) {
+          $fullLabel.html(function (index, oldHtml) {
+            return "<span class=\"visually-hidden\">".concat(oldHtml, "</span>");
+          });
+          $fullLabel.removeClass('visually-hidden');
         }
 
         var $link = $("<span class=\"field-edit-link\"> (<button type=\"button\" class=\"link link-edit-summary\">".concat(Drupal.t('Hide summary'), "</button>)</span>"));

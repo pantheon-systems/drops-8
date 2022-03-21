@@ -98,15 +98,14 @@ class ContactLinkTest extends ViewTestBase {
    *   All user objects used by the test.
    * @param array $names
    *   Users which should have contact links.
+   *
+   * @internal
    */
-  public function assertContactLinks(array $accounts, array $names) {
-    $result = $this->xpath('//div[contains(@class, "views-field-contact")]//a');
-    $this->assertSame(count($names), count($result));
+  public function assertContactLinks(array $accounts, array $names): void {
+    $this->assertSession()->elementsCount('xpath', '//div[contains(@class, "views-field-contact")]//a', count($names));
     foreach ($names as $name) {
-      $account = $accounts[$name];
-
-      $result = $this->xpath('//div[contains(@class, "views-field-contact")]//a[contains(@href, :url)]', [':url' => $account->toUrl('contact-form')->toString()]);
-      $this->assertGreaterThan(0, count($result));
+      $account_url = $accounts[$name]->toUrl('contact-form')->toString();
+      $this->assertSession()->elementExists('xpath', "//div[contains(@class, 'views-field-contact')]//a[contains(@href, '$account_url')]");
     }
   }
 

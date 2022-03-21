@@ -153,7 +153,7 @@ class ContainerAwareEventDispatcher implements EventDispatcherInterface {
   /**
    * {@inheritdoc}
    */
-  public function getListeners($event_name = NULL) {
+  public function getListeners($event_name = NULL): array {
     $result = [];
 
     if ($event_name === NULL) {
@@ -193,9 +193,9 @@ class ContainerAwareEventDispatcher implements EventDispatcherInterface {
   /**
    * {@inheritdoc}
    */
-  public function getListenerPriority($event_name, $listener) {
+  public function getListenerPriority($event_name, $listener): ?int {
     if (!isset($this->listeners[$event_name])) {
-      return;
+      return NULL;
     }
     if (is_array($listener) && isset($listener[0]) && $listener[0] instanceof \Closure) {
       $listener[0] = $listener[0]();
@@ -219,12 +219,13 @@ class ContainerAwareEventDispatcher implements EventDispatcherInterface {
         }
       }
     }
+    return NULL;
   }
 
   /**
    * {@inheritdoc}
    */
-  public function hasListeners($event_name = NULL) {
+  public function hasListeners($event_name = NULL): bool {
     if ($event_name !== NULL) {
       return !empty($this->listeners[$event_name]);
     }
@@ -292,11 +293,11 @@ class ContainerAwareEventDispatcher implements EventDispatcherInterface {
         $this->addListener($event_name, [$subscriber, $params]);
       }
       elseif (is_string($params[0])) {
-        $this->addListener($event_name, [$subscriber, $params[0]], isset($params[1]) ? $params[1] : 0);
+        $this->addListener($event_name, [$subscriber, $params[0]], $params[1] ?? 0);
       }
       else {
         foreach ($params as $listener) {
-          $this->addListener($event_name, [$subscriber, $listener[0]], isset($listener[1]) ? $listener[1] : 0);
+          $this->addListener($event_name, [$subscriber, $listener[0]], $listener[1] ?? 0);
         }
       }
     }

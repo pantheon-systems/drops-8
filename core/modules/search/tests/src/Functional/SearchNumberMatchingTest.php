@@ -2,7 +2,6 @@
 
 namespace Drupal\Tests\search\Functional;
 
-use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Tests\BrowserTestBase;
 use Drupal\Tests\Traits\Core\CronRunTrait;
@@ -85,7 +84,7 @@ class SearchNumberMatchingTest extends BrowserTestBase {
     // Run cron to ensure the content is indexed.
     $this->cronRun();
     $this->drupalGet('admin/reports/dblog');
-    $this->assertText('Cron run completed', 'Log shows cron run completed');
+    $this->assertSession()->pageTextContains('Cron run completed');
   }
 
   /**
@@ -97,8 +96,9 @@ class SearchNumberMatchingTest extends BrowserTestBase {
 
       // Verify that the node title does not appear on the search page
       // with a dummy search.
-      $this->drupalPostForm('search/node', ['keys' => 'foo'], 'Search');
-      $this->assertNoText($node->label(), new FormattableMarkup('%number: node title not shown in dummy search', ['%number' => $i]));
+      $this->drupalGet('search/node');
+      $this->submitForm(['keys' => 'foo'], 'Search');
+      $this->assertSession()->pageTextNotContains($node->label());
 
       // Now verify that we can find node i by searching for any of the
       // numbers.
@@ -108,8 +108,9 @@ class SearchNumberMatchingTest extends BrowserTestBase {
         // "not keyword" when searching.
         $number = ltrim($number, '-');
 
-        $this->drupalPostForm('search/node', ['keys' => $number], 'Search');
-        $this->assertText($node->label(), new FormattableMarkup('%i: node title shown (search found the node) in search for number %number', ['%i' => $i, '%number' => $number]));
+        $this->drupalGet('search/node');
+        $this->submitForm(['keys' => $number], 'Search');
+        $this->assertSession()->pageTextContains($node->label());
       }
     }
 

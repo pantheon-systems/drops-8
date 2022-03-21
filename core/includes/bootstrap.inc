@@ -6,11 +6,14 @@
  */
 
 use Drupal\Component\Utility\Crypt;
+use Drupal\Core\Http\InputBag;
 use Drupal\Core\Logger\RfcLogLevel;
 use Drupal\Core\Test\TestDatabase;
 use Drupal\Core\Utility\Error;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Symfony\Component\DependencyInjection\Exception\ServiceNotFoundException;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\InputBag as SymfonyInputBag;
 
 /**
  * Minimum allowed version of PHP for Drupal to be bootstrapped.
@@ -124,6 +127,30 @@ define('REQUEST_TIME', (int) $_SERVER['REQUEST_TIME']);
 define('DRUPAL_ROOT', dirname(__DIR__, 2));
 
 /**
+ * Declare class aliases that will be added by the autoloader.
+ */
+// @todo https://www.drupal.org/project/drupal/issues/3197482 Remove this class
+//   alias once Drupal is running Symfony 5.3 or higher.
+class_alias('Drupal\Core\Http\KernelEvent', 'Symfony\Component\HttpKernel\Event\KernelEvent', TRUE);
+
+/**
+ * Set up the Symfony Request factory for forward compatibility with Symfony 5.
+ *
+ * @todo Remove this when Symfony 4 is no longer supported.
+ */
+Request::setFactory(
+  function ($query, $request, $attributes, $cookies, $files, $server, $content) {
+    $request = new Request($query, $request, $attributes, $cookies, $files, $server, $content);
+    foreach (['request', 'query', 'cookies'] as $bag) {
+      if (!($bag instanceof SymfonyInputBag)) {
+        $request->$bag = new InputBag($request->$bag->all());
+      }
+    }
+    return $request;
+  }
+);
+
+/**
  * Returns and optionally sets the filename for a system resource.
  *
  * The filename, whether provided, cached, or retrieved from the database, is
@@ -153,12 +180,19 @@ define('DRUPAL_ROOT', dirname(__DIR__, 2));
  *
  * @return string
  *   The filename of the requested item or NULL if the item is not found.
+ *
+ * @deprecated in drupal:9.3.0 and is removed from drupal:10.0.0. Use
+ *   \Drupal\Core\Extension\ExtensionPathResolver::getPathname() instead.
+ *
+ * @see https://www.drupal.org/node/2940438
  */
 function drupal_get_filename($type, $name, $filename = NULL) {
+  @trigger_error('drupal_get_filename() is deprecated in drupal:9.3.0 and is removed from drupal:10.0.0. Use \Drupal\Core\Extension\ExtensionPathResolver::getPathname() instead. See https://www.drupal.org/node/2940438', E_USER_DEPRECATED);
   // Type 'core' only exists to simplify application-level logic; it always maps
   // to the /core directory, whereas $name is ignored. It is only requested via
-  // drupal_get_path(). /core/core.info.yml does not exist, but is required
-  // since drupal_get_path() returns the dirname() of the returned pathname.
+  // \Drupal\Core\Extension\ExtensionList::getPath(). The file
+  // /core/core.info.yml does not exist, but is required since
+  // ExtensionList::getPath() returns the dirname() of the returned pathname.
   if ($type === 'core') {
     return 'core/core.info.yml';
   }
@@ -202,8 +236,15 @@ function drupal_get_filename($type, $name, $filename = NULL) {
  *
  * @return string
  *   The path to the requested item or an empty string if the item is not found.
+ *
+ * @deprecated in drupal:9.3.0 and is removed from drupal:10.0.0. Use
+ *   \Drupal\Core\Extension\ExtensionPathResolver::getPath() instead.
+ *
+ * @see https://www.drupal.org/node/2940438
+ * @see \Drupal\Core\Extension\ExtensionList::getPath()
  */
 function drupal_get_path($type, $name) {
+  @trigger_error('drupal_get_path() is deprecated in drupal:9.3.0 and is removed from drupal:10.0.0. Use \Drupal\Core\Extension\ExtensionPathResolver::getPath() instead. See https://www.drupal.org/node/2940438', E_USER_DEPRECATED);
   return dirname(drupal_get_filename($type, $name));
 }
 
@@ -374,10 +415,10 @@ function drupal_valid_test_ua($new_prefix = NULL) {
   // A valid Simpletest request will contain a hashed and salted authentication
   // code. Check if this code is present in a cookie or custom user agent
   // string.
-  $http_user_agent = isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : NULL;
-  $user_agent = isset($_COOKIE['SIMPLETEST_USER_AGENT']) ? $_COOKIE['SIMPLETEST_USER_AGENT'] : $http_user_agent;
+  $http_user_agent = $_SERVER['HTTP_USER_AGENT'] ?? NULL;
+  $user_agent = $_COOKIE['SIMPLETEST_USER_AGENT'] ?? $http_user_agent;
   if (isset($user_agent) && preg_match("/^simple(\w+\d+):(.+):(.+):(.+)$/", $user_agent, $matches)) {
-    list(, $prefix, $time, $salt, $hmac) = $matches;
+    [, $prefix, $time, $salt, $hmac] = $matches;
     $check_string = $prefix . ':' . $time . ':' . $salt;
     // Read the hash salt prepared by drupal_generate_test_ua().
     // This function is called before settings.php is read and Drupal's error
@@ -618,6 +659,23 @@ function &drupal_static($name, $default_value = NULL, $reset = FALSE) {
  *   unit tests with a clean environment.
  */
 function drupal_static_reset($name = NULL) {
+  switch ($name) {
+    case 'taxonomy_vocabulary_get_names':
+      @trigger_error("Calling drupal_static_reset() with 'taxonomy_vocabulary_get_names' as argument is deprecated in drupal:9.3.0 and is removed from drupal:10.0.0. There is no replacement for this usage. See https://www.drupal.org/node/3039041", E_USER_DEPRECATED);
+      break;
+
+    case 'node_mark':
+      @trigger_error("Calling drupal_static_reset() with 'node_mark' as argument is deprecated in drupal:9.3.0 and is removed from drupal:10.0.0. There is no replacement for this usage. See https://www.drupal.org/node/3037203", E_USER_DEPRECATED);
+      break;
+
+    case 'Drupal\book\BookManager::bookSubtreeData':
+    case 'Drupal\book\BookManager::bookTreeAllData':
+    case 'Drupal\book\BookManager::doBookTreeBuild':
+      @trigger_error("Calling drupal_static_reset() with '{$name}' as argument is deprecated in drupal:9.3.0 and is removed in drupal:10.0.0. Use \Drupal::service('book.memory_cache')->deleteAll() instead. See https://www.drupal.org/node/3039439", E_USER_DEPRECATED);
+      \Drupal::service('book.memory_cache')->deleteAll();
+      break;
+
+  }
   drupal_static($name, NULL, TRUE);
 }
 

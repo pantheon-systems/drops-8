@@ -95,10 +95,12 @@ class ConnectionUnitTest extends KernelTestBase {
    *
    * @param int $id
    *   The connection ID to verify.
+   *
+   * @internal
    */
-  protected function assertConnection($id) {
+  protected function assertConnection(int $id): void {
     $list = $this->monitor->query($this->getQuery()['processlist'])->fetchAllKeyed(0, 0);
-    return $this->assertTrue(isset($list[$id]), new FormattableMarkup('Connection ID @id found.', ['@id' => $id]));
+    $this->assertTrue(isset($list[$id]), new FormattableMarkup('Connection ID @id found.', ['@id' => $id]));
   }
 
   /**
@@ -106,10 +108,12 @@ class ConnectionUnitTest extends KernelTestBase {
    *
    * @param int $id
    *   The connection ID to verify.
+   *
+   * @internal
    */
-  protected function assertNoConnection($id) {
+  protected function assertNoConnection(int $id): void {
     $list = $this->monitor->query($this->getQuery()['processlist'])->fetchAllKeyed(0, 0);
-    return $this->assertFalse(isset($list[$id]), new FormattableMarkup('Connection ID @id not found.', ['@id' => $id]));
+    $this->assertFalse(isset($list[$id]), new FormattableMarkup('Connection ID @id not found.', ['@id' => $id]));
   }
 
   /**
@@ -119,8 +123,9 @@ class ConnectionUnitTest extends KernelTestBase {
    */
   public function testOpenClose() {
     // Do not run this test for an SQLite database.
-    if ($this->connection->databaseType() == 'sqlite') {
-      $this->markTestSkipped("This tests can not run with an SQLite database.");
+    $database_type = $this->connection->databaseType();
+    if ($database_type != 'mysql' && $database_type != 'pgsql') {
+      $this->markTestSkipped("This tests only runs on MySQL and PostgreSQL");
     }
 
     // Add and open a new connection.
@@ -145,8 +150,9 @@ class ConnectionUnitTest extends KernelTestBase {
    */
   public function testOpenQueryClose() {
     // Do not run this test for an SQLite database.
-    if ($this->connection->databaseType() == 'sqlite') {
-      $this->markTestSkipped("This tests can not run with an SQLite database.");
+    $database_type = $this->connection->databaseType();
+    if ($database_type != 'mysql' && $database_type != 'pgsql') {
+      $this->markTestSkipped("This tests only runs on MySQL and PostgreSQL");
     }
 
     // Add and open a new connection.
@@ -174,8 +180,9 @@ class ConnectionUnitTest extends KernelTestBase {
    */
   public function testOpenQueryPrefetchClose() {
     // Do not run this test for an SQLite database.
-    if ($this->connection->databaseType() == 'sqlite') {
-      $this->markTestSkipped("This tests can not run with an SQLite database.");
+    $database_type = $this->connection->databaseType();
+    if ($database_type != 'mysql' && $database_type != 'pgsql') {
+      $this->markTestSkipped("This tests only runs on MySQL and PostgreSQL");
     }
 
     // Add and open a new connection.
@@ -203,8 +210,9 @@ class ConnectionUnitTest extends KernelTestBase {
    */
   public function testOpenSelectQueryClose() {
     // Do not run this test for an SQLite database.
-    if ($this->connection->databaseType() == 'sqlite') {
-      $this->markTestSkipped("This tests can not run with an SQLite database.");
+    $database_type = $this->connection->databaseType();
+    if ($database_type != 'mysql' && $database_type != 'pgsql') {
+      $this->markTestSkipped("This tests only runs on MySQL and PostgreSQL");
     }
 
     // Add and open a new connection.

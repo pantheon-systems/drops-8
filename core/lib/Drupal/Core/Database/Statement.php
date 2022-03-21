@@ -47,6 +47,13 @@ class Statement extends \PDOStatement implements StatementInterface {
   /**
    * {@inheritdoc}
    */
+  public function getConnectionTarget(): string {
+    return $this->connection->getTarget();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function execute($args = [], $options = []) {
     if (isset($options['fetch'])) {
       if (is_string($options['fetch'])) {
@@ -68,7 +75,7 @@ class Statement extends \PDOStatement implements StatementInterface {
 
     if (!empty($logger)) {
       $query_end = microtime(TRUE);
-      $logger->log($this, $args, $query_end - $query_start);
+      $logger->log($this, $args, $query_end - $query_start, $query_start);
     }
 
     return $return;
