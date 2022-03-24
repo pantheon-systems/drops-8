@@ -1,5 +1,5 @@
 {
-    "name": "pantheon-upstreams/drupal-project",
+    "name": "pantheon-upstreams/drupal-composer-managed",
     "description": "Install Drupal 9 with Composer on Pantheon.",
     "type": "project",
     "license": "MIT",
@@ -14,13 +14,13 @@
         }
     ],
     "require": {
-        "pantheon-upstreams/upstream-configuration": "self.version",
+        "pantheon-upstreams/upstream-configuration": "dev-main",
         "composer/installers": "^1.9",
         "drupal/core-composer-scaffold": "^9.2",
         "drupal/core-recommended": "^9.2",
         "pantheon-systems/drupal-integrations": "^9",
         "cweagans/composer-patches": "^1.7",
-        "drush/drush": "^10"
+        "drush/drush": "^11"
     },
     "require-dev": {
         "drupal/core-dev": "^9.2"
@@ -61,11 +61,33 @@
             "drupal/core": "-p2"
         }
     },
+    "autoload": {
+        "classmap": [
+            "upstream-configuration/scripts/ComposerScripts.php"
+        ]
+    },
+    "scripts": {
+        "pre-update-cmd": [
+            "DrupalComposerManaged\\ComposerScripts::preUpdate"
+        ],
+        "upstream-require": [
+            "DrupalComposerManaged\\ComposerScripts::upstreamRequire"
+        ]
+    },
+    "scripts-descriptions": {
+        "upstream-require": "Add a dependency to an upstream. See https://pantheon.io/docs/create-custom-upstream for information on creating custom upstreams."
+    },
     "config": {
         "preferred-install": "dist",
-        "sort-packages": true,
+        "sort-packages": false,
         "platform": {
             "php": "7.4"
+        },
+        "allow-plugins": {
+            "composer/installers": true,
+            "cweagans/composer-patches": true,
+            "drupal/core-composer-scaffold": true,
+            "dealerdirect/phpcodesniffer-composer-installer": true
         }
     }
 }

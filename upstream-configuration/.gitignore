@@ -9,3 +9,5 @@
 # beginning with a "!" and followed by the new file's name to override
 # the .gitignore directive above (i.e. to "un-ignore" it).
 !composer.json
+!scripts
+!scripts/*

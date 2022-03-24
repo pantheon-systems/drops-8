@@ -1,7 +1,29 @@
 # Changelog
 
-All notable changes specific to pantheon-upstreams/drupal-project are noted here.
+All notable changes specific to pantheon-upstreams/drupal-composer-managed are noted here.
 
+
+## Pantheon Update #3 - 2022-03-23
+
+### Changed
+
+- Renamed repository from pantheon-upstreams/drupal-recommended to pantheon-upstreams/drupal-composer-managed
+- Switched the default branch from 'master' to 'main'
+
+### Added
+
+- Created a Composer pre-update script to ensure that the version of the upstream-configuration path repository is always 'dev-main', regardless of what branch / multidev the "composer update" command was run on.
+- Added a new command, "composer upstream-require", for adding dependencies to the upstream-configuration path repository in custom upstreams.
+
+
+## Pantheon Update #2 - 2021-11-01
+
+### Changed
+
+- Renamed repository from pantheon-upstreams/drupal-project to pantheon-upstreams/drupal-recommended.
+- Update .gitignore to make it easier to manage changes to the Drupal core scaffold files.
+- Move most dependencies out of `upstream-configuration` to give more control to individual sites.
+- Install contrib modules to `web/modules/contrib` rather than `web/modules/composer`.
 
 
 ## Pantheon Update #1 - 2021-02-03
