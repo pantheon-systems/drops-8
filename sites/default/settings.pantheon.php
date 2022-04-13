@@ -92,8 +92,8 @@ if (
   (isset($_SERVER['PANTHEON_DATABASE_STATE']) && ($_SERVER['PANTHEON_DATABASE_STATE'] == 'empty')) &&
   (empty($GLOBALS['install_state'])) &&
   (php_sapi_name() != "cli") &&
-  $_ENV['PANTHEON_ENVIRONMENT'] !== "test" &&
-  $_ENV['PANTHEON_ENVIRONMENT'] !== "live"
+  ($_ENV['PANTHEON_ENVIRONMENT'] !== "test") &&
+  ($_ENV['PANTHEON_ENVIRONMENT'] !== "live")
 ) {
   include_once __DIR__ . '/../../core/includes/install.core.inc';
   include_once __DIR__ . '/../../core/includes/install.inc';
