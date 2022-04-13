@@ -45,7 +45,10 @@ class AccessResultTest extends UnitTestCase {
     \Drupal::setContainer($container);
   }
 
-  protected function assertDefaultCacheability(AccessResult $access) {
+  /**
+   * @internal
+   */
+  protected function assertDefaultCacheability(AccessResult $access): void {
     $this->assertSame([], $access->getCacheContexts());
     $this->assertSame([], $access->getCacheTags());
     $this->assertSame(Cache::PERMANENT, $access->getCacheMaxAge());
@@ -123,7 +126,7 @@ class AccessResultTest extends UnitTestCase {
     };
 
     $b = AccessResult::forbidden();
-    $verify($b, NULL);
+    $verify($b, '');
 
     $reason = $this->getRandomGenerator()->string();
     $b = AccessResult::forbidden($reason);
@@ -319,7 +322,7 @@ class AccessResultTest extends UnitTestCase {
     $access = $neutral_reasonless->orIf($neutral);
     $this->assertEquals('neutral message', $access->getReason());
     $access = $neutral_reasonless->orIf($neutral_reasonless);
-    $this->assertNull($access->getReason());
+    $this->assertEquals('', $access->getReason());
 
     // NEUTRAL || ALLOWED === ALLOWED.
     $access = $neutral->orIf($allowed);
@@ -370,7 +373,7 @@ class AccessResultTest extends UnitTestCase {
     $access = $forbidden_reasonless->orIf($forbidden);
     $this->assertEquals('forbidden message', $access->getReason());
     $access = $forbidden_reasonless->orIf($forbidden_reasonless);
-    $this->assertNull($access->getReason());
+    $this->assertEquals('', $access->getReason());
 
     // FORBIDDEN || * === FORBIDDEN.
     $access = $forbidden->orIf($unused_access_result_due_to_lazy_evaluation);
@@ -404,8 +407,8 @@ class AccessResultTest extends UnitTestCase {
       $this->assertFalse($access->isForbidden());
       $this->assertTrue($access->isNeutral());
       $this->assertSame(Cache::PERMANENT, $access->getCacheMaxAge());
-      $this->assertSame($contexts, $access->getCacheContexts());
-      $this->assertSame([], $access->getCacheTags());
+      $this->assertEqualsCanonicalizing($contexts, $access->getCacheContexts());
+      $this->assertEqualsCanonicalizing([], $access->getCacheTags());
     };
 
     $access = AccessResult::neutral()->addCacheContexts(['foo']);
@@ -451,7 +454,7 @@ class AccessResultTest extends UnitTestCase {
     $verify($b, $contexts);
     $c = AccessResult::neutral()->cachePerUser()->cachePerPermissions();
     $verify($c, $contexts);
-    $this->assertEquals($a, $b);
+    $this->assertEqualsCanonicalizing($a, $b);
     $this->assertEquals($a, $c);
 
     // ::allowIfHasPermission and ::allowedIfHasPermission convenience methods.
@@ -480,8 +483,8 @@ class AccessResultTest extends UnitTestCase {
       $this->assertFalse($access->isForbidden());
       $this->assertTrue($access->isNeutral());
       $this->assertSame($max_age, $access->getCacheMaxAge());
-      $this->assertSame($contexts, $access->getCacheContexts());
-      $this->assertSame($tags, $access->getCacheTags());
+      $this->assertEqualsCanonicalizing($contexts, $access->getCacheContexts());
+      $this->assertEqualsCanonicalizing($tags, $access->getCacheTags());
     };
 
     $access = AccessResult::neutral()->addCacheTags(['foo:bar']);
@@ -890,10 +893,10 @@ class AccessResultTest extends UnitTestCase {
       $b->setCacheMaxAge(86400)->cachePerPermissions();
 
       $r1 = $a->orIf($b);
-      $this->assertTrue($r1->getCacheMaxAge() === 3600);
+      $this->assertSame(3600, $r1->getCacheMaxAge());
       $this->assertSame(['user.permissions'], $r1->getCacheContexts());
       $r2 = $b->orIf($a);
-      $this->assertTrue($r2->getCacheMaxAge() === 3600);
+      $this->assertSame(3600, $r2->getCacheMaxAge());
       $this->assertSame(['user.permissions'], $r2->getCacheContexts());
     };
 

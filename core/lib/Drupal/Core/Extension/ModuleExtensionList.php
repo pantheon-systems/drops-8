@@ -6,6 +6,7 @@ use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\State\StateInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
+use Drupal\Core\Update\UpdateHookRegistry;
 
 /**
  * Provides a list of available modules.
@@ -161,9 +162,9 @@ class ModuleExtensionList extends ExtensionList {
     // Add status, weight, and schema version.
     $installed_modules = $this->configFactory->get('core.extension')->get('module') ?: [];
     foreach ($extensions as $name => $module) {
-      $module->weight = isset($installed_modules[$name]) ? $installed_modules[$name] : 0;
+      $module->weight = $installed_modules[$name] ?? 0;
       $module->status = (int) isset($installed_modules[$name]);
-      $module->schema_version = SCHEMA_UNINSTALLED;
+      $module->schema_version = UpdateHookRegistry::SCHEMA_UNINSTALLED;
     }
     $extensions = $this->moduleHandler->buildModuleDependencies($extensions);
 

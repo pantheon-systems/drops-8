@@ -3,7 +3,7 @@
  * Block admin behaviors.
  */
 
-(function ($, Drupal, debounce) {
+(function ($, Drupal, debounce, once) {
   /**
    * Filters the block list by a text input search string.
    *
@@ -22,7 +22,7 @@
    */
   Drupal.behaviors.blockFilterByText = {
     attach(context, settings) {
-      const $input = $('input.block-filter-text').once('block-filter-text');
+      const $input = $(once('block-filter-text', 'input.block-filter-text'));
       const $table = $($input.attr('data-element'));
       let $filterRows;
 
@@ -46,7 +46,7 @@
         function toggleBlockEntry(index, label) {
           const $label = $(label);
           const $row = $label.parent().parent();
-          const textMatch = $label.text().toLowerCase().indexOf(query) !== -1;
+          const textMatch = $label.text().toLowerCase().includes(query);
           $row.toggle(textMatch);
         }
 
@@ -86,24 +86,25 @@
     attach(context, settings) {
       // Ensure that the block we are attempting to scroll to actually exists.
       if (settings.blockPlacement && $('.js-block-placed').length) {
-        $(context)
-          .find('[data-drupal-selector="edit-blocks"]')
-          .once('block-highlight')
-          .each(function () {
-            const $container = $(this);
-            // Just scrolling the document.body will not work in Firefox. The html
-            // element is needed as well.
-            $('html, body').animate(
-              {
-                scrollTop:
-                  $('.js-block-placed').offset().top -
-                  $container.offset().top +
-                  $container.scrollTop(),
-              },
-              500,
-            );
-          });
+        once(
+          'block-highlight',
+          '[data-drupal-selector="edit-blocks"]',
+          context,
+        ).forEach((container) => {
+          const $container = $(container);
+          // Just scrolling the document.body will not work in Firefox. The html
+          // element is needed as well.
+          $('html, body').animate(
+            {
+              scrollTop:
+                $('.js-block-placed').offset().top -
+                $container.offset().top +
+                $container.scrollTop(),
+            },
+            500,
+          );
+        });
       }
     },
   };
-})(jQuery, Drupal, Drupal.debounce);
+})(jQuery, Drupal, Drupal.debounce, once);

@@ -73,9 +73,9 @@ class TaxonomyVocabularyArgumentTest extends TaxonomyTestBase {
   public function testTermWithVocabularyArgument() {
     $this->drupalGet('test_argument_taxonomy_vocabulary/' . $this->vocabularies[0]->id());
     // First term should be present.
-    $this->assertText($this->terms[0]->label());
+    $this->assertSession()->pageTextContains($this->terms[0]->label());
     // Second term should not be present.
-    $this->assertNoText($this->terms[1]->label());
+    $this->assertSession()->pageTextNotContains($this->terms[1]->label());
   }
 
 }

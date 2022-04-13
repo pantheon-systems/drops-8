@@ -313,7 +313,7 @@ class Schema extends DatabaseSchema {
    *   Thrown if field specification is missing.
    */
   protected function getNormalizedIndexes(array $spec) {
-    $indexes = isset($spec['indexes']) ? $spec['indexes'] : [];
+    $indexes = $spec['indexes'] ?? [];
     foreach ($indexes as $index_name => $index_fields) {
       foreach ($index_fields as $index_key => $index_field) {
         // Get the name of the field from the index specification.
@@ -634,6 +634,11 @@ class Schema extends DatabaseSchema {
       $sql .= ', ADD ' . implode(', ADD ', $keys_sql);
     }
     $this->connection->query($sql);
+
+    if ($spec['type'] === 'serial') {
+      $max = $this->connection->query('SELECT MAX(`' . $field_new . '`) FROM {' . $table . '}')->fetchField();
+      $this->connection->query("ALTER TABLE {" . $table . "} AUTO_INCREMENT = " . ($max + 1));
+    }
   }
 
   /**
@@ -666,46 +671,6 @@ class Schema extends DatabaseSchema {
     $comment = $this->connection->query("SELECT table_comment AS table_comment FROM information_schema.tables WHERE " . (string) $condition, $condition->arguments())->fetchField();
     // Work-around for MySQL 5.0 bug http://bugs.mysql.com/bug.php?id=11379
     return preg_replace('/; InnoDB free:.*$/', '', $comment);
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function tableExists($table) {
-    // The information_schema table is very slow to query under MySQL 5.0.
-    // Instead, we try to select from the table in question.  If it fails,
-    // the most likely reason is that it does not exist. That is dramatically
-    // faster than using information_schema.
-    // @link http://bugs.mysql.com/bug.php?id=19588
-    // @todo This override should be removed once we require a version of MySQL
-    //   that has that bug fixed.
-    try {
-      $this->connection->queryRange("SELECT 1 FROM {" . $table . "}", 0, 1);
-      return TRUE;
-    }
-    catch (\Exception $e) {
-      return FALSE;
-    }
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function fieldExists($table, $column) {
-    // The information_schema table is very slow to query under MySQL 5.0.
-    // Instead, we try to select from the table and field in question. If it
-    // fails, the most likely reason is that it does not exist. That is
-    // dramatically faster than using information_schema.
-    // @link http://bugs.mysql.com/bug.php?id=19588
-    // @todo This override should be removed once we require a version of MySQL
-    //   that has that bug fixed.
-    try {
-      $this->connection->queryRange("SELECT $column FROM {" . $table . "}", 0, 1);
-      return TRUE;
-    }
-    catch (\Exception $e) {
-      return FALSE;
-    }
   }
 
 }

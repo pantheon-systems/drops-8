@@ -15,23 +15,23 @@
     if (format.editor.isXssSafe) {
       callback(field, format);
     } else {
-        $.ajax({
-          url: Drupal.url("editor/filter_xss/".concat(format.format)),
-          type: 'POST',
-          data: {
-            value: field.value,
-            original_format_id: originalFormatID
-          },
-          dataType: 'json',
-          success: function success(xssFilteredValue) {
-            if (xssFilteredValue !== false) {
-              field.value = xssFilteredValue;
-            }
-
-            callback(field, format);
+      $.ajax({
+        url: Drupal.url("editor/filter_xss/".concat(format.format)),
+        type: 'POST',
+        data: {
+          value: field.value,
+          original_format_id: originalFormatID
+        },
+        dataType: 'json',
+        success: function success(xssFilteredValue) {
+          if (xssFilteredValue !== false) {
+            field.value = xssFilteredValue;
           }
-        });
-      }
+
+          callback(field, format);
+        }
+      });
+    }
   }
 
   function changeTextEditor(field, newFormatID) {
@@ -40,8 +40,8 @@
     if (drupalSettings.editor.formats[previousFormatID]) {
       Drupal.editorDetach(field, drupalSettings.editor.formats[previousFormatID]);
     } else {
-        $(field).off('.editor');
-      }
+      $(field).off('.editor');
+    }
 
     if (drupalSettings.editor.formats[newFormatID]) {
       var format = drupalSettings.editor.formats[newFormatID];
@@ -109,8 +109,8 @@
         return;
       }
 
-      $(context).find('[data-editor-for]').once('editor').each(function () {
-        var $this = $(this);
+      once('editor', '[data-editor-for]', context).forEach(function (editor) {
+        var $this = $(editor);
         var field = findFieldForFormatSelector($this);
 
         if (!field) {
@@ -150,13 +150,13 @@
       var editors;
 
       if (trigger === 'serialize') {
-        editors = $(context).find('[data-editor-for]').findOnce('editor');
+        editors = once.filter('editor', '[data-editor-for]', context);
       } else {
-        editors = $(context).find('[data-editor-for]').removeOnce('editor');
+        editors = once.remove('editor', '[data-editor-for]', context);
       }
 
-      editors.each(function () {
-        var $this = $(this);
+      editors.forEach(function (editor) {
+        var $this = $(editor);
         var activeFormatID = $this.val();
         var field = findFieldForFormatSelector($this);
 

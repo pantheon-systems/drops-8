@@ -364,7 +364,7 @@ class ImageItem extends FileItem {
         $destination_dir = static::doGetUploadLocation($settings);
         $file_system->prepareDirectory($destination_dir, FileSystemInterface::CREATE_DIRECTORY);
         $destination = $destination_dir . '/' . basename($path);
-        $file = file_move($image, $destination);
+        $file = \Drupal::service('file.repository')->move($image, $destination);
         $images[$extension][$min_resolution][$max_resolution][$file->id()] = $file;
       }
       else {
@@ -377,7 +377,7 @@ class ImageItem extends FileItem {
       $file = $images[$extension][$min_resolution][$max_resolution][$image_index];
     }
 
-    list($width, $height) = getimagesize($file->getFileUri());
+    [$width, $height] = getimagesize($file->getFileUri());
     $values = [
       'target_id' => $file->id(),
       'alt' => $random->sentences(4),

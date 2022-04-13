@@ -72,7 +72,9 @@ class MediaSourceImageTest extends MediaSourceTestBase {
     // src attribute uses the large image style, the label is visually hidden,
     // and there is no link to the image file.
     $image_element = $assert_session->elementExists('css', '.field--name-field-media-image img');
-    $expected_image_src = file_url_transform_relative(file_create_url(\Drupal::token()->replace('public://styles/large/public/[date:custom:Y]-[date:custom:m]/example_1.jpeg')));
+    /** @var \Drupal\Core\File\FileUrlGeneratorInterface $file_url_generator */
+    $file_url_generator = \Drupal::service('file_url_generator');
+    $expected_image_src = $file_url_generator->generateString(\Drupal::token()->replace('public://styles/large/public/[date:custom:Y]-[date:custom:m]/example_1.jpeg'));
     $this->assertStringContainsString($expected_image_src, $image_element->getAttribute('src'));
     $field = $assert_session->elementExists('css', '.field--name-field-media-image');
     $assert_session->elementExists('css', '.field__label.visually-hidden', $field);
@@ -157,8 +159,10 @@ class MediaSourceImageTest extends MediaSourceTestBase {
    *
    * @param string $media_type_id
    *   The media type ID.
+   *
+   * @internal
    */
-  protected function assertViewDisplayConfigured($media_type_id) {
+  protected function assertViewDisplayConfigured(string $media_type_id): void {
     $assert_session = $this->assertSession();
     $type = MediaType::load($media_type_id);
     $display = EntityViewDisplay::load('media.' . $media_type_id . '.' . EntityDisplayRepositoryInterface::DEFAULT_DISPLAY_MODE);

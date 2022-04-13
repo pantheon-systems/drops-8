@@ -81,13 +81,14 @@ abstract class CachePluginBase extends PluginBase {
   }
 
   /**
-   * Determine expiration time in the cache table of the cache type
-   * or CACHE_PERMANENT if item shouldn't be removed automatically from cache.
+   * Determine cache expiration time.
    *
-   * Plugins must override this to implement expiration in the cache table.
+   * Plugins must override this to implement expiration in the cache table. The
+   * default is CACHE_PERMANENT, indicating that the item will not be removed
+   * automatically from cache.
    *
-   * @param $type
-   *   The cache type, either 'query', 'result'.
+   * @param string $type
+   *   The cache type.
    */
   protected function cacheSetMaxAge($type) {
     return Cache::PERMANENT;
@@ -110,7 +111,7 @@ abstract class CachePluginBase extends PluginBase {
       case 'results':
         $data = [
           'result' => $this->prepareViewResult($this->view->result),
-          'total_rows' => isset($this->view->total_rows) ? $this->view->total_rows : 0,
+          'total_rows' => $this->view->total_rows ?? 0,
           'current_page' => $this->view->getCurrentPage(),
         ];
         $expire = ($this->cacheSetMaxAge($type) === Cache::PERMANENT) ? Cache::PERMANENT : (int) $this->view->getRequest()->server->get('REQUEST_TIME') + $this->cacheSetMaxAge($type);
@@ -214,7 +215,7 @@ abstract class CachePluginBase extends PluginBase {
         'build_info' => $build_info,
       ];
       // @todo https://www.drupal.org/node/2433591 might solve it to not require
-      //    the pager information here.
+      //   the pager information here.
       $key_data['pager'] = [
         'page' => $this->view->getCurrentPage(),
         'items_per_page' => $this->view->getItemsPerPage(),

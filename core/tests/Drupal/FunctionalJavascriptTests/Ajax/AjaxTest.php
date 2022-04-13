@@ -48,7 +48,7 @@ class AjaxTest extends WebDriverTestBase {
   }
 
   /**
-   * Test that AJAX loaded libraries are not retained between requests.
+   * Tests that AJAX loaded libraries are not retained between requests.
    *
    * @see https://www.drupal.org/node/2647916
    */
@@ -102,7 +102,7 @@ class AjaxTest extends WebDriverTestBase {
       'not-wrapped' => 'not-wrapped',
       'comment-string-not-wrapped' => '<!-- COMMENT -->comment-string-not-wrapped',
       'comment-not-wrapped' => '<!-- COMMENT --><div class="comment-not-wrapped">comment-not-wrapped</div>',
-      'svg' => '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><rect x="0" y="0" height="10" width="10" fill="green"/></svg>',
+      'svg' => '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><rect x="0" y="0" height="10" width="10" fill="green"></rect></svg>',
       'empty' => '',
     ];
     $render_multiple_root_unwrapper = [
@@ -162,8 +162,10 @@ JS;
    *   Expected result.
    * @param string $script
    *   Script for additional theming.
+   *
+   * @internal
    */
-  public function assertInsert($render_type, $expected, $script = '') {
+  public function assertInsert(string $render_type, string $expected, string $script = ''): void {
     // Check insert to block element.
     $this->drupalGet('ajax-test/insert-block-wrapper');
     $this->getSession()->executeScript($script);
@@ -192,8 +194,10 @@ JS;
    *
    * @param string $expected
    *   A needle text.
+   *
+   * @internal
    */
-  protected function assertWaitPageContains($expected) {
+  protected function assertWaitPageContains(string $expected): void {
     $page = $this->getSession()->getPage();
     $this->assertTrue($page->waitFor(10, function () use ($page, $expected) {
       // Clear content from empty styles and "processed" classes after effect.
