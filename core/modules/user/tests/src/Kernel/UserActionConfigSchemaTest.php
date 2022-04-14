@@ -28,16 +28,16 @@ class UserActionConfigSchemaTest extends KernelTestBase {
    */
   public function testValidUserActionConfigSchema() {
     $rid = strtolower($this->randomMachineName(8));
-    Role::create(['id' => $rid])->save();
+    Role::create(['id' => $rid, 'label' => $rid])->save();
 
     // Test user_add_role_action configuration.
     $config = $this->config('system.action.user_add_role_action.' . $rid);
-    $this->assertEqual($config->get('id'), 'user_add_role_action.' . $rid);
+    $this->assertEquals('user_add_role_action.' . $rid, $config->get('id'));
     $this->assertConfigSchema(\Drupal::service('config.typed'), $config->getName(), $config->get());
 
     // Test user_remove_role_action configuration.
     $config = $this->config('system.action.user_remove_role_action.' . $rid);
-    $this->assertEqual($config->get('id'), 'user_remove_role_action.' . $rid);
+    $this->assertEquals('user_remove_role_action.' . $rid, $config->get('id'));
     $this->assertConfigSchema(\Drupal::service('config.typed'), $config->getName(), $config->get());
   }
 

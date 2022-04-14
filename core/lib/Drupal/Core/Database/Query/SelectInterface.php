@@ -332,7 +332,7 @@ interface SelectInterface extends ConditionInterface, AlterableInterface, Extend
    * fields on which to join.
    *
    * @param $type
-   *   The type of join. Typically one one of INNER, LEFT OUTER, and RIGHT OUTER.
+   *   The type of join. Typically one of INNER, LEFT OUTER, and RIGHT OUTER.
    * @param $table
    *   The table against which to join. May be a string or another SelectQuery
    *   object. If a query object is passed, it will be used as a subselect.
@@ -379,7 +379,7 @@ interface SelectInterface extends ConditionInterface, AlterableInterface, Extend
    *
    *   Example:
    *   @code
-   *   $query->addExpression('SUBSTRING(thread, 1, (LENGTH(thread) - 1))', 'order_field');
+   *   $query->addExpression('SUBSTRING([thread], 1, (LENGTH([thread]) - 1))', 'order_field');
    *   $query->orderBy('order_field', 'ASC');
    *   @endcode
    * @param $direction

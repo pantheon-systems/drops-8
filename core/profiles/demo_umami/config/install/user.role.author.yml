@@ -1,6 +1,22 @@
 langcode: en
 status: true
-dependencies: {  }
+dependencies:
+  config:
+    - node.type.article
+    - node.type.page
+    - node.type.recipe
+    - taxonomy.vocabulary.recipe_category
+    - taxonomy.vocabulary.tags
+    - workflows.workflow.editorial
+  module:
+    - content_moderation
+    - contextual
+    - file
+    - node
+    - path
+    - system
+    - taxonomy
+    - toolbar
 id: author
 label: Author
 weight: 3
@@ -9,7 +25,6 @@ permissions:
   - 'access content overview'
   - 'access contextual links'
   - 'access files overview'
-  - 'access in-place editing'
   - 'access toolbar'
   - 'cancel account'
   - 'change own username'

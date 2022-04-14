@@ -1,17 +1,17 @@
 <?php
 
-/**
- * @see       https://github.com/laminas/laminas-feed for the canonical source repository
- * @copyright https://github.com/laminas/laminas-feed/blob/master/COPYRIGHT.md
- * @license   https://github.com/laminas/laminas-feed/blob/master/LICENSE.md New BSD License
- */
-
 namespace Laminas\Feed\Reader;
 
 use Laminas\Feed\Reader\Exception\InvalidArgumentException;
 
+use function array_key_exists;
+use function is_a;
+use function is_string;
+use function sprintf;
+
 class StandaloneExtensionManager implements ExtensionManagerInterface
 {
+    /** @var array<string, class-string> */
     private $extensions = [
         'Atom\Entry'              => Extension\Atom\Entry::class,
         'Atom\Feed'               => Extension\Atom\Feed::class,
@@ -24,6 +24,8 @@ class StandaloneExtensionManager implements ExtensionManagerInterface
         'GooglePlayPodcast\Feed'  => Extension\GooglePlayPodcast\Feed::class,
         'Podcast\Entry'           => Extension\Podcast\Entry::class,
         'Podcast\Feed'            => Extension\Podcast\Feed::class,
+        'PodcastIndex\Entry'      => Extension\PodcastIndex\Entry::class,
+        'PodcastIndex\Feed'       => Extension\PodcastIndex\Feed::class,
         'Slash\Entry'             => Extension\Slash\Entry::class,
         'Syndication\Feed'        => Extension\Syndication\Feed::class,
         'Thread\Entry'            => Extension\Thread\Entry::class,
@@ -62,7 +64,8 @@ class StandaloneExtensionManager implements ExtensionManagerInterface
      */
     public function add($name, $class)
     {
-        if (is_string($class)
+        if (
+            is_string($class)
             && (is_a($class, Extension\AbstractEntry::class, true)
                 || is_a($class, Extension\AbstractFeed::class, true))
         ) {
