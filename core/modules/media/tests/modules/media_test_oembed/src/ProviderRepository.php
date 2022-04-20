@@ -16,13 +16,6 @@ class ProviderRepository extends BaseProviderRepository {
   /**
    * {@inheritdoc}
    */
-  protected function cacheGet($cid) {
-    return FALSE;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   public function getAll() {
     return \Drupal::state()->get(static::class) ?: parent::getAll();
   }

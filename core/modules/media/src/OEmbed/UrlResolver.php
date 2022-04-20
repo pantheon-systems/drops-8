@@ -5,17 +5,14 @@ namespace Drupal\media\OEmbed;
 use Drupal\Component\Utility\Html;
 use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Cache\CacheBackendInterface;
-use Drupal\Core\Cache\UseCacheBackendTrait;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use GuzzleHttp\ClientInterface;
-use GuzzleHttp\Exception\RequestException;
+use GuzzleHttp\Exception\TransferException;
 
 /**
  * Converts oEmbed media URLs into endpoint-specific resource URLs.
  */
 class UrlResolver implements UrlResolverInterface {
-
-  use UseCacheBackendTrait;
 
   /**
    * The HTTP client.
@@ -56,6 +53,13 @@ class UrlResolver implements UrlResolverInterface {
   protected $urlCache = [];
 
   /**
+   * The cache backend.
+   *
+   * @var \Drupal\Core\Cache\CacheBackendInterface
+   */
+  protected $cacheBackend;
+
+  /**
    * Constructs a UrlResolver object.
    *
    * @param \Drupal\media\OEmbed\ProviderRepositoryInterface $providers
@@ -67,15 +71,18 @@ class UrlResolver implements UrlResolverInterface {
    * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
    *   The module handler service.
    * @param \Drupal\Core\Cache\CacheBackendInterface $cache_backend
-   *   (optional) The cache backend.
+   *   The cache backend.
    */
   public function __construct(ProviderRepositoryInterface $providers, ResourceFetcherInterface $resource_fetcher, ClientInterface $http_client, ModuleHandlerInterface $module_handler, CacheBackendInterface $cache_backend = NULL) {
     $this->providers = $providers;
     $this->resourceFetcher = $resource_fetcher;
     $this->httpClient = $http_client;
     $this->moduleHandler = $module_handler;
+    if (empty($cache_backend)) {
+      $cache_backend = \Drupal::cache();
+      @trigger_error('Passing NULL as the $cache_backend parameter to ' . __METHOD__ . '() is deprecated in drupal:9.3.0 and is removed from drupal:10.0.0. See https://www.drupal.org/node/3223594', E_USER_DEPRECATED);
+    }
     $this->cacheBackend = $cache_backend;
-    $this->useCaches = isset($cache_backend);
   }
 
   /**
@@ -91,7 +98,7 @@ class UrlResolver implements UrlResolverInterface {
     try {
       $response = $this->httpClient->get($url);
     }
-    catch (RequestException $e) {
+    catch (TransferException $e) {
       return FALSE;
     }
 
@@ -151,17 +158,15 @@ class UrlResolver implements UrlResolverInterface {
     // Try to get the resource URL from the persistent cache.
     $cache_id = "media:oembed_resource_url:$url:$max_width:$max_height";
 
-    $cached = $this->cacheGet($cache_id);
+    $cached = $this->cacheBackend->get($cache_id);
     if ($cached) {
       $this->urlCache[$url] = $cached->data;
       return $this->urlCache[$url];
     }
 
     $provider = $this->getProviderByUrl($url);
-    $endpoints = $provider->getEndpoints();
-    $endpoint = reset($endpoints);
-    $resource_url = $endpoint->buildResourceUrl($url);
 
+    $resource_url = $this->getEndpointMatchingUrl($url, $provider);
     $parsed_url = UrlHelper::parse($resource_url);
     if ($max_width) {
       $parsed_url['query']['maxwidth'] = $max_width;
@@ -176,9 +181,32 @@ class UrlResolver implements UrlResolverInterface {
     $resource_url = $parsed_url['path'] . '?' . rawurldecode(UrlHelper::buildQuery($parsed_url['query']));
 
     $this->urlCache[$url] = $resource_url;
-    $this->cacheSet($cache_id, $resource_url);
+    $this->cacheBackend->set($cache_id, $resource_url);
 
     return $resource_url;
+  }
+
+  /**
+   * For the given media item URL find an endpoint with schemes that match.
+   *
+   * @param string $url
+   *   The media URL used to lookup the matching endpoint.
+   * @param \Drupal\media\OEmbed\Provider $provider
+   *   The oEmbed provider for the asset.
+   *
+   * @return string
+   *   The resource url.
+   */
+  protected function getEndpointMatchingUrl($url, Provider $provider) {
+    $endpoints = $provider->getEndpoints();
+    $resource_url = reset($endpoints)->buildResourceUrl($url);
+    foreach ($endpoints as $endpoint) {
+      if ($endpoint->matchUrl($url)) {
+        $resource_url = $endpoint->buildResourceUrl($url);
+        break;
+      }
+    }
+    return $resource_url ?? reset($endpoints)->buildResourceUrl($url);
   }
 
 }

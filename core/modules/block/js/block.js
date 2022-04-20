@@ -5,7 +5,7 @@
 * @preserve
 **/
 
-(function ($, window, Drupal) {
+(function ($, window, Drupal, once) {
   Drupal.behaviors.blockSettingsSummary = {
     attach: function attach() {
       if (typeof $.fn.drupalSetSummary === 'undefined') {
@@ -28,7 +28,7 @@
         return vals.join(', ');
       }
 
-      $('[data-drupal-selector="edit-visibility-node-type"], [data-drupal-selector="edit-visibility-language"], [data-drupal-selector="edit-visibility-user-role"]').drupalSetSummary(checkboxesSummary);
+      $('[data-drupal-selector="edit-visibility-node-type"], [data-drupal-selector="edit-visibility-entity-bundlenode"], [data-drupal-selector="edit-visibility-language"], [data-drupal-selector="edit-visibility-user-role"]').drupalSetSummary(checkboxesSummary);
       $('[data-drupal-selector="edit-visibility-request-path"]').drupalSetSummary(function (context) {
         var $pages = $(context).find('textarea[name="visibility[request_path][pages]"]');
 
@@ -59,8 +59,8 @@
           if ($this.next('tr').is(':not(.draggable)') || $this.next('tr').length === 0) {
             $this.removeClass('region-populated').addClass('region-empty');
           } else if ($this.is('.region-empty')) {
-              $this.removeClass('region-empty').addClass('region-populated');
-            }
+            $this.removeClass('region-empty').addClass('region-populated');
+          }
         });
       }
 
@@ -112,7 +112,7 @@
         updateBlockWeights(table, regionName);
       };
 
-      $(context).find('select.block-region-select').once('block-region-select').on('change', function (event) {
+      $(once('block-region-select', 'select.block-region-select', context)).on('change', function (event) {
         var row = $(this).closest('tr');
         var select = $(this);
         tableDrag.rowObject = new tableDrag.row(row[0]);
@@ -122,8 +122,8 @@
         if (regionItems.length) {
           regionItems.last().after(row);
         } else {
-            regionMessage.after(row);
-          }
+          regionMessage.after(row);
+        }
 
         updateBlockWeights(table, select[0].value);
         checkEmptyRegions(table, tableDrag.rowObject);
@@ -138,4 +138,4 @@
       });
     }
   };
-})(jQuery, window, Drupal);
+})(jQuery, window, Drupal, once);

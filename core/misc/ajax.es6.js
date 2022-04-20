@@ -11,7 +11,7 @@
  * included to provide Ajax capabilities.
  */
 
-(function ($, window, Drupal, drupalSettings) {
+(function ($, window, Drupal, drupalSettings, { isFocusable, tabbable }) {
   /**
    * Attaches the Ajax behavior to each Ajax form element.
    *
@@ -32,13 +32,13 @@
         if (typeof elementSettings.selector === 'undefined') {
           elementSettings.selector = `#${base}`;
         }
-        $(elementSettings.selector)
-          .once('drupal-ajax')
-          .each(function () {
-            elementSettings.element = this;
-            elementSettings.base = base;
-            Drupal.ajax(elementSettings);
-          });
+        // Use jQuery selector instead of a native selector for
+        // backwards compatibility.
+        once('drupal-ajax', $(elementSettings.selector)).forEach((el) => {
+          elementSettings.element = el;
+          elementSettings.base = base;
+          Drupal.ajax(elementSettings);
+        });
       }
 
       // Load all Ajax behaviors specified in the settings.
@@ -49,27 +49,25 @@
       Drupal.ajax.bindAjaxLinks(document.body);
 
       // This class means to submit the form to the action using Ajax.
-      $('.use-ajax-submit')
-        .once('ajax')
-        .each(function () {
-          const elementSettings = {};
+      once('ajax', '.use-ajax-submit').forEach((el) => {
+        const elementSettings = {};
 
-          // Ajax submits specified in this manner automatically submit to the
-          // normal form action.
-          elementSettings.url = $(this.form).attr('action');
-          // Form submit button clicks need to tell the form what was clicked so
-          // it gets passed in the POST request.
-          elementSettings.setClick = true;
-          // Form buttons use the 'click' event rather than mousedown.
-          elementSettings.event = 'click';
-          // Clicked form buttons look better with the throbber than the progress
-          // bar.
-          elementSettings.progress = { type: 'throbber' };
-          elementSettings.base = $(this).attr('id');
-          elementSettings.element = this;
+        // Ajax submits specified in this manner automatically submit to the
+        // normal form action.
+        elementSettings.url = $(el.form).attr('action');
+        // Form submit button clicks need to tell the form what was clicked so
+        // it gets passed in the POST request.
+        elementSettings.setClick = true;
+        // Form buttons use the 'click' event rather than mousedown.
+        elementSettings.event = 'click';
+        // Clicked form buttons look better with the throbber than the progress
+        // bar.
+        elementSettings.progress = { type: 'throbber' };
+        elementSettings.base = el.id;
+        elementSettings.element = el;
 
-          Drupal.ajax(elementSettings);
-        });
+        Drupal.ajax(elementSettings);
+      });
     },
 
     detach(context, settings, trigger) {
@@ -122,7 +120,7 @@
     // exception here.
     try {
       statusText = `\n${Drupal.t('StatusText: !statusText', {
-        '!statusText': $.trim(xmlhttp.statusText),
+        '!statusText': xmlhttp.statusText.trim(),
       })}`;
     } catch (e) {
       // Empty.
@@ -133,7 +131,7 @@
     // xmlhttp.responseText is going to throw an exception. So we'll catch it.
     try {
       responseText = `\n${Drupal.t('ResponseText: !responseText', {
-        '!responseText': $.trim(xmlhttp.responseText),
+        '!responseText': xmlhttp.responseText.trim(),
       })}`;
     } catch (e) {
       // Empty.
@@ -289,32 +287,29 @@
    */
   Drupal.ajax.bindAjaxLinks = (element) => {
     // Bind Ajax behaviors to all items showing the class.
-    $(element)
-      .find('.use-ajax')
-      .once('ajax')
-      .each((i, ajaxLink) => {
-        const $linkElement = $(ajaxLink);
+    once('ajax', '.use-ajax', element).forEach((ajaxLink) => {
+      const $linkElement = $(ajaxLink);
 
-        const elementSettings = {
-          // Clicked links look better with the throbber than the progress bar.
-          progress: { type: 'throbber' },
-          dialogType: $linkElement.data('dialog-type'),
-          dialog: $linkElement.data('dialog-options'),
-          dialogRenderer: $linkElement.data('dialog-renderer'),
-          base: $linkElement.attr('id'),
-          element: ajaxLink,
-        };
-        const href = $linkElement.attr('href');
-        /**
-         * For anchor tags, these will go to the target of the anchor rather
-         * than the usual location.
-         */
-        if (href) {
-          elementSettings.url = href;
-          elementSettings.event = 'click';
-        }
-        Drupal.ajax(elementSettings);
-      });
+      const elementSettings = {
+        // Clicked links look better with the throbber than the progress bar.
+        progress: { type: 'throbber' },
+        dialogType: $linkElement.data('dialog-type'),
+        dialog: $linkElement.data('dialog-options'),
+        dialogRenderer: $linkElement.data('dialog-renderer'),
+        base: $linkElement.attr('id'),
+        element: ajaxLink,
+      };
+      const href = $linkElement.attr('href');
+      /**
+       * For anchor tags, these will go to the target of the anchor rather than
+       * the usual location.
+       */
+      if (href) {
+        elementSettings.url = href;
+        elementSettings.event = 'click';
+      }
+      Drupal.ajax(elementSettings);
+    });
   };
 
   /**
@@ -999,8 +994,9 @@
       if (response[i].command && this.commands[response[i].command]) {
         this.commands[response[i].command](this, response[i], status);
         if (
-          response[i].command === 'invoke' &&
-          response[i].method === 'focus'
+          (response[i].command === 'invoke' &&
+            response[i].method === 'focus') ||
+          response[i].command === 'focusFirst'
         ) {
           focusChanged = true;
         }
@@ -1472,6 +1468,47 @@
     },
 
     /**
+     * Command to focus the first tabbable element within a container.
+     *
+     * If no tabbable elements are found and the container is focusable, then
+     * focus will move to that container.
+     *
+     * @param {Drupal.Ajax} [ajax]
+     *   {@link Drupal.Ajax} object created by {@link Drupal.ajax}.
+     * @param {object} response
+     *   The response from the Ajax request.
+     * @param {string} response.selector
+     *   A query selector string of the container to focus within.
+     * @param {number} [status]
+     *   The XMLHttpRequest status.
+     */
+    focusFirst(ajax, response, status) {
+      let focusChanged = false;
+      const container = document.querySelector(response.selector);
+      if (container) {
+        // Find all tabbable elements within the container.
+        const tabbableElements = tabbable(container);
+
+        // Move focus to the first tabbable item found.
+        if (tabbableElements.length) {
+          tabbableElements[0].focus();
+          focusChanged = true;
+        } else if (isFocusable(container)) {
+          // If no tabbable elements are found, but the container is focusable,
+          // move focus to the container.
+          container.focus();
+          focusChanged = true;
+        }
+      }
+
+      // If no items were available to receive focus, return focus to the
+      // triggering element.
+      if (ajax.hasOwnProperty('element') && !focusChanged) {
+        ajax.element.focus();
+      }
+    },
+
+    /**
      * Command to apply a jQuery method.
      *
      * @param {Drupal.Ajax} [ajax]
@@ -1580,4 +1617,4 @@
       messages.add(response.message, response.messageOptions);
     },
   };
-})(jQuery, window, Drupal, drupalSettings);
+})(jQuery, window, Drupal, drupalSettings, window.tabbable);

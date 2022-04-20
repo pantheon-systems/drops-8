@@ -81,6 +81,9 @@ class EntityFormDisplay extends EntityDisplayBase implements EntityFormDisplayIn
     $entity_type = $entity->getEntityTypeId();
     $bundle = $entity->bundle();
 
+    // Allow modules to change the form mode.
+    \Drupal::moduleHandler()->alter('entity_form_mode', $form_mode, $entity);
+
     // Check the existence and status of:
     // - the display for the form mode,
     // - the 'default' display.
@@ -213,7 +216,7 @@ class EntityFormDisplay extends EntityDisplayBase implements EntityFormDisplayIn
 
     // Hide extra fields.
     $extra_fields = \Drupal::service('entity_field.manager')->getExtraFields($this->targetEntityType, $this->bundle);
-    $extra_fields = isset($extra_fields['form']) ? $extra_fields['form'] : [];
+    $extra_fields = $extra_fields['form'] ?? [];
     foreach ($extra_fields as $extra_field => $info) {
       if (!$this->getComponent($extra_field)) {
         $element[$extra_field]['#access'] = FALSE;

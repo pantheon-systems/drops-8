@@ -97,7 +97,7 @@ class Router extends UrlMatcher implements RequestMatcherInterface, RouterInterf
   /**
    * {@inheritdoc}
    */
-  public function match($pathinfo) {
+  public function match($pathinfo): array {
     $request = Request::create($pathinfo);
 
     return $this->matchRequest($request);
@@ -106,8 +106,20 @@ class Router extends UrlMatcher implements RequestMatcherInterface, RouterInterf
   /**
    * {@inheritdoc}
    */
-  public function matchRequest(Request $request) {
-    $collection = $this->getInitialRouteCollection($request);
+  public function matchRequest(Request $request): array {
+    try {
+      $collection = $this->getInitialRouteCollection($request);
+    }
+    // PHP 7.4 introduces changes to its serialization format, which mean that
+    // older versions of PHP are unable to unserialize data that is serialized
+    // in PHP 7.4. If the site's version of PHP has been downgraded, then
+    // attempting to unserialize routes from the database will fail, and so the
+    // router needs to be rebuilt on the current PHP version.
+    // See https://www.php.net/manual/en/migration74.incompatible.php.
+    catch (\TypeError $e) {
+      \Drupal::service('router.builder')->rebuild();
+      $collection = $this->getInitialRouteCollection($request);
+    }
     if ($collection->count() === 0) {
       throw new ResourceNotFoundException(sprintf('No routes found for "%s".', $this->currentPath->getPath()));
     }
@@ -312,14 +324,14 @@ class Router extends UrlMatcher implements RequestMatcherInterface, RouterInterf
   /**
    * {@inheritdoc}
    */
-  public function getRouteCollection() {
+  public function getRouteCollection(): RouteCollection {
     return new LazyRouteCollection($this->routeProvider);
   }
 
   /**
    * {@inheritdoc}
    */
-  public function generate($name, $parameters = [], $referenceType = self::ABSOLUTE_PATH) {
+  public function generate($name, $parameters = [], $referenceType = self::ABSOLUTE_PATH): string {
     @trigger_error(__METHOD__ . '() is deprecated in drupal:8.3.0 and will throw an exception from drupal:10.0.0. Use the \Drupal\Core\Url object instead. See https://www.drupal.org/node/2820197', E_USER_DEPRECATED);
     return $this->urlGenerator->generate($name, $parameters, $referenceType);
   }

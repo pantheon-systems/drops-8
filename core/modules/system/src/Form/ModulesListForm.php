@@ -6,7 +6,9 @@ use Drupal\Core\Config\PreExistingConfigException;
 use Drupal\Core\Config\UnmetDependenciesException;
 use Drupal\Core\Access\AccessManagerInterface;
 use Drupal\Core\Extension\Extension;
+use Drupal\Core\Extension\ExtensionLifecycle;
 use Drupal\Core\Extension\InfoParserException;
+use Drupal\Core\Extension\ModuleDependencyMessageTrait;
 use Drupal\Core\Extension\ModuleExtensionList;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Extension\ModuleInstallerInterface;
@@ -17,7 +19,6 @@ use Drupal\Core\Render\Element;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\user\PermissionHandlerInterface;
 use Drupal\Core\Url;
-use Drupal\system\ModuleDependencyMessageTrait;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -33,6 +34,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 class ModulesListForm extends FormBase {
 
   use ModuleDependencyMessageTrait;
+  use ModulesEnabledTrait;
 
   /**
    * The current user.
@@ -169,7 +171,7 @@ class ModulesListForm extends FormBase {
       // The module list needs to be reset so that it can re-scan and include
       // any new modules that may have been added directly into the filesystem.
       $modules = $this->moduleExtensionList->reset()->getList();
-      uasort($modules, 'system_sort_modules_by_info_name');
+      uasort($modules, [ModuleExtensionList::class, 'sortByName']);
     }
     catch (InfoParserException $e) {
       $this->messenger()->addError($this->t('Modules could not be listed due to an error: %error', ['%error' => $e->getMessage()]));
@@ -236,6 +238,7 @@ class ModulesListForm extends FormBase {
    * @param \Drupal\Core\Extension\Extension $module
    *   The module for which to build the form row.
    * @param $distribution
+   *   The distribution.
    *
    * @return array
    *   The form row for the given module.
@@ -267,14 +270,14 @@ class ModulesListForm extends FormBase {
       $row['links']['permissions'] = [
         '#type' => 'link',
         '#title' => $this->t('Permissions'),
-        '#url' => Url::fromRoute('user.admin_permissions'),
-        '#options' => ['fragment' => 'module-' . $module->getName(), 'attributes' => ['class' => ['module-link', 'module-link-permissions'], 'title' => $this->t('Configure permissions')]],
+        '#url' => Url::fromRoute('user.admin_permissions.module', ['modules' => $module->getName()]),
+        '#options' => ['attributes' => ['class' => ['module-link', 'module-link-permissions'], 'title' => $this->t('Configure permissions')]],
       ];
     }
 
     // Generate link for module's configuration page, if it has one.
     if ($module->status && isset($module->info['configure'])) {
-      $route_parameters = isset($module->info['configure_parameters']) ? $module->info['configure_parameters'] : [];
+      $route_parameters = $module->info['configure_parameters'] ?? [];
       if ($this->accessManager->checkNamedRoute($module->info['configure'], $route_parameters, $this->currentUser)) {
         $row['links']['configure'] = [
           '#type' => 'link',
@@ -318,7 +321,7 @@ class ModulesListForm extends FormBase {
         '@core_version' => \Drupal::VERSION,
       ]);
       $row['#requires']['core'] = $this->t('Drupal Core (@core_requirement) (<span class="admin-missing">incompatible with</span> version @core_version)', [
-        '@core_requirement' => isset($module->info['core_version_requirement']) ? $module->info['core_version_requirement'] : $module->info['core'],
+        '@core_requirement' => $module->info['core_version_requirement'] ?? $module->info['core'],
         '@core_version' => \Drupal::VERSION,
       ]);
     }
@@ -404,7 +407,7 @@ class ModulesListForm extends FormBase {
       elseif (($checkbox = $form_state->getValue(['modules', $name], FALSE)) && $checkbox['enable']) {
         $modules['install'][$name] = $data[$name]->info['name'];
         // Identify experimental modules.
-        if ($data[$name]->info['package'] == 'Core (Experimental)') {
+        if ($data[$name]->info[ExtensionLifecycle::LIFECYCLE_IDENTIFIER] === ExtensionLifecycle::EXPERIMENTAL) {
           $modules['experimental'][$name] = $data[$name]->info['name'];
         }
       }
@@ -418,7 +421,7 @@ class ModulesListForm extends FormBase {
           $modules['install'][$dependency] = $data[$dependency]->info['name'];
 
           // Identify experimental modules.
-          if ($data[$dependency]->info['package'] == 'Core (Experimental)') {
+          if ($data[$dependency]->info[ExtensionLifecycle::LIFECYCLE_IDENTIFIER] === ExtensionLifecycle::EXPERIMENTAL) {
             $modules['experimental'][$dependency] = $data[$dependency]->info['name'];
           }
         }
@@ -471,24 +474,11 @@ class ModulesListForm extends FormBase {
     if (!empty($modules['install'])) {
       try {
         $this->moduleInstaller->install(array_keys($modules['install']));
-        $module_names = array_values($modules['install']);
-        $this->messenger()->addStatus($this->formatPlural(count($module_names), 'Module %name has been enabled.', '@count modules have been enabled: %names.', [
-          '%name' => $module_names[0],
-          '%names' => implode(', ', $module_names),
-        ]));
+        $this->messenger()
+          ->addStatus($this->modulesEnabledConfirmationMessage($modules['install']));
       }
       catch (PreExistingConfigException $e) {
-        $config_objects = $e->flattenConfigObjects($e->getConfigObjects());
-        $this->messenger()->addError(
-          $this->formatPlural(
-            count($config_objects),
-            'Unable to install @extension, %config_names already exists in active configuration.',
-            'Unable to install @extension, %config_names already exist in active configuration.',
-            [
-              '%config_names' => implode(', ', $config_objects),
-              '@extension' => $modules['install'][$e->getExtension()],
-            ])
-        );
+        $this->messenger()->addError($this->modulesFailToEnableMessage($modules, $e));
         return;
       }
       catch (UnmetDependenciesException $e) {

@@ -76,13 +76,11 @@
 
   // Select and initialize sticky table headers.
   function tableHeaderInitHandler(e) {
-    const $tables = $(e.data.context)
-      .find('table.sticky-enabled')
-      .once('tableheader');
-    const il = $tables.length;
-    for (let i = 0; i < il; i++) {
-      TableHeader.tables.push(new TableHeader($tables[i]));
-    }
+    once('tableheader', $(e.data.context).find('table.sticky-enabled')).forEach(
+      (table) => {
+        TableHeader.tables.push(new TableHeader(table));
+      },
+    );
     forTables('onScroll');
   }
 
@@ -144,7 +142,8 @@
      *
      * @ignore
      */
-    'columnschange.TableHeader drupalToolbarTrayChange': tableHeaderResizeHandler,
+    'columnschange.TableHeader drupalToolbarTrayChange':
+      tableHeaderResizeHandler,
 
     /**
      * Recalculate TableHeader.topOffset when viewport is resized.
@@ -207,6 +206,8 @@
        * Create the duplicate header.
        */
       createSticky() {
+        // For caching purposes.
+        this.$html = $('html');
         // Clone the table header so it inherits original jQuery properties.
         const $stickyHeader = this.$originalHeader.clone(true);
         // Hide the table to avoid a flash of the header clone upon page load.
@@ -244,6 +245,11 @@
         if (typeof offsetLeft === 'number') {
           css.left = `${this.tableOffset.left - offsetLeft}px`;
         }
+        this.$html.css(
+          'scroll-padding-top',
+          displace.offsets.top +
+            (this.stickyVisible ? this.$stickyTable.height() : 0),
+        );
         return this.$stickyTable.css(css);
       },
 
