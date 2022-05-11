@@ -59,7 +59,7 @@
  *
  * These two variables are provided for context:
  * - comment: Full comment object.
- * - entity: Entity the comments are attached to.
+ * - commented_entity: Entity the comments are attached to.
  *
  * @see template_preprocess_comment()
  */
@@ -67,20 +67,20 @@
 {%
   set classes = [
     'comment',
-    'js-comment',
+    not parent_comment ? 'comment--level-1',
     status != 'published' ? 'comment--' ~ status,
     comment.owner.anonymous ? 'by-anonymous',
     author_id and author_id == commented_entity.getOwnerId() ? 'by-' ~ commented_entity.getEntityTypeId() ~ '-author',
   ]
 %}
 {{ attach_library('olivero/comments') }}
-<article {{ attributes.addClass(classes).setAttribute('role', 'article') }}>
-  <div class="comment__picture-wrapper comment-picture">
-    <div class="comment__picture comment-picture__image">
+<article {{ attributes.addClass(classes).setAttribute('role', 'article').setAttribute('data-drupal-selector', 'comment') }}>
+  <div class="comment__picture-wrapper">
+    <div class="comment__picture">
       {{ user_picture }}
     </div>
   </div>
-  <div class="comment__text-content">
+  <div class="comment__text-wrapper">
     <footer class="comment__meta">
       <p class="comment__author">{{ author }}</p>
       <p class="comment__time">{{ created }}</p>

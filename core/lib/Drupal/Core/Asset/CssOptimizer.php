@@ -4,6 +4,7 @@ namespace Drupal\Core\Asset;
 
 use Drupal\Component\Utility\Unicode;
 use Drupal\Core\StreamWrapper\StreamWrapperManager;
+use Drupal\Core\File\FileUrlGeneratorInterface;
 
 /**
  * Optimizes a CSS asset.
@@ -16,6 +17,27 @@ class CssOptimizer implements AssetOptimizerInterface {
    * @var string
    */
   public $rewriteFileURIBasePath;
+
+  /**
+   * The file URL generator.
+   *
+   * @var \Drupal\Core\File\FileUrlGeneratorInterface
+   */
+  protected $fileUrlGenerator;
+
+  /**
+   * Constructs a CssOptimizer.
+   *
+   * @param \Drupal\Core\File\FileUrlGeneratorInterface $file_url_generator
+   *   The file URL generator.
+   */
+  public function __construct(FileUrlGeneratorInterface $file_url_generator = NULL) {
+    if (!$file_url_generator) {
+      @trigger_error('Calling CssOptimizer::__construct() without the $file_url_generator argument is deprecated in drupal:9.3.0. The $file_url_generator argument will be required in drupal:10.0.0. See https://www.drupal.org/node/2940031', E_USER_DEPRECATED);
+      $file_url_generator = \Drupal::service('file_url_generator');
+    }
+    $this->fileUrlGenerator = $file_url_generator;
+  }
 
   /**
    * {@inheritdoc}
@@ -49,7 +71,16 @@ class CssOptimizer implements AssetOptimizerInterface {
   }
 
   /**
-   * Build aggregate CSS file.
+   * Processes CSS file and adds base URLs to any relative resource paths.
+   *
+   * @param array $css_asset
+   *   A CSS asset. The array should contain the `data` key where the value
+   *   should be the path to the CSS file relative to the Drupal root. This is
+   *   an example of the `data` key's value,
+   *   "core/assets/vendor/normalize-css/normalize.css".
+   *
+   * @return string
+   *   The asset's cleaned/optimized contents.
    */
   protected function processFile($css_asset) {
     $contents = $this->loadFile($css_asset['data'], TRUE);
@@ -166,7 +197,7 @@ class CssOptimizer implements AssetOptimizerInterface {
     // the url() path.
     $directory = $directory == '.' ? '' : $directory . '/';
 
-    // Alter all internal url() paths. Leave external paths alone. We don't need
+    // Alter all internal asset paths. Leave external paths alone. We don't need
     // to normalize absolute paths here because that will be done later.
     return preg_replace('/url\(\s*([\'"]?)(?![a-z]+:|\/+)([^\'")]+)([\'"]?)\s*\)/i', 'url(\1' . $directory . '\2\3)', $file);
   }
@@ -230,7 +261,9 @@ class CssOptimizer implements AssetOptimizerInterface {
     }
 
     // Replaces @import commands with the actual stylesheet content.
-    // This happens recursively but omits external files.
+    // This happens recursively but omits external files and local files
+    // with supports- or media-query qualifiers, as those are conditionally
+    // loaded depending on the user agent.
     $contents = preg_replace_callback('/@import\s*(?:url\(\s*)?[\'"]?(?![a-z]+:)(?!\/\/)([^\'"\()]+)[\'"]?\s*\)?\s*;/', [$this, 'loadNestedFile'], $contents);
 
     return $contents;
@@ -258,7 +291,27 @@ class CssOptimizer implements AssetOptimizerInterface {
       $last = $path;
       $path = preg_replace('`(^|/)(?!\.\./)([^/]+)/\.\./`', '$1', $path);
     }
-    return 'url(' . file_url_transform_relative(file_create_url($path)) . ')';
+    return 'url(' . $this->getFileUrlGenerator()->generateString($path) . ')';
+  }
+
+  /**
+   * Returns the file URL generator.
+   *
+   * This is provided for BC as sub-classes may not call the parent constructor.
+   *
+   * @return \Drupal\Core\File\FileUrlGeneratorInterface
+   *   The file URL generator.
+   *
+   * @internal
+   *   This can be removed in Drupal 10.0.x when the constructor deprecation is
+   *   removed.
+   */
+  private function getFileUrlGenerator(): FileUrlGeneratorInterface {
+    if (!$this->fileUrlGenerator) {
+      @trigger_error('Calling CssOptimizer::__construct() without the $file_url_generator argument is deprecated in drupal:9.3.0. The $file_url_generator argument will be required in drupal:10.0.0. See https://www.drupal.org/node/2940031', E_USER_DEPRECATED);
+      $this->fileUrlGenerator = \Drupal::service('file_url_generator');
+    }
+    return $this->fileUrlGenerator;
   }
 
 }

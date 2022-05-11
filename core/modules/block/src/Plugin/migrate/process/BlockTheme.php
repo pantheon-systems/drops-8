@@ -71,7 +71,7 @@ class BlockTheme extends ProcessPluginBase implements ContainerFactoryPluginInte
    * {@inheritdoc}
    */
   public function transform($value, MigrateExecutableInterface $migrate_executable, Row $row, $destination_property) {
-    list($theme, $default_theme, $admin_theme) = $value;
+    [$theme, $default_theme, $admin_theme] = $value;
 
     // If the source theme exists on the destination, we're good.
     if (isset($this->themes[$theme])) {
@@ -86,7 +86,7 @@ class BlockTheme extends ProcessPluginBase implements ContainerFactoryPluginInte
 
     // If the source block is assigned to a region in the source admin theme,
     // then assign it to the destination admin theme.
-    if (strtolower($theme) == strtolower($admin_theme)) {
+    if ($admin_theme && strtolower($theme) == strtolower($admin_theme)) {
       return $this->themeConfig->get('admin');
     }
 

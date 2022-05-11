@@ -101,21 +101,17 @@ class PropertyNormalizer extends AbstractObjectNormalizer
     {
         $reflectionObject = new \ReflectionObject($object);
         $attributes = [];
-        $checkPropertyInitialization = \PHP_VERSION_ID >= 70400;
+        $propertyValues = !method_exists($object, '__get') ? (array) $object : null;
 
         do {
             foreach ($reflectionObject->getProperties() as $property) {
-                if ($checkPropertyInitialization) {
-                    if (!$property->isPublic()) {
-                        $property->setAccessible(true);
-                    }
-
-                    if (!$property->isInitialized($object)) {
-                        continue;
-                    }
-                }
-
-                if (!$this->isAllowedAttribute($reflectionObject->getName(), $property->name, $format, $context)) {
+                if ((null !== $propertyValues && (
+                        ($property->isPublic() && !\array_key_exists($property->name, $propertyValues))
+                        || ($property->isProtected() && !\array_key_exists("\0*\0{$property->name}", $propertyValues))
+                        || ($property->isPrivate() && !\array_key_exists("\0{$property->class}\0{$property->name}", $propertyValues))
+                    ))
+                    || !$this->isAllowedAttribute($reflectionObject->getName(), $property->name, $format, $context)
+                ) {
                     continue;
                 }
 
@@ -123,7 +119,7 @@ class PropertyNormalizer extends AbstractObjectNormalizer
             }
         } while ($reflectionObject = $reflectionObject->getParentClass());
 
-        return $attributes;
+        return array_unique($attributes);
     }
 
     /**

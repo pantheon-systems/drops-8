@@ -79,8 +79,8 @@ class EntityAutocompleteController extends ControllerBase {
     $matches = [];
     // Get the typed string from the URL, if it exists.
     if ($input = $request->query->get('q')) {
-      $typed_string = Tags::explode($input);
-      $typed_string = mb_strtolower(array_pop($typed_string));
+      $tag_list = Tags::explode($input);
+      $typed_string = !empty($tag_list) ? mb_strtolower(array_pop($tag_list)) : '';
 
       // Selection settings are passed in as a hashed key of a serialized array
       // stored in the key/value store.
