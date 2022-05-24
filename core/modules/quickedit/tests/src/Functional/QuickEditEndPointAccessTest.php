@@ -61,7 +61,7 @@ class QuickEditEndPointAccessTest extends BrowserTestBase {
     $edit['body[0][summary]'] = '';
     $edit['body[0][value]'] = '<p>Malicious content.</p>';
     $edit['body[0][format]'] = 'filtered_html';
-    $edit['op'] = t('Save');
+    $edit['op'] = 'Save';
     $this->assertAccessIsBlocked($url, $edit);
 
     $post = ['nocssjs' => 'true'];
@@ -76,8 +76,10 @@ class QuickEditEndPointAccessTest extends BrowserTestBase {
    *   The URL to check.
    * @param array $body
    *   The payload to send with the request.
+   *
+   * @internal
    */
-  protected function assertAccessIsBlocked($url, array $body) {
+  protected function assertAccessIsBlocked(string $url, array $body): void {
     $client = $this->getHttpClient();
     $message = ['message' => "The 'access in-place editing' permission is required."];
 

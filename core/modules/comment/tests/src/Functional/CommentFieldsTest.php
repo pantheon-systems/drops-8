@@ -38,7 +38,7 @@ class CommentFieldsTest extends CommentTestBase {
 
     // Check that the 'comment_body' field is present on the comment bundle.
     $field = FieldConfig::loadByName('comment', 'comment', 'comment_body');
-    $this->assertTrue(!empty($field), 'The comment_body field is added when a comment bundle is created');
+    $this->assertNotEmpty($field, 'The comment_body field is added when a comment bundle is created');
 
     $field->delete();
 
@@ -62,7 +62,7 @@ class CommentFieldsTest extends CommentTestBase {
     // Test adding a field that defaults to CommentItemInterface::CLOSED.
     $this->addDefaultCommentField('node', 'test_node_type', 'who_likes_ponies', CommentItemInterface::CLOSED, 'who_likes_ponies');
     $field = FieldConfig::load('node.test_node_type.who_likes_ponies');
-    $this->assertEqual($field->getDefaultValueLiteral()[0]['status'], CommentItemInterface::CLOSED);
+    $this->assertEquals(CommentItemInterface::CLOSED, $field->getDefaultValueLiteral()[0]['status']);
   }
 
   /**
@@ -137,8 +137,8 @@ class CommentFieldsTest extends CommentTestBase {
     $this->drupalGet('node');
 
     $link_info = $this->getDrupalSettings()['comment']['newCommentsLinks']['node']['comment2']['2'];
-    $this->assertIdentical($link_info['new_comment_count'], 1);
-    $this->assertIdentical($link_info['first_new_comment_link'], $node->toUrl('canonical', ['fragment' => 'new'])->toString());
+    $this->assertSame(1, $link_info['new_comment_count']);
+    $this->assertSame($node->toUrl('canonical', ['fragment' => 'new'])->toString(), $link_info['first_new_comment_link']);
   }
 
   /**
@@ -157,13 +157,15 @@ class CommentFieldsTest extends CommentTestBase {
       'label' => 'User comment',
       'field_name' => 'user_comment',
     ];
-    $this->drupalPostForm('admin/config/people/accounts/fields/add-field', $edit, 'Save and continue');
+    $this->drupalGet('admin/config/people/accounts/fields/add-field');
+    $this->submitForm($edit, 'Save and continue');
 
     // Try to save the comment field without selecting a comment type.
     $edit = [];
-    $this->drupalPostForm('admin/config/people/accounts/fields/user.user.field_user_comment/storage', $edit, 'Save field settings');
+    $this->drupalGet('admin/config/people/accounts/fields/user.user.field_user_comment/storage');
+    $this->submitForm($edit, 'Save field settings');
     // We should get an error message.
-    $this->assertText('An illegal choice has been detected. Please contact the site administrator.');
+    $this->assertSession()->pageTextContains('An illegal choice has been detected. Please contact the site administrator.');
 
     // Create a comment type for users.
     $bundle = CommentType::create([
@@ -178,9 +180,10 @@ class CommentFieldsTest extends CommentTestBase {
     $edit = [
       'settings[comment_type]' => 'user_comment_type',
     ];
-    $this->drupalPostForm('admin/config/people/accounts/fields/user.user.field_user_comment/storage', $edit, 'Save field settings');
+    $this->drupalGet('admin/config/people/accounts/fields/user.user.field_user_comment/storage');
+    $this->submitForm($edit, 'Save field settings');
     // We shouldn't get an error message.
-    $this->assertNoText('An illegal choice has been detected. Please contact the site administrator.');
+    $this->assertSession()->pageTextNotContains('An illegal choice has been detected. Please contact the site administrator.');
   }
 
   /**
@@ -207,7 +210,8 @@ class CommentFieldsTest extends CommentTestBase {
     // Uninstall the comment module.
     $edit = [];
     $edit['uninstall[comment]'] = TRUE;
-    $this->drupalPostForm('admin/modules/uninstall', $edit, 'Uninstall');
+    $this->drupalGet('admin/modules/uninstall');
+    $this->submitForm($edit, 'Uninstall');
     $this->submitForm([], 'Uninstall');
     $this->rebuildContainer();
     $this->assertFalse($this->container->get('module_handler')->moduleExists('comment'), 'Comment module uninstalled.');
@@ -215,12 +219,14 @@ class CommentFieldsTest extends CommentTestBase {
     // Install core content type module (book).
     $edit = [];
     $edit['modules[book][enable]'] = 'book';
-    $this->drupalPostForm('admin/modules', $edit, 'Install');
+    $this->drupalGet('admin/modules');
+    $this->submitForm($edit, 'Install');
 
     // Now install the comment module.
     $edit = [];
     $edit['modules[comment][enable]'] = 'comment';
-    $this->drupalPostForm('admin/modules', $edit, 'Install');
+    $this->drupalGet('admin/modules');
+    $this->submitForm($edit, 'Install');
     $this->rebuildContainer();
     $this->assertTrue($this->container->get('module_handler')->moduleExists('comment'), 'Comment module enabled.');
 

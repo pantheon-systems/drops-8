@@ -83,18 +83,18 @@ class ImageFieldDefaultImagesTest extends ImageFieldTestBase {
     $field = $this->createImageField($field_name, 'article', $storage_settings, $field_settings, $widget_settings);
 
     // The field default image id should be 2.
-    $this->assertEqual($field->getSetting('default_image')['uuid'], $default_images['field']->uuid());
+    $this->assertEquals($default_images['field']->uuid(), $field->getSetting('default_image')['uuid']);
 
     // Also test \Drupal\field\Entity\FieldConfig::getSettings().
-    $this->assertEqual($field->getSettings()['default_image']['uuid'], $default_images['field']->uuid());
+    $this->assertEquals($default_images['field']->uuid(), $field->getSettings()['default_image']['uuid']);
 
     $field_storage = $field->getFieldStorageDefinition();
 
     // The field storage default image id should be 1.
-    $this->assertEqual($field_storage->getSetting('default_image')['uuid'], $default_images['field_storage']->uuid());
+    $this->assertEquals($default_images['field_storage']->uuid(), $field_storage->getSetting('default_image')['uuid']);
 
     // Also test \Drupal\field\Entity\FieldStorageConfig::getSettings().
-    $this->assertEqual($field_storage->getSettings()['default_image']['uuid'], $default_images['field_storage']->uuid());
+    $this->assertEquals($default_images['field_storage']->uuid(), $field_storage->getSettings()['default_image']['uuid']);
 
     // Add another field with another default image to the page content type.
     $field2 = FieldConfig::create([
@@ -145,14 +145,7 @@ class ImageFieldDefaultImagesTest extends ImageFieldTestBase {
     // Confirm that the image default is shown for a new article node.
     $article = $this->drupalCreateNode(['type' => 'article']);
     $article_built = $this->drupalBuildEntityView($article);
-    $this->assertEqual(
-      $article_built[$field_name][0]['#item']->target_id,
-      $default_images['field']->id(),
-      new FormattableMarkup(
-        'A new article node without an image has the expected default image file ID of @fid.',
-        ['@fid' => $default_images['field']->id()]
-      )
-    );
+    $this->assertEquals($default_images['field']->id(), $article_built[$field_name][0]['#item']->target_id, new FormattableMarkup('A new article node without an image has the expected default image file ID of @fid.', ['@fid' => $default_images['field']->id()]));
 
     // Also check that the field renders without warnings when the label is
     // hidden.
@@ -164,14 +157,7 @@ class ImageFieldDefaultImagesTest extends ImageFieldTestBase {
     // Confirm that the image default is shown for a new page node.
     $page = $this->drupalCreateNode(['type' => 'page']);
     $page_built = $this->drupalBuildEntityView($page);
-    $this->assertEqual(
-      $page_built[$field_name][0]['#item']->target_id,
-      $default_images['field2']->id(),
-      new FormattableMarkup(
-        'A new page node without an image has the expected default image file ID of @fid.',
-        ['@fid' => $default_images['field2']->id()]
-      )
-    );
+    $this->assertEquals($default_images['field2']->id(), $page_built[$field_name][0]['#item']->target_id, new FormattableMarkup('A new page node without an image has the expected default image file ID of @fid.', ['@fid' => $default_images['field2']->id()]));
 
     // Upload a new default for the field storage.
     $default_image_settings = $field_storage->getSetting('default_image');
@@ -188,22 +174,8 @@ class ImageFieldDefaultImagesTest extends ImageFieldTestBase {
     $node_storage->resetCache([$article->id(), $page->id()]);
     $article_built = $this->drupalBuildEntityView($article = $node_storage->load($article->id()));
     $page_built = $this->drupalBuildEntityView($page = $node_storage->load($page->id()));
-    $this->assertEqual(
-      $article_built[$field_name][0]['#item']->target_id,
-      $default_images['field']->id(),
-      new FormattableMarkup(
-        'An existing article node without an image has the expected default image file ID of @fid.',
-        ['@fid' => $default_images['field']->id()]
-      )
-    );
-    $this->assertEqual(
-      $page_built[$field_name][0]['#item']->target_id,
-      $default_images['field2']->id(),
-      new FormattableMarkup(
-        'An existing page node without an image has the expected default image file ID of @fid.',
-        ['@fid' => $default_images['field2']->id()]
-      )
-    );
+    $this->assertEquals($default_images['field']->id(), $article_built[$field_name][0]['#item']->target_id, new FormattableMarkup('An existing article node without an image has the expected default image file ID of @fid.', ['@fid' => $default_images['field']->id()]));
+    $this->assertEquals($default_images['field2']->id(), $page_built[$field_name][0]['#item']->target_id, new FormattableMarkup('An existing page node without an image has the expected default image file ID of @fid.', ['@fid' => $default_images['field2']->id()]));
 
     // Upload a new default for the article's field.
     $default_image_settings = $field->getSetting('default_image');
@@ -221,28 +193,14 @@ class ImageFieldDefaultImagesTest extends ImageFieldTestBase {
     $page_built = $this->drupalBuildEntityView($page = $node_storage->load($page->id()));
 
     // Confirm the article uses the new default.
-    $this->assertEqual(
-      $article_built[$field_name][0]['#item']->target_id,
-      $default_images['field_new']->id(),
-      new FormattableMarkup(
-        'An existing article node without an image has the expected default image file ID of @fid.',
-        ['@fid' => $default_images['field_new']->id()]
-      )
-    );
+    $this->assertEquals($default_images['field_new']->id(), $article_built[$field_name][0]['#item']->target_id, new FormattableMarkup('An existing article node without an image has the expected default image file ID of @fid.', ['@fid' => $default_images['field_new']->id()]));
     // Confirm the page remains unchanged.
-    $this->assertEqual(
-      $page_built[$field_name][0]['#item']->target_id,
-      $default_images['field2']->id(),
-      new FormattableMarkup(
-        'An existing page node without an image has the expected default image file ID of @fid.',
-        ['@fid' => $default_images['field2']->id()]
-      )
-    );
+    $this->assertEquals($default_images['field2']->id(), $page_built[$field_name][0]['#item']->target_id, new FormattableMarkup('An existing page node without an image has the expected default image file ID of @fid.', ['@fid' => $default_images['field2']->id()]));
 
     // Confirm the default image is shown on the node form.
     $file = File::load($default_images['field_new']->id());
     $this->drupalGet('node/add/article');
-    $this->assertRaw($file->getFilename());
+    $this->assertSession()->responseContains($file->getFilename());
 
     // Remove the field default from articles.
     $default_image_settings = $field->getSetting('default_image');
@@ -259,33 +217,19 @@ class ImageFieldDefaultImagesTest extends ImageFieldTestBase {
     $article_built = $this->drupalBuildEntityView($article = $node_storage->load($article->id()));
     $page_built = $this->drupalBuildEntityView($page = $node_storage->load($page->id()));
     // Confirm the article uses the new field storage (not field) default.
-    $this->assertEqual(
-      $article_built[$field_name][0]['#item']->target_id,
-      $default_images['field_storage_new']->id(),
-      new FormattableMarkup(
-        'An existing article node without an image has the expected default image file ID of @fid.',
-        ['@fid' => $default_images['field_storage_new']->id()]
-      )
-    );
+    $this->assertEquals($default_images['field_storage_new']->id(), $article_built[$field_name][0]['#item']->target_id, new FormattableMarkup('An existing article node without an image has the expected default image file ID of @fid.', ['@fid' => $default_images['field_storage_new']->id()]));
     // Confirm the page remains unchanged.
-    $this->assertEqual(
-      $page_built[$field_name][0]['#item']->target_id,
-      $default_images['field2']->id(),
-      new FormattableMarkup(
-        'An existing page node without an image has the expected default image file ID of @fid.',
-        ['@fid' => $default_images['field2']->id()]
-      )
-    );
+    $this->assertEquals($default_images['field2']->id(), $page_built[$field_name][0]['#item']->target_id, new FormattableMarkup('An existing page node without an image has the expected default image file ID of @fid.', ['@fid' => $default_images['field2']->id()]));
 
     $non_image = $this->drupalGetTestFiles('text');
     $this->submitForm(['files[settings_default_image_uuid]' => \Drupal::service('file_system')->realpath($non_image[0]->uri)], 'Upload');
-    $this->assertText('The specified file text-0.txt could not be uploaded.');
-    $this->assertText('Only files with the following extensions are allowed: png gif jpg jpeg.');
+    $this->assertSession()->pageTextContains('The specified file text-0.txt could not be uploaded.');
+    $this->assertSession()->pageTextContains('Only files with the following extensions are allowed: png gif jpg jpeg.');
 
     // Confirm the default image is shown on the node form.
     $file = File::load($default_images['field_storage_new']->id());
     $this->drupalGet('node/add/article');
-    $this->assertRaw($file->getFilename());
+    $this->assertSession()->responseContains($file->getFilename());
 
     // Change the default image for the field storage and also change the upload
     // destination to the private filesystem at the same time.
@@ -307,8 +251,7 @@ class ImageFieldDefaultImagesTest extends ImageFieldTestBase {
     $field->setSetting('default_image', $default_image_settings);
     $field->save();
 
-    // Confirm the new field field default is used on the article field
-    // admin form.
+    // Confirm the new field default is used on the article field admin form.
     $this->drupalGet("admin/structure/types/manage/article/fields/$field_id");
     $this->assertSession()->hiddenFieldValueEquals('settings[default_image][uuid][fids]', $default_images['field_private']->id());
   }

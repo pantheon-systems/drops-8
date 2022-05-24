@@ -3,7 +3,7 @@
  * Block behaviors.
  */
 
-(function ($, window, Drupal) {
+(function ($, window, Drupal, once) {
   /**
    * Provide the summary information for the block settings vertical tabs.
    *
@@ -46,7 +46,7 @@
       }
 
       $(
-        '[data-drupal-selector="edit-visibility-node-type"], [data-drupal-selector="edit-visibility-language"], [data-drupal-selector="edit-visibility-user-role"]',
+        '[data-drupal-selector="edit-visibility-node-type"], [data-drupal-selector="edit-visibility-entity-bundlenode"], [data-drupal-selector="edit-visibility-language"], [data-drupal-selector="edit-visibility-user-role"]',
       ).drupalSetSummary(checkboxesSummary);
 
       $(
@@ -218,10 +218,9 @@
       };
 
       // Add the behavior to each region select list.
-      $(context)
-        .find('select.block-region-select')
-        .once('block-region-select')
-        .on('change', function (event) {
+      $(once('block-region-select', 'select.block-region-select', context)).on(
+        'change',
+        function (event) {
           // Make our new row and select field.
           const row = $(this).closest('tr');
           const select = $(this);
@@ -256,7 +255,8 @@
           }
           // Remove focus from selectbox.
           select.trigger('blur');
-        });
+        },
+      );
     },
   };
-})(jQuery, window, Drupal);
+})(jQuery, window, Drupal, once);

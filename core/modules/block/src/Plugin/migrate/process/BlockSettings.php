@@ -7,6 +7,8 @@ use Drupal\migrate\MigrateExecutableInterface;
 use Drupal\migrate\ProcessPluginBase;
 use Drupal\migrate\Row;
 
+// cspell:ignore whois
+
 /**
  * @MigrateProcessPlugin(
  *   id = "block_settings"
@@ -20,10 +22,10 @@ class BlockSettings extends ProcessPluginBase {
    * Set the block configuration.
    */
   public function transform($value, MigrateExecutableInterface $migrate_executable, Row $row, $destination_property) {
-    list($plugin, $delta, $old_settings, $title) = $value;
+    [$plugin, $delta, $old_settings, $title] = $value;
     $settings = [];
     $settings['label'] = $title;
-    if ($title) {
+    if ($title && $title !== '<none>') {
       $settings['label_display'] = BlockPluginInterface::BLOCK_LABEL_VISIBLE;
     }
     else {
@@ -31,7 +33,7 @@ class BlockSettings extends ProcessPluginBase {
     }
     switch ($plugin) {
       case 'aggregator_feed_block':
-        list(, $id) = explode('-', $delta);
+        [, $id] = explode('-', $delta);
         $settings['block_count'] = $old_settings['aggregator']['item_count'];
         $settings['feed'] = $id;
         break;

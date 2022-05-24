@@ -91,7 +91,7 @@ class ConfigNamesMapperTest extends UnitTestCase {
   /**
    * The mocked event dispatcher.
    *
-   * @var \Symfony\Component\EventDispatcher\EventDispatcherInterface|\PHPUnit\Framework\MockObject\MockObject
+   * @var \Symfony\Contracts\EventDispatcher\EventDispatcherInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $eventDispatcher;
 
@@ -129,7 +129,7 @@ class ConfigNamesMapperTest extends UnitTestCase {
 
     $this->languageManager = $this->createMock('Drupal\Core\Language\LanguageManagerInterface');
 
-    $this->eventDispatcher = $this->createMock('Symfony\Component\EventDispatcher\EventDispatcherInterface');
+    $this->eventDispatcher = $this->createMock('Symfony\Contracts\EventDispatcher\EventDispatcherInterface');
 
     $this->configNamesMapper = new TestConfigNamesMapper(
       'system.site_information_settings',
@@ -328,7 +328,8 @@ class ConfigNamesMapperTest extends UnitTestCase {
     $route_match = new RouteMatch('example', new Route('/test/{langcode}'), ['langcode' => 'xx']);
     $this->configNamesMapper->populateFromRouteMatch($route_match);
 
-    $expected = ['langcode' => 'xx'];    $result = $this->configNamesMapper->getDeleteRouteParameters();
+    $expected = ['langcode' => 'xx'];
+    $result = $this->configNamesMapper->getDeleteRouteParameters();
     $this->assertSame($expected, $result);
   }
 
@@ -469,7 +470,6 @@ class ConfigNamesMapperTest extends UnitTestCase {
       ],
       'system.rss' => [
         'items' => [
-          'limit' => 10,
           'view_mode' => 'rss',
         ],
       ],
@@ -506,7 +506,7 @@ class ConfigNamesMapperTest extends UnitTestCase {
     $this->typedConfigManager
       ->expects($this->any())
       ->method('hasConfigSchema')
-      ->will($this->returnValueMap($map));
+      ->willReturnMap($map);
 
     $result = $this->configNamesMapper->hasSchema();
     $this->assertSame($expected, $result);
@@ -553,7 +553,7 @@ class ConfigNamesMapperTest extends UnitTestCase {
     $this->configMapperManager
       ->expects($this->any())
       ->method('hasTranslatable')
-      ->will($this->returnValueMap($map));
+      ->willReturnMap($map);
 
     $result = $this->configNamesMapper->hasTranslatable();
     $this->assertSame($expected, $result);
@@ -604,7 +604,7 @@ class ConfigNamesMapperTest extends UnitTestCase {
     $this->localeConfigManager
       ->expects($this->any())
       ->method('hasTranslation')
-      ->will($this->returnValueMap($map));
+      ->willReturnMap($map);
 
     $result = $this->configNamesMapper->hasTranslation($language);
     $this->assertSame($expected, $result);
@@ -668,13 +668,14 @@ class TestConfigNamesMapper extends ConfigNamesMapper {
    *   The language code of this mapper if it is set; NULL otherwise.
    */
   public function getInternalLangcode() {
-    return isset($this->langcode) ? $this->langcode : NULL;
+    return $this->langcode ?? NULL;
   }
 
   /**
    * Sets the list of configuration names.
    *
    * @param array $config_names
+   *   The configuration names.
    */
   public function setConfigNames(array $config_names) {
     $this->pluginDefinition['names'] = $config_names;
