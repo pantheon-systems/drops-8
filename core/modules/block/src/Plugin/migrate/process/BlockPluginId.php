@@ -39,7 +39,7 @@ class BlockPluginId extends ProcessPluginBase implements ContainerFactoryPluginI
    *   The plugin configuration.
    * @param string $plugin_id
    *   The plugin ID.
-   * @param mixed $plugin_definition
+   * @param array $plugin_definition
    *   The plugin definition.
    * @param \Drupal\Core\Entity\EntityStorageInterface $storage
    *   The block content storage object.
@@ -73,10 +73,10 @@ class BlockPluginId extends ProcessPluginBase implements ContainerFactoryPluginI
    */
   public function transform($value, MigrateExecutableInterface $migrate_executable, Row $row, $destination_property) {
     if (is_array($value)) {
-      list($module, $delta) = $value;
+      [$module, $delta] = $value;
       switch ($module) {
         case 'aggregator':
-          list($type, $id) = explode('-', $delta);
+          [$type, $id] = explode('-', $delta);
           if ($type == 'feed') {
             return 'aggregator_feed_block';
           }

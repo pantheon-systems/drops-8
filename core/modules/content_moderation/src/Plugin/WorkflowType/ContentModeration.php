@@ -67,6 +67,8 @@ class ContentModeration extends WorkflowTypeBase implements ContentModerationInt
    *   The plugin implementation definition.
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
    *   The entity type manager.
+   * @param \Drupal\Core\Entity\EntityTypeBundleInfoInterface $entity_type_bundle_info
+   *   The entity type bundle info.
    * @param \Drupal\content_moderation\ModerationInformationInterface $moderation_info
    *   Moderation information service.
    */
@@ -145,7 +147,7 @@ class ContentModeration extends WorkflowTypeBase implements ContentModerationInt
    * {@inheritdoc}
    */
   public function getBundlesForEntityType($entity_type_id) {
-    return isset($this->configuration['entity_types'][$entity_type_id]) ? $this->configuration['entity_types'][$entity_type_id] : [];
+    return $this->configuration['entity_types'][$entity_type_id] ?? [];
   }
 
   /**

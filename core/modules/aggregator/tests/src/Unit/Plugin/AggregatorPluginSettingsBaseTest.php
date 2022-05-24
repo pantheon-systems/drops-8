@@ -71,7 +71,7 @@ class AggregatorPluginSettingsBaseTest extends UnitTestCase {
   }
 
   /**
-   * Test for AggregatorPluginSettingsBase.
+   * Tests for AggregatorPluginSettingsBase.
    *
    * Ensure that the settings form calls build, validate and submit methods on
    * plugins that extend AggregatorPluginSettingsBase.
@@ -84,17 +84,17 @@ class AggregatorPluginSettingsBaseTest extends UnitTestCase {
     ]);
 
     $test_processor = $this->getMockBuilder('Drupal\aggregator_test\Plugin\aggregator\processor\TestProcessor')
-      ->setMethods(['buildConfigurationForm', 'validateConfigurationForm', 'submitConfigurationForm'])
+      ->onlyMethods(['buildConfigurationForm', 'validateConfigurationForm', 'submitConfigurationForm'])
       ->setConstructorArgs([[], 'aggregator_test', ['description' => ''], $this->configFactory])
       ->getMock();
-    $test_processor->expects($this->at(0))
+    $test_processor->expects($this->once())
       ->method('buildConfigurationForm')
       ->with($this->anything(), $form_state)
       ->will($this->returnArgument(0));
-    $test_processor->expects($this->at(1))
+    $test_processor->expects($this->once())
       ->method('validateConfigurationForm')
       ->with($this->anything(), $form_state);
-    $test_processor->expects($this->at(2))
+    $test_processor->expects($this->once())
       ->method('submitConfigurationForm')
       ->with($this->anything(), $form_state);
 

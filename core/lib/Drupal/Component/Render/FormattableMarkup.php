@@ -20,7 +20,7 @@ use Drupal\Component\Utility\UrlHelper;
  * non-English-only sites) in addition to formatting it. Variables concatenated
  * without the insertion of language-specific words or punctuation are some
  * examples where translation is not applicable and using this class directly
- * directly is appropriate.
+ * is appropriate.
  *
  * This class is designed for formatting messages that are mostly text, not as
  * an HTML template language. As such:
@@ -105,6 +105,7 @@ class FormattableMarkup implements MarkupInterface, \Countable {
    * @return int
    *   The length of the string.
    */
+  #[\ReturnTypeWillChange]
   public function count() {
     return mb_strlen($this->string);
   }
@@ -115,6 +116,7 @@ class FormattableMarkup implements MarkupInterface, \Countable {
    * @return string
    *   The safe string content.
    */
+  #[\ReturnTypeWillChange]
   public function jsonSerialize() {
     return $this->__toString();
   }

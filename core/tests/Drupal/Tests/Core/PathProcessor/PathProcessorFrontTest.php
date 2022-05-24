@@ -18,7 +18,7 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 class PathProcessorFrontTest extends UnitTestCase {
 
   /**
-   * Test basic inbound processing functionality.
+   * Tests basic inbound processing functionality.
    *
    * @covers ::processInbound
    * @dataProvider providerProcessInbound
@@ -52,7 +52,7 @@ class PathProcessorFrontTest extends UnitTestCase {
   }
 
   /**
-   * Test inbound failure with broken config.
+   * Tests inbound failure with broken config.
    *
    * @covers ::processInbound
    */
@@ -66,29 +66,6 @@ class PathProcessorFrontTest extends UnitTestCase {
     $processor = new PathProcessorFront($config_factory->reveal());
     $this->expectException(NotFoundHttpException::class);
     $processor->processInbound('/', new Request());
-  }
-
-  /**
-   * Test basic outbound processing functionality.
-   *
-   * @covers ::processOutbound
-   * @dataProvider providerProcessOutbound
-   */
-  public function testProcessOutbound($path, $expected) {
-    $config_factory = $this->prophesize(ConfigFactoryInterface::class);
-    $processor = new PathProcessorFront($config_factory->reveal());
-    $this->assertEquals($expected, $processor->processOutbound($path));
-  }
-
-  /**
-   * Outbound paths and expected results.
-   */
-  public function providerProcessOutbound() {
-    return [
-      ['/<front>', '/'],
-      ['<front>', '<front>'],
-      ['/user', '/user'],
-    ];
   }
 
 }

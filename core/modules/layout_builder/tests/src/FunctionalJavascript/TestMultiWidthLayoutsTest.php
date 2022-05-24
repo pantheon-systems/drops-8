@@ -45,18 +45,15 @@ class TestMultiWidthLayoutsTest extends WebDriverTestBase {
   }
 
   /**
-   * Test changing the columns widths of a multi-width section.
+   * Tests changing the columns widths of a multi-width section.
    */
   public function testWidthChange() {
     $assert_session = $this->assertSession();
     $page = $this->getSession()->getPage();
 
     // Enable layout builder.
-    $this->drupalPostForm(
-      static::FIELD_UI_PREFIX . '/display/default',
-      ['layout[enabled]' => TRUE],
-      'Save'
-    );
+    $this->drupalGet(static::FIELD_UI_PREFIX . '/display/default');
+    $this->submitForm(['layout[enabled]' => TRUE], 'Save');
 
     $this->clickLink('Manage layout');
     $assert_session->addressEquals(static::FIELD_UI_PREFIX . '/display/default/layout');
@@ -115,8 +112,10 @@ class TestMultiWidthLayoutsTest extends WebDriverTestBase {
    *
    * @param string $width_class
    *   The width class.
+   *
+   * @internal
    */
-  protected function assertWidthClassApplied($width_class) {
+  protected function assertWidthClassApplied(string $width_class): void {
     $this->assertNotEmpty($this->assertSession()->waitForElementVisible('css', ".{$width_class}[data-layout-delta=\"0\"]"));
   }
 
