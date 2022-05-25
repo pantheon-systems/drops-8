@@ -16,6 +16,7 @@ use Symfony\Component\PropertyAccess\Exception\NoSuchPropertyException;
 use Symfony\Component\PropertyInfo\PropertyTypeExtractorInterface;
 use Symfony\Component\PropertyInfo\Type;
 use Symfony\Component\Serializer\Encoder\JsonEncoder;
+use Symfony\Component\Serializer\Encoder\XmlEncoder;
 use Symfony\Component\Serializer\Exception\ExtraAttributesException;
 use Symfony\Component\Serializer\Exception\LogicException;
 use Symfony\Component\Serializer\Exception\NotNormalizableValueException;
@@ -411,6 +412,10 @@ abstract class AbstractObjectNormalizer extends AbstractNormalizer
                 $data = [$data];
             }
 
+            if (XmlEncoder::FORMAT === $format && '' === $data && Type::BUILTIN_TYPE_ARRAY === $type->getBuiltinType()) {
+                return [];
+            }
+
             if (null !== $collectionValueType && Type::BUILTIN_TYPE_OBJECT === $collectionValueType->getBuiltinType()) {
                 $builtinType = Type::BUILTIN_TYPE_OBJECT;
                 $class = $collectionValueType->getClassName().'[]';
@@ -462,7 +467,7 @@ abstract class AbstractObjectNormalizer extends AbstractNormalizer
             // PHP's json_decode automatically converts Numbers without a decimal part to integers.
             // To circumvent this behavior, integers are converted to floats when denormalizing JSON based formats and when
             // a float is expected.
-            if (Type::BUILTIN_TYPE_FLOAT === $builtinType && \is_int($data) && false !== strpos($format, JsonEncoder::FORMAT)) {
+            if (Type::BUILTIN_TYPE_FLOAT === $builtinType && \is_int($data) && str_contains($format, JsonEncoder::FORMAT)) {
                 return (float) $data;
             }
 

@@ -255,7 +255,7 @@ class ConfigEntityBaseUnitTest extends UnitTestCase {
     $values = [];
     $this->entity = $this->getMockBuilder('\Drupal\Tests\Core\Config\Entity\Fixtures\ConfigEntityBaseWithPluginCollections')
       ->setConstructorArgs([$values, $this->entityTypeId])
-      ->setMethods(['getPluginCollections'])
+      ->onlyMethods(['getPluginCollections'])
       ->getMock();
 
     // Create a configurable plugin that would add a dependency.
@@ -265,7 +265,7 @@ class ConfigEntityBaseUnitTest extends UnitTestCase {
     // Create a plugin collection to contain the instance.
     $pluginCollection = $this->getMockBuilder('\Drupal\Core\Plugin\DefaultLazyPluginCollection')
       ->disableOriginalConstructor()
-      ->setMethods(['get'])
+      ->onlyMethods(['get'])
       ->getMock();
     $pluginCollection->expects($this->atLeastOnce())
       ->method('get')
@@ -476,20 +476,17 @@ class ConfigEntityBaseUnitTest extends UnitTestCase {
    * @covers ::createDuplicate
    */
   public function testCreateDuplicate() {
-    $this->entityType->expects($this->at(0))
+    $this->entityType->expects($this->exactly(2))
       ->method('getKey')
-      ->with('id')
-      ->will($this->returnValue('id'));
+      ->willReturnMap([
+        ['id', 'id'],
+        ['uuid', 'uuid'],
+      ]);
 
-    $this->entityType->expects($this->at(1))
+    $this->entityType->expects($this->once())
       ->method('hasKey')
       ->with('uuid')
       ->will($this->returnValue(TRUE));
-
-    $this->entityType->expects($this->at(2))
-      ->method('getKey')
-      ->with('uuid')
-      ->will($this->returnValue('uuid'));
 
     $new_uuid = '8607ef21-42bc-4913-978f-8c06207b0395';
     $this->uuid->expects($this->once())
@@ -635,8 +632,11 @@ class ConfigEntityBaseUnitTest extends UnitTestCase {
     $this->entityType->expects($this->any())
       ->method('getPropertiesToExport')
       ->willReturn(NULL);
+    $this->entityType->expects($this->any())
+      ->method('getClass')
+      ->willReturn("FooConfigEntity");
     $this->expectException(SchemaIncompleteException::class);
-    $this->expectExceptionMessageMatches("/Entity type 'Mock_ConfigEntityTypeInterface_[^']*' is missing 'config_export' definition in its annotation/");
+    $this->expectExceptionMessage("Entity type 'FooConfigEntity' is missing 'config_export' definition in its annotation");
     $this->entity->toArray();
   }
 

@@ -4,16 +4,14 @@ namespace Drupal\media\OEmbed;
 
 use Drupal\Component\Serialization\Json;
 use Drupal\Core\Cache\CacheBackendInterface;
-use Drupal\Core\Cache\UseCacheBackendTrait;
 use GuzzleHttp\ClientInterface;
-use GuzzleHttp\Exception\RequestException;
+use GuzzleHttp\Exception\TransferException;
+use GuzzleHttp\RequestOptions;
 
 /**
  * Fetches and caches oEmbed resources.
  */
 class ResourceFetcher implements ResourceFetcherInterface {
-
-  use UseCacheBackendTrait;
 
   /**
    * The HTTP client.
@@ -30,6 +28,13 @@ class ResourceFetcher implements ResourceFetcherInterface {
   protected $providers;
 
   /**
+   * The cache backend.
+   *
+   * @var \Drupal\Core\Cache\CacheBackendInterface
+   */
+  protected $cacheBackend;
+
+  /**
    * Constructs a ResourceFetcher object.
    *
    * @param \GuzzleHttp\ClientInterface $http_client
@@ -37,13 +42,16 @@ class ResourceFetcher implements ResourceFetcherInterface {
    * @param \Drupal\media\OEmbed\ProviderRepositoryInterface $providers
    *   The oEmbed provider repository service.
    * @param \Drupal\Core\Cache\CacheBackendInterface $cache_backend
-   *   (optional) The cache backend.
+   *   The cache backend.
    */
   public function __construct(ClientInterface $http_client, ProviderRepositoryInterface $providers, CacheBackendInterface $cache_backend = NULL) {
     $this->httpClient = $http_client;
     $this->providers = $providers;
+    if (empty($cache_backend)) {
+      $cache_backend = \Drupal::cache();
+      @trigger_error('Passing NULL as the $cache_backend parameter to ' . __METHOD__ . '() is deprecated in drupal:9.3.0 and is removed from drupal:10.0.0. See https://www.drupal.org/node/3223594', E_USER_DEPRECATED);
+    }
     $this->cacheBackend = $cache_backend;
-    $this->useCaches = isset($cache_backend);
   }
 
   /**
@@ -52,33 +60,39 @@ class ResourceFetcher implements ResourceFetcherInterface {
   public function fetchResource($url) {
     $cache_id = "media:oembed_resource:$url";
 
-    $cached = $this->cacheGet($cache_id);
+    $cached = $this->cacheBackend->get($cache_id);
     if ($cached) {
       return $this->createResource($cached->data, $url);
     }
 
     try {
-      $response = $this->httpClient->get($url);
+      $response = $this->httpClient->request('GET', $url, [
+        RequestOptions::TIMEOUT => 5,
+      ]);
     }
-    catch (RequestException $e) {
+    catch (TransferException $e) {
       throw new ResourceException('Could not retrieve the oEmbed resource.', $url, [], $e);
     }
 
-    list($format) = $response->getHeader('Content-Type');
+    [$format] = $response->getHeader('Content-Type');
     $content = (string) $response->getBody();
 
     if (strstr($format, 'text/xml') || strstr($format, 'application/xml')) {
       $data = $this->parseResourceXml($content, $url);
     }
-    elseif (strstr($format, 'text/javascript') || strstr($format, 'application/json')) {
-      $data = Json::decode($content);
-    }
-    // If the response is neither XML nor JSON, we are in bat country.
+    // By default, try to parse the resource data as JSON.
     else {
-      throw new ResourceException('The fetched resource did not have a valid Content-Type header.', $url);
+      $data = Json::decode($content);
+
+      if (json_last_error() !== JSON_ERROR_NONE) {
+        throw new ResourceException('Error decoding oEmbed resource: ' . json_last_error_msg(), $url);
+      }
+    }
+    if (empty($data) || !is_array($data)) {
+      throw new ResourceException('The oEmbed resource could not be decoded.', $url);
     }
 
-    $this->cacheSet($cache_id, $data);
+    $this->cacheBackend->set($cache_id, $data);
 
     return $this->createResource($data, $url);
   }

@@ -44,7 +44,7 @@ function media_help($route_name, RouteMatchInterface $route_match) {
       $output .= '<dd>' . t('The Media module also enables you to create multiple versions of any media item, and revert to older versions using the <em>Revision information</em> settings.') . '</dd>';
       $output .= '<dt>' . t('User permissions') . '</dt>';
       $output .= '<dd>' . t('The Media module makes a number of permissions available, which can be set by role on the <a href=":permissions">permissions page</a>.', [
-        ':permissions' => Url::fromRoute('user.admin_permissions', [], ['fragment' => 'module-media'])->toString(),
+        ':permissions' => Url::fromRoute('user.admin_permissions.module', ['modules' => 'media'])->toString(),
       ]) . '</dd>';
       $output .= '<dt>' . t('Adding media to other content') . '</dt>';
       $output .= '<dd>' . t('Users with permission to administer content types can add media support by adding a media reference field to the content type on the content type administration page. (The same is true of block types, taxonomy terms, user profiles, and other content that supports fields.) A media reference field can refer to any configured media type. It is possible to allow multiple media types in the same field.') . '</dd>';
@@ -222,9 +222,10 @@ function media_form_field_ui_field_storage_add_form_alter(&$form, FormStateInter
 }
 
 /**
- * Implements hook_field_widget_multivalue_form_alter().
+ * Implements hook_field_widget_complete_form_alter().
  */
-function media_field_widget_multivalue_form_alter(array &$elements, FormStateInterface $form_state, array $context) {
+function media_field_widget_complete_form_alter(array &$field_widget_complete_form, FormStateInterface $form_state, array $context) {
+  $elements = &$field_widget_complete_form['widget'];
   // Do not alter the default settings form.
   if ($context['default']) {
     return;
@@ -270,7 +271,7 @@ function media_field_widget_multivalue_form_alter(array &$elements, FormStateInt
 
   // Use the title set on the element if it exists, otherwise fall back to the
   // field label.
-  $elements['#media_help']['#original_label'] = isset($elements['#title']) ? $elements['#title'] : $context['items']->getFieldDefinition()->getLabel();
+  $elements['#media_help']['#original_label'] = $elements['#title'] ?? $context['items']->getFieldDefinition()->getLabel();
 
   // Customize the label for the field widget.
   // @todo Research a better approach https://www.drupal.org/node/2943024.
@@ -315,7 +316,7 @@ function media_preprocess_media_reference_help(&$variables) {
   $element = $variables['element'];
   Element::setAttributes($element, ['id']);
   RenderElement::setAttributes($element);
-  $variables['attributes'] = isset($element['#attributes']) ? $element['#attributes'] : [];
+  $variables['attributes'] = $element['#attributes'] ?? [];
   $variables['legend_attributes'] = new Attribute();
   $variables['header_attributes'] = new Attribute();
   $variables['description']['attributes'] = new Attribute();
@@ -506,9 +507,9 @@ function media_filter_format_edit_form_validate($form, FormStateInterface $form_
 }
 
 /**
- * Implements hook_field_widget_form_alter().
+ * Implements hook_field_widget_single_element_form_alter().
  */
-function media_field_widget_form_alter(&$element, FormStateInterface $form_state, $context) {
+function media_field_widget_single_element_form_alter(&$element, FormStateInterface $form_state, $context) {
   // Add an attribute so that "drupalmedia" CKEditor plugin can pass the host
   // entity's language to EditorMediaDialog, allowing it to present entities
   // in the same language.

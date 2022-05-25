@@ -42,7 +42,7 @@ class MimeTypePass implements CompilerPassInterface {
           throw new LogicException("Service '$id' does not implement $interface.");
         }
       }
-      $handlers[$id] = isset($attributes[0]['priority']) ? $attributes[0]['priority'] : 0;
+      $handlers[$id] = $attributes[0]['priority'] ?? 0;
       $interfaces[$id] = $handler->getClass();
     }
     if (empty($handlers)) {
@@ -55,16 +55,7 @@ class MimeTypePass implements CompilerPassInterface {
     // Add a method call for each handler to the consumer service
     // definition.
     foreach ($handlers as $id => $priority) {
-      $arguments = [];
-      $arguments[0] = new Reference($id);
-      if (isset($priority_pos)) {
-        $arguments[$priority_pos] = $priority;
-      }
-      if (isset($id_pos)) {
-        $arguments[$id_pos] = $id;
-      }
-      // Sort the arguments by position.
-      ksort($arguments);
+      $arguments = [new Reference($id), $priority];
       if (is_subclass_of($interfaces[$id], $interface)) {
         $consumer->addMethodCall('addMimeTypeGuesser', $arguments);
       }

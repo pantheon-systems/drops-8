@@ -79,7 +79,7 @@ class ActiveLinkResponseFilter implements EventSubscriberInterface {
     $response = $event->getResponse();
 
     // Only care about HTML responses.
-    if (stripos($response->headers->get('Content-Type'), 'text/html') === FALSE) {
+    if (stripos($response->headers->get('Content-Type', ''), 'text/html') === FALSE) {
       return;
     }
 
@@ -180,8 +180,8 @@ class ActiveLinkResponseFilter implements EventSubscriberInterface {
       }
 
       // Get the HTML: this will be the opening part of a single tag, e.g.:
-      //   <a href="/" data-drupal-link-system-path="&lt;front&gt;">
-      $tag = substr($html_markup, $pos_tag_start, $pos_tag_end - $pos_tag_start + 1);
+      // <a href="/" data-drupal-link-system-path="&lt;front&gt;">
+      $tag = substr($html_markup, $pos_tag_start ?? 0, $pos_tag_end - $pos_tag_start + 1);
 
       // Parse it into a DOMDocument so we can reliably read and modify
       // attributes.

@@ -55,7 +55,6 @@ class BlockVisibility extends ProcessPluginBase implements ContainerFactoryPlugi
    * @param \Drupal\migrate\MigrateLookupInterface $migrate_lookup
    *   The migrate lookup service.
    */
-  // @codingStandardsIgnoreLine
   public function __construct(array $configuration, $plugin_id, $plugin_definition, ModuleHandlerInterface $module_handler, MigrateLookupInterface $migrate_lookup) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
     $this->moduleHandler = $module_handler;
@@ -83,7 +82,7 @@ class BlockVisibility extends ProcessPluginBase implements ContainerFactoryPlugi
    * {@inheritdoc}
    */
   public function transform($value, MigrateExecutableInterface $migrate_executable, Row $row, $destination_property) {
-    list($old_visibility, $pages, $roles) = $value;
+    [$old_visibility, $pages, $roles] = $value;
 
     $visibility = [];
 
@@ -123,7 +122,7 @@ class BlockVisibility extends ProcessPluginBase implements ContainerFactoryPlugi
         // anything else -- the block will simply have no PHP or request_path
         // visibility configuration.
         elseif ($this->skipPHP) {
-          throw new MigrateSkipRowException(sprintf("The block with bid '%d' from module '%s' will have no PHP or request_path visibility configuration.", $row->getSourceProperty('bid'), $row->getSourceProperty('module'), $destination_property));
+          throw new MigrateSkipRowException(sprintf("The block with bid '%d' from module '%s' will have no PHP or request_path visibility configuration.", $row->getSourceProperty('bid'), $row->getSourceProperty('module')));
         }
       }
       else {

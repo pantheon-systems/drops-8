@@ -21,7 +21,7 @@ class FieldInstanceDefaults extends ProcessPluginBase {
    * Set the field instance defaults.
    */
   public function transform($value, MigrateExecutableInterface $migrate_executable, Row $row, $destination_property) {
-    list($widget_type, $widget_settings) = $value;
+    [$widget_type, $widget_settings] = $value;
     $default = [];
 
     switch ($widget_type) {
@@ -54,7 +54,7 @@ class FieldInstanceDefaults extends ProcessPluginBase {
       case 'link':
         if (!empty($widget_settings['default_value'][0]['url'])) {
           $default['title'] = $widget_settings['default_value'][0]['title'];
-          $default['url'] = $widget_settings['default_value'][0]['url'];
+          $default['uri'] = $widget_settings['default_value'][0]['url'];
           $default['options'] = ['attributes' => []];
         }
         break;

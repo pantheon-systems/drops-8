@@ -12,7 +12,7 @@ use Drupal\Tests\UnitTestCase;
 class LogMessageParserTest extends UnitTestCase {
 
   /**
-   * Test for LogMessageParserTrait::parseMessagePlaceholders()
+   * Tests for LogMessageParserTrait::parseMessagePlaceholders()
    *
    * @param array $value
    *   An array containing:
@@ -60,8 +60,8 @@ class LogMessageParserTest extends UnitTestCase {
       ],
       // Message with double PSR3 style messages.
       [
-        ['message' => 'Test {with} two {encapsuled} strings', 'context' => ['with' => 'together', 'encapsuled' => 'awesome']],
-        ['message' => 'Test @with two @encapsuled strings', 'context' => ['@with' => 'together', '@encapsuled' => 'awesome']],
+        ['message' => 'Test {with} two {{encapsuled}} strings', 'context' => ['with' => 'together', 'encapsuled' => 'awesome']],
+        ['message' => 'Test @with two {@encapsuled} strings', 'context' => ['@with' => 'together', '@encapsuled' => 'awesome']],
       ],
     ];
   }

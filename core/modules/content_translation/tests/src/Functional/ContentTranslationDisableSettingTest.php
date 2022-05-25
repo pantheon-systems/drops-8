@@ -53,9 +53,9 @@ class ContentTranslationDisableSettingTest extends BrowserTestBase {
       $translatable_checkbox => TRUE,
       $language_alterable => TRUE,
     ];
-    $this->submitForm($edit, t('Save configuration'));
+    $this->submitForm($edit, 'Save configuration');
 
-    $assert->pageTextContains(t('Settings successfully updated.'));
+    $assert->pageTextContains('Settings successfully updated.');
 
     $assert->checkboxChecked($group_checkbox);
 
@@ -64,9 +64,9 @@ class ContentTranslationDisableSettingTest extends BrowserTestBase {
       $translatable_checkbox => TRUE,
       $language_alterable => TRUE,
     ];
-    $this->submitForm($edit, t('Save configuration'));
+    $this->submitForm($edit, 'Save configuration');
 
-    $assert->pageTextContains(t('Settings successfully updated.'));
+    $assert->pageTextContains('Settings successfully updated.');
 
     $assert->checkboxNotChecked($group_checkbox);
   }

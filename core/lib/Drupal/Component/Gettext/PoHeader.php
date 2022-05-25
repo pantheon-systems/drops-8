@@ -254,7 +254,7 @@ class PoHeader {
     $lines = array_map('trim', explode("\n", $header));
     foreach ($lines as $line) {
       if ($line) {
-        list($tag, $contents) = explode(":", $line, 2);
+        [$tag, $contents] = explode(":", $line, 2);
         $header_parsed[trim($tag)] = trim($contents);
       }
     }
@@ -475,6 +475,7 @@ class PoHeader {
    *   Number of the plural string to be used for the given plural value.
    *
    * @see parseArithmetic()
+   *
    * @throws \Exception
    */
   protected function evaluatePlural($element_stack, $n) {
