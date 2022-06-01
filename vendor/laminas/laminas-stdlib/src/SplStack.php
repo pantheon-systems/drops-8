@@ -1,16 +1,16 @@
 <?php
 
-/**
- * @see       https://github.com/laminas/laminas-stdlib for the canonical source repository
- * @copyright https://github.com/laminas/laminas-stdlib/blob/master/COPYRIGHT.md
- * @license   https://github.com/laminas/laminas-stdlib/blob/master/LICENSE.md New BSD License
- */
+declare(strict_types=1);
 
 namespace Laminas\Stdlib;
 
+use ReturnTypeWillChange;
 use Serializable;
+use UnexpectedValueException;
 
+use function is_array;
 use function serialize;
+use function sprintf;
 use function unserialize;
 
 /**
@@ -37,9 +37,21 @@ class SplStack extends \SplStack implements Serializable
      *
      * @return string
      */
+    #[ReturnTypeWillChange]
     public function serialize()
     {
-        return serialize($this->toArray());
+        return serialize($this->__serialize());
+    }
+
+    /**
+     * Magic method used for serializing of an instance.
+     *
+     * @return array
+     */
+    #[ReturnTypeWillChange]
+    public function __serialize()
+    {
+        return $this->toArray();
     }
 
     /**
@@ -48,9 +60,30 @@ class SplStack extends \SplStack implements Serializable
      * @param  string $data
      * @return void
      */
+    #[ReturnTypeWillChange]
     public function unserialize($data)
     {
-        foreach (unserialize($data) as $item) {
+        $toUnserialize = unserialize($data);
+        if (! is_array($toUnserialize)) {
+            throw new UnexpectedValueException(sprintf(
+                'Cannot deserialize %s instance; corrupt serialization data',
+                self::class
+            ));
+        }
+
+        $this->__unserialize($toUnserialize);
+    }
+
+   /**
+    * Magic method used to rebuild an instance.
+    *
+    * @param array $data Data array.
+    * @return void
+    */
+    #[ReturnTypeWillChange]
+    public function __unserialize($data)
+    {
+        foreach ($data as $item) {
             $this->unshift($item);
         }
     }

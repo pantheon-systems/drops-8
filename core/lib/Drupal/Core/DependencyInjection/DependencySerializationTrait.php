@@ -15,6 +15,7 @@ trait DependencySerializationTrait {
    *
    * @var array
    */
+  // phpcs:ignore Drupal.Classes.PropertyDeclaration
   protected $_serviceIds = [];
 
   /**
@@ -22,6 +23,7 @@ trait DependencySerializationTrait {
    *
    * @var array
    */
+  // phpcs:ignore Drupal.Classes.PropertyDeclaration
   protected $_entityStorages = [];
 
   /**
@@ -62,6 +64,7 @@ trait DependencySerializationTrait {
   /**
    * {@inheritdoc}
    */
+  #[\ReturnTypeWillChange]
   public function __wakeup() {
     // Tests in isolation potentially unserialize in the parent process.
     $phpunit_bootstrap = isset($GLOBALS['__PHPUNIT_BOOTSTRAP']);

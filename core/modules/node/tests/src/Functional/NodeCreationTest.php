@@ -5,6 +5,7 @@ namespace Drupal\Tests\node\Functional;
 use Drupal\Core\Database\Database;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\node\Entity\Node;
+use Drupal\Tests\node\Traits\ContentTypeCreationTrait;
 
 /**
  * Create a node and test saving it.
@@ -12,6 +13,8 @@ use Drupal\node\Entity\Node;
  * @group node
  */
 class NodeCreationTest extends NodeTestBase {
+
+  use ContentTypeCreationTrait;
 
   /**
    * Modules to enable.
@@ -43,6 +46,18 @@ class NodeCreationTest extends NodeTestBase {
   }
 
   /**
+   * Tests the order of the node types on the add page.
+   */
+  public function testNodeAddPageOrder() {
+    $this->createContentType(['type' => 'bundle_1', 'name' => 'Bundle 1']);
+    $this->createContentType(['type' => 'bundle_2', 'name' => 'Aaa Bundle 2']);
+    $admin_content_types = $this->drupalCreateUser(['bypass node access']);
+    $this->drupalLogin($admin_content_types);
+    $this->drupalGet('node/add');
+    $this->assertSession()->pageTextMatches('/Aaa Bundle 2(.*)Bundle 1/');
+  }
+
+  /**
    * Creates a "Basic page" node and verifies its consistency in the database.
    */
   public function testNodeCreation() {
@@ -57,10 +72,11 @@ class NodeCreationTest extends NodeTestBase {
     $edit = [];
     $edit['title[0][value]'] = $this->randomMachineName(8);
     $edit['body[0][value]'] = $this->randomMachineName(16);
-    $this->drupalPostForm('node/add/page', $edit, 'Save');
+    $this->drupalGet('node/add/page');
+    $this->submitForm($edit, 'Save');
 
     // Check that the Basic page has been created.
-    $this->assertText('Basic page ' . $edit['title[0][value]'] . ' has been created.', 'Basic page created.');
+    $this->assertSession()->pageTextContains('Basic page ' . $edit['title[0][value]'] . ' has been created.');
 
     // Verify that the creation message contains a link to a node.
     $this->assertSession()->elementExists('xpath', '//div[@data-drupal-messages]//a[contains(@href, "node/")]');
@@ -71,8 +87,8 @@ class NodeCreationTest extends NodeTestBase {
 
     // Verify that pages do not show submitted information by default.
     $this->drupalGet('node/' . $node->id());
-    $this->assertNoText($node->getOwner()->getAccountName());
-    $this->assertNoText($this->container->get('date.formatter')->format($node->getCreatedTime()));
+    $this->assertSession()->pageTextNotContains($node->getOwner()->getAccountName());
+    $this->assertSession()->pageTextNotContains($this->container->get('date.formatter')->format($node->getCreatedTime()));
 
     // Change the node type setting to show submitted by information.
     /** @var \Drupal\node\NodeTypeInterface $node_type */
@@ -81,8 +97,8 @@ class NodeCreationTest extends NodeTestBase {
     $node_type->save();
 
     $this->drupalGet('node/' . $node->id());
-    $this->assertText($node->getOwner()->getAccountName());
-    $this->assertText($this->container->get('date.formatter')->format($node->getCreatedTime()));
+    $this->assertSession()->pageTextContains($node->getOwner()->getAccountName());
+    $this->assertSession()->pageTextContains($this->container->get('date.formatter')->format($node->getCreatedTime()));
 
     // Check if the node revision checkbox is not rendered on node creation form.
     $admin_user = $this->drupalCreateUser([
@@ -92,6 +108,13 @@ class NodeCreationTest extends NodeTestBase {
     $this->drupalLogin($admin_user);
     $this->drupalGet('node/add/page');
     $this->assertSession()->fieldNotExists('edit-revision', NULL);
+
+    // Check that a user with administer content types permission is not
+    // allowed to create content.
+    $content_types_admin = $this->drupalCreateUser(['administer content types']);
+    $this->drupalLogin($content_types_admin);
+    $this->drupalGet('node/add/page');
+    $this->assertSession()->statusCodeEquals(403);
   }
 
   /**
@@ -144,14 +167,15 @@ class NodeCreationTest extends NodeTestBase {
     $edit = [];
     $edit['title[0][value]'] = $this->randomMachineName(8);
     $edit['body[0][value]'] = $this->randomMachineName(16);
-    $this->drupalPostForm('node/add/page', $edit, 'Save');
+    $this->drupalGet('node/add/page');
+    $this->submitForm($edit, 'Save');
 
     // Check that the user was redirected to the home page.
     $this->assertSession()->addressEquals('');
-    $this->assertText('Test page text');
+    $this->assertSession()->pageTextContains('Test page text');
 
     // Confirm that the node was created.
-    $this->assertText('Basic page ' . $edit['title[0][value]'] . ' has been created.');
+    $this->assertSession()->pageTextContains('Basic page ' . $edit['title[0][value]'] . ' has been created.');
 
     // Verify that the creation message contains a link to a node.
     $this->assertSession()->elementExists('xpath', '//div[@data-drupal-messages]//a[contains(@href, "node/")]');
@@ -170,7 +194,8 @@ class NodeCreationTest extends NodeTestBase {
       'title[0][value]' => $this->randomMachineName(8),
       'body[0][value]' => $this->randomMachineName(16),
     ];
-    $this->drupalPostForm('node/add/page', $edit, 'Save');
+    $this->drupalGet('node/add/page');
+    $this->submitForm($edit, 'Save');
     $node = $this->drupalGetNodeByTitle($edit['title[0][value]']);
     $this->assertNotNull($node->getCreatedTime());
 
@@ -182,7 +207,8 @@ class NodeCreationTest extends NodeTestBase {
       'created[0][value][date]' => date('Y-m-d', $date),
       'created[0][value][time]' => date('H:i:s', $date),
     ];
-    $this->drupalPostForm('node/add/page', $edit, 'Save');
+    $this->drupalGet('node/add/page');
+    $this->submitForm($edit, 'Save');
     $node = $this->drupalGetNodeByTitle($edit['title[0][value]']);
     $this->assertEquals($date, $node->getCreatedTime());
 
@@ -194,7 +220,8 @@ class NodeCreationTest extends NodeTestBase {
       'created[0][value][date]' => date('Y-m-d', $date),
       'created[0][value][time]' => date('H:i:s', $date),
     ];
-    $this->drupalPostForm('node/add/page', $edit, 'Save');
+    $this->drupalGet('node/add/page');
+    $this->submitForm($edit, 'Save');
     $node = $this->drupalGetNodeByTitle($edit['title[0][value]']);
     $this->assertEquals($date, $node->getCreatedTime());
 
@@ -205,7 +232,8 @@ class NodeCreationTest extends NodeTestBase {
       'created[0][value][date]' => '2013-13-13',
       'created[0][value][time]' => '11:00:00',
     ];
-    $this->drupalPostForm('node/add/page', $edit, 'Save');
+    $this->drupalGet('node/add/page');
+    $this->submitForm($edit, 'Save');
     $this->assertSession()->pageTextContains('The Authored on date is invalid.');
     $this->assertFalse($this->drupalGetNodeByTitle($edit['title[0][value]']));
 
@@ -216,7 +244,8 @@ class NodeCreationTest extends NodeTestBase {
       'created[0][value][date]' => '2012-01-01',
       'created[0][value][time]' => '30:00:00',
     ];
-    $this->drupalPostForm('node/add/page', $edit, 'Save');
+    $this->drupalGet('node/add/page');
+    $this->submitForm($edit, 'Save');
     $this->assertSession()->pageTextContains('The Authored on date is invalid.');
     $this->assertFalse($this->drupalGetNodeByTitle($edit['title[0][value]']));
   }
@@ -233,8 +262,8 @@ class NodeCreationTest extends NodeTestBase {
 
     $this->drupalGet('node/add/page');
 
-    $result = $this->xpath('//input[@id="edit-uid-0-value" and contains(@data-autocomplete-path, "user/autocomplete")]');
-    $this->assertCount(0, $result, 'No autocompletion without access user profiles.');
+    // Verify that no autocompletion exists without access user profiles.
+    $this->assertSession()->elementNotExists('xpath', '//input[@id="edit-uid-0-value" and contains(@data-autocomplete-path, "user/autocomplete")]');
 
     $admin_user = $this->drupalCreateUser([
       'administer nodes',
@@ -245,8 +274,8 @@ class NodeCreationTest extends NodeTestBase {
 
     $this->drupalGet('node/add/page');
 
-    $result = $this->xpath('//input[@id="edit-uid-0-target-id" and contains(@data-autocomplete-path, "/entity_reference_autocomplete/user/default")]');
-    $this->assertCount(1, $result, 'Ensure that the user does have access to the autocompletion');
+    // Ensure that the user does have access to the autocompletion.
+    $this->assertSession()->elementsCount('xpath', '//input[@id="edit-uid-0-target-id" and contains(@data-autocomplete-path, "/entity_reference_autocomplete/user/default")]', 1);
   }
 
   /**

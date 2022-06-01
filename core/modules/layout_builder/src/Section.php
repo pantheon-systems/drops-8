@@ -88,17 +88,24 @@ class Section implements ThirdPartySettingsInterface {
       }
     }
 
-    return $this->getLayout()->build($regions);
+    return $this->getLayout($contexts)->build($regions);
   }
 
   /**
    * Gets the layout plugin for this section.
    *
+   * @param \Drupal\Core\Plugin\Context\ContextInterface[] $contexts
+   *   An array of available contexts.
+   *
    * @return \Drupal\Core\Layout\LayoutInterface
    *   The layout plugin.
    */
-  public function getLayout() {
-    return $this->layoutPluginManager()->createInstance($this->getLayoutId(), $this->layoutSettings);
+  public function getLayout(array $contexts = []) {
+    $layout = $this->layoutPluginManager()->createInstance($this->getLayoutId(), $this->layoutSettings);
+    if ($contexts) {
+      $this->contextHandler()->applyContextMapping($layout, $contexts);
+    }
+    return $layout;
   }
 
   /**
@@ -251,7 +258,7 @@ class Section implements ThirdPartySettingsInterface {
       return $component->getRegion() === $region;
     });
     uasort($components, function (SectionComponent $a, SectionComponent $b) {
-      return $a->getWeight() > $b->getWeight() ? 1 : -1;
+      return $a->getWeight() <=> $b->getWeight();
     });
     return $components;
   }
@@ -384,14 +391,14 @@ class Section implements ThirdPartySettingsInterface {
    * {@inheritdoc}
    */
   public function getThirdPartySetting($provider, $key, $default = NULL) {
-    return isset($this->thirdPartySettings[$provider][$key]) ? $this->thirdPartySettings[$provider][$key] : $default;
+    return $this->thirdPartySettings[$provider][$key] ?? $default;
   }
 
   /**
    * {@inheritdoc}
    */
   public function getThirdPartySettings($provider) {
-    return isset($this->thirdPartySettings[$provider]) ? $this->thirdPartySettings[$provider] : [];
+    return $this->thirdPartySettings[$provider] ?? [];
   }
 
   /**
@@ -420,6 +427,16 @@ class Section implements ThirdPartySettingsInterface {
    */
   public function getThirdPartyProviders() {
     return array_keys($this->thirdPartySettings);
+  }
+
+  /**
+   * Wraps the context handler.
+   *
+   * @return \Drupal\Core\Plugin\Context\ContextHandlerInterface
+   *   The context handler.
+   */
+  protected function contextHandler() {
+    return \Drupal::service('context.handler');
   }
 
 }

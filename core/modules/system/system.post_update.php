@@ -5,6 +5,7 @@
  * Post update functions for System.
  */
 
+use Drupal\Core\Site\Settings;
 use Drupal\Core\Config\Entity\ConfigEntityUpdater;
 use Drupal\Core\Entity\Display\EntityDisplayInterface;
 use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
@@ -166,5 +167,69 @@ function system_post_update_schema_version_int() {
     if (is_string($schema)) {
       $registry->set($name, (int) $schema);
     }
+  }
+}
+
+/**
+ * Remove obsolete system.rss configuration.
+ */
+function system_post_update_delete_rss_settings() {
+  \Drupal::configFactory()->getEditable('system.rss')
+    ->clear('channel')
+    ->clear('items.limit')
+    ->clear('langcode')
+    ->save();
+}
+
+/**
+ * Drop the 'all' index on the 'key_value_expire' table.
+ */
+function system_post_update_remove_key_value_expire_all_index() {
+  $schema = \Drupal::database()->schema();
+  if ($schema->tableExists('key_value_expire')) {
+    $schema->dropIndex('key_value_expire', 'all');
+  }
+}
+
+/**
+ * Add new security advisory retrieval settings.
+ */
+function system_post_update_service_advisory_settings() {
+  $config = \Drupal::configFactory()->getEditable('system.advisories');
+  $config->set('interval_hours', 6)->set('enabled', TRUE)->save();
+}
+
+/**
+ * Remove obsolete system.authorize configuration.
+ */
+function system_post_update_delete_authorize_settings() {
+  \Drupal::configFactory()->getEditable('system.authorize')->delete();
+}
+
+/**
+ * Sort all configuration according to its schema.
+ */
+function system_post_update_sort_all_config(&$sandbox) {
+  $factory = \Drupal::configFactory();
+  $iteration_size = Settings::get('entity_update_batch_size', 50);
+
+  if (empty($sandbox['progress'])) {
+    $sandbox['progress'] = 0;
+    $sandbox['all_config_names'] = $factory->listAll();
+    $sandbox['max'] = count($sandbox['all_config_names']);
+  }
+
+  $start = $sandbox['progress'];
+  $end = min($sandbox['max'], $start + $iteration_size);
+  for ($i = $start; $i < $end; $i++) {
+    $factory->getEditable($sandbox['all_config_names'][$i])->save();
+  }
+
+  if ($sandbox['max'] > 0 && $end < $sandbox['max']) {
+    $sandbox['progress'] = $end;
+    $sandbox['#finished'] = ($end - 1) / $sandbox['max'];
+  }
+  else {
+    $sandbox['#finished'] = 1;
   }
 }

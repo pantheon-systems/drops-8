@@ -119,7 +119,7 @@ final class Settings {
     if (isset(self::$deprecatedSettings[$name])) {
       @trigger_error(self::$deprecatedSettings[$name]['message'], E_USER_DEPRECATED);
     }
-    return isset(self::$instance->storage[$name]) ? self::$instance->storage[$name] : $default;
+    return self::$instance->storage[$name] ?? $default;
   }
 
   /**
@@ -212,9 +212,13 @@ final class Settings {
    * module directories setting apcu_ensure_unique_prefix would allow the sites
    * to share APCu cache items.
    *
-   * @param $identifier
+   * @param string $identifier
    *   An identifier for the prefix. For example, 'class_loader' or
    *   'cache_backend'.
+   * @param string $root
+   *   The app root.
+   * @param string $site_path
+   *   (optional) The site path. Defaults to an empty string.
    *
    * @return string
    *   The prefix for APCu user cache keys.

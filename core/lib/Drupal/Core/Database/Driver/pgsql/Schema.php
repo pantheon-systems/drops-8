@@ -103,13 +103,16 @@ class Schema extends DatabaseSchema {
    * We introspect the database to collect the information required by insert
    * and update queries.
    *
-   * @param $table_name
+   * @param string $table
    *   The non-prefixed name of the table.
    *
-   * @return
+   * @return mixed|object
    *   An object with two member variables:
-   *     - 'blob_fields' that lists all the blob fields in the table.
-   *     - 'sequences' that lists the sequences used in that table.
+   *   - 'blob_fields' that lists all the blob fields in the table.
+   *   - 'sequences' that lists the sequences used in that table.
+   *
+   * @throws \Exception
+   *   Exception thrown when the query for the table information fails.
    */
   public function queryTableInformation($table) {
     // Generate a key to reference this table's information on.
@@ -233,6 +236,9 @@ EOD;
    *
    * @return array
    *   An array containing all the constraint names for the field.
+   *
+   * @throws \Exception
+   *   Exception thrown when the query for the table information fails.
    */
   public function queryFieldInformation($table, $field, $constraint_type = 'c') {
     assert(in_array($constraint_type, ['c', 'f', 'p', 'u', 't', 'x']));
@@ -267,12 +273,12 @@ EOD;
   /**
    * Generate SQL to create a new table from a Drupal schema definition.
    *
-   * @param $name
+   * @param string $name
    *   The name of the table to create.
-   * @param $table
+   * @param array $table
    *   A Schema API table definition array.
    *
-   * @return
+   * @return array
    *   An array of SQL statements to create the table.
    */
   protected function createTableSql($name, $table) {
@@ -560,7 +566,7 @@ EOD;
 
     // Get the schema and tablename for the old table.
     $old_full_name = str_replace('"', '', $this->connection->prefixTables('{' . $table . '}'));
-    list($old_schema, $old_table_name) = strpos($old_full_name, '.') ? explode('.', $old_full_name) : ['public', $old_full_name];
+    [$old_schema, $old_table_name] = strpos($old_full_name, '.') ? explode('.', $old_full_name) : ['public', $old_full_name];
 
     // Index names and constraint names are global in PostgreSQL, so we need to
     // rename them when renaming the table.
@@ -1052,6 +1058,23 @@ EOD;
     $hash = base64_encode(hash('sha256', $data, TRUE));
     // Modify the hash so it's safe to use in PostgreSQL identifiers.
     return strtr($hash, ['+' => '_', '/' => '_', '=' => '']);
+  }
+
+  /**
+   * Determines whether the PostgreSQL extension is created.
+   *
+   * @param string $name
+   *   The name of the extension.
+   *
+   * @return bool
+   *   Return TRUE when the extension is created, FALSE otherwise.
+   *
+   * @internal
+   */
+  public function extensionExists($name): bool {
+    return (bool) $this->connection->query('SELECT installed_version FROM pg_available_extensions WHERE name = :name', [
+      ':name' => $name,
+    ])->fetchField();
   }
 
 }

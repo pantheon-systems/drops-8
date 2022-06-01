@@ -47,11 +47,13 @@ class NoJavaScriptAnonymousTest extends BrowserTestBase {
 
   /**
    * Passes if no JavaScript is found on the page.
+   *
+   * @internal
    */
-  protected function assertNoJavaScript() {
+  protected function assertNoJavaScript(): void {
     // Ensure drupalSettings is not set.
     $settings = $this->getDrupalSettings();
-    $this->assertTrue(empty($settings), 'drupalSettings is not set.');
+    $this->assertEmpty($settings, 'drupalSettings is not set.');
     $this->assertSession()->responseNotMatches('/\.js/');
   }
 

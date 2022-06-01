@@ -39,7 +39,7 @@
   display: block;
   margin-top: 1rem;
   margin-bottom: 1rem;
-  color: #222330;
+  color: #232429;
   border: 1px solid #dedfe4;
   border-radius: 2px;
   background-color: #fff;
@@ -79,7 +79,7 @@
   -webkit-hyphens: auto;
   -ms-hyphens: auto;
   hyphens: auto;
-  color: #545560;
+  color: #55565b;
   border-radius: 1px;
   background-color: transparent;
   line-height: 1rem;
@@ -164,15 +164,14 @@
   }
 }
 
-@media screen and (-ms-high-contrast: active) {
+@media (-ms-high-contrast: active), (forced-colors: active) {
   .claro-details__summary::before {
     width: 0.5625rem;
     height: 0.5625rem;
     transition: transform 0.12s ease-in 0s, margin 0.12s ease-in 0s;
     transform: rotate(135deg); /* LTR */
-    border: 0.125rem solid;
-    border-bottom-color: transparent;
-    border-left-color: transparent;
+    border-top: 0.125rem solid;
+    border-right: 0.125rem solid;
     background: none;
   }
 
@@ -286,7 +285,7 @@
   transform: rotate(-90deg); /* for LTR and RTL */
 }
 
-@media screen and (-ms-high-contrast: active) {
+@media (-ms-high-contrast: active), (forced-colors: active) {
   .claro-details__summary:hover::before,
   .claro-details__summary:hover:focus::before {
     background: none;
@@ -445,13 +444,13 @@
 
 .claro-details__description {
   margin-bottom: 1rem;
-  color: #545560;
+  color: #55565b;
   font-size: 0.79rem; /* ~13px */
   line-height: 1.0625rem; /* 17px */
 }
 
 .claro-details__description.is-disabled {
-  color: #82828c;
+  color: #828388;
 }
 
 /**
@@ -549,12 +548,12 @@
 
 .claro-details__summary-summary {
   display: block;
-  color: #545560;
+  color: #55565b;
   font-size: 0.889rem;
   font-weight: normal;
 }
 
-@media screen and (-ms-high-contrast: active) {
+@media (-ms-high-contrast: active), (forced-colors: active) {
   .collapse-processed[open] > .claro-details__summary--accordion .details-title:not(:focus)::after,
   .collapse-processed[open] > .claro-details__summary--accordion-item .details-title:not(:focus)::after,
   .collapse-processed[open] > .claro-details__summary--vertical-tabs-item .details-title:not(:focus)::after {
@@ -564,10 +563,10 @@
     left: -1px;
   }
   .collapse-processed > .claro-details__summary .details-title::after {
-    top: -5px;
-    right: -5px;
-    bottom: -5px;
-    left: -5px;
+    top: -0.3125rem;
+    right: -0.3125rem;
+    bottom: -0.3125rem;
+    left: -0.3125rem;
     border: 2px dotted;
   }
 }

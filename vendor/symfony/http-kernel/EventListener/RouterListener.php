@@ -116,7 +116,7 @@ class RouterListener implements EventSubscriberInterface
 
             if (null !== $this->logger) {
                 $this->logger->info('Matched route "{route}".', [
-                    'route' => isset($parameters['_route']) ? $parameters['_route'] : 'n/a',
+                    'route' => $parameters['_route'] ?? 'n/a',
                     'route_parameters' => $parameters,
                     'request_uri' => $request->getUri(),
                     'method' => $request->getMethod(),
@@ -164,7 +164,7 @@ class RouterListener implements EventSubscriberInterface
     private function createWelcomeResponse(): Response
     {
         $version = Kernel::VERSION;
-        $projectDir = realpath($this->projectDir).\DIRECTORY_SEPARATOR;
+        $projectDir = realpath((string) $this->projectDir).\DIRECTORY_SEPARATOR;
         $docVersion = substr(Kernel::VERSION, 0, 3);
 
         ob_start();

@@ -24,7 +24,7 @@ use Drupal\views\ViewsData;
 abstract class HandlerBase extends PluginBase implements ViewsHandlerInterface {
 
   /**
-   * Where the $query object will reside:
+   * Where the $query object will reside.
    *
    * @var \Drupal\views\Plugin\views\query\QueryPluginBase
    */
@@ -193,6 +193,9 @@ abstract class HandlerBase extends PluginBase implements ViewsHandlerInterface {
    * {@inheritdoc}
    */
   public function sanitizeValue($value, $type = NULL) {
+    if ($value === NULL) {
+      return '';
+    }
     switch ($type) {
       case 'xss':
         $value = Xss::filter($value);
@@ -347,6 +350,7 @@ abstract class HandlerBase extends PluginBase implements ViewsHandlerInterface {
 
   /**
    * Perform any necessary changes to the form values prior to storage.
+   *
    * There is no need for this function to actually store the data.
    */
   public function submitGroupByForm(&$form, FormStateInterface $form_state) {
@@ -378,6 +382,7 @@ abstract class HandlerBase extends PluginBase implements ViewsHandlerInterface {
 
   /**
    * Perform any necessary changes to the form values prior to storage.
+   *
    * There is no need for this function to actually store the data.
    */
   public function submitExtraOptionsForm($form, FormStateInterface $form_state) {}
@@ -427,6 +432,7 @@ abstract class HandlerBase extends PluginBase implements ViewsHandlerInterface {
 
   /**
    * Perform any necessary changes to the form exposes prior to storage.
+   *
    * There is no need for this function to actually store the data.
    */
   public function submitExposeForm($form, FormStateInterface $form_state) {}
@@ -563,6 +569,7 @@ abstract class HandlerBase extends PluginBase implements ViewsHandlerInterface {
 
   /**
    * Define if the exposed input has to be submitted multiple times.
+   *
    * This is TRUE when exposed filters grouped are using checkboxes as
    * widgets.
    */

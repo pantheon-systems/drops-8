@@ -99,14 +99,16 @@ class BlockContentFieldFilterTest extends BlockContentTestBase {
    *   that translation should be shown on the given page.
    * @param string $message
    *   Message suffix to display.
+   *
+   * @internal
    */
-  protected function assertPageCounts($path, $counts, $message) {
+  protected function assertPageCounts(string $path, array $counts, string $message): void {
     // Get the text of the page.
     $this->drupalGet($path);
     $text = $this->getTextContent();
 
     foreach ($counts as $langcode => $count) {
-      $this->assertEqual(substr_count($text, $this->blockContentInfos[$langcode]), $count, 'Translation ' . $langcode . ' has count ' . $count . ' with ' . $message);
+      $this->assertEquals($count, substr_count($text, $this->blockContentInfos[$langcode]), 'Translation ' . $langcode . ' has count ' . $count . ' with ' . $message);
     }
   }
 

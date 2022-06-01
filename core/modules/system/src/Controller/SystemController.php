@@ -4,14 +4,15 @@ namespace Drupal\system\Controller;
 
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Extension\ModuleDependencyMessageTrait;
 use Drupal\Core\Extension\ModuleExtensionList;
+use Drupal\Core\Extension\ThemeExtensionList;
 use Drupal\Core\Extension\ThemeHandlerInterface;
 use Drupal\Core\Form\FormBuilderInterface;
 use Drupal\Core\Menu\MenuLinkTreeInterface;
 use Drupal\Core\Menu\MenuTreeParameters;
 use Drupal\Core\Theme\ThemeAccessCheck;
 use Drupal\Core\Url;
-use Drupal\system\ModuleDependencyMessageTrait;
 use Drupal\system\SystemManager;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -118,7 +119,7 @@ class SystemController extends ControllerBase {
    */
   public function overview($link_id) {
     // Check for status report errors.
-    if ($this->systemManager->checkRequirements() && $this->currentUser()->hasPermission('administer site configuration')) {
+    if ($this->currentUser()->hasPermission('administer site configuration') && $this->systemManager->checkRequirements()) {
       $this->messenger()->addError($this->t('One or more problems were detected with your Drupal installation. Check the <a href=":status">status report</a> for more information.', [':status' => Url::fromRoute('system.status')->toString()]));
     }
     // Load all menu links below it.
@@ -203,7 +204,7 @@ class SystemController extends ControllerBase {
     $config = $this->config('system.theme');
     // Get all available themes.
     $themes = $this->themeHandler->rebuildThemeData();
-    uasort($themes, 'system_sort_modules_by_info_name');
+    uasort($themes, [ThemeExtensionList::class, 'sortByName']);
 
     $theme_default = $config->get('default');
     $theme_groups = ['installed' => [], 'uninstalled' => []];
