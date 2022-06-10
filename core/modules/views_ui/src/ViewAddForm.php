@@ -57,7 +57,7 @@ class ViewAddForm extends ViewFormBase {
 
     $form['name'] = [
       '#type' => 'fieldset',
-      '#title' => t('View basic information'),
+      '#title' => $this->t('View basic information'),
       '#attributes' => ['class' => ['fieldset-no-legend']],
     ];
 
@@ -107,7 +107,7 @@ class ViewAddForm extends ViewFormBase {
     // properties of what the view will display.
     $form['displays']['show'] = [
       '#type' => 'fieldset',
-      '#title' => t('View settings'),
+      '#title' => $this->t('View settings'),
       '#tree' => TRUE,
       '#attributes' => ['class' => ['container-inline']],
     ];
@@ -123,6 +123,7 @@ class ViewAddForm extends ViewFormBase {
       '#type' => 'select',
       '#title' => $this->t('Show'),
       '#options' => $options,
+      '#sort_options' => TRUE,
     ];
     $show_form = &$form['displays']['show'];
     $default_value = \Drupal::moduleHandler()->moduleExists('node') ? 'node' : 'users';
@@ -185,7 +186,7 @@ class ViewAddForm extends ViewFormBase {
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
     try {
-      /** @var $wizard \Drupal\views\Plugin\views\wizard\WizardInterface */
+      /** @var \Drupal\views\Plugin\views\wizard\WizardInterface $wizard */
       $wizard = $form_state->get('wizard_instance');
       $this->entity = $wizard->createView($form, $form_state);
     }

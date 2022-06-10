@@ -24,7 +24,7 @@ class Element {
    *   TRUE of the key is a property, FALSE otherwise.
    */
   public static function property($key) {
-    return $key[0] == '#';
+    return is_string($key) && $key[0] == '#';
   }
 
   /**
@@ -57,7 +57,8 @@ class Element {
    * Identifies the children of an element array, optionally sorted by weight.
    *
    * The children of an element array are those key/value pairs whose key does
-   * not start with a '#'. See drupal_render() for details.
+   * not start with a '#'. See \Drupal\Core\Render\RendererInterface::render()
+   * for details.
    *
    * @param array $elements
    *   The element array whose children are to be identified. Passed by

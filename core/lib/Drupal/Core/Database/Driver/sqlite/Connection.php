@@ -2,7 +2,6 @@
 
 namespace Drupal\Core\Database\Driver\sqlite;
 
-use Drupal\Core\Database\Database;
 use Drupal\Core\Database\DatabaseNotFoundException;
 use Drupal\Core\Database\Connection as DatabaseConnection;
 use Drupal\Core\Database\StatementInterface;
@@ -47,17 +46,20 @@ class Connection extends DatabaseConnection {
   ];
 
   /**
-   * All databases attached to the current database. This is used to allow
-   * prefixes to be safely handled without locking the table
+   * All databases attached to the current database.
+   *
+   * This is used to allow prefixes to be safely handled without locking the
+   * table.
    *
    * @var array
    */
   protected $attachedDatabases = [];
 
   /**
-   * Whether or not a table has been dropped this request: the destructor will
-   * only try to get rid of unnecessary databases if there is potential of them
-   * being empty.
+   * Whether or not a table has been dropped this request.
+   *
+   * The destructor will only try to get rid of unnecessary databases if there
+   * is potential of them being empty.
    *
    * This variable is set to public because Schema needs to
    * access it. However, it should not be manually set.
@@ -85,27 +87,16 @@ class Connection extends DatabaseConnection {
     // Attach one database for each registered prefix.
     $prefixes = $this->prefixes;
     foreach ($prefixes as &$prefix) {
-      // Empty prefix means query the main database -- no need to attach anything.
-      if (!empty($prefix)) {
-        // Only attach the database once.
-        if (!isset($this->attachedDatabases[$prefix])) {
-          $this->attachedDatabases[$prefix] = $prefix;
-          if ($connection_options['database'] === ':memory:') {
-            // In memory database use ':memory:' as database name. According to
-            // http://www.sqlite.org/inmemorydb.html it will open a unique
-            // database so attaching it twice is not a problem.
-            $this->query('ATTACH DATABASE :database AS :prefix', [':database' => $connection_options['database'], ':prefix' => $prefix]);
-          }
-          else {
-            $this->query('ATTACH DATABASE :database AS :prefix', [':database' => $connection_options['database'] . '-' . $prefix, ':prefix' => $prefix]);
-          }
-        }
-
+      // Empty prefix means query the main database -- no need to attach
+      // anything.
+      if ($prefix !== '') {
+        $this->attachDatabase($prefix);
         // Add a ., so queries become prefix.table, which is proper syntax for
         // querying an attached database.
         $prefix .= '.';
       }
     }
+
     // Regenerate the prefixes replacement table.
     $this->setPrefix($prefixes);
   }
@@ -207,6 +198,21 @@ class Connection extends DatabaseConnection {
       }
     }
     parent::__destruct();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function attachDatabase(string $database): void {
+    // Only attach the database once.
+    if (!isset($this->attachedDatabases[$database])) {
+      // In memory database use ':memory:' as database name. According to
+      // http://www.sqlite.org/inmemorydb.html it will open a unique database so
+      // attaching it twice is not a problem.
+      $database_file = $this->connectionOptions['database'] !== ':memory:' ? $this->connectionOptions['database'] . '-' . $database : $this->connectionOptions['database'];
+      $this->query('ATTACH DATABASE :database_file AS :database', [':database_file' => $database_file, ':database' => $database]);
+      $this->attachedDatabases[$database] = $database;
+    }
   }
 
   /**
@@ -370,6 +376,7 @@ class Connection extends DatabaseConnection {
     // @see http://www.sqlite.org/faq.html#q15
     // @see http://www.sqlite.org/rescode.html#schema
     if (!empty($e->errorInfo[1]) && $e->errorInfo[1] === 17) {
+      @trigger_error('Connection::handleQueryException() is deprecated in drupal:9.2.0 and is removed in drupal:10.0.0. Get a handler through $this->exceptionHandler() instead, and use one of its methods. See https://www.drupal.org/node/3187222', E_USER_DEPRECATED);
       return $this->query($query, $args, $options);
     }
 
@@ -380,7 +387,11 @@ class Connection extends DatabaseConnection {
     return $this->query($query . ' LIMIT ' . (int) $from . ', ' . (int) $count, $args, $options);
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function queryTemporary($query, array $args = [], array $options = []) {
+    @trigger_error('Connection::queryTemporary() is deprecated in drupal:9.3.0 and is removed from drupal:10.0.0. There is no replacement. See https://www.drupal.org/node/3211781', E_USER_DEPRECATED);
     // Generate a new temporary table name and protect it from prefixing.
     // SQLite requires that temporary tables to be non-qualified.
     $tablename = $this->generateTemporaryTableName();
@@ -417,18 +428,21 @@ class Connection extends DatabaseConnection {
   }
 
   public function mapConditionOperator($operator) {
-    return isset(static::$sqliteConditionOperatorMap[$operator]) ? static::$sqliteConditionOperatorMap[$operator] : NULL;
+    return static::$sqliteConditionOperatorMap[$operator] ?? NULL;
   }
 
   /**
    * {@inheritdoc}
    */
-  public function prepareStatement(string $query, array $options): StatementInterface {
-    $query = $this->prefixTables($query);
-    if (!($options['allow_square_brackets'] ?? FALSE)) {
-      $query = $this->quoteIdentifiers($query);
+  public function prepareStatement(string $query, array $options, bool $allow_row_count = FALSE): StatementInterface {
+    try {
+      $query = $this->preprocessStatement($query, $options);
+      $statement = new Statement($this->connection, $this, $query, $options['pdo'] ?? [], $allow_row_count);
     }
-    return new Statement($this->connection, $this, $query, $options['pdo'] ?? []);
+    catch (\Exception $e) {
+      $this->exceptionHandler()->handleStatementException($e, $query, $options);
+    }
+    return $statement;
   }
 
   public function nextId($existing_id = 0) {
@@ -438,20 +452,21 @@ class Connection extends DatabaseConnection {
     // override nextId. However, this is unlikely as we deal with short strings
     // and integers and no known databases require special handling for those
     // simple cases. If another transaction wants to write the same row, it will
-    // wait until this transaction commits. Also, the return value needs to be
-    // set to RETURN_AFFECTED as if it were a real update() query otherwise it
-    // is not possible to get the row count properly.
-    $affected = $this->query('UPDATE {sequences} SET value = GREATEST(value, :existing_id) + 1', [
-      ':existing_id' => $existing_id,
-    ], ['return' => Database::RETURN_AFFECTED]);
-    if (!$affected) {
-      $this->query('INSERT INTO {sequences} (value) VALUES (:existing_id + 1)', [
-        ':existing_id' => $existing_id,
-      ]);
+    // wait until this transaction commits.
+    $stmt = $this->prepareStatement('UPDATE {sequences} SET [value] = GREATEST([value], :existing_id) + 1', [], TRUE);
+    $args = [':existing_id' => $existing_id];
+    try {
+      $stmt->execute($args);
+    }
+    catch (\Exception $e) {
+      $this->exceptionHandler()->handleExecutionException($e, $stmt, $args, []);
+    }
+    if ($stmt->rowCount() === 0) {
+      $this->query('INSERT INTO {sequences} ([value]) VALUES (:existing_id + 1)', $args);
     }
     // The transaction gets committed when the transaction object gets destroyed
     // because it gets out of scope.
-    return $this->query('SELECT value FROM {sequences}')->fetchField();
+    return $this->query('SELECT [value] FROM {sequences}')->fetchField();
   }
 
   /**
@@ -503,8 +518,8 @@ class Connection extends DatabaseConnection {
 
     $db_url = 'sqlite://localhost/' . $connection_options['database'];
 
-    if (isset($connection_options['prefix']['default']) && $connection_options['prefix']['default'] !== NULL && $connection_options['prefix']['default'] !== '') {
-      $db_url .= '#' . $connection_options['prefix']['default'];
+    if (isset($connection_options['prefix']) && $connection_options['prefix'] !== '') {
+      $db_url .= '#' . $connection_options['prefix'];
     }
 
     return $db_url;

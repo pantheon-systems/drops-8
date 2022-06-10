@@ -87,8 +87,8 @@ trait BlockPluginTrait {
     return [
       'id' => $this->getPluginId(),
       'label' => '',
-      'provider' => $this->pluginDefinition['provider'],
       'label_display' => BlockPluginInterface::BLOCK_LABEL_VISIBLE,
+      'provider' => $this->pluginDefinition['provider'],
     ];
   }
 
@@ -177,9 +177,6 @@ trait BlockPluginTrait {
       '#return_value' => BlockPluginInterface::BLOCK_LABEL_VISIBLE,
     ];
 
-    // Add context mapping UI form elements.
-    $contexts = $form_state->getTemporaryValue('gathered_contexts') ?: [];
-    $form['context_mapping'] = $this->addContextAssignmentElement($this, $contexts);
     // Add plugin-specific settings for this block type.
     $form += $this->blockForm($form, $form_state);
     return $form;

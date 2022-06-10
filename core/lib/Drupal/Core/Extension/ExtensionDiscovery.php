@@ -174,7 +174,7 @@ class ExtensionDiscovery {
     // test site environment, because the site directories are not the same.
     // Therefore, add the site directory of the parent site to the search paths,
     // so that contained extensions are still discovered.
-    // @see \Drupal\simpletest\WebTestBase::setUp()
+    // @see \Drupal\Core\Test\FunctionalTestSetupTrait::prepareSettings().
     if ($parent_site = Settings::get('test_parent_site')) {
       $searchdirs[static::ORIGIN_PARENT_SITE] = $parent_site;
     }
@@ -229,7 +229,7 @@ class ExtensionDiscovery {
   public function setProfileDirectoriesFromSettings() {
     $this->profileDirectories = [];
     if ($profile = \Drupal::installProfile()) {
-      $this->profileDirectories[] = drupal_get_path('profile', $profile);
+      $this->profileDirectories[] = \Drupal::service('extension.list.profile')->getPath($profile);
     }
     return $this;
   }
@@ -444,7 +444,7 @@ class ExtensionDiscovery {
         $type = FALSE;
         $file = $fileinfo->openFile('r');
         while (!$type && !$file->eof()) {
-          preg_match('@^type:\s*(\'|")?(\w+)\1?\s*$@', $file->fgets(), $matches);
+          preg_match('@^type:\s*(\'|")?(\w+)\1?\s*(?:\#.*)?$@', $file->fgets(), $matches);
           if (isset($matches[2])) {
             $type = $matches[2];
           }

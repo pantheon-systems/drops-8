@@ -100,7 +100,7 @@ class QuickEditFieldForm extends FormBase {
     $form['actions'] = ['#type' => 'actions'];
     $form['actions']['submit'] = [
       '#type' => 'submit',
-      '#value' => t('Save'),
+      '#value' => $this->t('Save'),
       '#attributes' => ['class' => ['quickedit-form-submit']],
     ];
 
@@ -168,7 +168,7 @@ class QuickEditFieldForm extends FormBase {
    * it back to the form state and save it.
    */
   protected function buildEntity(array $form, FormStateInterface $form_state) {
-    /** @var $entity \Drupal\Core\Entity\EntityInterface */
+    /** @var \Drupal\Core\Entity\EntityInterface $entity */
     $entity = clone $form_state->get('entity');
     $field_name = $form_state->get('field_name');
 
@@ -177,7 +177,7 @@ class QuickEditFieldForm extends FormBase {
     // @todo Refine automated log messages and abstract them to all entity
     //   types: https://www.drupal.org/node/1678002.
     if ($entity->getEntityTypeId() == 'node' && $entity->isNewRevision() && $entity->revision_log->isEmpty()) {
-      $entity->revision_log = t('Updated the %field-name field through in-place editing.', ['%field-name' => $entity->get($field_name)->getFieldDefinition()->getLabel()]);
+      $entity->revision_log = $this->t('Updated the %field-name field through in-place editing.', ['%field-name' => $entity->get($field_name)->getFieldDefinition()->getLabel()]);
     }
 
     return $entity;

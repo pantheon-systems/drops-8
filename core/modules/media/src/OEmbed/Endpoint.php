@@ -69,7 +69,7 @@ class Endpoint {
    */
   public function __construct($url, Provider $provider, array $schemes = [], array $formats = [], $supports_discovery = FALSE) {
     $this->provider = $provider;
-    $this->schemes = array_map('mb_strtolower', $schemes);
+    $this->schemes = $schemes;
 
     $this->formats = $formats = array_map('mb_strtolower', $formats);
     // Assert that only the supported formats are present.
@@ -151,7 +151,7 @@ class Endpoint {
   public function matchUrl($url) {
     foreach ($this->getSchemes() as $scheme) {
       // Convert scheme into a valid regular expression.
-      $regexp = str_replace(['.', '*'], ['\.', '.*'], $scheme);
+      $regexp = str_replace(['.', '*', '?'], ['\.', '.*', '\?'], $scheme);
       if (preg_match("|^$regexp$|", $url)) {
         return TRUE;
       }

@@ -438,7 +438,7 @@ class PoStreamReader implements PoStreamInterface, PoReaderInterface {
           return FALSE;
         }
 
-        // Remove 'msgstr' and trim away away whitespaces.
+        // Remove 'msgstr' and trim away whitespaces.
         $line = trim(substr($line, 6));
 
         // Only the msgstr string is left, parse it.
@@ -526,7 +526,7 @@ class PoStreamReader implements PoStreamInterface, PoReaderInterface {
     }
 
     $item = new PoItem();
-    $item->setContext(isset($value['msgctxt']) ? $value['msgctxt'] : '');
+    $item->setContext($value['msgctxt'] ?? '');
     $item->setSource($value['msgid']);
     $item->setTranslation($value['msgstr']);
     $item->setPlural($plural);

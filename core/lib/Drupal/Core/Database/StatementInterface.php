@@ -21,25 +21,6 @@ namespace Drupal\Core\Database;
 interface StatementInterface extends \Traversable {
 
   /**
-   * Constructs a new PDOStatement object.
-   *
-   * The PDO manual does not document this constructor, but when overriding the
-   * PDOStatement class with a custom without this constructor, PDO will throw
-   * the internal exception/warning:
-   *
-   * "PDO::query(): SQLSTATE[HY000]: General error: user-supplied statement does
-   *  not accept constructor arguments"
-   *
-   * PDO enforces that the access type of this constructor must be protected,
-   * and lastly, it also enforces that a custom PDOStatement interface (like
-   * this) omits the constructor (declaring it results in fatal errors
-   * complaining about "the access type must not be public" if it is public, and
-   * "the access type must be omitted" if it is protected; i.e., conflicting
-   * statements). The access type has to be protected.
-   */
-  // protected function __construct(Connection $dbh);
-
-  /**
    * Executes a prepared statement.
    *
    * @param $args
@@ -60,6 +41,16 @@ interface StatementInterface extends \Traversable {
    *   The query string, in its form with placeholders.
    */
   public function getQueryString();
+
+  /**
+   * Returns the target connection this statement is associated with.
+   *
+   * @return string
+   *   The target connection string of this statement.
+   */
+  // @todo Include this method in the interface in Drupal 10.
+  // @see https://www.drupal.org/project/drupal/issues/3210310
+  // public function getConnectionTarget(): string;
 
   /**
    * Returns the number of rows affected by the last SQL statement.
@@ -127,8 +118,21 @@ interface StatementInterface extends \Traversable {
    *
    * The object will be of the class specified by StatementInterface::setFetchMode()
    * or stdClass if not specified.
+   *
+   * phpcs:disable Drupal.Commenting
+   * @todo Remove PHPCS overrides https://www.drupal.org/node/3194677.
+   *
+   * @param string|null $class_name
+   *   Name of the created class.
+   * @param array|null $constructor_arguments
+   *   Elements of this array are passed to the constructor.
+   * phpcs:enable
+   *
+   * @return mixed
+   *   The object of specified class or \stdClass if not specified. Returns
+   *   FALSE or NULL if there is no next row.
    */
-  public function fetchObject();
+  public function fetchObject(/* string $class_name = NULL, array $constructor_arguments = NULL */);
 
   /**
    * Fetches the next row and returns it as an associative array.

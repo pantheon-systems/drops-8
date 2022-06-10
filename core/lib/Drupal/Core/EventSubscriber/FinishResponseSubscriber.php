@@ -110,7 +110,7 @@ class FinishResponseSubscriber implements EventSubscriberInterface {
    *   The event to process.
    */
   public function onRespond(ResponseEvent $event) {
-    if (!$event->isMasterRequest()) {
+    if (!$event->isMainRequest()) {
       return;
     }
 
@@ -130,6 +130,11 @@ class FinishResponseSubscriber implements EventSubscriberInterface {
     // https://www.owasp.org/index.php/List_of_useful_HTTP_headers
     $response->headers->set('X-Content-Type-Options', 'nosniff', FALSE);
     $response->headers->set('X-Frame-Options', 'SAMEORIGIN', FALSE);
+
+    // Add a Permissions-Policy header to block Federated Learning of Cohorts.
+    if (Settings::get('block_interest_cohort', TRUE) && !$response->headers->has('Permissions-Policy')) {
+      $response->headers->set('Permissions-Policy', 'interest-cohort=()');
+    }
 
     // If the current response isn't an implementation of the
     // CacheableResponseInterface, we assume that a Response is either
@@ -154,8 +159,12 @@ class FinishResponseSubscriber implements EventSubscriberInterface {
       // Expose the cache contexts and cache tags associated with this page in a
       // X-Drupal-Cache-Contexts and X-Drupal-Cache-Tags header respectively.
       $response_cacheability = $response->getCacheableMetadata();
-      $response->headers->set('X-Drupal-Cache-Tags', implode(' ', $response_cacheability->getCacheTags()));
-      $response->headers->set('X-Drupal-Cache-Contexts', implode(' ', $this->cacheContextsManager->optimizeTokens($response_cacheability->getCacheContexts())));
+      $cache_tags = $response_cacheability->getCacheTags();
+      sort($cache_tags);
+      $response->headers->set('X-Drupal-Cache-Tags', implode(' ', $cache_tags));
+      $cache_contexts = $this->cacheContextsManager->optimizeTokens($response_cacheability->getCacheContexts());
+      sort($cache_contexts);
+      $response->headers->set('X-Drupal-Cache-Contexts', implode(' ', $cache_contexts));
       $max_age_message = $response_cacheability->getCacheMaxAge();
       if ($max_age_message === 0) {
         $max_age_message = '0 (Uncacheable)';
@@ -204,6 +213,7 @@ class FinishResponseSubscriber implements EventSubscriberInterface {
    * @see \Symfony\Component\HttpFoundation\ResponseHeaderBag::computeCacheControlValue()
    *
    * @param \Symfony\Component\HttpFoundation\Response $response
+   *   The response object.
    *
    * @return bool
    *   TRUE when Cache-Control header was set explicitly on the given response.
