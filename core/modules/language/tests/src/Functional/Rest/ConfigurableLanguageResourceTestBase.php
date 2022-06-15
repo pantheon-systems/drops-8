@@ -4,10 +4,10 @@ namespace Drupal\Tests\language\Functional\Rest;
 
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Url;
-use Drupal\Tests\rest\Functional\EntityResource\EntityResourceTestBase;
+use Drupal\Tests\rest\Functional\EntityResource\ConfigEntityResourceTestBase;
 use Drupal\language\Entity\ConfigurableLanguage;
 
-abstract class ConfigurableLanguageResourceTestBase extends EntityResourceTestBase {
+abstract class ConfigurableLanguageResourceTestBase extends ConfigEntityResourceTestBase {
 
   /**
    * {@inheritdoc}
@@ -76,7 +76,7 @@ abstract class ConfigurableLanguageResourceTestBase extends EntityResourceTestBa
   }
 
   /**
-   * Test a GET request for a default config entity, which has a _core key.
+   * Tests a GET request for a default config entity, which has a _core key.
    *
    * @see https://www.drupal.org/node/2915414
    */

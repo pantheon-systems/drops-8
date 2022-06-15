@@ -53,12 +53,7 @@ class RequestDataCollector extends DataCollector implements EventSubscriberInter
             }
         }
 
-        try {
-            $content = $request->getContent();
-        } catch (\LogicException $e) {
-            // the user already got the request content as a resource
-            $content = false;
-        }
+        $content = $request->getContent();
 
         $sessionMetadata = [];
         $sessionAttributes = [];
@@ -93,7 +88,7 @@ class RequestDataCollector extends DataCollector implements EventSubscriberInter
             'format' => $request->getRequestFormat(),
             'content' => $content,
             'content_type' => $response->headers->get('Content-Type', 'text/html'),
-            'status_text' => isset(Response::$statusTexts[$statusCode]) ? Response::$statusTexts[$statusCode] : '',
+            'status_text' => Response::$statusTexts[$statusCode] ?? '',
             'status_code' => $statusCode,
             'request_query' => $request->query->all(),
             'request_request' => $request->request->all(),
@@ -155,7 +150,7 @@ class RequestDataCollector extends DataCollector implements EventSubscriberInter
                     'method' => $request->getMethod(),
                     'controller' => $this->parseController($request->attributes->get('_controller')),
                     'status_code' => $statusCode,
-                    'status_text' => Response::$statusTexts[(int) $statusCode],
+                    'status_text' => Response::$statusTexts[$statusCode],
                 ]),
                 0, '/', null, $request->isSecure(), true, false, 'lax'
             ));
@@ -344,12 +339,12 @@ class RequestDataCollector extends DataCollector implements EventSubscriberInter
      */
     public function getRedirect()
     {
-        return isset($this->data['redirect']) ? $this->data['redirect'] : false;
+        return $this->data['redirect'] ?? false;
     }
 
     public function getForwardToken()
     {
-        return isset($this->data['forward_token']) ? $this->data['forward_token'] : null;
+        return $this->data['forward_token'] ?? null;
     }
 
     /**
@@ -393,13 +388,13 @@ class RequestDataCollector extends DataCollector implements EventSubscriberInter
     /**
      * Parse a controller.
      *
-     * @param mixed $controller The controller to parse
+     * @param string|object|array|null $controller The controller to parse
      *
      * @return array|string An array of controller data or a simple string
      */
     protected function parseController($controller)
     {
-        if (\is_string($controller) && false !== strpos($controller, '::')) {
+        if (\is_string($controller) && str_contains($controller, '::')) {
             $controller = explode('::', $controller);
         }
 
@@ -436,7 +431,7 @@ class RequestDataCollector extends DataCollector implements EventSubscriberInter
                 'line' => $r->getStartLine(),
             ];
 
-            if (false !== strpos($r->name, '{closure}')) {
+            if (str_contains($r->name, '{closure}')) {
                 return $controller;
             }
             $controller['method'] = $r->name;

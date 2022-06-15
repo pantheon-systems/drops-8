@@ -22,7 +22,11 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  */
 class TaxonomyIndexTid extends ManyToOne {
 
-  // Stores the exposed input for this filter.
+  /**
+   * Stores the exposed input for this filter.
+   *
+   * @var array|null
+   */
   public $validated_exposed_input = NULL;
 
   /**
@@ -209,6 +213,7 @@ class TaxonomyIndexTid extends ManyToOne {
       else {
         $options = [];
         $query = \Drupal::entityQuery('taxonomy_term')
+          ->accessCheck(TRUE)
           // @todo Sorting on vocabulary properties -
           //   https://www.drupal.org/node/1821274.
           ->sort('weight')
@@ -343,6 +348,12 @@ class TaxonomyIndexTid extends ManyToOne {
     }
 
     $identifier = $this->options['expose']['identifier'];
+    $input = $form_state->getValue($identifier);
+
+    if ($this->options['is_grouped'] && isset($this->options['group_info']['group_items'][$input])) {
+      $this->validated_exposed_input = $this->options['group_info']['group_items'][$input]['value'];
+      return;
+    }
 
     // We only validate if they've chosen the text field style.
     if ($this->options['type'] != 'textfield') {

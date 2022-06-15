@@ -10,12 +10,12 @@ use Drupal\views\Entity\View;
  *
  * @group jsonapi
  */
-class ViewTest extends ResourceTestBase {
+class ViewTest extends ConfigEntityResourceTestBase {
 
   /**
    * {@inheritdoc}
    */
-  protected static $modules = ['views'];
+  protected static $modules = ['views', 'views_ui'];
 
   /**
    * {@inheritdoc}
@@ -90,7 +90,7 @@ class ViewTest extends ResourceTestBase {
             'default' => [
               'display_plugin' => 'default',
               'id' => 'default',
-              'display_title' => 'Master',
+              'display_title' => 'Default',
               'position' => 0,
               'display_options' => [
                 'display_extenders' => [],

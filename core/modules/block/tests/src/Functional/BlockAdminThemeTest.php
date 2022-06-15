@@ -42,7 +42,8 @@ class BlockAdminThemeTest extends BrowserTestBase {
     // Install admin theme and confirm that tab is accessible.
     \Drupal::service('theme_installer')->install(['bartik']);
     $edit['admin_theme'] = 'bartik';
-    $this->drupalPostForm('admin/appearance', $edit, 'Save configuration');
+    $this->drupalGet('admin/appearance');
+    $this->submitForm($edit, 'Save configuration');
     $this->drupalGet('admin/structure/block/list/bartik');
     $this->assertSession()->statusCodeEquals(200);
   }
@@ -63,7 +64,8 @@ class BlockAdminThemeTest extends BrowserTestBase {
     // Install admin theme and confirm that tab is accessible.
     \Drupal::service('theme_installer')->install(['seven']);
     $edit['admin_theme'] = 'seven';
-    $this->drupalPostForm('admin/appearance', $edit, 'Save configuration');
+    $this->drupalGet('admin/appearance');
+    $this->submitForm($edit, 'Save configuration');
 
     // Define our block settings.
     $settings = [
@@ -78,8 +80,8 @@ class BlockAdminThemeTest extends BrowserTestBase {
     $this->drupalGet('admin');
 
     // Check if contextual link classes are unavailable.
-    $this->assertNoRaw('<div data-contextual-id="block:block=' . $block->id() . ':langcode=en"></div>');
-    $this->assertNoRaw('contextual-region');
+    $this->assertSession()->responseNotContains('<div data-contextual-id="block:block=' . $block->id() . ':langcode=en"></div>');
+    $this->assertSession()->responseNotContains('contextual-region');
   }
 
 }

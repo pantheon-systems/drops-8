@@ -34,8 +34,8 @@ class FilterTest extends ViewTestBase {
    */
   protected $defaultTheme = 'stark';
 
-  protected function setUp($import_test_views = TRUE): void {
-    parent::setUp($import_test_views);
+  protected function setUp($import_test_views = TRUE, $modules = ['views_test_config']): void {
+    parent::setUp($import_test_views, $modules);
 
     $this->enableViewsTestModule();
 
@@ -56,7 +56,7 @@ class FilterTest extends ViewTestBase {
   }
 
   /**
-   * Test query of the row plugin.
+   * Tests query of the row plugin.
    */
   public function testFilterQuery() {
     // Check that we can find the test filter plugin.
@@ -81,19 +81,19 @@ class FilterTest extends ViewTestBase {
     $this->executeView($view);
 
     // Make sure the query have where data.
-    $this->assertTrue(!empty($view->query->where));
+    $this->assertNotEmpty($view->query->where);
 
     // Check the data added.
     $where = $view->query->where;
-    $this->assertIdentical($where[0]['conditions'][0]['field'], 'views_test_data.name', 'Where condition field matches');
-    $this->assertIdentical($where[0]['conditions'][0]['value'], 'John', 'Where condition value matches');
-    $this->assertIdentical($where[0]['conditions'][0]['operator'], '=', 'Where condition operator matches');
+    $this->assertSame('views_test_data.name', $where[0]['conditions'][0]['field'], 'Where condition field matches');
+    $this->assertSame('John', $where[0]['conditions'][0]['value'], 'Where condition value matches');
+    $this->assertSame('=', $where[0]['conditions'][0]['operator'], 'Where condition operator matches');
 
     $this->executeView($view);
 
     // Check that our operator and value match on the filter.
-    $this->assertIdentical($view->filter['test_filter']->operator, '=');
-    $this->assertIdentical($view->filter['test_filter']->value, 'John');
+    $this->assertSame('=', $view->filter['test_filter']->operator);
+    $this->assertSame('John', $view->filter['test_filter']->value);
 
     // Check that we have a single element, as a result of applying the '= John'
     // filter.
@@ -118,8 +118,8 @@ class FilterTest extends ViewTestBase {
     $this->executeView($view);
 
     // Check that our operator and value match on the filter.
-    $this->assertIdentical($view->filter['test_filter']->operator, '<>');
-    $this->assertIdentical($view->filter['test_filter']->value, 'John');
+    $this->assertSame('<>', $view->filter['test_filter']->operator);
+    $this->assertSame('John', $view->filter['test_filter']->value);
 
     // Check if we have the other elements in the dataset, as a result of
     // applying the '<> John' filter.
@@ -151,22 +151,27 @@ class FilterTest extends ViewTestBase {
   }
 
   /**
-   * Test no error message is displayed when all options are selected in an
+   * Tests no error message is displayed when all options are selected in an
    * exposed filter.
    */
   public function testInOperatorSelectAllOptions() {
     $row['row[type]'] = 'fields';
-    $this->drupalPostForm('admin/structure/views/nojs/display/test_filter_in_operator_ui/default/row', $row, 'Apply');
+    $this->drupalGet('admin/structure/views/nojs/display/test_filter_in_operator_ui/default/row');
+    $this->submitForm($row, 'Apply');
     $field['name[node_field_data.nid]'] = TRUE;
-    $this->drupalPostForm('admin/structure/views/nojs/add-handler/test_filter_in_operator_ui/default/field', $field, 'Add and configure fields');
-    $this->drupalPostForm('admin/structure/views/nojs/handler/test_filter_in_operator_ui/default/field/nid', [], 'Apply');
+    $this->drupalGet('admin/structure/views/nojs/add-handler/test_filter_in_operator_ui/default/field');
+    $this->submitForm($field, 'Add and configure fields');
+    $this->drupalGet('admin/structure/views/nojs/handler/test_filter_in_operator_ui/default/field/nid');
+    $this->submitForm([], 'Apply');
     $edit['options[value][all]'] = TRUE;
     $edit['options[value][article]'] = TRUE;
     $edit['options[value][page]'] = TRUE;
-    $this->drupalPostForm('admin/structure/views/nojs/handler/test_filter_in_operator_ui/default/filter/type', $edit, 'Apply');
-    $this->drupalPostForm('admin/structure/views/view/test_filter_in_operator_ui/edit/default', [], 'Save');
+    $this->drupalGet('admin/structure/views/nojs/handler/test_filter_in_operator_ui/default/filter/type');
+    $this->submitForm($edit, 'Apply');
+    $this->drupalGet('admin/structure/views/view/test_filter_in_operator_ui/edit/default');
+    $this->submitForm([], 'Save');
     $this->submitForm([], 'Update preview');
-    $this->assertNoText('An illegal choice has been detected.');
+    $this->assertSession()->pageTextNotContains('An illegal choice has been detected.');
   }
 
   /**
@@ -191,8 +196,10 @@ class FilterTest extends ViewTestBase {
     $edit = [];
     $edit['options[operator]'] = '>';
     $edit['options[expose][operator_list][]'] = ['>', '>=', 'between'];
-    $this->drupalPostForm('admin/structure/views/nojs/handler/test_filter_in_operator_ui/default/filter/nid', $edit, 'Apply');
-    $this->drupalPostForm('admin/structure/views/view/test_filter_in_operator_ui/edit/default', [], 'Save');
+    $this->drupalGet('admin/structure/views/nojs/handler/test_filter_in_operator_ui/default/filter/nid');
+    $this->submitForm($edit, 'Apply');
+    $this->drupalGet('admin/structure/views/view/test_filter_in_operator_ui/edit/default');
+    $this->submitForm([], 'Save');
 
     $this->drupalGet('test_filter_in_operator_ui');
     $this->assertSession()->statusCodeEquals(200);
@@ -210,8 +217,9 @@ class FilterTest extends ViewTestBase {
     $edit = [];
     $edit['options[operator]'] = '=';
     $edit['options[expose][operator_list][]'] = ['<', '>'];
-    $this->drupalPostForm('admin/structure/views/nojs/handler/test_filter_in_operator_ui/default/filter/nid', $edit, 'Apply');
-    $this->assertText('You selected the "Is equal to" operator as the default value but is not included in the list of limited operators.');
+    $this->drupalGet('admin/structure/views/nojs/handler/test_filter_in_operator_ui/default/filter/nid');
+    $this->submitForm($edit, 'Apply');
+    $this->assertSession()->pageTextContains('You selected the "Is equal to" operator as the default value but is not included in the list of limited operators.');
   }
 
 }

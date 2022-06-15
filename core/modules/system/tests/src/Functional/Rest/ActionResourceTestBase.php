@@ -2,16 +2,16 @@
 
 namespace Drupal\Tests\system\Functional\Rest;
 
-use Drupal\Tests\rest\Functional\EntityResource\EntityResourceTestBase;
+use Drupal\Tests\rest\Functional\EntityResource\ConfigEntityResourceTestBase;
 use Drupal\system\Entity\Action;
 use Drupal\user\RoleInterface;
 
-abstract class ActionResourceTestBase extends EntityResourceTestBase {
+abstract class ActionResourceTestBase extends ConfigEntityResourceTestBase {
 
   /**
    * {@inheritdoc}
    */
-  protected static $modules = ['user'];
+  protected static $modules = ['action', 'user'];
 
   /**
    * {@inheritdoc}
@@ -67,15 +67,6 @@ abstract class ActionResourceTestBase extends EntityResourceTestBase {
       'status' => TRUE,
       'type' => 'user',
       'uuid' => $this->entity->uuid(),
-    ];
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  protected function getExpectedCacheContexts() {
-    return [
-      'user.permissions',
     ];
   }
 

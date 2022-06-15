@@ -48,6 +48,11 @@ function theme_test_theme($existing, $type, $theme, $path) {
       'bar' => '',
     ],
   ];
+  $items['theme_test_preprocess_callback'] = [
+    'variables' => [
+      'foo' => '',
+    ],
+  ];
   $items['theme_test_registered_by_module'] = [
     'render element' => 'content',
     'base hook' => 'container',
@@ -58,6 +63,13 @@ function theme_test_theme($existing, $type, $theme, $path) {
     ],
   ];
   return $items;
+}
+
+/**
+ * Implements hook_theme_registry_alter().
+ */
+function theme_test_theme_registry_alter(&$registry) {
+  $registry['theme_test_preprocess_callback']['preprocess functions'][] = ['\Drupal\theme_test\ThemeTestPreprocess', 'preprocess'];
 }
 
 /**
@@ -141,7 +153,7 @@ function theme_test_system_info_alter(array &$info, Extension $file, $type) {
   if ($type == 'theme' && $file->getName() == 'test_theme' && \Drupal::state()->get('theme_test.modify_info_files')) {
     // Add a library to see if the system picks it up.
     $info += ['libraries' => []];
-    $info['libraries'][] = 'core/backbone';
+    $info['libraries'][] = 'core/once';
   }
 }
 

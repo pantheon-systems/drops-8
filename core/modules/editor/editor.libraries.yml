@@ -4,8 +4,10 @@ drupal.editor.admin:
     js/editor.admin.js: {}
   dependencies:
     - core/jquery
-    - core/jquery.once
+    - core/once
+    - core/jquery.once.bc
     - core/drupal
+    - core/drupal.array.includes
 
 drupal.editor:
   version: VERSION
@@ -15,7 +17,8 @@ drupal.editor:
     - core/jquery
     - core/drupal
     - core/drupalSettings
-    - core/jquery.once
+    - core/once
+    - core/jquery.once.bc
     - core/drupal.dialog
 
 drupal.editor.dialog:

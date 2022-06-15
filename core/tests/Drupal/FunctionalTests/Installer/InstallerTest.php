@@ -2,8 +2,10 @@
 
 namespace Drupal\FunctionalTests\Installer;
 
+use Drupal\Core\Database\Database;
 use Drupal\Core\Routing\RoutingEvents;
 use Drupal\Core\Test\PerformanceTestRecorder;
+use Drupal\Core\Extension\ModuleUninstallValidatorException;
 
 /**
  * Tests the interactive installer.
@@ -21,20 +23,19 @@ class InstallerTest extends InstallerTestBase {
    * Ensures that the user page is available after installation.
    */
   public function testInstaller() {
+    $this->assertNotNull(\Drupal::state()->get('system.css_js_query_string'), 'The dummy query string should be set during install');
     $this->assertSession()->addressEquals('user/1');
     $this->assertSession()->statusCodeEquals(200);
     // Confirm that we are logged-in after installation.
-    $this->assertText($this->rootUser->getAccountName());
+    $this->assertSession()->pageTextContains($this->rootUser->getAccountName());
 
     // Verify that the confirmation message appears.
     require_once $this->root . '/core/includes/install.inc';
-    $this->assertRaw(t('Congratulations, you installed @drupal!', [
-      '@drupal' => drupal_install_profile_distribution_name(),
-    ]));
+    $this->assertSession()->pageTextContains('Congratulations, you installed Drupal!');
 
     // Ensure that the timezone is correct for sites under test after installing
     // interactively.
-    $this->assertEqual($this->config('system.date')->get('timezone.default'), 'Australia/Sydney');
+    $this->assertEquals('Australia/Sydney', $this->config('system.date')->get('timezone.default'));
 
     // Ensure the profile has a weight of 1000.
     $module_extension_list = \Drupal::service('extension.list.module');
@@ -52,11 +53,11 @@ class InstallerTest extends InstallerTestBase {
   protected function setUpLanguage() {
     // Test that \Drupal\Core\Render\BareHtmlPageRenderer adds assets and
     // metatags as expected to the first page of the installer.
-    $this->assertRaw("core/themes/seven/css/components/buttons.css");
-    $this->assertRaw('<meta charset="utf-8" />');
+    $this->assertSession()->responseContains("core/themes/seven/css/components/buttons.css");
+    $this->assertSession()->responseContains('<meta charset="utf-8" />');
 
     // Assert that the expected title is present.
-    $this->assertEqual('Choose language', $this->cssSelect('main h2')[0]->getText());
+    $this->assertEquals('Choose language', $this->cssSelect('main h2')[0]->getText());
 
     parent::setUpLanguage();
   }
@@ -70,9 +71,10 @@ class InstallerTest extends InstallerTestBase {
     copy($settings_services_file, $this->siteDirectory . '/services.yml');
     PerformanceTestRecorder::registerService($this->siteDirectory . '/services.yml', TRUE);
     // Assert that the expected title is present.
-    $this->assertEqual('Select an installation profile', $this->cssSelect('main h2')[0]->getText());
-    $result = $this->xpath('//span[contains(@class, :class) and contains(text(), :text)]', [':class' => 'visually-hidden', ':text' => 'Select an installation profile']);
-    $this->assertCount(1, $result, "Title/Label not displayed when '#title_display' => 'invisible' attribute is set");
+    $this->assertEquals('Select an installation profile', $this->cssSelect('main h2')[0]->getText());
+    // Verify that Title/Label are not displayed when '#title_display' =>
+    // 'invisible' attribute is set.
+    $this->assertSession()->elementsCount('xpath', "//span[contains(@class, 'visually-hidden') and contains(text(), 'Select an installation profile')]", 1);
 
     parent::setUpProfile();
   }
@@ -82,14 +84,12 @@ class InstallerTest extends InstallerTestBase {
    */
   protected function setUpSettings() {
     // Assert that the expected title is present.
-    $this->assertEqual('Database configuration', $this->cssSelect('main h2')[0]->getText());
+    $this->assertEquals('Database configuration', $this->cssSelect('main h2')[0]->getText());
 
     // Assert that we use the by core supported database drivers by default and
     // not the ones from the driver_test module.
-    $elements = $this->xpath('//label[@for="edit-driver-mysql"]');
-    $this->assertEqual(current($elements)->getText(), 'MySQL, MariaDB, Percona Server, or equivalent');
-    $elements = $this->xpath('//label[@for="edit-driver-pgsql"]');
-    $this->assertEqual(current($elements)->getText(), 'PostgreSQL');
+    $this->assertSession()->elementTextEquals('xpath', '//label[@for="edit-driver-mysql"]', 'MySQL, MariaDB, Percona Server, or equivalent');
+    $this->assertSession()->elementTextEquals('xpath', '//label[@for="edit-driver-pgsql"]', 'PostgreSQL');
 
     parent::setUpSettings();
   }
@@ -99,13 +99,13 @@ class InstallerTest extends InstallerTestBase {
    */
   protected function setUpSite() {
     // Assert that the expected title is present.
-    $this->assertEqual('Configure site', $this->cssSelect('main h2')[0]->getText());
+    $this->assertEquals('Configure site', $this->cssSelect('main h2')[0]->getText());
 
     // Test that SiteConfigureForm::buildForm() has made the site directory and
     // the settings file non-writable.
     $site_directory = $this->container->getParameter('app.root') . '/' . $this->siteDirectory;
-    $this->assertDirectoryNotIsWritable($site_directory);
-    $this->assertFileNotIsWritable($site_directory . '/settings.php');
+    $this->assertDirectoryIsNotWritable($site_directory);
+    $this->assertFileIsNotWritable($site_directory . '/settings.php');
 
     parent::setUpSite();
   }
@@ -118,6 +118,33 @@ class InstallerTest extends InstallerTestBase {
 
     // Assert the title is correct and has the title suffix.
     $this->assertSession()->titleEquals('Choose language | Drupal');
+  }
+
+  /**
+   * Confirms that the installation succeeded.
+   */
+  public function testInstalled() {
+    $this->assertSession()->addressEquals('user/1');
+    $this->assertSession()->statusCodeEquals(200);
+
+    $database = Database::getConnection();
+    $module = $database->getProvider();
+    $module_handler = \Drupal::service('module_handler');
+
+    // Assert that the module that is providing the database driver has been
+    // installed.
+    $this->assertTrue($module_handler->moduleExists($module));
+
+    // The module that is providing the database driver should be uninstallable.
+    try {
+      $this->container->get('module_installer')->uninstall([$module]);
+      $this->fail("Uninstalled $module module.");
+    }
+    catch (ModuleUninstallValidatorException $e) {
+      $module_name = $module_handler->getName($module);
+      $driver = $database->driver();
+      $this->assertStringContainsString("The module '$module_name' is providing the database driver '$driver'.", $e->getMessage());
+    }
   }
 
 }

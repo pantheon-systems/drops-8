@@ -11,12 +11,12 @@ use Drupal\node\Entity\NodeType;
  *
  * @group jsonapi
  */
-class EntityFormDisplayTest extends ResourceTestBase {
+class EntityFormDisplayTest extends ConfigEntityResourceTestBase {
 
   /**
    * {@inheritdoc}
    */
-  protected static $modules = ['node'];
+  protected static $modules = ['node', 'field_ui'];
 
   /**
    * {@inheritdoc}

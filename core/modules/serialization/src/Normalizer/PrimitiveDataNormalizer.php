@@ -21,6 +21,9 @@ class PrimitiveDataNormalizer extends NormalizerBase {
    * {@inheritdoc}
    */
   public function normalize($object, $format = NULL, array $context = []) {
+    // Add cacheability if applicable.
+    $this->addCacheableDependency($context, $object);
+
     $parent = $object->getParent();
     if ($parent instanceof FieldItemInterface && $object->getValue()) {
       $serialized_property_names = $this->getCustomSerializedPropertyNames($parent);
@@ -36,6 +39,13 @@ class PrimitiveDataNormalizer extends NormalizerBase {
     // optional values on the primitive level, we implement our own optional
     // value normalization here.
     return $object->getValue() === NULL ? NULL : $object->getCastedValue();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function hasCacheableSupportsMethod(): bool {
+    return TRUE;
   }
 
 }

@@ -7,7 +7,36 @@ use Drupal\migrate_drupal\Plugin\migrate\source\DrupalSqlBase;
 use Drupal\migrate\Row;
 
 /**
- * Drupal menu link source from database.
+ * Drupal 6/7 menu link source from database.
+ *
+ * Available configuration keys:
+ * - menu_name: (optional) The menu name(s) to filter menu links from the source
+ *   can be a string or an array. If not declared then menu links of all menus
+ *   are retrieved.
+ *
+ * Examples:
+ *
+ * @code
+ * source:
+ *   plugin: menu_link
+ *   menu_name: main-menu
+ * @endcode
+ *
+ * In this example menu links of main-menu are retrieved from the source
+ * database.
+ *
+ * @code
+ * source:
+ *   plugin: menu_link
+ *   menu_name: [main-menu, navigation]
+ * @endcode
+ *
+ * In this example menu links of main-menu and navigation menus are retrieved
+ * from the source database.
+ *
+ * For additional configuration keys, refer to the parent classes:
+ * @see \Drupal\migrate\Plugin\migrate\source\SqlBase
+ * @see \Drupal\migrate\Plugin\migrate\source\SourcePluginBase
  *
  * @MigrateSource(
  *   id = "menu_link",
@@ -29,7 +58,10 @@ class MenuLink extends DrupalSqlBase {
       ->condition('ml.customized', 1)
       ->condition($and);
     $query->condition($condition);
-    $query->leftJoin('menu_links', 'pl', 'ml.plid = pl.mlid');
+    if (isset($this->configuration['menu_name'])) {
+      $query->condition('ml.menu_name', (array) $this->configuration['menu_name'], 'IN');
+    }
+    $query->leftJoin('menu_links', 'pl', '[ml].[plid] = [pl].[mlid]');
     $query->addField('pl', 'link_path', 'parent_link_path');
     $query->orderBy('ml.depth');
     $query->orderby('ml.mlid');
@@ -109,9 +141,26 @@ class MenuLink extends DrupalSqlBase {
         $row->setSourceProperty('skip_translation', FALSE);
       }
     }
+    // In Drupal 6 the language for the menu is in the options array. Set
+    // property 'is_localized' so that the process pipeline can determine if
+    // the menu link is localize or not.
+    $row->setSourceProperty('is_localized', NULL);
+    $default_language = $this->variableGet('language_default', (object) ['language' => 'und']);
+    $default_language = $default_language->language;
+    $options = unserialize($row->getSourceProperty('options'));
+    if (isset($options['langcode'])) {
+      if ($options['langcode'] != $default_language) {
+        $row->setSourceProperty('language', $options['langcode']);
+        $row->setSourceProperty('is_localized', 'localized');
+      }
+    }
+
     $row->setSourceProperty('options', unserialize($row->getSourceProperty('options')));
     $row->setSourceProperty('enabled', !$row->getSourceProperty('hidden'));
-    $row->setSourceProperty('description', Unicode::truncate($row->getSourceProperty('options/attributes/title'), 255));
+    $description = $row->getSourceProperty('options/attributes/title');
+    if ($description !== NULL) {
+      $row->setSourceProperty('description', Unicode::truncate($description, 255));
+    }
 
     return parent::prepareRow($row);
   }

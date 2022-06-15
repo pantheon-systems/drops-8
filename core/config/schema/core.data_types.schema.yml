@@ -108,11 +108,11 @@ _core_config_info:
 config_object:
   type: mapping
   mapping:
+    _core:
+      type: _core_config_info
     langcode:
       type: string
       label: 'Language code'
-    _core:
-      type: _core_config_info
 
 # Mail text with subject and body parts.
 mail:
@@ -303,6 +303,9 @@ block_settings:
     label_display:
       type: string
       label: 'Display title'
+    provider:
+      type: string
+      label: 'Provider'
     status:
       type: boolean
       label: 'Status'
@@ -312,9 +315,6 @@ block_settings:
     view_mode:
       type: string
       label: 'View mode'
-    provider:
-      type: string
-      label: 'Provider'
     context_mapping:
       type: sequence
       label: 'Context assignments'
@@ -336,6 +336,14 @@ condition.plugin:
     context_mapping:
       type: sequence
       label: 'Context assignments'
+      sequence:
+        type: string
+
+condition.plugin.entity_bundle:*:
+  type: condition.plugin
+  mapping:
+    bundles:
+      type: sequence
       sequence:
         type: string
 
@@ -362,6 +370,11 @@ layout_plugin.settings:
     label:
       type: label
       label: 'Label'
+    context_mapping:
+      type: sequence
+      label: 'Context assignments'
+      sequence:
+        type: string
 
 layout_plugin.settings.*:
   type: layout_plugin.settings
@@ -509,6 +522,16 @@ field.value.string_long:
     value:
       type: text
       label: 'Value'
+
+# Schema for the configuration of the Password field type.
+
+field.storage_settings.password:
+  type: field.storage_settings.string
+  label: 'Password settings'
+
+field.field_settings.password:
+  type: mapping
+  label: 'Password settings'
 
 # Schema for the configuration of the URI field type.
 

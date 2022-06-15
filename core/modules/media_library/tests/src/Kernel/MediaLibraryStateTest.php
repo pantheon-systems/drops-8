@@ -2,6 +2,9 @@
 
 namespace Drupal\Tests\media_library\Kernel;
 
+use Drupal\Core\Cache\Cache;
+use Drupal\Core\Cache\CacheableDependencyInterface;
+use Drupal\Core\Http\InputBag;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\media_library\MediaLibraryState;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
@@ -104,6 +107,11 @@ class MediaLibraryStateTest extends KernelTestBase {
     }
     $state = MediaLibraryState::create($opener_id, $allowed_media_type_ids, $selected_type_id, $remaining_slots);
     $this->assertInstanceOf(MediaLibraryState::class, $state);
+
+    // Ensure that the state object carries cache metadata.
+    $this->assertInstanceOf(CacheableDependencyInterface::class, $state);
+    $this->assertSame(['url.query_args'], $state->getCacheContexts());
+    $this->assertSame(Cache::PERMANENT, $state->getCacheMaxAge());
   }
 
   /**
@@ -279,7 +287,13 @@ class MediaLibraryStateTest extends KernelTestBase {
       $this->expectException(BadRequestHttpException::class);
       $this->expectExceptionMessage("Invalid media library parameters specified.");
     }
-    $state = MediaLibraryState::fromRequest(new Request($query));
+
+    // @todo Remove this when Symfony 4 is no longer supported.
+    //   See https://www.drupal.org/node/3162981
+    $request = new Request();
+    $request->query = new InputBag($query);
+
+    $state = MediaLibraryState::fromRequest($request);
     $this->assertInstanceOf(MediaLibraryState::class, $state);
   }
 
@@ -365,7 +379,7 @@ class MediaLibraryStateTest extends KernelTestBase {
   }
 
   /**
-   * Test that hash is unaffected by allowed media type order.
+   * Tests that hash is unaffected by allowed media type order.
    */
   public function testHashUnaffectedByMediaTypeOrder() {
     $state1 = MediaLibraryState::create('test', ['file', 'image'], 'image', 2);
@@ -374,7 +388,7 @@ class MediaLibraryStateTest extends KernelTestBase {
   }
 
   /**
-   * Test that hash is unaffected by opener parameter order.
+   * Tests that hash is unaffected by opener parameter order.
    */
   public function testHashUnaffectedByOpenerParamOrder() {
     $state1 = MediaLibraryState::create('test', ['file'], 'file', -1, [

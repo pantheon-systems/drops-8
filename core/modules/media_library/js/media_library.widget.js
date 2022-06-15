@@ -15,7 +15,7 @@
           handle: '.js-media-library-item-preview',
           onEnd: function onEnd() {
             $(widget).children().each(function (index, child) {
-              $(child).find('.js-media-library-item-weight').val(index);
+              $(child).find('.js-media-library-item-weight')[0].value = index;
             });
           }
         });
@@ -28,21 +28,25 @@
         show: Drupal.t('Show media item weights'),
         hide: Drupal.t('Hide media item weights')
       };
-      $('.js-media-library-widget-toggle-weight', context).once('media-library-toggle').on('click', function (e) {
+      var mediaLibraryToggle = once('media-library-toggle', '.js-media-library-widget-toggle-weight', context);
+      $(mediaLibraryToggle).on('click', function (e) {
         e.preventDefault();
-        $(e.currentTarget).toggleClass('active').text($(e.currentTarget).hasClass('active') ? strings.hide : strings.show).closest('.js-media-library-widget').find('.js-media-library-item-weight').parent().toggle();
-      }).text(strings.show);
-      $('.js-media-library-item-weight', context).once('media-library-toggle').parent().hide();
+        var $target = $(e.currentTarget);
+        e.currentTarget.textContent = $target.hasClass('active') ? strings.show : strings.hide;
+        $target.toggleClass('active').closest('.js-media-library-widget').find('.js-media-library-item-weight').parent().toggle();
+      });
+      mediaLibraryToggle.forEach(function (item) {
+        item.textContent = strings.show;
+      });
+      $(once('media-library-toggle', '.js-media-library-item-weight', context)).parent().hide();
     }
   };
   Drupal.behaviors.MediaLibraryWidgetDisableButton = {
     attach: function attach(context) {
-      $('.js-media-library-open-button[data-disabled-focus="true"]', context).once('media-library-disable').each(function () {
-        var _this = this;
-
-        $(this).focus();
+      once('media-library-disable', '.js-media-library-open-button[data-disabled-focus="true"]', context).forEach(function (button) {
+        $(button).focus();
         setTimeout(function () {
-          $(_this).attr('disabled', 'disabled');
+          $(button).attr('disabled', 'disabled');
         }, 50);
       });
     }
