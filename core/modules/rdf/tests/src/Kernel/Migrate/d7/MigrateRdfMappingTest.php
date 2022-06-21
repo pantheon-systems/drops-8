@@ -2,15 +2,15 @@
 
 namespace Drupal\Tests\rdf\Kernel\Migrate\d7;
 
+use Drupal\Tests\migrate_drupal\Kernel\MigrateDrupalTestBase;
 use Drupal\rdf\RdfMappingInterface;
-use Drupal\Tests\migrate_drupal\Kernel\d7\MigrateDrupal7TestBase;
 
 /**
  * Tests RDF mappings migration from Drupal 7 to 8.
  *
  * @group rdf
  */
-class MigrateRdfMappingTest extends MigrateDrupal7TestBase {
+class MigrateRdfMappingTest extends MigrateDrupalTestBase {
 
   /**
    * {@inheritdoc}
@@ -29,6 +29,7 @@ class MigrateRdfMappingTest extends MigrateDrupal7TestBase {
   protected function setUp(): void {
     parent::setUp();
 
+    $this->loadFixture(__DIR__ . '/../../../../fixtures/drupal7.php');
     $this->installConfig(static::$modules);
 
     $this->executeMigrations([
@@ -49,8 +50,10 @@ class MigrateRdfMappingTest extends MigrateDrupal7TestBase {
    *   The expected RDF types.
    * @param array[] $field_mappings
    *   The expected RDF field mappings.
+   *
+   * @internal
    */
-  protected function assertRdfMapping($entity_type, $bundle, $types, $field_mappings) {
+  protected function assertRdfMapping(string $entity_type, string $bundle, array $types, array $field_mappings): void {
     $rdf_mapping = rdf_get_mapping($entity_type, $bundle);
     $this->assertInstanceOf(RdfMappingInterface::class, $rdf_mapping);
     $this->assertSame($types, $rdf_mapping->getBundleMapping());

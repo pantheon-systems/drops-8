@@ -7,6 +7,7 @@ use Drupal\Core\Language\Language;
 use Drupal\Core\Session\UserSession;
 use Drupal\Core\Site\Settings;
 use Drupal\Core\Test\HttpClientMiddleware\TestHttpClientMiddleware;
+use Drupal\Core\Utility\PhpRequirements;
 use Drupal\Tests\BrowserTestBase;
 use Drupal\Tests\RequirementsPageTrait;
 use GuzzleHttp\HandlerStack;
@@ -252,7 +253,9 @@ abstract class InstallerTestBase extends BrowserTestBase {
    * @see system_requirements()
    */
   protected function setUpRequirementsProblem() {
-    // Do nothing.
+    if (version_compare(phpversion(), PhpRequirements::getMinimumSupportedPhp()) < 0) {
+      $this->continueOnExpectedWarnings(['PHP']);
+    }
   }
 
   /**

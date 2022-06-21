@@ -19,13 +19,21 @@ toolbar:
       css/toolbar.icons.theme.css: {}
   dependencies:
     - core/modernizr
+    # Toolbar does not use touchevents detection, nor does it use Modernizr.
+    # Despite not using Modernizr, it loads it. Sites that expect modernizr to
+    # be available may be getting it due to it being part of Toolbar. Because
+    # of this, we must include drupal.touchevents-test so the expected
+    # `touchevents/no-touchevents` classes are still added to the page.
+    - core/drupal.touchevents-test
     - core/jquery
     - core/drupal
     - core/drupalSettings
     - core/drupal.ajax
     - core/drupal.announce
-    - core/backbone
-    - core/jquery.once
+    # @todo Remove this in https://www.drupal.org/project/drupal/issues/3204015
+    - core/internal.backbone
+    - core/once
+    - core/jquery.once.bc
     - core/drupal.displace
     - toolbar/toolbar.menu
 
@@ -39,7 +47,8 @@ toolbar.menu:
   dependencies:
     - core/jquery
     - core/drupal
-    - core/jquery.once
+    - core/once
+    - core/jquery.once.bc
 
 toolbar.escapeAdmin:
   version: VERSION
@@ -49,4 +58,5 @@ toolbar.escapeAdmin:
     - core/jquery
     - core/drupal
     - core/drupalSettings
-    - core/jquery.once
+    - core/once
+    - core/jquery.once.bc

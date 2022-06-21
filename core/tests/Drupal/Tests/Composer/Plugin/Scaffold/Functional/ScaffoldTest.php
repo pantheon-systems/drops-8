@@ -111,7 +111,7 @@ class ScaffoldTest extends TestCase {
   public function scaffoldSut($fixture_name, $is_link = FALSE, $relocated_docroot = TRUE) {
     $sut = $this->createSut($fixture_name, ['SYMLINK' => $is_link ? 'true' : 'false']);
     // Run composer install to get the dependencies we need to test.
-    $this->fixtures->runComposer("install --no-ansi --no-scripts", $sut);
+    $this->fixtures->runComposer("install --no-ansi --no-scripts --no-plugins", $sut);
     // Test drupal:scaffold.
     $scaffoldOutput = $this->fixtures->runScaffold($sut);
 
@@ -124,7 +124,7 @@ class ScaffoldTest extends TestCase {
       $this->assertFileExists($docroot);
     }
     else {
-      $this->assertFileNotExists($sut . '/docroot');
+      $this->assertFileDoesNotExist($sut . '/docroot');
     }
 
     return new ScaffoldTestResult($docroot, $scaffoldOutput);
@@ -254,7 +254,7 @@ class ScaffoldTest extends TestCase {
   }
 
   /**
-   * Test values for testDrupalDrupalFileWasAppended.
+   * Provides test values for testDrupalDrupalFileWasAppended.
    */
   public function scaffoldAppendTestValues() {
     return array_merge(
@@ -277,7 +277,7 @@ include __DIR__ . "/settings-custom-additions.php";',
   }
 
   /**
-   * Test values to run both with $is_link FALSE and $is_link TRUE.
+   * Tests values to run both with $is_link FALSE and $is_link TRUE.
    *
    * @param bool $is_link
    *   Whether or not symlinking should be used.
@@ -356,8 +356,10 @@ include __DIR__ . "/settings-custom-additions.php";',
    *   The path to the System-under-Test's docroot.
    * @param bool $is_link
    *   Whether or not symlinking is used.
+   *
+   * @internal
    */
-  protected function assertDefaultSettingsFromScaffoldOverride($docroot, $is_link) {
+  protected function assertDefaultSettingsFromScaffoldOverride(string $docroot, bool $is_link): void {
     $this->assertScaffoldedFile($docroot . '/sites/default/default.settings.php', $is_link, 'scaffolded from the scaffold-override-fixture');
   }
 
@@ -366,11 +368,13 @@ include __DIR__ . "/settings-custom-additions.php";',
    *
    * @param string $docroot
    *   The path to the System-under-Test's docroot.
+   *
+   * @internal
    */
-  protected function assertHtaccessExcluded($docroot) {
+  protected function assertHtaccessExcluded(string $docroot): void {
     // Ensure that the .htaccess.txt file was not written, as our
     // top-level composer.json excludes it from the files to scaffold.
-    $this->assertFileNotExists($docroot . '/.htaccess');
+    $this->assertFileDoesNotExist($docroot . '/.htaccess');
   }
 
   /**
@@ -384,8 +388,10 @@ include __DIR__ . "/settings-custom-additions.php";',
    *   The path to the System-under-Test's docroot.
    * @param bool $is_link
    *   Whether or not symlinking is used.
+   *
+   * @internal
    */
-  protected function assertCommonDrupalAssetsWereScaffolded($docroot, $is_link) {
+  protected function assertCommonDrupalAssetsWereScaffolded(string $docroot, bool $is_link): void {
     // Assert scaffold files are written in the correct locations.
     $this->assertScaffoldedFile($docroot . '/.csslintrc', $is_link, 'Test version of .csslintrc from drupal/core.');
     $this->assertScaffoldedFile($docroot . '/.editorconfig', $is_link, 'Test version of .editorconfig from drupal/core.');
@@ -408,8 +414,10 @@ include __DIR__ . "/settings-custom-additions.php";',
    *   Location of the doc root, where autoload.php should be written.
    * @param bool $relocated_docroot
    *   Whether the document root is relocated or now.
+   *
+   * @internal
    */
-  protected function assertAutoloadFileCorrect($docroot, $relocated_docroot = FALSE) {
+  protected function assertAutoloadFileCorrect(string $docroot, bool $relocated_docroot = FALSE): void {
     $autoload_path = $docroot . '/autoload.php';
 
     // Ensure that the autoload.php file was written.

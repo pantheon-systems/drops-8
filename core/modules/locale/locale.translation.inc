@@ -63,7 +63,7 @@ function locale_translation_get_projects(array $project_names = []) {
     // https://www.drupal.org/node/1777106 is a follow-up issue to make the
     // check for possible out-of-date project information more robust.
     if ($row_count == 0) {
-      module_load_include('compare.inc', 'locale');
+      \Drupal::moduleHandler()->loadInclude('locale', 'inc', 'locale.compare');
       // At least the core project should be in the database, so we build the
       // data if none are found.
       locale_translation_build_projects();
@@ -112,7 +112,7 @@ function locale_translation_load_sources(array $projects = NULL, array $langcode
   // Use only the selected projects and languages for update.
   foreach ($projects as $project) {
     foreach ($langcodes as $langcode) {
-      $sources[$project][$langcode] = isset($status[$project][$langcode]) ? $status[$project][$langcode] : NULL;
+      $sources[$project][$langcode] = $status[$project][$langcode] ?? NULL;
     }
   }
   return $sources;
@@ -318,7 +318,7 @@ function locale_translation_build_server_pattern($project, $template) {
     '%project' => $project->name,
     '%version' => $project->version,
     '%core' => $project->core,
-    '%language' => isset($project->langcode) ? $project->langcode : '%language',
+    '%language' => $project->langcode ?? '%language',
   ];
   return strtr($template, $variables);
 }
@@ -357,7 +357,7 @@ function locale_cron_fill_queue() {
   // For each project+language combination a number of tasks are added to
   // the queue.
   if ($updates) {
-    module_load_include('fetch.inc', 'locale');
+    \Drupal::moduleHandler()->loadInclude('locale', 'inc', 'locale.fetch');
     $options = _locale_translation_default_update_options();
     $queue = \Drupal::queue('locale_translation', TRUE);
 

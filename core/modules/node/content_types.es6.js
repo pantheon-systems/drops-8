@@ -19,7 +19,7 @@
       $context.find('#edit-submission').drupalSetSummary((context) => {
         const vals = [];
         vals.push(
-          Drupal.checkPlain($(context).find('#edit-title-label').val()) ||
+          Drupal.checkPlain($(context).find('#edit-title-label')[0].value) ||
             Drupal.t('Requires a title'),
         );
         return vals.join(', ');
@@ -30,7 +30,7 @@
           .find('input[name^="options"]:checked')
           .next('label')
           .each(function () {
-            vals.push(Drupal.checkPlain($(this).text()));
+            vals.push(Drupal.checkPlain(this.textContent));
           });
         if (!$(context).find('#edit-options-status').is(':checked')) {
           vals.unshift(Drupal.t('Not published'));
@@ -44,13 +44,13 @@
           $(
             '.js-form-item-language-configuration-langcode select option:selected',
             context,
-          ).text(),
+          )[0].textContent,
         );
 
         $('input:checked', context)
           .next('label')
           .each(function () {
-            vals.push(Drupal.checkPlain($(this).text()));
+            vals.push(Drupal.checkPlain(this.textContent));
           });
 
         return vals.join(', ');
@@ -62,7 +62,7 @@
           .find('input:checked')
           .next('label')
           .each(function () {
-            vals.push(Drupal.checkPlain($(this).text()));
+            vals.push(Drupal.checkPlain(this.textContent));
           });
         if (!$editContext.find('#edit-display-submitted').is(':checked')) {
           vals.unshift(Drupal.t("Don't display post information"));

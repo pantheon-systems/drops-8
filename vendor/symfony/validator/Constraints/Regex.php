@@ -22,7 +22,7 @@ use Symfony\Component\Validator\Exception\InvalidArgumentException;
  */
 class Regex extends Constraint
 {
-    const REGEX_FAILED_ERROR = 'de1e3db3-5ed4-4941-aae4-59f3667cc3a3';
+    public const REGEX_FAILED_ERROR = 'de1e3db3-5ed4-4941-aae4-59f3667cc3a3';
 
     protected static $errorNames = [
         self::REGEX_FAILED_ERROR => 'REGEX_FAILED_ERROR',
@@ -64,9 +64,6 @@ class Regex extends Constraint
      * Example: /^[a-z]+$/ would be converted to [a-z]+
      * However, if options are specified, it cannot be converted.
      *
-     * Pattern is also ignored if match=false since the pattern should
-     * then be reversed before application.
-     *
      * @see http://dev.w3.org/html5/spec/single-page.html#the-pattern-attribute
      *
      * @return string|null
@@ -98,7 +95,7 @@ class Regex extends Constraint
 
         // If the pattern contains an or statement, wrap the pattern in
         // .*(pattern).* and quit. Otherwise we'd need to parse the pattern
-        if (false !== strpos($pattern, '|')) {
+        if (str_contains($pattern, '|')) {
             return '.*('.$pattern.').*';
         }
 

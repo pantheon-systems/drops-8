@@ -86,7 +86,7 @@ class EditorImageDialogTest extends EntityKernelTestBase {
   public function testEditorImageDialog() {
     $input = [
       'editor_object' => [
-        'src' => '/sites/default/files/inline-images/somefile.png',
+        'src' => '/sites/default/files/inline-images/some-file.png',
         'alt' => 'fda',
         'width' => '',
         'height' => '',
@@ -121,7 +121,7 @@ class EditorImageDialogTest extends EntityKernelTestBase {
 
     // Assert these two values are present and we don't get the 'not-this'
     // default back.
-    $this->assertEqual(FALSE, $form_state->getValue(['attributes', 'hasCaption'], 'not-this'));
+    $this->assertFalse($form_state->getValue(['attributes', 'hasCaption'], 'not-this'));
   }
 
 }

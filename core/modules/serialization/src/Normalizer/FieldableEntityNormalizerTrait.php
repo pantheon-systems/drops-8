@@ -101,7 +101,7 @@ trait FieldableEntityNormalizerTrait {
     $key_id = isset($base_field_definitions[$bundle_key]) ? $base_field_definitions[$bundle_key]->getFieldStorageDefinition()->getMainPropertyName() : 'value';
 
     // Normalize the bundle if it is not explicitly set.
-    $bundle_value = isset($data[$bundle_key][0][$key_id]) ? $data[$bundle_key][0][$key_id] : (isset($data[$bundle_key]) ? $data[$bundle_key] : NULL);
+    $bundle_value = $data[$bundle_key][0][$key_id] ?? ($data[$bundle_key] ?? NULL);
     // Unset the bundle from the data.
     unset($data[$bundle_key]);
 
@@ -188,7 +188,8 @@ trait FieldableEntityNormalizerTrait {
    *
    * Most normalizers that extend this class can simply use this method to
    * construct the denormalized value without having to override denormalize()
-   * and reimplementing its validation logic or its call to set the field value.
+   * and re-implementing its validation logic or its call to set the field
+   * value.
    *
    * It's recommended to not override this and instead provide a (de)normalizer
    * at the DataType level.

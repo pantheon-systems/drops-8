@@ -14,7 +14,7 @@ use GuzzleHttp\RequestOptions;
  *
  * @group jsonapi
  */
-class ConfigurableLanguageTest extends ResourceTestBase {
+class ConfigurableLanguageTest extends ConfigEntityResourceTestBase {
 
   /**
    * {@inheritdoc}
@@ -105,6 +105,7 @@ class ConfigurableLanguageTest extends ResourceTestBase {
    */
   protected function getPostDocument() {
     // @todo Update in https://www.drupal.org/node/2300677.
+    return [];
   }
 
   /**
@@ -115,7 +116,7 @@ class ConfigurableLanguageTest extends ResourceTestBase {
   }
 
   /**
-   * Test a GET request for a default config entity, which has a _core key.
+   * Tests a GET request for a default config entity, which has a _core key.
    *
    * @see https://www.drupal.org/project/drupal/issues/2915539
    */
