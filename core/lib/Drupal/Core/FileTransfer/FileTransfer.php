@@ -211,7 +211,7 @@ abstract class FileTransfer {
       ->realpath(substr($this->chroot . $path, 0, strlen($full_jail)));
     $full_path = $this->fixRemotePath($full_path, FALSE);
     if ($full_jail !== $full_path) {
-      throw new FileTransferException('@directory is outside of the @jail', NULL, ['@directory' => $path, '@jail' => $this->jail]);
+      throw new FileTransferException('@directory is outside of the @jail', 0, ['@directory' => $path, '@jail' => $this->jail]);
     }
   }
 
@@ -232,7 +232,7 @@ abstract class FileTransfer {
    */
   final protected function fixRemotePath($path, $strip_chroot = TRUE) {
     $path = $this->sanitizePath($path);
-    // Strip out windows driveletter if its there.
+    // Strip out windows drive letter if its there.
     $path = preg_replace('|^([a-z]{1}):|i', '', $path);
     if ($strip_chroot) {
       if ($this->chroot && strpos($path, $this->chroot) === 0) {

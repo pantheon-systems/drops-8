@@ -34,7 +34,7 @@ class FileProfilerStorage implements ProfilerStorageInterface
      */
     public function __construct(string $dsn)
     {
-        if (0 !== strpos($dsn, 'file:')) {
+        if (!str_starts_with($dsn, 'file:')) {
             throw new \RuntimeException(sprintf('Please check your configuration. You are trying to use FileStorage with an invalid dsn "%s". The expected format is "file:/path/to/the/storage/folder".', $dsn));
         }
         $this->folder = substr($dsn, 5);
@@ -61,10 +61,10 @@ class FileProfilerStorage implements ProfilerStorageInterface
         $result = [];
         while (\count($result) < $limit && $line = $this->readLineFromFile($file)) {
             $values = str_getcsv($line);
-            list($csvToken, $csvIp, $csvMethod, $csvUrl, $csvTime, $csvParent, $csvStatusCode) = $values;
+            [$csvToken, $csvIp, $csvMethod, $csvUrl, $csvTime, $csvParent, $csvStatusCode] = $values;
             $csvTime = (int) $csvTime;
 
-            if ($ip && false === strpos($csvIp, $ip) || $url && false === strpos($csvUrl, $url) || $method && false === strpos($csvMethod, $method) || $statusCode && false === strpos($csvStatusCode, $statusCode)) {
+            if ($ip && !str_contains($csvIp, $ip) || $url && !str_contains($csvUrl, $url) || $method && !str_contains($csvMethod, $method) || $statusCode && !str_contains($csvStatusCode, $statusCode)) {
                 continue;
             }
 
@@ -123,7 +123,11 @@ class FileProfilerStorage implements ProfilerStorageInterface
             $file = 'compress.zlib://'.$file;
         }
 
-        return $this->createProfileFromData($token, unserialize(file_get_contents($file)));
+        if (!$data = unserialize(file_get_contents($file))) {
+            return null;
+        }
+
+        return $this->createProfileFromData($token, $data);
     }
 
     /**
@@ -297,7 +301,11 @@ class FileProfilerStorage implements ProfilerStorageInterface
                 $file = 'compress.zlib://'.$file;
             }
 
-            $profile->addChild($this->createProfileFromData($token, unserialize(file_get_contents($file)), $profile));
+            if (!$childData = unserialize(file_get_contents($file))) {
+                continue;
+            }
+
+            $profile->addChild($this->createProfileFromData($token, $childData, $profile));
         }
 
         return $profile;

@@ -40,12 +40,12 @@ class CollectRoutesTest extends UnitTestCase {
       ->getMock();
 
     $this->view = $this->getMockBuilder('\Drupal\views\Entity\View')
-      ->setMethods(['initHandlers'])
+      ->addMethods(['initHandlers'])
       ->setConstructorArgs([['id' => 'test_view'], 'view'])
       ->getMock();
 
     $view_executable = $this->getMockBuilder('\Drupal\views\ViewExecutable')
-      ->setMethods(['initHandlers', 'getTitle'])
+      ->onlyMethods(['initHandlers', 'getTitle'])
       ->disableOriginalConstructor()
       ->getMock();
     $view_executable->expects($this->any())
@@ -116,7 +116,7 @@ class CollectRoutesTest extends UnitTestCase {
       ->will($this->returnValue($none));
 
     $style_plugin = $this->getMockBuilder('\Drupal\rest\Plugin\views\style\Serializer')
-      ->setMethods(['getFormats', 'init'])
+      ->onlyMethods(['getFormats', 'init'])
       ->disableOriginalConstructor()
       ->getMock();
 
@@ -155,7 +155,7 @@ class CollectRoutesTest extends UnitTestCase {
     // Check auth options.
     $auth = $this->routes->get('view.test_view.page_1')->getOption('_auth');
     $this->assertCount(1, $auth, 'View route with rest export has an auth option added');
-    $this->assertEquals($auth[0], 'basic_auth', 'View route with rest export has the correct auth option added');
+    $this->assertEquals('basic_auth', $auth[0], 'View route with rest export has the correct auth option added');
   }
 
 }

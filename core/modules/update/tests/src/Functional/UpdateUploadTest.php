@@ -12,7 +12,7 @@ use Drupal\Tests\TestFileCreationTrait;
  *
  * @group update
  */
-class UpdateUploadTest extends UpdateTestBase {
+class UpdateUploadTest extends UpdateUploaderTestBase {
 
   use TestFileCreationTrait {
     getTestFiles as drupalGetTestFiles;
@@ -23,7 +23,7 @@ class UpdateUploadTest extends UpdateTestBase {
    *
    * @var array
    */
-  protected static $modules = ['update', 'update_test'];
+  protected static $modules = ['update', 'update_test', 'file'];
 
   /**
    * {@inheritdoc}
@@ -57,9 +57,10 @@ class UpdateUploadTest extends UpdateTestBase {
       'files[project_upload]' => $invalidArchiveFile->uri,
     ];
     // This also checks that the correct archive extensions are allowed.
-    $this->drupalPostForm('admin/modules/install', $edit, 'Install');
+    $this->drupalGet('admin/modules/install');
+    $this->submitForm($edit, 'Continue');
     $extensions = \Drupal::service('plugin.manager.archiver')->getExtensions();
-    $this->assertSession()->pageTextContains(t('Only files with the following extensions are allowed: @archive_extensions.', ['@archive_extensions' => $extensions]));
+    $this->assertSession()->pageTextContains("Only files with the following extensions are allowed: $extensions.");
     $this->assertSession()->addressEquals('admin/modules/install');
 
     // Check to ensure an existing module can't be reinstalled. Also checks that
@@ -69,37 +70,39 @@ class UpdateUploadTest extends UpdateTestBase {
     $edit = [
       'files[project_upload]' => $validArchiveFile,
     ];
-    $this->drupalPostForm('admin/modules/install', $edit, 'Install');
-    $this->assertText('AAA Update test is already installed.', 'Existing module was extracted and not reinstalled.');
+    $this->drupalGet('admin/modules/install');
+    $this->submitForm($edit, 'Continue');
+    $this->assertSession()->pageTextContains('AAA Update test is already present.');
     $this->assertSession()->addressEquals('admin/modules/install');
 
     // Ensure that a new module can be extracted and installed.
     $updaters = drupal_get_updaters();
     $moduleUpdater = $updaters['module']['class'];
     $installedInfoFilePath = $this->container->get('update.root') . '/' . $moduleUpdater::getRootDirectoryRelativePath() . '/update_test_new_module/update_test_new_module.info.yml';
-    $this->assertFileNotExists($installedInfoFilePath);
+    $this->assertFileDoesNotExist($installedInfoFilePath);
     $validArchiveFile = __DIR__ . '/../../update_test_new_module/8.x-1.0/update_test_new_module.tar.gz';
     $edit = [
       'files[project_upload]' => $validArchiveFile,
     ];
-    $this->drupalPostForm('admin/modules/install', $edit, 'Install');
+    $this->drupalGet('admin/modules/install');
+    $this->submitForm($edit, 'Continue');
     // Check that submitting the form takes the user to authorize.php.
     $this->assertSession()->addressEquals('core/authorize.php');
     $this->assertSession()->titleEquals('Update manager | Drupal');
     // Check for a success message on the page, and check that the installed
     // module now exists in the expected place in the filesystem.
-    $this->assertRaw(t('Installed %project_name successfully', ['%project_name' => 'update_test_new_module']));
+    $this->assertSession()->pageTextContains("Added / updated update_test_new_module successfully");
     $this->assertFileExists($installedInfoFilePath);
     // Ensure the links are relative to the site root and not
     // core/authorize.php.
-    $this->assertSession()->linkExists('Install another module');
+    $this->assertSession()->linkExists('Add another module');
     $this->assertSession()->linkByHrefExists(Url::fromRoute('update.module_install')->toString());
     $this->assertSession()->linkExists('Enable newly added modules');
     $this->assertSession()->linkByHrefExists(Url::fromRoute('system.modules_list')->toString());
     $this->assertSession()->linkExists('Administration pages');
     $this->assertSession()->linkByHrefExists(Url::fromRoute('system.admin')->toString());
-    // Ensure we can reach the "Install another module" link.
-    $this->clickLink(t('Install another module'));
+    // Ensure we can reach the "Add another module" link.
+    $this->clickLink('Add another module');
     $this->assertSession()->statusCodeEquals(200);
     $this->assertSession()->addressEquals('admin/modules/install');
 
@@ -110,10 +113,11 @@ class UpdateUploadTest extends UpdateTestBase {
     // directly instead.
     $info_parser = new InfoParserDynamic(DRUPAL_ROOT);
     $info = $info_parser->parse($installedInfoFilePath);
-    $this->assertEqual($info['version'], '8.x-1.0');
+    $this->assertEquals('8.x-1.0', $info['version']);
 
     // Enable the module.
-    $this->drupalPostForm('admin/modules', ['modules[update_test_new_module][enable]' => TRUE], 'Install');
+    $this->drupalGet('admin/modules');
+    $this->submitForm(['modules[update_test_new_module][enable]' => TRUE], 'Install');
 
     // Define the update XML such that the new module downloaded above needs an
     // update from 8.x-1.0 to 8.x-1.1.
@@ -130,15 +134,16 @@ class UpdateUploadTest extends UpdateTestBase {
     $this->refreshUpdateStatus($xml_mapping);
 
     // Run the updates for the new module.
-    $this->drupalPostForm('admin/reports/updates/update', ['projects[update_test_new_module]' => TRUE], 'Download these updates');
+    $this->drupalGet('admin/reports/updates/update');
+    $this->submitForm(['projects[update_test_new_module]' => TRUE], 'Download these updates');
     $this->submitForm(['maintenance_mode' => FALSE], 'Continue');
-    $this->assertText('Update was completed successfully.');
-    $this->assertRaw(t('Installed %project_name successfully', ['%project_name' => 'update_test_new_module']));
+    $this->assertSession()->pageTextContains('Update was completed successfully.');
+    $this->assertSession()->pageTextContains("Added / updated update_test_new_module successfully");
 
     // Parse the info file again to check that the module has been updated to
     // 8.x-1.1.
     $info = $info_parser->parse($installedInfoFilePath);
-    $this->assertEqual($info['version'], '8.x-1.1');
+    $this->assertEquals('8.x-1.1', $info['version']);
   }
 
   /**
@@ -175,25 +180,25 @@ class UpdateUploadTest extends UpdateTestBase {
     // about core missing a security update.
 
     $this->drupalGet('admin/modules/install');
-    $this->assertNoText('There is a security update available for your version of Drupal.');
+    $this->assertSession()->pageTextNotContains('There is a security update available for your version of Drupal.');
 
     $this->drupalGet('admin/modules/update');
-    $this->assertNoText('There is a security update available for your version of Drupal.');
+    $this->assertSession()->pageTextNotContains('There is a security update available for your version of Drupal.');
 
     $this->drupalGet('admin/appearance/install');
-    $this->assertNoText('There is a security update available for your version of Drupal.');
+    $this->assertSession()->pageTextNotContains('There is a security update available for your version of Drupal.');
 
     $this->drupalGet('admin/appearance/update');
-    $this->assertNoText('There is a security update available for your version of Drupal.');
+    $this->assertSession()->pageTextNotContains('There is a security update available for your version of Drupal.');
 
     $this->drupalGet('admin/reports/updates/install');
-    $this->assertNoText('There is a security update available for your version of Drupal.');
+    $this->assertSession()->pageTextNotContains('There is a security update available for your version of Drupal.');
 
     $this->drupalGet('admin/reports/updates/update');
-    $this->assertNoText('There is a security update available for your version of Drupal.');
+    $this->assertSession()->pageTextNotContains('There is a security update available for your version of Drupal.');
 
     $this->drupalGet('admin/update/ready');
-    $this->assertNoText('There is a security update available for your version of Drupal.');
+    $this->assertSession()->pageTextNotContains('There is a security update available for your version of Drupal.');
   }
 
   /**
@@ -201,10 +206,10 @@ class UpdateUploadTest extends UpdateTestBase {
    */
   public function testUpdateDirectory() {
     $type = Updater::getUpdaterFromDirectory($this->root . '/core/modules/update/tests/modules/aaa_update_test');
-    $this->assertEqual($type, 'Drupal\\Core\\Updater\\Module', 'Detected a Module');
+    $this->assertEquals('Drupal\\Core\\Updater\\Module', $type, 'Detected a Module');
 
     $type = Updater::getUpdaterFromDirectory($this->root . '/core/modules/update/tests/themes/update_test_basetheme');
-    $this->assertEqual($type, 'Drupal\\Core\\Updater\\Theme', 'Detected a Theme.');
+    $this->assertEquals('Drupal\\Core\\Updater\\Theme', $type, 'Detected a Theme.');
   }
 
 }

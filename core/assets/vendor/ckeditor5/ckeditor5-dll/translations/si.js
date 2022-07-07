@@ -1,0 +1,1 @@
+!function(o){const n=o.si=o.si||{};n.dictionary=Object.assign(n.dictionary||{},{"%0 of %1":"",Cancel:"","Cannot upload file:":"ගොනුව යාවත්කාලීන කළ නොහැක:",Redo:"නැවත කරන්න","Remove color":"","Restore default":"",Save:"","Show more items":"",Undo:"අහෝසි කරන්න"}),n.getPluralForm=function(o){return 1!=o}}(window.CKEDITOR_TRANSLATIONS||(window.CKEDITOR_TRANSLATIONS={}));

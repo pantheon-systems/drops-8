@@ -25,7 +25,7 @@ class ElementsTableSelectTest extends BrowserTestBase {
   protected $defaultTheme = 'stark';
 
   /**
-   * Test the display of checkboxes when #multiple is TRUE.
+   * Tests the display of checkboxes when #multiple is TRUE.
    */
   public function testMultipleTrue() {
 
@@ -43,7 +43,7 @@ class ElementsTableSelectTest extends BrowserTestBase {
   }
 
   /**
-   * Test the display of radios when #multiple is FALSE.
+   * Tests the display of radios when #multiple is FALSE.
    */
   public function testMultipleFalse() {
     $this->drupalGet('form_test/tableselect/multiple-false');
@@ -85,7 +85,7 @@ class ElementsTableSelectTest extends BrowserTestBase {
   }
 
   /**
-   * Test the display of the #empty text when #options is an empty array.
+   * Tests the display of the #empty text when #options is an empty array.
    */
   public function testEmptyText() {
     $this->drupalGet('form_test/tableselect/empty-text');
@@ -93,14 +93,15 @@ class ElementsTableSelectTest extends BrowserTestBase {
   }
 
   /**
-   * Test the submission of single and multiple values when #multiple is TRUE.
+   * Tests the submission of single and multiple values when #multiple is TRUE.
    */
   public function testMultipleTrueSubmit() {
 
     // Test a submission with one checkbox checked.
     $edit = [];
     $edit['tableselect[row1]'] = TRUE;
-    $this->drupalPostForm('form_test/tableselect/multiple-true', $edit, 'Submit');
+    $this->drupalGet('form_test/tableselect/multiple-true');
+    $this->submitForm($edit, 'Submit');
 
     $assert_session = $this->assertSession();
     $assert_session->pageTextContains('Submitted: row1 = row1');
@@ -110,7 +111,8 @@ class ElementsTableSelectTest extends BrowserTestBase {
     // Test a submission with multiple checkboxes checked.
     $edit['tableselect[row1]'] = TRUE;
     $edit['tableselect[row3]'] = TRUE;
-    $this->drupalPostForm('form_test/tableselect/multiple-true', $edit, 'Submit');
+    $this->drupalGet('form_test/tableselect/multiple-true');
+    $this->submitForm($edit, 'Submit');
 
     $assert_session->pageTextContains('Submitted: row1 = row1');
     $assert_session->pageTextContains('Submitted: row2 = 0');
@@ -119,16 +121,17 @@ class ElementsTableSelectTest extends BrowserTestBase {
   }
 
   /**
-   * Test submission of values when #multiple is FALSE.
+   * Tests submission of values when #multiple is FALSE.
    */
   public function testMultipleFalseSubmit() {
     $edit['tableselect'] = 'row1';
-    $this->drupalPostForm('form_test/tableselect/multiple-false', $edit, 'Submit');
+    $this->drupalGet('form_test/tableselect/multiple-false');
+    $this->submitForm($edit, 'Submit');
     $this->assertSession()->pageTextContains('Submitted: row1');
   }
 
   /**
-   * Test the #js_select property.
+   * Tests the #js_select property.
    */
   public function testAdvancedSelect() {
     // When #multiple = TRUE a Select all checkbox should be displayed by default.
@@ -148,11 +151,12 @@ class ElementsTableSelectTest extends BrowserTestBase {
   }
 
   /**
-   * Test the whether the option checker gives an error on invalid tableselect values for checkboxes.
+   * Tests the whether the option checker gives an error on invalid
+   * tableselect values for checkboxes.
    */
   public function testMultipleTrueOptionchecker() {
 
-    list($header, $options) = _form_test_tableselect_get_data();
+    [$header, $options] = _form_test_tableselect_get_data();
 
     $form['tableselect'] = [
       '#type' => 'tableselect',
@@ -161,21 +165,22 @@ class ElementsTableSelectTest extends BrowserTestBase {
     ];
 
     // Test with a valid value.
-    list(, , $errors) = $this->formSubmitHelper($form, ['tableselect' => ['row1' => 'row1']]);
+    [, , $errors] = $this->formSubmitHelper($form, ['tableselect' => ['row1' => 'row1']]);
     $this->assertFalse(isset($errors['tableselect']), 'Option checker allows valid values for checkboxes.');
 
     // Test with an invalid value.
-    list(, , $errors) = $this->formSubmitHelper($form, ['tableselect' => ['non_existing_value' => 'non_existing_value']]);
+    [, , $errors] = $this->formSubmitHelper($form, ['tableselect' => ['non_existing_value' => 'non_existing_value']]);
     $this->assertTrue(isset($errors['tableselect']), 'Option checker disallows invalid values for checkboxes.');
 
   }
 
   /**
-   * Test the whether the option checker gives an error on invalid tableselect values for radios.
+   * Tests the whether the option checker gives an error on invalid
+   * tableselect values for radios.
    */
   public function testMultipleFalseOptionchecker() {
 
-    list($header, $options) = _form_test_tableselect_get_data();
+    [$header, $options] = _form_test_tableselect_get_data();
 
     $form['tableselect'] = [
       '#type' => 'tableselect',
@@ -185,30 +190,33 @@ class ElementsTableSelectTest extends BrowserTestBase {
     ];
 
     // Test with a valid value.
-    list(, , $errors) = $this->formSubmitHelper($form, ['tableselect' => 'row1']);
+    [, , $errors] = $this->formSubmitHelper($form, ['tableselect' => 'row1']);
     $this->assertFalse(isset($errors['tableselect']), 'Option checker allows valid values for radio buttons.');
 
     // Test with an invalid value.
-    list(, , $errors) = $this->formSubmitHelper($form, ['tableselect' => 'non_existing_value']);
+    [, , $errors] = $this->formSubmitHelper($form, ['tableselect' => 'non_existing_value']);
     $this->assertTrue(isset($errors['tableselect']), 'Option checker disallows invalid values for radio buttons.');
   }
 
   /**
    * Helper function for the option check test to submit a form while collecting errors.
    *
-   * @param $form_element
-   *   A form element to test.
-   * @param $edit
+   * @param array $form
+   *   Nested array of form elements that comprise the form.
+   * @param array $edit
    *   An array containing post data.
    *
-   * @return
+   * @return array
    *   An array containing the processed form, the form_state and any errors.
+   *
+   * @internal param $form_element A form element to test.
+   *   A form element to test.
    */
   private function formSubmitHelper($form, $edit) {
     $form_id = $this->randomMachineName();
     $form_state = new FormState();
 
-    $form['op'] = ['#type' => 'submit', '#value' => t('Submit')];
+    $form['op'] = ['#type' => 'submit', '#value' => 'Submit'];
     // The form token CSRF protection should not interfere with this test, so we
     // bypass it by setting the token to FALSE.
     $form['#token'] = FALSE;
