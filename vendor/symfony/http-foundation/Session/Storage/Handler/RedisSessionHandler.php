@@ -97,6 +97,7 @@ class RedisSessionHandler extends AbstractSessionHandler
     /**
      * {@inheritdoc}
      */
+    #[\ReturnTypeWillChange]
     public function close(): bool
     {
         return true;
@@ -104,15 +105,19 @@ class RedisSessionHandler extends AbstractSessionHandler
 
     /**
      * {@inheritdoc}
+     *
+     * @return int|false
      */
-    public function gc($maxlifetime): bool
+    #[\ReturnTypeWillChange]
+    public function gc($maxlifetime)
     {
-        return true;
+        return 0;
     }
 
     /**
      * @return bool
      */
+    #[\ReturnTypeWillChange]
     public function updateTimestamp($sessionId, $data)
     {
         return (bool) $this->redis->expire($this->prefix.$sessionId, (int) ($this->ttl ?? ini_get('session.gc_maxlifetime')));

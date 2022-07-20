@@ -20,7 +20,6 @@ class BlockConfigSchemaTest extends KernelTestBase {
    */
   protected static $modules = [
     'block',
-    'aggregator',
     'book',
     'block_content',
     'comment',
@@ -70,7 +69,7 @@ class BlockConfigSchemaTest extends KernelTestBase {
       $id = strtolower($this->randomMachineName());
       $block = Block::create([
         'id' => $id,
-        'theme' => 'classy',
+        'theme' => 'stark',
         'weight' => 00,
         'status' => TRUE,
         'region' => 'content',
@@ -85,7 +84,7 @@ class BlockConfigSchemaTest extends KernelTestBase {
       $block->save();
 
       $config = $this->config("block.block.$id");
-      $this->assertEqual($config->get('id'), $id);
+      $this->assertEquals($id, $config->get('id'));
       $this->assertConfigSchema($this->typedConfig, $config->getName(), $config->get());
     }
   }

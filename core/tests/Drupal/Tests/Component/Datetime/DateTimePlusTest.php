@@ -12,7 +12,7 @@ use PHPUnit\Framework\TestCase;
 class DateTimePlusTest extends TestCase {
 
   /**
-   * Test creating dates from string and array input.
+   * Tests creating dates from string and array input.
    *
    * @param mixed $input
    *   Input argument for DateTimePlus.
@@ -34,7 +34,7 @@ class DateTimePlusTest extends TestCase {
   }
 
   /**
-   * Test creating dates from string and array input.
+   * Tests creating dates from string and array input.
    *
    * @param mixed $input
    *   Input argument for DateTimePlus.
@@ -56,7 +56,7 @@ class DateTimePlusTest extends TestCase {
   }
 
   /**
-   * Test date diffs.
+   * Tests date diffs.
    *
    * @param mixed $input1
    *   A DateTimePlus object.
@@ -75,7 +75,7 @@ class DateTimePlusTest extends TestCase {
   }
 
   /**
-   * Test date diff exception caused by invalid input.
+   * Tests date diff exception caused by invalid input.
    *
    * @param mixed $input1
    *   A DateTimePlus object.
@@ -93,7 +93,7 @@ class DateTimePlusTest extends TestCase {
   }
 
   /**
-   * Test creating dates from invalid array input.
+   * Tests creating dates from invalid array input.
    *
    * @param mixed $input
    *   Input argument for DateTimePlus.
@@ -115,7 +115,7 @@ class DateTimePlusTest extends TestCase {
   /**
    * Tests DateTimePlus::checkArray().
    *
-   * @param mixed $array
+   * @param array $array
    *   Input argument for DateTimePlus::checkArray().
    * @param bool $expected
    *   The expected result of DateTimePlus::checkArray().
@@ -130,7 +130,7 @@ class DateTimePlusTest extends TestCase {
   }
 
   /**
-   * Test creating dates from timestamps, and manipulating timezones.
+   * Tests creating dates from timestamps, and manipulating timezones.
    *
    * @param int $input
    *   Input argument for DateTimePlus::createFromTimestamp().
@@ -164,7 +164,7 @@ class DateTimePlusTest extends TestCase {
   }
 
   /**
-   * Test creating dates from datetime strings.
+   * Tests creating dates from datetime strings.
    *
    * @param string $input
    *   Input argument for DateTimePlus().
@@ -187,14 +187,16 @@ class DateTimePlusTest extends TestCase {
    *
    * @param \Drupal\Component\Datetime\DateTimePlus $date
    *   DateTimePlus to test.
-   * @input mixed $input
+   * @param string $input
    *   The original input passed to the test method.
    * @param array $initial
    *   @see testTimestamp()
    * @param array $transform
    *   @see testTimestamp()
+   *
+   * @internal
    */
-  public function assertDateTimestamp($date, $input, $initial, $transform) {
+  public function assertDateTimestamp(DateTimePlus $date, string $input, array $initial, array $transform): void {
     // Check format.
     $value = $date->format($initial['format']);
     $this->assertEquals($initial['expected_date'], $value, sprintf("Test new DateTimePlus(%s, %s): should be %s, found %s.", $input, $initial['timezone'], $initial['expected_date'], $value));
@@ -224,12 +226,14 @@ class DateTimePlusTest extends TestCase {
   }
 
   /**
-   * Test creating dates from format strings.
+   * Tests creating dates from format strings.
    *
    * @param string $input
    *   Input argument for DateTimePlus.
    * @param string $timezone
    *   Timezone argument for DateTimePlus.
+   * @param string $format
+   *   PHP date() type format for parsing the input.
    * @param string $format_date
    *   Format argument for DateTimePlus::format().
    * @param string $expected
@@ -244,7 +248,7 @@ class DateTimePlusTest extends TestCase {
   }
 
   /**
-   * Test invalid date handling.
+   * Tests invalid date handling.
    *
    * @param mixed $input
    *   Input argument for DateTimePlus.
@@ -266,6 +270,7 @@ class DateTimePlusTest extends TestCase {
 
   /**
    * Tests that DrupalDateTime can detect the right timezone to use.
+   *
    * When specified or not.
    *
    * @param mixed $input
@@ -286,8 +291,7 @@ class DateTimePlusTest extends TestCase {
   }
 
   /**
-   * Test that DrupalDateTime can detect the right timezone to use when
-   * constructed from a datetime object.
+   * Tests DrupalDateTime with a datetime object.
    */
   public function testDateTimezoneWithDateTimeObject() {
     // Create a date object with another date object.

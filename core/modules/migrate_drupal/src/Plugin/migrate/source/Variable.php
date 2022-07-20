@@ -7,16 +7,20 @@ use Drupal\Core\State\StateInterface;
 use Drupal\migrate\Plugin\MigrationInterface;
 
 /**
- * Drupal variable source from database.
+ * Drupal 6/7 variable source from database.
  *
  * This source class fetches variables from the source Drupal database.
  * Depending on the configuration, this returns zero or a single row and as such
  * is not a good example for any normal source class returning multiple rows.
  *
- * The configuration may contain two lists of variable names, variables and
- * variables_no_row_if_missing. If any of the variables listed in
- * variables_no_row_if_missing is missing in the source, then the source will
- * return zero rows.
+ * Available configuration keys (one of which must be defined):
+ * - variables: (optional) The list of variables to retrieve from the source
+ *   database. Specified variables are retrieved in a single row.
+ * - variables_no_row_if_missing: (optional) The list of variables to retrieve
+ *   from the source database. If any of the variables listed here are missing
+ *   in the source, then the source will return zero rows.
+ *
+ * Examples:
  *
  * With this configuration, the source will return one row even when the
  * "filter_fallback_format" variable isn't available:
@@ -65,6 +69,11 @@ use Drupal\migrate\Plugin\MigrationInterface;
  *     - book_block_mode
  *     - book_allowed_types
  * @endcode
+ *
+ * For additional configuration keys, refer to the parent classes.
+ *
+ * @see \Drupal\migrate\Plugin\migrate\source\SqlBase
+ * @see \Drupal\migrate\Plugin\migrate\source\SourcePluginBase
  *
  * @MigrateSource(
  *   id = "variable",
@@ -126,7 +135,7 @@ class Variable extends DrupalSqlBase {
   /**
    * {@inheritdoc}
    */
-  public function count($refresh = FALSE) {
+  protected function doCount() {
     if (empty($this->variablesNoRowIfMissing)) {
       return 1;
     }

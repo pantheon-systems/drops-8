@@ -18,6 +18,7 @@ class MockPhpStorage {
    * Constructs a MockPhpStorage object.
    *
    * @param array $configuration
+   *   The storage configuration.
    */
   public function __construct(array $configuration) {
     $this->configuration = $configuration;
@@ -34,7 +35,7 @@ class MockPhpStorage {
    * Gets a single configuration key.
    */
   public function getConfigurationValue($key) {
-    return isset($this->configuration[$key]) ? $this->configuration[$key] : NULL;
+    return $this->configuration[$key] ?? NULL;
   }
 
 }

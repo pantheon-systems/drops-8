@@ -11,6 +11,7 @@
 use Drupal\Component\Utility\Environment;
 use Drupal\Component\Utility\Xss;
 use Drupal\Core\Access\AccessResult;
+use Drupal\Core\Batch\BatchBuilder;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Database\Query\AlterableInterface;
 use Drupal\Core\Database\Query\SelectInterface;
@@ -66,7 +67,7 @@ function node_help($route_name, RouteMatchInterface $route_match) {
       $output .= '<dt>' . t('Creating revisions') . '</dt>';
       $output .= '<dd>' . t('The Node module also enables you to create multiple versions of any content, and revert to older versions using the <em>Revision information</em> settings.') . '</dd>';
       $output .= '<dt>' . t('User permissions') . '</dt>';
-      $output .= '<dd>' . t('The Node module makes a number of permissions available for each content type, which can be set by role on the <a href=":permissions">permissions page</a>.', [':permissions' => Url::fromRoute('user.admin_permissions', [], ['fragment' => 'module-node'])->toString()]) . '</dd>';
+      $output .= '<dd>' . t('The Node module makes a number of permissions available for each content type, which can be set by role on the <a href=":permissions">permissions page</a>.', [':permissions' => Url::fromRoute('user.admin_permissions.module', ['modules' => 'node'])->toString()]) . '</dd>';
       $output .= '</dl>';
       return $output;
 
@@ -114,6 +115,8 @@ function node_theme() {
     'node_edit_form' => [
       'render element' => 'form',
     ],
+    // @todo Delete the next three entries as part of
+    // https://www.drupal.org/node/3015623
     'field__node__title' => [
       'base hook' => 'field',
     ],
@@ -186,19 +189,14 @@ function node_title_list(StatementInterface $result, $title = NULL) {
  *   One of the MARK constants.
  */
 function node_mark($nid, $timestamp) {
-
-  $cache = &drupal_static(__FUNCTION__, []);
-
   if (\Drupal::currentUser()->isAnonymous() || !\Drupal::moduleHandler()->moduleExists('history')) {
     return MARK_READ;
   }
-  if (!isset($cache[$nid])) {
-    $cache[$nid] = history_read($nid);
-  }
-  if ($cache[$nid] == 0 && $timestamp > HISTORY_READ_LIMIT) {
+  $read_timestamp = history_read($nid);
+  if ($read_timestamp === 0 && $timestamp > HISTORY_READ_LIMIT) {
     return MARK_NEW;
   }
-  elseif ($timestamp > $cache[$nid] && $timestamp > HISTORY_READ_LIMIT) {
+  elseif ($timestamp > $read_timestamp && $timestamp > HISTORY_READ_LIMIT) {
     return MARK_UPDATED;
   }
   return MARK_READ;
@@ -432,6 +430,30 @@ function node_preprocess_block(&$variables) {
 }
 
 /**
+ * Implements hook_preprocess_HOOK() for node field templates.
+ */
+function node_preprocess_field__node(&$variables) {
+  // Set a variable 'is_inline' in cases where inline markup is required,
+  // without any block elements such as <div>.
+
+  if ($variables['element']['#is_page_title'] ?? FALSE) {
+    // Page title is always inline because it will be displayed inside <h1>.
+    $variables['is_inline'] = TRUE;
+  }
+  elseif (in_array($variables['field_name'], ['created', 'uid', 'title'], TRUE)) {
+    // Display created, uid and title fields inline because they will be
+    // displayed inline by node.html.twig. Skip this if the field
+    // display is configurable and skipping has been enabled.
+    // @todo Delete as part of https://www.drupal.org/node/3015623
+
+    /** @var \Drupal\node\NodeInterface $node */
+    $node = $variables['element']['#object'];
+    $skip_custom_preprocessing = $node->getEntityType()->get('enable_base_field_custom_preprocess_skipping');
+    $variables['is_inline'] = !$skip_custom_preprocessing || !$node->getFieldDefinition($variables['field_name'])->isDisplayConfigurable('view');
+  }
+}
+
+/**
  * Implements hook_theme_suggestions_HOOK().
  */
 function node_theme_suggestions_node(array $variables) {
@@ -506,8 +528,8 @@ function template_preprocess_node(&$variables) {
   $variables['url'] = !$node->isNew() ? $node->toUrl('canonical')->toString() : NULL;
 
   // The 'page' variable is set to TRUE in two occasions:
-  //   - The view mode is 'full' and we are on the 'node.view' route.
-  //   - The node is in preview and view mode is either 'full' or 'default'.
+  // - The view mode is 'full' and we are on the 'node.view' route.
+  // - The node is in preview and view mode is either 'full' or 'default'.
   $variables['page'] = ($variables['view_mode'] == 'full' && (node_is_page($node)) || (isset($node->in_preview) && in_array($node->preview_view_mode, ['full', 'default'])));
 
   // Helpful $content variable for templates.
@@ -554,6 +576,7 @@ function node_cron() {
     $min_alias = 'min_created';
     $max_alias = 'max_created';
     $result = \Drupal::entityQueryAggregate('node')
+      ->accessCheck(FALSE)
       ->aggregate('created', 'MIN', NULL, $min_alias)
       ->aggregate('created', 'MAX', NULL, $max_alias)
       ->execute();
@@ -614,15 +637,16 @@ function node_user_cancel($edit, UserInterface $account, $method) {
     case 'user_cancel_block_unpublish':
       // Unpublish nodes (current revisions).
       $nids = \Drupal::entityQuery('node')
+        ->accessCheck(FALSE)
         ->condition('uid', $account->id())
         ->execute();
-      module_load_include('inc', 'node', 'node.admin');
+      \Drupal::moduleHandler()->loadInclude('node', 'inc', 'node.admin');
       node_mass_update($nids, ['status' => 0], NULL, TRUE);
       break;
 
     case 'user_cancel_reassign':
       // Anonymize all of the nodes for this old account.
-      module_load_include('inc', 'node', 'node.admin');
+      \Drupal::moduleHandler()->loadInclude('node', 'inc', 'node.admin');
       $vids = \Drupal::entityTypeManager()->getStorage('node')->userRevisionIds($account);
       node_mass_update($vids, [
         'uid' => 0,
@@ -889,7 +913,7 @@ function node_access_view_all_nodes($account = NULL) {
   }
 
   // If no modules implement the node access system, access is always TRUE.
-  if (!\Drupal::moduleHandler()->getImplementations('node_grants')) {
+  if (!\Drupal::moduleHandler()->hasImplementations('node_grants')) {
     $access[$account->id()] = TRUE;
   }
   else {
@@ -930,7 +954,7 @@ function node_query_node_access_alter(AlterableInterface $query) {
   if ($account->hasPermission('bypass node access')) {
     return;
   }
-  if (!count(\Drupal::moduleHandler()->getImplementations('node_grants'))) {
+  if (!\Drupal::moduleHandler()->hasImplementations('node_grants')) {
     return;
   }
   if ($op == 'view' && node_access_view_all_nodes($account)) {
@@ -1042,16 +1066,13 @@ function node_access_rebuild($batch_mode = FALSE) {
   $access_control_handler = \Drupal::entityTypeManager()->getAccessControlHandler('node');
   $access_control_handler->deleteGrants();
   // Only recalculate if the site is using a node_access module.
-  if (count(\Drupal::moduleHandler()->getImplementations('node_grants'))) {
+  if (\Drupal::moduleHandler()->hasImplementations('node_grants')) {
     if ($batch_mode) {
-      $batch = [
-        'title' => t('Rebuilding content access permissions'),
-        'operations' => [
-          ['_node_access_rebuild_batch_operation', []],
-        ],
-        'finished' => '_node_access_rebuild_batch_finished',
-      ];
-      batch_set($batch);
+      $batch_builder = (new BatchBuilder())
+        ->setTitle(t('Rebuilding content access permissions'))
+        ->addOperation('_node_access_rebuild_batch_operation', [])
+        ->setFinishCallback('_node_access_rebuild_batch_finished');
+      batch_set($batch_builder->toArray());
     }
     else {
       // Try to allocate enough time to rebuild node grants
@@ -1173,10 +1194,10 @@ function _node_access_rebuild_batch_finished($success, $results, $operations) {
 /**
  * Implements hook_modules_installed().
  */
-function node_modules_installed($modules) {
+function node_modules_installed(array $modules) {
   // Check if any of the newly enabled modules require the node_access table to
   // be rebuilt.
-  if (!node_access_needs_rebuild() && array_intersect($modules, \Drupal::moduleHandler()->getImplementations('node_grants'))) {
+  if (!node_access_needs_rebuild() && \Drupal::moduleHandler()->hasImplementations('node_grants', $modules)) {
     node_access_needs_rebuild(TRUE);
   }
 }
@@ -1193,14 +1214,14 @@ function node_modules_uninstalled($modules) {
     // check whether a hook implementation function exists and do not invoke it.
     // Node access also needs to be rebuilt if language module is disabled to
     // remove any language-specific grants.
-    if (!node_access_needs_rebuild() && (\Drupal::moduleHandler()->implementsHook($module, 'node_grants') || $module == 'language')) {
+    if (!node_access_needs_rebuild() && (\Drupal::moduleHandler()->hasImplementations('node_grants', $module) || $module == 'language')) {
       node_access_needs_rebuild(TRUE);
     }
   }
 
   // If there remains no more node_access module, rebuilding will be
   // straightforward, we can do it right now.
-  if (node_access_needs_rebuild() && count(\Drupal::moduleHandler()->getImplementations('node_grants')) == 0) {
+  if (node_access_needs_rebuild() && !\Drupal::moduleHandler()->hasImplementations('node_grants')) {
     node_access_rebuild();
   }
 }

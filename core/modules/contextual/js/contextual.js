@@ -60,8 +60,15 @@
       var glue = url.indexOf('?') === -1 ? '?' : '&';
       this.setAttribute('href', url + glue + destination);
     });
+    var title = '';
+    var $regionHeading = $region.find('h2');
+
+    if ($regionHeading.length) {
+      title = $regionHeading[0].textContent.trim();
+    }
+
     var model = new contextual.StateModel({
-      title: $region.find('h2').eq(0).text().trim()
+      title: title
     });
     var viewOptions = $.extend({
       el: $contextual,
@@ -77,18 +84,22 @@
       model: model
     }, options)));
     contextual.collection.add(model);
-    $(document).trigger('drupalContextualLinkAdded', {
-      $el: $contextual,
-      $region: $region,
-      model: model
-    });
+    $(document).trigger('drupalContextualLinkAdded', Drupal.deprecatedProperty({
+      target: {
+        $el: $contextual,
+        $region: $region,
+        model: model
+      },
+      deprecatedProperty: 'model',
+      message: 'The model property is deprecated in drupal:9.4.0 and is removed from drupal:10.0.0. There is no replacement.'
+    }));
     adjustIfNestedAndOverlapping($contextual);
   }
 
   Drupal.behaviors.contextual = {
     attach: function attach(context) {
       var $context = $(context);
-      var $placeholders = $context.find('[data-contextual-id]').once('contextual-render');
+      var $placeholders = $(once('contextual-render', '[data-contextual-id]', context));
 
       if ($placeholders.length === 0) {
         return;

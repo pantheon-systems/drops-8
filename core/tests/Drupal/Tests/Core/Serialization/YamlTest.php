@@ -14,7 +14,7 @@ use Drupal\Tests\UnitTestCase;
 class YamlTest extends UnitTestCase {
 
   /**
-   * Test that the overridden serializer is called.
+   * Tests that the overridden serializer is called.
    *
    * @covers ::getSerializer
    * @runInSeparateProcess
@@ -25,7 +25,7 @@ class YamlTest extends UnitTestCase {
     $this->assertEquals(YamlParserProxy::class, Settings::get('yaml_parser_class'));
 
     $mock = $this->getMockBuilder('\stdClass')
-      ->setMethods(['encode', 'decode', 'getFileExtension'])
+      ->addMethods(['encode', 'decode', 'getFileExtension'])
       ->getMock();
     $mock
       ->expects($this->once())

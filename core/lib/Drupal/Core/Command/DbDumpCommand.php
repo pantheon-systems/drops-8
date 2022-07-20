@@ -122,6 +122,9 @@ class DbDumpCommand extends DbCommandBase {
       }
     }
 
+    // Keep the table names sorted alphabetically.
+    asort($tables);
+
     return $tables;
   }
 
@@ -183,7 +186,7 @@ class DbDumpCommand extends DbCommandBase {
       elseif (!isset($definition['fields'][$name]['size'])) {
         // Try use the provided length, if it doesn't exist default to 100. It's
         // not great but good enough for our dumps at this point.
-        $definition['fields'][$name]['length'] = isset($matches[2]) ? $matches[2] : 100;
+        $definition['fields'][$name]['length'] = $matches[2] ?? 100;
       }
 
       if (isset($row['Default'])) {
@@ -269,14 +272,14 @@ class DbDumpCommand extends DbCommandBase {
    */
   protected function getTableCollation(Connection $connection, $table, &$definition) {
     // Remove identifier quotes from the table name. See
-    // \Drupal\Core\Database\Driver\mysql\Connection::$identifierQuotes.
+    // \Drupal\mysql\Driver\Database\mysql\Connection::$identifierQuotes.
     $table = trim($connection->prefixTables('{' . $table . '}'), '"');
     $query = $connection->query("SHOW TABLE STATUS WHERE NAME = :table_name", [':table_name' => $table]);
     $data = $query->fetchAssoc();
 
     // Map the collation to a character set. For example, 'utf8mb4_general_ci'
     // (MySQL 5) or 'utf8mb4_0900_ai_ci' (MySQL 8) will be mapped to 'utf8mb4'.
-    list($charset,) = explode('_', $data['Collation'], 2);
+    [$charset] = explode('_', $data['Collation'], 2);
 
     // Set `mysql_character_set`. This will be ignored by other backends.
     $definition['mysql_character_set'] = $charset;
@@ -334,13 +337,18 @@ class DbDumpCommand extends DbCommandBase {
    * @param string $type
    *   The MySQL field type.
    *
-   * @return string
+   * @return string|null
    *   The Drupal schema field size.
    */
   protected function fieldSizeMap(Connection $connection, $type) {
     // Convert everything to lowercase.
     $map = array_map('strtolower', $connection->schema()->getFieldTypeMap());
     $map = array_flip($map);
+
+    // Do nothing if the field type is not defined.
+    if (!isset($map[$type])) {
+      return NULL;
+    }
 
     $schema_type = explode(':', $map[$type])[0];
     // Only specify size on these types.
@@ -394,7 +402,7 @@ class DbDumpCommand extends DbCommandBase {
     // irrelevant.
     $script = <<<'ENDOFSCRIPT'
 <?php
-// @codingStandardsIgnoreFile
+// phpcs:ignoreFile
 /**
  * @file
  * A database agnostic dump for testing purposes.
@@ -405,9 +413,19 @@ class DbDumpCommand extends DbCommandBase {
 use Drupal\Core\Database\Database;
 
 $connection = Database::getConnection();
+// Ensure any tables with a serial column with a value of 0 are created as
+// expected.
+if ($connection->databaseType() === 'mysql') {
+  $sql_mode = $connection->query("SELECT @@sql_mode;")->fetchField();
+  $connection->query("SET sql_mode = '$sql_mode,NO_AUTO_VALUE_ON_ZERO'");
+}
 
 {{TABLES}}
 
+// Reset the SQL mode.
+if ($connection->databaseType() === 'mysql') {
+  $connection->query("SET sql_mode = '$sql_mode'");
+}
 ENDOFSCRIPT;
     return $script;
   }

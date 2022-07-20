@@ -4,6 +4,7 @@ namespace Drupal\config\Form;
 
 use Drupal\Component\Serialization\Exception\InvalidDataTypeException;
 use Drupal\config\StorageReplaceDataWrapper;
+use Drupal\Core\Batch\BatchBuilder;
 use Drupal\Core\Config\ConfigImporter;
 use Drupal\Core\Config\ConfigImporterException;
 use Drupal\Core\Config\ConfigManagerInterface;
@@ -24,7 +25,7 @@ use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\Serialization\Yaml;
 use Drupal\Core\Url;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Symfony\Component\EventDispatcher\EventDispatcherInterface;
+use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 /**
  * Provides a form for importing a single configuration file.
@@ -57,7 +58,7 @@ class ConfigSingleImportForm extends ConfirmFormBase {
   /**
    * The event dispatcher.
    *
-   * @var \Symfony\Component\EventDispatcher\EventDispatcherInterface
+   * @var \Symfony\Contracts\EventDispatcher\EventDispatcherInterface
    */
   protected $eventDispatcher;
 
@@ -133,7 +134,7 @@ class ConfigSingleImportForm extends ConfirmFormBase {
    *   The config storage.
    * @param \Drupal\Core\Render\RendererInterface $renderer
    *   The renderer service.
-   * @param \Symfony\Component\EventDispatcher\EventDispatcherInterface $event_dispatcher
+   * @param \Symfony\Contracts\EventDispatcher\EventDispatcherInterface $event_dispatcher
    *   The event dispatcher used to notify subscribers of config import events.
    * @param \Drupal\Core\Config\ConfigManagerInterface $config_manager
    *   The configuration manager.
@@ -411,19 +412,16 @@ class ConfigSingleImportForm extends ConfirmFormBase {
     else {
       try {
         $sync_steps = $config_importer->initialize();
-        $batch = [
-          'operations' => [],
-          'finished' => [ConfigImporterBatch::class, 'finish'],
-          'title' => $this->t('Importing configuration'),
-          'init_message' => $this->t('Starting configuration import.'),
-          'progress_message' => $this->t('Completed @current step of @total.'),
-          'error_message' => $this->t('Configuration import has encountered an error.'),
-        ];
+        $batch_builder = (new BatchBuilder())
+          ->setTitle($this->t('Importing configuration'))
+          ->setFinishCallback([ConfigImporterBatch::class, 'finish'])
+          ->setInitMessage($this->t('Starting configuration import.'))
+          ->setProgressMessage($this->t('Completed @current step of @total.'))
+          ->setErrorMessage($this->t('Configuration import has encountered an error.'));
         foreach ($sync_steps as $sync_step) {
-          $batch['operations'][] = [[ConfigImporterBatch::class, 'process'], [$config_importer, $sync_step]];
+          $batch_builder->addOperation([ConfigImporterBatch::class, 'process'], [$config_importer, $sync_step]);
         }
-
-        batch_set($batch);
+        batch_set($batch_builder->toArray());
       }
       catch (ConfigImporterException $e) {
         // There are validation errors.

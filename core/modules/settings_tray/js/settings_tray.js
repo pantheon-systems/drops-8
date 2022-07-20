@@ -42,13 +42,16 @@
     }
 
     editMode = !!editMode;
-    var $editButton = $(toggleEditSelector);
     var $editables;
+    var editButton = document.querySelector(toggleEditSelector);
 
     if (editMode) {
-      $editButton.text(Drupal.t('Editing'));
+      if (editButton) {
+        editButton.textContent = Drupal.t('Editing');
+      }
+
       closeToolbarTrays();
-      $editables = $('[data-drupal-settingstray="editable"]').once('settingstray');
+      $editables = $(once('settingstray', '[data-drupal-settingstray="editable"]'));
 
       if ($editables.length) {
         document.querySelector('[data-off-canvas-main-canvas]').addEventListener('click', preventClick, true);
@@ -73,18 +76,21 @@
         });
       }
     } else {
-        $editables = $('[data-drupal-settingstray="editable"]').removeOnce('settingstray');
+      $editables = $(once.remove('settingstray', '[data-drupal-settingstray="editable"]'));
 
-        if ($editables.length) {
-          document.querySelector('[data-off-canvas-main-canvas]').removeEventListener('click', preventClick, true);
-          $editables.off('.settingstray');
-          $(quickEditItemSelector).off('.settingstray');
-        }
-
-        $editButton.text(Drupal.t('Edit'));
-        closeOffCanvas();
-        disableQuickEdit();
+      if ($editables.length) {
+        document.querySelector('[data-off-canvas-main-canvas]').removeEventListener('click', preventClick, true);
+        $editables.off('.settingstray');
+        $(quickEditItemSelector).off('.settingstray');
       }
+
+      if (editButton) {
+        editButton.textContent = Drupal.t('Edit');
+      }
+
+      closeOffCanvas();
+      disableQuickEdit();
+    }
 
     getItemsToToggle().toggleClass('js-settings-tray-edit-mode', editMode);
     $('.edit-mode-inactive').toggleClass('visually-hidden', editMode);
@@ -115,7 +121,7 @@
 
   $(document).on('drupalContextualLinkAdded', function (event, data) {
     prepareAjaxLinks();
-    $('body').once('settings_tray.edit_mode_init').each(function () {
+    once('settings_tray.edit_mode_init', 'body').forEach(function () {
       var editMode = localStorage.getItem('Drupal.contextualToolbar.isViewing') === 'false';
 
       if (editMode) {
@@ -138,7 +144,7 @@
   });
   Drupal.behaviors.toggleEditMode = {
     attach: function attach() {
-      $(toggleEditSelector).once('settingstray').on('click.settingstray', toggleEditMode);
+      $(once('settingstray', toggleEditSelector)).on('click.settingstray', toggleEditMode);
     }
   };
   $(window).on({

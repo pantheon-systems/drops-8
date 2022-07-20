@@ -122,7 +122,7 @@ class EventDispatcher implements EventDispatcherInterface
                     $v[0] = $v[0]();
                     $v[1] = $v[1] ?? '__invoke';
                 }
-                if ($v === $listener) {
+                if ($v === $listener || ($listener instanceof \Closure && $v == $listener)) {
                     return $priority;
                 }
             }
@@ -178,7 +178,7 @@ class EventDispatcher implements EventDispatcherInterface
                     $v[0] = $v[0]();
                     $v[1] = $v[1] ?? '__invoke';
                 }
-                if ($v === $listener) {
+                if ($v === $listener || ($listener instanceof \Closure && $v == $listener)) {
                     unset($listeners[$k], $this->sorted[$eventName], $this->optimized[$eventName]);
                 }
             }
@@ -198,10 +198,10 @@ class EventDispatcher implements EventDispatcherInterface
             if (\is_string($params)) {
                 $this->addListener($eventName, [$subscriber, $params]);
             } elseif (\is_string($params[0])) {
-                $this->addListener($eventName, [$subscriber, $params[0]], isset($params[1]) ? $params[1] : 0);
+                $this->addListener($eventName, [$subscriber, $params[0]], $params[1] ?? 0);
             } else {
                 foreach ($params as $listener) {
-                    $this->addListener($eventName, [$subscriber, $listener[0]], isset($listener[1]) ? $listener[1] : 0);
+                    $this->addListener($eventName, [$subscriber, $listener[0]], $listener[1] ?? 0);
                 }
             }
         }

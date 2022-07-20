@@ -4,10 +4,12 @@ namespace Drupal\Tests\migrate_drupal_ui\Functional\d7;
 
 use Drupal\Tests\migrate_drupal_ui\Functional\MultilingualReviewPageTestBase;
 
+// cspell:ignore Filefield Flexslider Multiupload Imagefield
+
 /**
  * Tests migrate upgrade review page for Drupal 7.
  *
- * Tests with translation modules and migrate_drupal_multilingual enabled.
+ * Tests with translation modules enabled.
  *
  * @group migrate_drupal_7
  * @group migrate_drupal_ui
@@ -18,10 +20,10 @@ class MultilingualReviewPageTest extends MultilingualReviewPageTestBase {
    * {@inheritdoc}
    */
   protected static $modules = [
+    'datetime_range',
     'language',
     'content_translation',
     'telephone',
-    'aggregator',
     'book',
     'forum',
     'statistics',
@@ -38,7 +40,10 @@ class MultilingualReviewPageTest extends MultilingualReviewPageTestBase {
    */
   protected function setUp(): void {
     parent::setUp();
-    $this->loadFixture(drupal_get_path('module', 'migrate_drupal') . '/tests/fixtures/drupal7.php');
+    $this->loadFixture($this->getModulePath('migrate_drupal') . '/tests/fixtures/drupal7.php');
+
+    // @todo Remove this in https://www.drupal.org/node/3267515
+    \Drupal::service('module_installer')->uninstall(['rdf']);
   }
 
   /**
@@ -59,7 +64,6 @@ class MultilingualReviewPageTest extends MultilingualReviewPageTestBase {
       'Bulk Export',
       'Chaos tools',
       'Chaos Tools (CTools) AJAX Example',
-      'Color',
       'Comment',
       'Contact',
       'Content translation',
@@ -92,15 +96,18 @@ class MultilingualReviewPageTest extends MultilingualReviewPageTestBase {
       'Forum',
       'Help',
       'Image',
+      'Internationalization',
       'Link',
       'List',
       'Locale',
       'Menu',
       'Menu translation',
+      'Multiupload Filefield Widget',
+      'Multiupload Imagefield Widget',
       'Node',
+      'Node Reference',
       'Number',
       'OpenID',
-      'Options',
       'Overlay',
       'PHP filter',
       'Page manager',
@@ -108,16 +115,18 @@ class MultilingualReviewPageTest extends MultilingualReviewPageTestBase {
       'Phone',
       'Poll',
       'Profile',
-      'RDF',
       'Search',
       'Search embedded form',
       'Shortcut',
       'Statistics',
+      'String translation',
       'Stylizer',
       'Synchronize translations',
       'Syslog',
       'System',
+      'Taxonomy translation',
       'Taxonomy',
+      'Telephone',
       'Term Depth access',
       'Test search node tags',
       'Test search type',
@@ -129,6 +138,7 @@ class MultilingualReviewPageTest extends MultilingualReviewPageTestBase {
       'Trigger',
       'Update manager',
       'User',
+      'User Reference',
       'Views content panes',
       'Views UI',
     ];
@@ -140,11 +150,12 @@ class MultilingualReviewPageTest extends MultilingualReviewPageTestBase {
   protected function getMissingPaths() {
     return [
       // Action is set not_finished in migrate_state_not_finished_test.
-      // Aggregator is set not_finished in migrate_state_not_finished_test.
       'Aggregator',
       // Block is set not_finished in migrate_state_not_finished_test.
       'Block',
       'Breakpoints',
+      // @todo Remove Color in https://www.drupal.org/project/drupal/issues/3270899
+      'Color',
       'Contact translation',
       'Entity Translation Menu',
       'Entity Translation Upgrade',
@@ -152,14 +163,16 @@ class MultilingualReviewPageTest extends MultilingualReviewPageTestBase {
       // Flexslider_picture is a sub module of Picture module. Only the
       // styles from picture are migrated.
       'FlexSlider Picture',
-      'Internationalization',
       'Multilingual content',
       'Multilingual forum',
       'Multilingual select',
+      // Options is set not_finished in migrate_state_not_finished_test.
+      'Options',
       'Path translation',
       'Picture',
-      'String translation',
-      'Taxonomy translation',
+      'RDF',
+      'References',
+      'References UUID',
       'Translation redirect',
       'Translation sets',
       'User mail translation',

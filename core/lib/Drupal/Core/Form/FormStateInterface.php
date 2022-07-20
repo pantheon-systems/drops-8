@@ -49,11 +49,11 @@ interface FormStateInterface {
    *   $form_state->loadInclude('node', 'inc', 'node.admin');
    * @endcode
    *
-   * Use this function instead of module_load_include() from inside a form
-   * constructor or any form processing logic as it ensures that the include file
-   * is loaded whenever the form is processed. In contrast to using
-   * module_load_include() directly, this method makes sure the include file is
-   * correctly loaded also if the form is cached.
+   * Use this function instead of \Drupal::moduleHandler()->loadInclude()
+   * from inside a form constructor or any form processing logic as it ensures
+   * that the include file is loaded whenever the form is processed. In contrast
+   * to using \Drupal::moduleHandler()->loadInclude() directly, this method
+   * makes sure the include file is correctly loaded also if the form is cached.
    *
    * @param string $module
    *   The module to which the include file belongs.
@@ -67,7 +67,7 @@ interface FormStateInterface {
    *   The filepath of the loaded include file, or FALSE if the include file was
    *   not found or has been loaded already.
    *
-   * @see module_load_include()
+   * @see \Drupal\Core\Extension\ModuleHandlerInterface::loadInclude()
    */
   public function loadInclude($module, $type, $name = NULL);
 
@@ -210,7 +210,7 @@ interface FormStateInterface {
   /**
    * Determines if an arbitrary property is present.
    *
-   * @param string $property
+   * @param string|array $property
    *   Properties are often stored as multi-dimensional associative arrays. If
    *   $property is a string, it will return isset($storage[$property]). If
    *   $property is an array, each element of the array will be used as a nested
