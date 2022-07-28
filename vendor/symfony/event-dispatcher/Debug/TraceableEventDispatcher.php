@@ -75,7 +75,7 @@ class TraceableEventDispatcher implements TraceableEventDispatcherInterface
     {
         if (isset($this->wrappedListeners[$eventName])) {
             foreach ($this->wrappedListeners[$eventName] as $index => $wrappedListener) {
-                if ($wrappedListener->getWrappedListener() === $listener) {
+                if ($wrappedListener->getWrappedListener() === $listener || ($listener instanceof \Closure && $wrappedListener->getWrappedListener() == $listener)) {
                     $listener = $wrappedListener;
                     unset($this->wrappedListeners[$eventName][$index]);
                     break;
@@ -110,8 +110,8 @@ class TraceableEventDispatcher implements TraceableEventDispatcherInterface
         // we might have wrapped listeners for the event (if called while dispatching)
         // in that case get the priority by wrapper
         if (isset($this->wrappedListeners[$eventName])) {
-            foreach ($this->wrappedListeners[$eventName] as $index => $wrappedListener) {
-                if ($wrappedListener->getWrappedListener() === $listener) {
+            foreach ($this->wrappedListeners[$eventName] as $wrappedListener) {
+                if ($wrappedListener->getWrappedListener() === $listener || ($listener instanceof \Closure && $wrappedListener->getWrappedListener() == $listener)) {
                     return $this->dispatcher->getListenerPriority($eventName, $wrappedListener);
                 }
             }
@@ -196,7 +196,7 @@ class TraceableEventDispatcher implements TraceableEventDispatcherInterface
         $hash = 1 <= \func_num_args() && null !== ($request = func_get_arg(0)) ? spl_object_hash($request) : null;
         $called = [];
         foreach ($this->callStack as $listener) {
-            list($eventName, $requestHash) = $this->callStack->getInfo();
+            [$eventName, $requestHash] = $this->callStack->getInfo();
             if (null === $hash || $hash === $requestHash) {
                 $called[] = $listener->getInfo($eventName);
             }
@@ -228,7 +228,7 @@ class TraceableEventDispatcher implements TraceableEventDispatcherInterface
 
         if (null !== $this->callStack) {
             foreach ($this->callStack as $calledListener) {
-                list(, $requestHash) = $this->callStack->getInfo();
+                [, $requestHash] = $this->callStack->getInfo();
 
                 if (null === $hash || $hash === $requestHash) {
                     $calledListeners[] = $calledListener->getWrappedListener();

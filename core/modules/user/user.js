@@ -27,7 +27,7 @@
   Drupal.behaviors.password = {
     attach: function attach(context, settings) {
       var cssClasses = Drupal.user.password.css;
-      $(context).find('input.js-password-field').once('password').each(function (index, value) {
+      once('password', 'input.js-password-field', context).forEach(function (value) {
         var $mainInput = $(value);
         var $mainInputParent = $mainInput.parent().addClass(cssClasses.passwordParent);
         var $passwordWidget = $mainInput.closest('.js-form-type-password-confirm');
@@ -75,11 +75,11 @@
         }
 
         var addWidgetClasses = function addWidgetClasses() {
-          $passwordWidget.addClass($mainInput.val() ? cssClasses.passwordFilled : cssClasses.passwordEmpty).addClass($confirmInput.val() ? cssClasses.confirmFilled : cssClasses.confirmEmpty);
+          $passwordWidget.addClass($mainInput[0].value ? cssClasses.passwordFilled : cssClasses.passwordEmpty).addClass($confirmInput[0].value ? cssClasses.confirmFilled : cssClasses.confirmEmpty);
         };
 
         var passwordCheckMatch = function passwordCheckMatch(confirmInputVal) {
-          var passwordsAreMatching = $mainInput.val() === confirmInputVal;
+          var passwordsAreMatching = $mainInput[0].value === confirmInputVal;
           var confirmClass = passwordsAreMatching ? cssClasses.passwordsMatch : cssClasses.passwordsNotMatch;
           var confirmMessage = passwordsAreMatching ? settings.password.confirmSuccess : settings.password.confirmFailure;
 
@@ -94,7 +94,7 @@
 
         var passwordCheck = function passwordCheck() {
           if (settings.password.showStrengthIndicator) {
-            var result = Drupal.evaluatePasswordStrength($mainInput.val(), settings.password);
+            var result = Drupal.evaluatePasswordStrength($mainInput[0].value, settings.password);
             var $currentPasswordSuggestions = $(Drupal.theme('passwordSuggestions', settings.password, result.messageTips));
 
             if (password.$suggestions.html() !== $currentPasswordSuggestions.html()) {
@@ -110,8 +110,8 @@
             password.$strengthTextWrapper.html(result.indicatorText);
           }
 
-          if ($confirmInput.val()) {
-            passwordCheckMatch($confirmInput.val());
+          if ($confirmInput[0].value) {
+            passwordCheckMatch($confirmInput[0].value);
             $passwordConfirmMessage.css({
               visibility: 'visible'
             });
@@ -149,7 +149,7 @@
     var hasNumbers = /[0-9]/.test(password);
     var hasPunctuation = /[^a-zA-Z0-9]/.test(password);
     var $usernameBox = $('input.username');
-    var username = $usernameBox.length > 0 ? $usernameBox.val() : passwordSettings.username;
+    var username = $usernameBox.length > 0 ? $usernameBox[0].value : passwordSettings.username;
 
     if (password.length < 12) {
       msg.push(passwordSettings.tooShort);
@@ -186,9 +186,6 @@
         break;
 
       case 3:
-        strength -= 40;
-        break;
-
       case 4:
         strength -= 40;
         break;

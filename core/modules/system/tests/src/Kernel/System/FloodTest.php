@@ -19,7 +19,7 @@ class FloodTest extends KernelTestBase {
   protected static $modules = ['system'];
 
   /**
-   * Test flood control mechanism clean-up.
+   * Tests flood control mechanism clean-up.
    */
   public function testCleanUp() {
     $threshold = 1;
@@ -47,7 +47,7 @@ class FloodTest extends KernelTestBase {
   }
 
   /**
-   * Test flood control memory backend.
+   * Tests flood control memory backend.
    */
   public function testMemoryBackend() {
     $threshold = 1;
@@ -75,7 +75,19 @@ class FloodTest extends KernelTestBase {
   }
 
   /**
-   * Test flood control database backend.
+   * Tests memory backend records events to the nearest microsecond.
+   */
+  public function testMemoryBackendThreshold() {
+    $request_stack = \Drupal::service('request_stack');
+    $flood = new MemoryBackend($request_stack);
+    $flood->register('new event');
+    $this->assertTrue($flood->isAllowed('new event', '2'));
+    $flood->register('new event');
+    $this->assertFalse($flood->isAllowed('new event', '2'));
+  }
+
+  /**
+   * Tests flood control database backend.
    */
   public function testDatabaseBackend() {
     $threshold = 1;

@@ -77,6 +77,13 @@ class EntityResourceTest extends JsonapiKernelTestBase {
   protected $node3;
 
   /**
+   * A node with related nodes.
+   *
+   * @var \Drupal\node\Entity\Node
+   */
+  protected $node4;
+
+  /**
    * A fake request.
    *
    * @var \Symfony\Component\HttpFoundation\Request
@@ -165,6 +172,7 @@ class EntityResourceTest extends JsonapiKernelTestBase {
           'access user profiles',
           'access content',
         ],
+        'label' => $role_id,
       ])->save();
     }, [RoleInterface::ANONYMOUS_ID, 'test_role_one', 'test_role_two']);
 
@@ -207,7 +215,7 @@ class EntityResourceTest extends JsonapiKernelTestBase {
     $data = $response->getResponseData()->getData();
     $this->assertCount(1, $data);
     $this->assertEquals($this->node2->uuid(), $data->toArray()[0]->getId());
-    $this->assertEquals(['node:2', 'node_list'], $response->getCacheableMetadata()->getCacheTags());
+    $this->assertEqualsCanonicalizing(['node:2', 'node_list'], $response->getCacheableMetadata()->getCacheTags());
   }
 
   /**

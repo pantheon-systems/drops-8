@@ -41,11 +41,6 @@ use Psr\Http\Message\ResponseInterface;
  * - \Drupal\Tests\rest\Functional\EntityResource\Node\NodeJsonAnonTest
  * - \Drupal\Tests\rest\Functional\EntityResource\Node\NodeJsonBasicAuthTest
  * - \Drupal\Tests\rest\Functional\EntityResource\Node\NodeJsonCookieTest
- * But the HAL module also adds a new format ('hal_json'), so that format also
- * needs test coverage (for its own peculiarities in normalization & encoding):
- * - \Drupal\Tests\hal\Functional\EntityResource\Node\NodeHalJsonAnonTest
- * - \Drupal\Tests\hal\Functional\EntityResource\Node\NodeHalJsonBasicAuthTest
- * - \Drupal\Tests\hal\Functional\EntityResource\Node\NodeHalJsonCookieTest
  *
  * In other words: for every entity type there should be:
  * 1. an abstract subclass that includes the entity type-specific authorization
@@ -404,7 +399,7 @@ abstract class EntityResourceTestBase extends ResourceTestBase {
   }
 
   /**
-   * Test a GET request for an entity, plus edge cases to ensure good DX.
+   * Tests a GET request for an entity, plus edge cases to ensure good DX.
    */
   public function testGet() {
     $this->initAuthentication();
@@ -565,7 +560,7 @@ abstract class EntityResourceTestBase extends ResourceTestBase {
     static::recursiveKSort($expected);
     $actual = $this->serializer->decode((string) $response->getBody(), static::$format);
     static::recursiveKSort($actual);
-    $this->assertSame($expected, $actual);
+    $this->assertEqualsCanonicalizing($expected, $actual);
 
     // Not only assert the normalization, also assert deserialization of the
     // response results in the expected object.
@@ -691,8 +686,7 @@ abstract class EntityResourceTestBase extends ResourceTestBase {
   public function testPost() {
     // @todo Remove this in https://www.drupal.org/node/2300677.
     if ($this->entity instanceof ConfigEntityInterface) {
-      $this->assertTrue(TRUE, 'POSTing config entities is not yet supported.');
-      return;
+      $this->markTestSkipped('POSTing config entities is not yet supported.');
     }
 
     $this->initAuthentication();
@@ -866,8 +860,7 @@ abstract class EntityResourceTestBase extends ResourceTestBase {
   public function testPatch() {
     // @todo Remove this in https://www.drupal.org/node/2300677.
     if ($this->entity instanceof ConfigEntityInterface) {
-      $this->assertTrue(TRUE, 'PATCHing config entities is not yet supported.');
-      return;
+      $this->markTestSkipped('PATCHing config entities is not yet supported.');
     }
 
     // Patch testing requires that another entity of the same type exists.
@@ -999,7 +992,7 @@ abstract class EntityResourceTestBase extends ResourceTestBase {
 
     // DX: 403 when sending PATCH request with updated read-only fields.
     $this->assertPatchProtectedFieldNamesStructure();
-    list($modified_entity, $original_values) = static::getModifiedEntityForPatchTesting($this->entity);
+    [$modified_entity, $original_values] = static::getModifiedEntityForPatchTesting($this->entity);
     // Send PATCH request by serializing the modified entity, assert the error
     // response, change the modified entity field that caused the error response
     // back to its original value, repeat.
@@ -1105,8 +1098,7 @@ abstract class EntityResourceTestBase extends ResourceTestBase {
   public function testDelete() {
     // @todo Remove this in https://www.drupal.org/node/2300677.
     if ($this->entity instanceof ConfigEntityInterface) {
-      $this->assertTrue(TRUE, 'DELETEing config entities is not yet supported.');
-      return;
+      $this->markTestSkipped('DELETEing config entities is not yet supported.');
     }
 
     $this->initAuthentication();

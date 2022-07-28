@@ -16,7 +16,7 @@ use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\Render\RenderEvents;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Theme\ThemeManagerInterface;
-use Symfony\Component\EventDispatcher\EventDispatcherInterface;
+use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
@@ -48,7 +48,7 @@ class HtmlRenderer implements MainContentRendererInterface {
   /**
    * The event dispatcher.
    *
-   * @var \Symfony\Component\EventDispatcher\EventDispatcherInterface
+   * @var \Symfony\Contracts\EventDispatcher\EventDispatcherInterface
    */
   protected $eventDispatcher;
   /**
@@ -95,7 +95,7 @@ class HtmlRenderer implements MainContentRendererInterface {
    *   The title resolver.
    * @param \Drupal\Component\Plugin\PluginManagerInterface $display_variant_manager
    *   The display variant manager.
-   * @param \Symfony\Component\EventDispatcher\EventDispatcherInterface $event_dispatcher
+   * @param \Symfony\Contracts\EventDispatcher\EventDispatcherInterface $event_dispatcher
    *   The event dispatcher.
    * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
    *   The module handler.
@@ -129,7 +129,7 @@ class HtmlRenderer implements MainContentRendererInterface {
    * The entire HTML: takes a #type 'page' and wraps it in a #type 'html'.
    */
   public function renderResponse(array $main_content, Request $request, RouteMatchInterface $route_match) {
-    list($page, $title) = $this->prepare($main_content, $request, $route_match);
+    [$page, $title] = $this->prepare($main_content, $request, $route_match);
 
     if (!isset($page['#type']) || $page['#type'] !== 'page') {
       throw new \LogicException('Must be #type page');
@@ -205,7 +205,7 @@ class HtmlRenderer implements MainContentRendererInterface {
     // Determine the title: use the title provided by the main content if any,
     // otherwise get it from the routing information.
     $get_title = function (array $main_content) use ($request, $route_match) {
-      return isset($main_content['#title']) ? $main_content['#title'] : $this->titleResolver->getTitle($request, $route_match->getRouteObject());
+      return $main_content['#title'] ?? $this->titleResolver->getTitle($request, $route_match->getRouteObject());
     };
 
     // If the _controller result already is #type => page,
@@ -241,7 +241,7 @@ class HtmlRenderer implements MainContentRendererInterface {
           return $this->renderer->render($main_content, FALSE);
         });
         $main_content = $this->renderCache->getCacheableRenderArray($main_content) + [
-          '#title' => isset($main_content['#title']) ? $main_content['#title'] : NULL,
+          '#title' => $main_content['#title'] ?? NULL,
         ];
       }
 
@@ -307,10 +307,12 @@ class HtmlRenderer implements MainContentRendererInterface {
   public function invokePageAttachmentHooks(array &$page) {
     // Modules can add attachments.
     $attachments = [];
-    foreach ($this->moduleHandler->getImplementations('page_attachments') as $module) {
-      $function = $module . '_page_attachments';
-      $function($attachments);
-    }
+    $this->moduleHandler->invokeAllWith(
+      'page_attachments',
+      function (callable $hook, string $module) use (&$attachments) {
+        $hook($attachments);
+      }
+    );
     if (array_diff(array_keys($attachments), ['#attached', '#cache']) !== []) {
       throw new \LogicException('Only #attached and #cache may be set in hook_page_attachments().');
     }
@@ -346,14 +348,18 @@ class HtmlRenderer implements MainContentRendererInterface {
     // Modules can add render arrays to the top and bottom of the page.
     $page_top = [];
     $page_bottom = [];
-    foreach ($this->moduleHandler->getImplementations('page_top') as $module) {
-      $function = $module . '_page_top';
-      $function($page_top);
-    }
-    foreach ($this->moduleHandler->getImplementations('page_bottom') as $module) {
-      $function = $module . '_page_bottom';
-      $function($page_bottom);
-    }
+    $this->moduleHandler->invokeAllWith(
+      'page_top',
+      function (callable $hook, string $module) use (&$page_top) {
+        $hook($page_top);
+      }
+    );
+    $this->moduleHandler->invokeAllWith(
+      'page_bottom',
+      function (callable $hook, string $module) use (&$page_bottom) {
+        $hook($page_bottom);
+      }
+    );
     if (!empty($page_top)) {
       $html['page_top'] = $page_top;
     }

@@ -4,6 +4,7 @@ namespace Drupal\Tests\views\Functional\Wizard;
 
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\field\Entity\FieldConfig;
+use Drupal\taxonomy\Entity\Term;
 use Drupal\taxonomy\Entity\Vocabulary;
 use Drupal\Tests\field\Traits\EntityReferenceTestTrait;
 
@@ -70,8 +71,8 @@ class TaggedWithTest extends WizardTestBase {
    */
   protected $tagField;
 
-  protected function setUp($import_test_views = TRUE): void {
-    parent::setUp($import_test_views);
+  protected function setUp($import_test_views = TRUE, $modules = []): void {
+    parent::setUp($import_test_views, $modules);
 
     // Create two content types. One will have an autocomplete tagging field,
     // and one won't.
@@ -130,14 +131,17 @@ class TaggedWithTest extends WizardTestBase {
     $edit = [];
     $edit['title[0][value]'] = $node_tag1_title = $this->randomMachineName();
     $edit[$this->tagFieldName . '[target_id]'] = 'tag1';
-    $this->drupalPostForm($node_add_path, $edit, 'Save');
+    $this->drupalGet($node_add_path);
+    $this->submitForm($edit, 'Save');
     $edit = [];
     $edit['title[0][value]'] = $node_tag1_tag2_title = $this->randomMachineName();
     $edit[$this->tagFieldName . '[target_id]'] = 'tag1, tag2';
-    $this->drupalPostForm($node_add_path, $edit, 'Save');
+    $this->drupalGet($node_add_path);
+    $this->submitForm($edit, 'Save');
     $edit = [];
     $edit['title[0][value]'] = $node_no_tags_title = $this->randomMachineName();
-    $this->drupalPostForm($node_add_path, $edit, 'Save');
+    $this->drupalGet($node_add_path);
+    $this->submitForm($edit, 'Save');
 
     // Create a view that filters by taxonomy term "tag1". It should show only
     // the two nodes from above that are tagged with "tag1".
@@ -145,7 +149,8 @@ class TaggedWithTest extends WizardTestBase {
     // First select the node type and update the form so the correct tag field
     // is used.
     $view1['show[type]'] = $this->nodeTypeWithTags->id();
-    $this->drupalPostForm('admin/structure/views/add', $view1, 'Update "of type" choice');
+    $this->drupalGet('admin/structure/views/add');
+    $this->submitForm($view1, 'Update "of type" choice');
     // Now resubmit the entire form to the same URL.
     $view1['label'] = $this->randomMachineName(16);
     $view1['id'] = strtolower($this->randomMachineName(16));
@@ -159,15 +164,16 @@ class TaggedWithTest extends WizardTestBase {
     // ones we don't expect are absent.
     $this->drupalGet($view1['page[path]']);
     $this->assertSession()->statusCodeEquals(200);
-    $this->assertText($node_tag1_title);
-    $this->assertText($node_tag1_tag2_title);
-    $this->assertNoText($node_no_tags_title);
+    $this->assertSession()->pageTextContains($node_tag1_title);
+    $this->assertSession()->pageTextContains($node_tag1_tag2_title);
+    $this->assertSession()->pageTextNotContains($node_no_tags_title);
 
     // Create a view that filters by taxonomy term "tag2". It should show only
     // the one node from above that is tagged with "tag2".
     $view2 = [];
     $view2['show[type]'] = $this->nodeTypeWithTags->id();
-    $this->drupalPostForm('admin/structure/views/add', $view2, 'Update "of type" choice');
+    $this->drupalGet('admin/structure/views/add');
+    $this->submitForm($view2, 'Update "of type" choice');
     $this->assertSession()->statusCodeEquals(200);
     $view2['label'] = $this->randomMachineName(16);
     $view2['id'] = strtolower($this->randomMachineName(16));
@@ -179,9 +185,9 @@ class TaggedWithTest extends WizardTestBase {
     $this->submitForm($view2, 'Save and edit');
     $this->assertSession()->statusCodeEquals(200);
     $this->drupalGet($view2['page[path]']);
-    $this->assertNoText($node_tag1_title);
-    $this->assertText($node_tag1_tag2_title);
-    $this->assertNoText($node_no_tags_title);
+    $this->assertSession()->pageTextNotContains($node_tag1_title);
+    $this->assertSession()->pageTextContains($node_tag1_tag2_title);
+    $this->assertSession()->pageTextNotContains($node_no_tags_title);
   }
 
   /**
@@ -196,7 +202,8 @@ class TaggedWithTest extends WizardTestBase {
     $this->drupalGet('admin/structure/views/add');
     $this->assertSession()->fieldExists("show[tagged_with]");
     $view['show[type]'] = $this->nodeTypeWithTags->id();
-    $this->drupalPostForm('admin/structure/views/add', $view, 'Update "of type" choice');
+    $this->drupalGet('admin/structure/views/add');
+    $this->submitForm($view, 'Update "of type" choice');
     $this->assertSession()->fieldExists("show[tagged_with]");
     $view['show[type]'] = $this->nodeTypeWithoutTags->id();
     $this->submitForm($view, 'Update "of type" choice (2)');
@@ -226,11 +233,49 @@ class TaggedWithTest extends WizardTestBase {
       ->save();
 
     $view['show[type]'] = $this->nodeTypeWithTags->id();
-    $this->drupalPostForm('admin/structure/views/add', $view, 'Update "of type" choice');
+    $this->drupalGet('admin/structure/views/add');
+    $this->submitForm($view, 'Update "of type" choice');
     $this->assertSession()->fieldExists("show[tagged_with]");
     $view['show[type]'] = $this->nodeTypeWithoutTags->id();
     $this->submitForm($view, 'Update "of type" choice (2)');
     $this->assertSession()->fieldExists("show[tagged_with]");
+  }
+
+  /**
+   * Tests that "tagged with" works with views entity reference.
+   */
+  public function testTaggedWithByViewReference() {
+    Term::create(['name' => 'term1', 'vid' => 'views_testing_tags']);
+    $tags_xpath = '//input[@name="show[tagged_with]"]';
+
+    // If we add an instance of the tagging field to the second node type, the
+    // "tagged with" form element should now appear for it too.
+    FieldConfig::create([
+      'field_name' => $this->tagFieldName,
+      'entity_type' => 'node',
+      'bundle' => $this->nodeTypeWithoutTags->id(),
+      'settings' => [
+        'handler' => 'views',
+        'handler_settings' => [],
+      ],
+    ])->save();
+    \Drupal::service('entity_display.repository')
+      ->getFormDisplay('node', $this->nodeTypeWithoutTags->id())
+      ->setComponent($this->tagFieldName, [
+        'type' => 'entity_reference_autocomplete_tags',
+      ])
+      ->save();
+
+    $view['show[type]'] = $this->nodeTypeWithTags->id();
+    $this->drupalGet('admin/structure/views/add');
+    $this->submitForm($view, 'Update "of type" choice');
+    $this->assertNotEmpty($this->xpath($tags_xpath));
+    $view['show[type]'] = $this->nodeTypeWithoutTags->id();
+    $this->submitForm($view, 'Update "of type" choice (2)');
+    $this->assertNotEmpty($this->xpath($tags_xpath));
+    $this->submitForm(['show[tagged_with]' => 'term1'], 'Save and edit');
+    $this->assertSession()->statusCodeEquals(200);
+    $this->getSession()->getPage()->hasContent('Has taxonomy term (= term1)');
   }
 
 }

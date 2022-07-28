@@ -99,9 +99,21 @@ class ExtensionDiscoveryTest extends UnitTestCase {
   }
 
   /**
+   * Tests finding modules that have a trailing comment on the type property.
+   *
+   * @covers ::scan
+   */
+  public function testExtensionDiscoveryTypeComment(): void {
+    $extension_discovery = new ExtensionDiscovery($this->root, TRUE, [], 'sites/default');
+    $modules = $extension_discovery->scan('module', TRUE);
+    $this->assertArrayHasKey('module_info_type_comment', $modules);
+  }
+
+  /**
    * Adds example files to the filesystem structure.
    *
    * @param array $filesystem_structure
+   *   An associative array where each key represents a directory.
    *
    * @return string[][]
    *   Format: $[$type][$name] = $yml_file
@@ -174,9 +186,11 @@ class ExtensionDiscoveryTest extends UnitTestCase {
 
   /**
    * @param array $filesystem_structure
+   *   An associative array where each key represents a directory.
    * @param string[] $pieces
    *   Fragments of the file path.
    * @param string $content
+   *   The contents of the file.
    */
   protected function addFileToFilesystemStructure(array &$filesystem_structure, array $pieces, $content) {
     $piece = array_shift($pieces);

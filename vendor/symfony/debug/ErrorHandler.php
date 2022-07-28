@@ -119,7 +119,7 @@ class ErrorHandler
     public static function register(self $handler = null, $replace = true)
     {
         if (null === self::$reservedMemory) {
-            self::$reservedMemory = str_repeat('x', 10240);
+            self::$reservedMemory = str_repeat('x', 32768);
             register_shutdown_function(__CLASS__.'::handleFatalError');
         }
 
@@ -169,7 +169,7 @@ class ErrorHandler
             $this->bootstrappingLogger = $bootstrappingLogger;
             $this->setDefaultLogger($bootstrappingLogger);
         }
-        $this->traceReflector = new \ReflectionProperty('Exception', 'trace');
+        $this->traceReflector = new \ReflectionProperty(\Exception::class, 'trace');
         $this->traceReflector->setAccessible(true);
     }
 
@@ -636,7 +636,7 @@ class ErrorHandler
         if ($error && $error['type'] &= \E_PARSE | \E_ERROR | \E_CORE_ERROR | \E_COMPILE_ERROR) {
             // Let's not throw anymore but keep logging
             $handler->throwAt(0, true);
-            $trace = isset($error['backtrace']) ? $error['backtrace'] : null;
+            $trace = $error['backtrace'] ?? null;
 
             if (0 === strpos($error['message'], 'Allowed memory') || 0 === strpos($error['message'], 'Out of memory')) {
                 $exception = new OutOfMemoryException($handler->levels[$error['type']].': '.$error['message'], 0, $error['type'], $error['file'], $error['line'], 2, false, $trace);

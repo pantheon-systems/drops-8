@@ -40,6 +40,8 @@ class ImageStyleTest extends UnitTestCase {
    *   The image effect ID.
    * @param \Drupal\image\ImageEffectInterface|\PHPUnit\Framework\MockObject\MockObject $image_effect
    *   The image effect used for testing.
+   * @param array $stubs
+   *   An array of additional method names to mock.
    *
    * @return \Drupal\image\ImageStyleInterface
    *   The mocked image style.
@@ -52,18 +54,13 @@ class ImageStyleTest extends UnitTestCase {
       ->method('createInstance')
       ->with($image_effect_id)
       ->will($this->returnValue($image_effect));
-    $default_stubs = [
-      'getImageEffectPluginManager',
-      'fileUriScheme',
-      'fileUriTarget',
-      'fileDefaultScheme',
-    ];
+    $default_stubs = ['getImageEffectPluginManager', 'fileDefaultScheme'];
     $image_style = $this->getMockBuilder('\Drupal\image\Entity\ImageStyle')
       ->setConstructorArgs([
         ['effects' => [$image_effect_id => ['id' => $image_effect_id]]],
         $this->entityTypeId,
       ])
-      ->setMethods(array_merge($default_stubs, $stubs))
+      ->onlyMethods(array_merge($default_stubs, $stubs))
       ->getMock();
 
     $image_style->expects($this->any())
@@ -71,7 +68,7 @@ class ImageStyleTest extends UnitTestCase {
       ->will($this->returnValue($effectManager));
     $image_style->expects($this->any())
       ->method('fileDefaultScheme')
-      ->will($this->returnCallback([$this, 'fileDefaultScheme']));
+      ->willReturnCallback([$this, 'fileDefaultScheme']);
 
     return $image_style;
   }
@@ -81,11 +78,11 @@ class ImageStyleTest extends UnitTestCase {
    */
   protected function setUp(): void {
     $this->entityTypeId = $this->randomMachineName();
-    $this->provider = $this->randomMachineName();
+    $provider = $this->randomMachineName();
     $this->entityType = $this->createMock('\Drupal\Core\Entity\EntityTypeInterface');
     $this->entityType->expects($this->any())
       ->method('getProvider')
-      ->will($this->returnValue($this->provider));
+      ->will($this->returnValue($provider));
     $this->entityTypeManager = $this->createMock('\Drupal\Core\Entity\EntityTypeManagerInterface');
     $this->entityTypeManager->expects($this->any())
       ->method('getDefinition')
@@ -111,7 +108,7 @@ class ImageStyleTest extends UnitTestCase {
     $extensions = ['jpeg', 'gif', 'png'];
     foreach ($extensions as $extension) {
       $extensionReturned = $image_style->getDerivativeExtension($extension);
-      $this->assertEquals($extensionReturned, 'png');
+      $this->assertEquals('png', $extensionReturned);
     }
   }
 

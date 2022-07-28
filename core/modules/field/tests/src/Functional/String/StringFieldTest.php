@@ -48,7 +48,7 @@ class StringFieldTest extends BrowserTestBase {
   // Test fields.
 
   /**
-   * Test widgets.
+   * Tests widgets.
    */
   public function testTextfieldWidgets() {
     $this->_testTextfieldWidgets('string', 'string_textfield');
@@ -92,7 +92,7 @@ class StringFieldTest extends BrowserTestBase {
     $this->drupalGet('entity_test/add');
     $this->assertSession()->fieldValueEquals("{$field_name}[0][value]", '');
     $this->assertSession()->fieldNotExists("{$field_name}[0][format]");
-    $this->assertRaw(new FormattableMarkup('placeholder="A placeholder on @widget_type"', ['@widget_type' => $widget_type]));
+    $this->assertSession()->responseContains(new FormattableMarkup('placeholder="A placeholder on @widget_type"', ['@widget_type' => $widget_type]));
 
     // Submit with some value.
     $value = $this->randomMachineName();
@@ -102,7 +102,7 @@ class StringFieldTest extends BrowserTestBase {
     $this->submitForm($edit, 'Save');
     preg_match('|entity_test/manage/(\d+)|', $this->getUrl(), $match);
     $id = $match[1];
-    $this->assertText('entity_test ' . $id . ' has been created.', 'Entity was created');
+    $this->assertSession()->pageTextContains('entity_test ' . $id . ' has been created.');
 
     // Display the entity.
     $entity = EntityTest::load($id);

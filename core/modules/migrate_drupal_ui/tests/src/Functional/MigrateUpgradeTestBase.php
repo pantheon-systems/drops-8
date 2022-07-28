@@ -7,7 +7,6 @@ use Drupal\migrate\Plugin\MigrateIdMapInterface;
 use Drupal\migrate_drupal\MigrationConfigurationTrait;
 use Drupal\user\Entity\User;
 use Drupal\Tests\BrowserTestBase;
-use Drupal\Tests\migrate_drupal\Traits\CreateTestContentEntitiesTrait;
 
 /**
  * Provides a base class for testing migration upgrades in the UI.
@@ -15,7 +14,6 @@ use Drupal\Tests\migrate_drupal\Traits\CreateTestContentEntitiesTrait;
 abstract class MigrateUpgradeTestBase extends BrowserTestBase {
 
   use MigrationConfigurationTrait;
-  use CreateTestContentEntitiesTrait;
 
   /**
    * Use the Standard profile to test help implementations of many core modules.
@@ -39,6 +37,13 @@ abstract class MigrateUpgradeTestBase extends BrowserTestBase {
   protected $destinationSiteVersion;
 
   /**
+   * Input data for the credential form.
+   *
+   * @var array
+   */
+  protected $edits;
+
+  /**
    * {@inheritdoc}
    */
   protected function setUp() {
@@ -51,6 +56,20 @@ abstract class MigrateUpgradeTestBase extends BrowserTestBase {
 
     // Log in as user 1. Migrations in the UI can only be performed as user 1.
     $this->drupalLogin($this->rootUser);
+  }
+
+  /**
+   * Navigates to the credential form and submits valid credentials.
+   */
+  public function submitCredentialForm() {
+    $this->drupalGet('/upgrade');
+    $this->submitForm([], 'Continue');
+
+    // Get valid credentials.
+    $this->edits = $this->translatePostValues($this->getCredentials());
+
+    // When the Credential form is submitted the migrate map tables are created.
+    $this->submitForm($this->edits, 'Review upgrade');
   }
 
   /**
@@ -88,7 +107,7 @@ abstract class MigrateUpgradeTestBase extends BrowserTestBase {
       $connection_info['prefix'] = '';
     }
     else {
-      $prefix = is_array($connection_info['prefix']) ? $connection_info['prefix']['default'] : $connection_info['prefix'];
+      $prefix = $connection_info['prefix'];
       // Simpletest uses fixed length prefixes. Create a new prefix for the
       // source database. Adding to the end of the prefix ensures that
       // \Drupal\simpletest\TestBase::restoreEnvironment() will remove the
@@ -226,17 +245,17 @@ abstract class MigrateUpgradeTestBase extends BrowserTestBase {
     // Check that the expected number of entities is the same as the actual
     // number of entities.
     $entity_definitions = array_keys(\Drupal::entityTypeManager()->getDefinitions());
+    ksort($entity_counts);
     $expected_count_keys = array_keys($entity_counts);
     sort($entity_definitions);
-    sort($expected_count_keys);
     $this->assertSame($expected_count_keys, $entity_definitions);
 
-    // Assert the correct number of entities exist.
+    // Assert the correct number of entities exists.
+    $actual_entity_counts = [];
     foreach ($entity_definitions as $entity_type) {
-      $real_count = (int) \Drupal::entityQuery($entity_type)->count()->execute();
-      $expected_count = $entity_counts[$entity_type];
-      $this->assertSame($expected_count, $real_count, "Found $real_count $entity_type entities, expected $expected_count.");
+      $actual_entity_counts[$entity_type] = (int) \Drupal::entityQuery($entity_type)->accessCheck(FALSE)->count()->execute();
     }
+    $this->assertSame($entity_counts, $actual_entity_counts);
 
     $plugin_manager = \Drupal::service('plugin.manager.migration');
     $version = $this->getLegacyDrupalVersion($this->sourceDatabase);
@@ -276,7 +295,6 @@ abstract class MigrateUpgradeTestBase extends BrowserTestBase {
     $connection_options = $this->sourceDatabase->getConnectionOptions();
     $version = $this->getLegacyDrupalVersion($this->sourceDatabase);
     $driver = $connection_options['driver'];
-    $connection_options['prefix'] = $connection_options['prefix']['default'];
 
     // Use the driver connection form to get the correct options out of the
     // database settings. This supports all of the databases we test against.
@@ -293,6 +311,7 @@ abstract class MigrateUpgradeTestBase extends BrowserTestBase {
     }
     else {
       $edit['source_base_path'] = $this->getSourceBasePath();
+      $edit['source_private_file_path'] = $this->getSourcePrivateBasePath();
     }
     if (count($drivers) !== 1) {
       $edit['driver'] = $driver;
@@ -307,6 +326,45 @@ abstract class MigrateUpgradeTestBase extends BrowserTestBase {
     $user = User::load($uid);
     $user->passRaw = $pass;
     $this->drupalLogin($user);
+  }
+
+  /**
+   * Provides the source base path for private files for the credential form.
+   *
+   * @return string|null
+   *   The source base path.
+   */
+  protected function getSourcePrivateBasePath() {
+    return NULL;
+  }
+
+  /**
+   * Checks public and private files are copied but not temporary files.
+   */
+  protected function assertFileMigrations() {
+    $fs = \Drupal::service('file_system');
+    $files = $this->getManagedFiles();
+    foreach ($files as $file) {
+      preg_match('/^(private|public|temporary):/', $file['uri'], $matches);
+      $scheme = $matches[1];
+      $filepath = $fs->realpath($file['uri']);
+      if ($scheme === 'temporary') {
+        $this->assertFileDoesNotExist($filepath);
+      }
+      else {
+        $this->assertFileExists($filepath);
+      }
+    }
+  }
+
+  /**
+   * Confirm emails were sent.
+   */
+  protected function assertEmailsSent() {
+    // There should be one user activation email.
+    $captured_emails = \Drupal::state()->get('system.test_mail_collector', []);
+    $this->assertCount(1, $captured_emails);
+    $this->assertEquals('user_status_activated', $captured_emails[0]['id']);
   }
 
 }
