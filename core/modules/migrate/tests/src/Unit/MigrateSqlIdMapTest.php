@@ -2,7 +2,7 @@
 
 namespace Drupal\Tests\migrate\Unit;
 
-use Drupal\Core\Database\Driver\sqlite\Connection;
+use Drupal\sqlite\Driver\Database\sqlite\Connection;
 use Drupal\migrate\Plugin\MigrationInterface;
 use Drupal\migrate\MigrateException;
 use Drupal\migrate\Plugin\MigrateIdMapInterface;
@@ -110,7 +110,7 @@ class MigrateSqlIdMapTest extends MigrateTestCase {
     $migration
       ->method('getDestinationPlugin')
       ->willReturn($plugin);
-    $event_dispatcher = $this->createMock('Symfony\Component\EventDispatcher\EventDispatcherInterface');
+    $event_dispatcher = $this->createMock('Symfony\Contracts\EventDispatcher\EventDispatcherInterface');
 
     $id_map = new TestSqlIdMap($this->database, [], 'sql', [], $migration, $event_dispatcher);
     $migration
@@ -328,7 +328,7 @@ class MigrateSqlIdMapTest extends MigrateTestCase {
       $this->assertEquals($message_default, $message_row->message);
       $this->assertEquals(MigrationInterface::MESSAGE_ERROR, $message_row->level);
     }
-    $this->assertEquals($count, 1);
+    $this->assertEquals(1, $count);
 
     // Retrieve messages with a specific level.
     $messages = $id_map->getMessages([], MigrationInterface::MESSAGE_WARNING);
@@ -337,7 +337,7 @@ class MigrateSqlIdMapTest extends MigrateTestCase {
       $count = 1;
       $this->assertEquals(MigrationInterface::MESSAGE_WARNING, $message_row->level);
     }
-    $this->assertEquals($count, 1);
+    $this->assertEquals(1, $count);
   }
 
   /**
@@ -571,11 +571,19 @@ class MigrateSqlIdMapTest extends MigrateTestCase {
     $id_map = $this->getIdMap();
     $result_row = $id_map->getRowByDestination($dest_id_values);
     $this->assertSame($row, $result_row);
-    // This value does not exist.
-    $dest_id_values = ['destination_id_property' => 'invalid_destination_id_property'];
-    $id_map = $this->getIdMap();
-    $result_row = $id_map->getRowByDestination($dest_id_values);
-    $this->assertFalse($result_row);
+    // This value does not exist, getRowByDestination should return an (empty)
+    // array.
+    // @see \Drupal\migrate\Plugin\MigrateIdMapInterface::getRowByDestination()
+    $missing_result_row = $id_map->getRowByDestination([
+      'destination_id_property' => 'invalid_destination_id_property',
+    ]);
+    $this->assertEquals([], $missing_result_row);
+    // The destination ID values array does not contain all the destination ID
+    // keys, we expect an empty array.
+    $invalid_result_row = $id_map->getRowByDestination([
+      'invalid_destination_key' => 'invalid_destination_id_property',
+    ]);
+    $this->assertEquals([], $invalid_result_row);
   }
 
   /**
@@ -962,7 +970,7 @@ class MigrateSqlIdMapTest extends MigrateTestCase {
     $qualified_map_table = $this->getIdMap()->getQualifiedMapTableName();
     // The SQLite driver is a special flower. It will prefix tables with
     // PREFIX.TABLE, instead of the standard PREFIXTABLE.
-    // @see \Drupal\Core\Database\Driver\sqlite\Connection::__construct()
+    // @see \Drupal\sqlite\Driver\Database\sqlite\Connection::__construct()
     $this->assertEquals('prefix.migrate_map_sql_idmap_test', $qualified_map_table);
   }
 

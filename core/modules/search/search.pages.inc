@@ -30,9 +30,9 @@ function template_preprocess_search_result(&$variables) {
   $result = $variables['result'];
   $variables['url'] = UrlHelper::stripDangerousProtocols($result['link']);
   $variables['title'] = $result['title'];
-  if (isset($result['language']) && $result['language'] != $language_interface->getId() && $result['language'] != LanguageInterface::LANGCODE_NOT_SPECIFIED) {
-    $variables['title_attributes']['lang'] = $result['language'];
-    $variables['content_attributes']['lang'] = $result['language'];
+  if (isset($result['langcode']) && $result['langcode'] != $language_interface->getId() && $result['langcode'] != LanguageInterface::LANGCODE_NOT_SPECIFIED) {
+    $variables['title_attributes']['lang'] = $result['langcode'];
+    $variables['content_attributes']['lang'] = $result['langcode'];
   }
 
   $info = [];
@@ -49,7 +49,7 @@ function template_preprocess_search_result(&$variables) {
     $info = array_merge($info, $result['extra']);
   }
   // Check for existence. User search does not include snippets.
-  $variables['snippet'] = isset($result['snippet']) ? $result['snippet'] : '';
+  $variables['snippet'] = $result['snippet'] ?? '';
   // Provide separated and grouped meta information..
   $variables['info_split'] = $info;
   $variables['info'] = [

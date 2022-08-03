@@ -4,6 +4,7 @@ namespace Drupal\KernelTests\Core\Database;
 
 use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Core\Database\Database;
+use Drupal\Core\Database\IntegrityConstraintViolationException;
 use Drupal\Core\Database\SchemaException;
 use Drupal\Core\Database\SchemaObjectDoesNotExistException;
 use Drupal\Core\Database\SchemaObjectExistsException;
@@ -105,8 +106,8 @@ class SchemaTest extends KernelTestBase {
           $string_ascii_check = ($column->Collation == 'ascii_general_ci');
         }
       }
-      $this->assertTrue(!empty($string_check), 'string field has the right collation.');
-      $this->assertTrue(!empty($string_ascii_check), 'ASCII string field has the right collation.');
+      $this->assertNotEmpty($string_check, 'string field has the right collation.');
+      $this->assertNotEmpty($string_ascii_check, 'ASCII string field has the right collation.');
     }
 
     // An insert without a value for the column 'test_table' should fail.
@@ -145,7 +146,7 @@ class SchemaTest extends KernelTestBase {
 
     // We should have successfully inserted exactly two rows.
     $count = $this->connection->query('SELECT COUNT(*) FROM {test_table2}')->fetchField();
-    $this->assertEqual($count, 2, 'Two fields were successfully inserted.');
+    $this->assertEquals(2, $count, 'Two fields were successfully inserted.');
 
     // Try to drop the table.
     $this->schema->dropTable('test_table2');
@@ -172,7 +173,7 @@ class SchemaTest extends KernelTestBase {
     $this->assertTrue($max2 > $max1, 'The serial is monotone.');
 
     $count = $this->connection->query('SELECT COUNT(*) FROM {test_table}')->fetchField();
-    $this->assertEqual($count, 2, 'There were two rows.');
+    $this->assertEquals(2, $count, 'There were two rows.');
 
     // Test adding a serial field to an existing table.
     $this->schema->dropTable('test_table');
@@ -192,7 +193,7 @@ class SchemaTest extends KernelTestBase {
     $this->assertTrue($max2 > $max1, 'The serial is monotone.');
 
     $count = $this->connection->query('SELECT COUNT(*) FROM {test_table}')->fetchField();
-    $this->assertEqual($count, 2, 'There were two rows.');
+    $this->assertEquals(2, $count, 'There were two rows.');
 
     // Test adding a new column and form a composite primary key with it.
     $this->schema->addField('test_table', 'test_composite_primary_key', ['type' => 'int', 'not null' => TRUE, 'default' => 0], ['primary key' => ['test_serial', 'test_composite_primary_key']]);
@@ -276,9 +277,9 @@ class SchemaTest extends KernelTestBase {
   }
 
   /**
-   * @covers \Drupal\Core\Database\Driver\mysql\Schema::introspectIndexSchema
-   * @covers \Drupal\Core\Database\Driver\pgsql\Schema::introspectIndexSchema
-   * @covers \Drupal\Core\Database\Driver\sqlite\Schema::introspectIndexSchema
+   * @covers \Drupal\mysql\Driver\Database\mysql\Schema::introspectIndexSchema
+   * @covers \Drupal\pgsql\Driver\Database\pgsql\Schema::introspectIndexSchema
+   * @covers \Drupal\sqlite\Driver\Database\sqlite\Schema::introspectIndexSchema
    */
   public function testIntrospectIndexSchema() {
     $table_specification = [
@@ -355,7 +356,7 @@ class SchemaTest extends KernelTestBase {
   /**
    * Tests that indexes on string fields are limited to 191 characters on MySQL.
    *
-   * @see \Drupal\Core\Database\Driver\mysql\Schema::getNormalizedIndexes()
+   * @see \Drupal\mysql\Driver\Database\mysql\Schema::getNormalizedIndexes()
    */
   public function testIndexLength() {
     if ($this->connection->databaseType() !== 'mysql') {
@@ -419,7 +420,7 @@ class SchemaTest extends KernelTestBase {
       $this->fail('SchemaException not thrown when adding index with missing information.');
     }
     catch (SchemaException $e) {
-      $this->assertEqual($expected_exception_message, $e->getMessage());
+      $this->assertEquals($expected_exception_message, $e->getMessage());
     }
 
     // Add a separate index.
@@ -479,10 +480,10 @@ class SchemaTest extends KernelTestBase {
     }
     $test_count = 0;
     foreach ($results as $result) {
-      $this->assertEqual($result->Sub_part, $expected_lengths[$result->Key_name][$result->Column_name], 'Index length matches expected value.');
+      $this->assertEquals($expected_lengths[$result->Key_name][$result->Column_name], $result->Sub_part, 'Index length matches expected value.');
       $test_count++;
     }
-    $this->assertEqual($test_count, $column_count, 'Number of tests matches expected value.');
+    $this->assertEquals($column_count, $test_count, 'Number of tests matches expected value.');
   }
 
   /**
@@ -525,7 +526,7 @@ class SchemaTest extends KernelTestBase {
         $max_length = $column ? 255 : 60;
         $description = Unicode::truncate($description, $max_length, TRUE, TRUE);
       }
-      $this->assertEqual($comment, $description, 'The comment matches the schema description.');
+      $this->assertEquals($description, $comment, 'The comment matches the schema description.');
     }
   }
 
@@ -672,10 +673,12 @@ class SchemaTest extends KernelTestBase {
    * The addition test covers both defining a field of a given specification
    * when initially creating at table and extending an existing table.
    *
-   * @param $field_spec
+   * @param array $field_spec
    *   The schema specification of the field.
+   *
+   * @internal
    */
-  protected function assertFieldAdditionRemoval($field_spec) {
+  protected function assertFieldAdditionRemoval(array $field_spec): void {
     // Try creating the field on a new table.
     $table_name = 'test_table_' . ($this->counter++);
     $table_spec = [
@@ -737,8 +740,10 @@ class SchemaTest extends KernelTestBase {
 
   /**
    * Asserts that a newly added field has the correct characteristics.
+   *
+   * @internal
    */
-  protected function assertFieldCharacteristics($table_name, $field_name, $field_spec) {
+  protected function assertFieldCharacteristics(string $table_name, string $field_name, array $field_spec): void {
     // Check that the initial value has been registered.
     if (isset($field_spec['initial'])) {
       // There should be no row with a value different then $field_spec['initial'].
@@ -749,7 +754,7 @@ class SchemaTest extends KernelTestBase {
         ->countQuery()
         ->execute()
         ->fetchField();
-      $this->assertEqual($count, 0, 'Initial values filled out.');
+      $this->assertEquals(0, $count, 'Initial values filled out.');
     }
 
     // Check that the initial value from another field has been registered.
@@ -759,11 +764,11 @@ class SchemaTest extends KernelTestBase {
       $count = $this->connection
         ->select($table_name)
         ->fields($table_name, ['serial_column'])
-        ->where($table_name . '.' . $field_spec['initial_from_field'] . ' <> ' . $table_name . '.' . $field_name)
+        ->where("[$table_name].[{$field_spec['initial_from_field']}] <> [$table_name].[$field_name]")
         ->countQuery()
         ->execute()
         ->fetchField();
-      $this->assertEqual($count, 0, 'Initial values from another field filled out.');
+      $this->assertEquals(0, $count, 'Initial values from another field filled out.');
     }
     elseif (isset($field_spec['initial_from_field']) && isset($field_spec['initial'])) {
       // There should be no row with a value different than '100'.
@@ -774,7 +779,7 @@ class SchemaTest extends KernelTestBase {
         ->countQuery()
         ->execute()
         ->fetchField();
-      $this->assertEqual($count, 0, 'Initial values from another field or a default value filled out.');
+      $this->assertEquals(0, $count, 'Initial values from another field or a default value filled out.');
     }
 
     // Check that the default value has been registered.
@@ -790,7 +795,7 @@ class SchemaTest extends KernelTestBase {
         ->condition('serial_column', $id)
         ->execute()
         ->fetchField();
-      $this->assertEqual($field_value, $field_spec['default'], 'Default value registered.');
+      $this->assertEquals($field_spec['default'], $field_value, 'Default value registered.');
     }
   }
 
@@ -921,6 +926,70 @@ class SchemaTest extends KernelTestBase {
   }
 
   /**
+   * Tests converting an int to a serial when the int column has data.
+   */
+  public function testChangePrimaryKeyToSerial() {
+    // Test making an invalid field the primary key of the table upon creation.
+    $table_name = 'test_table';
+    $table_spec = [
+      'fields' => [
+        'test_field' => ['type' => 'int', 'not null' => TRUE],
+        'test_field_string'  => ['type' => 'varchar', 'length' => 20],
+      ],
+      'primary key' => ['test_field'],
+    ];
+    $this->schema->createTable($table_name, $table_spec);
+
+    if ($this->connection->databaseType() !== 'sqlite') {
+      try {
+        $this->connection
+          ->insert($table_name)
+          ->fields(['test_field_string' => 'test'])
+          ->execute();
+        $this->fail('Expected IntegrityConstraintViolationException not thrown');
+      }
+      catch (IntegrityConstraintViolationException $e) {
+      }
+    }
+
+    // @todo https://www.drupal.org/project/drupal/issues/3222127 Change the
+    //   first item to 0 to test changing a field with 0 to a serial.
+    // Create 8 rows in the table. Note that the 5 value is deliberately
+    // omitted.
+    foreach ([1, 2, 3, 4, 6, 7, 8, 9] as $value) {
+      $this->connection
+        ->insert($table_name)
+        ->fields(['test_field' => $value])
+        ->execute();
+    }
+    $this->schema->changeField($table_name, 'test_field', 'test_field', ['type' => 'serial', 'not null' => TRUE]);
+
+    $data = $this->connection
+      ->select($table_name)
+      ->fields($table_name, ['test_field'])
+      ->execute()
+      ->fetchCol();
+    $this->assertEquals([1, 2, 3, 4, 6, 7, 8, 9], array_values($data));
+
+    try {
+      $this->connection
+        ->insert($table_name)
+        ->fields(['test_field' => 1])
+        ->execute();
+      $this->fail('Expected IntegrityConstraintViolationException not thrown');
+    }
+    catch (IntegrityConstraintViolationException $e) {
+    }
+
+    // Ensure auto numbering now works.
+    $id = $this->connection
+      ->insert($table_name)
+      ->fields(['test_field_string' => 'test'])
+      ->execute();
+    $this->assertEquals(10, $id);
+  }
+
+  /**
    * Tests adding an invalid field specification as a primary key.
    */
   public function testInvalidPrimaryKeyAddition() {
@@ -1007,12 +1076,16 @@ class SchemaTest extends KernelTestBase {
   /**
    * Asserts that a field can be changed from one spec to another.
    *
-   * @param $old_spec
+   * @param array $old_spec
    *   The beginning field specification.
-   * @param $new_spec
+   * @param array $new_spec
    *   The ending field specification.
+   * @param mixed $test_data
+   *   (optional) A test value to insert and test, if specified.
+   *
+   * @internal
    */
-  protected function assertFieldChange($old_spec, $new_spec, $test_data = NULL) {
+  protected function assertFieldChange(array $old_spec, array $new_spec, $test_data = NULL): void {
     $table_name = 'test_table_' . ($this->counter++);
     $table_spec = [
       'fields' => [
@@ -1046,7 +1119,7 @@ class SchemaTest extends KernelTestBase {
         ->condition('serial_column', $id)
         ->execute()
         ->fetchField();
-      $this->assertIdentical($field_value, $test_data);
+      $this->assertSame($test_data, $field_value);
     }
 
     // Check the field was changed.
@@ -1202,7 +1275,10 @@ class SchemaTest extends KernelTestBase {
 
     // Add per-table prefix to the second table.
     $new_connection_info = $connection_info['default'];
-    $new_connection_info['prefix']['test_2_table'] = $new_connection_info['prefix']['default'] . '_shared_';
+    $new_connection_info['prefix'] = [
+      'default' => $connection_info['default']['prefix'],
+      'test_2_table' => $connection_info['default']['prefix'] . '_shared_',
+    ];
     Database::addConnectionInfo('test', 'default', $new_connection_info);
     Database::setActiveConnection('test');
     $test_schema = Database::getConnection()->schema();
@@ -1233,7 +1309,7 @@ class SchemaTest extends KernelTestBase {
       'test_2_table',
       'the_third_table',
     ];
-    $this->assertEqual($tables, $expected, 'All tables were found.');
+    $this->assertEquals($expected, $tables, 'All tables were found.');
 
     // Check the restrictive syntax.
     $tables = $test_schema->findTables('test_%');
@@ -1242,7 +1318,62 @@ class SchemaTest extends KernelTestBase {
       'test_1_table',
       'test_2_table',
     ];
-    $this->assertEqual($tables, $expected, 'Two tables were found.');
+    $this->assertEquals($expected, $tables, 'Two tables were found.');
+
+    // Check '_' and '%' wildcards.
+    $test_schema->createTable('test3table', $table_specification);
+    $test_schema->createTable('test4', $table_specification);
+    $test_schema->createTable('testTable', $table_specification);
+    $test_schema->createTable('test', $table_specification);
+
+    $tables = $test_schema->findTables('test%');
+    sort($tables);
+    $expected = [
+      'test',
+      'test3table',
+      'test4',
+      'testTable',
+      'test_1_table',
+      'test_2_table',
+    ];
+    $this->assertEquals($expected, $tables, 'All "test" prefixed tables were found.');
+
+    $tables = $test_schema->findTables('test_%');
+    sort($tables);
+    $expected = [
+      'test3table',
+      'test4',
+      'testTable',
+      'test_1_table',
+      'test_2_table',
+    ];
+    $this->assertEquals($expected, $tables, 'All "/^test..*?/" tables were found.');
+
+    $tables = $test_schema->findTables('test%table');
+    sort($tables);
+    $expected = [
+      'test3table',
+      'testTable',
+      'test_1_table',
+      'test_2_table',
+    ];
+    $this->assertEquals($expected, $tables, 'All "/^test.*?table/" tables were found.');
+
+    $tables = $test_schema->findTables('test_%table');
+    sort($tables);
+    $expected = [
+      'test3table',
+      'test_1_table',
+      'test_2_table',
+    ];
+    $this->assertEquals($expected, $tables, 'All "/^test..*?table/" tables were found.');
+
+    $tables = $test_schema->findTables('test_');
+    sort($tables);
+    $expected = [
+      'test4',
+    ];
+    $this->assertEquals($expected, $tables, 'All "/^test./" tables were found.');
 
     // Go back to the initial connection.
     Database::setActiveConnection('default');
@@ -1269,6 +1400,92 @@ class SchemaTest extends KernelTestBase {
     $this->assertTrue($this->schema->tableExists($table_name), 'Table with uppercase table name exists');
     $this->assertContains($table_name, $this->schema->findTables('%'));
     $this->assertTrue($this->schema->dropTable($table_name), 'Table with uppercase table name dropped');
+  }
+
+  /**
+   * Tests default values after altering table.
+   */
+  public function testDefaultAfterAlter() {
+    $table_name = 'test_table';
+
+    // Create the table.
+    $table_specification = [
+      'description' => 'Test table.',
+      'fields' => [
+        'column1'  => [
+          'type' => 'int',
+          'default' => NULL,
+        ],
+        'column2'  => [
+          'type' => 'varchar',
+          'length' => 20,
+          'default' => NULL,
+        ],
+        'column3'  => [
+          'type' => 'int',
+          'default' => 200,
+        ],
+        'column4'  => [
+          'type' => 'float',
+          'default' => 1.23,
+        ],
+        'column5'  => [
+          'type' => 'varchar',
+          'length' => 20,
+          'default' => "'s o'clock'",
+        ],
+        'column6'  => [
+          'type' => 'varchar',
+          'length' => 20,
+          'default' => "o'clock",
+        ],
+        'column7'  => [
+          'type' => 'varchar',
+          'length' => 20,
+          'default' => 'default value',
+        ],
+      ],
+    ];
+    $this->schema->createTable($table_name, $table_specification);
+
+    // Insert a row and check that columns have the expected default values.
+    $this->connection->insert($table_name)->fields(['column1' => 1])->execute();
+    $result = $this->connection->select($table_name, 't')->fields('t', ['column2', 'column3', 'column4', 'column5', 'column6', 'column7'])->condition('column1', 1)->execute()->fetchObject();
+    $this->assertNull($result->column2);
+    $this->assertSame('200', $result->column3);
+    $this->assertSame('1.23', $result->column4);
+    $this->assertSame("'s o'clock'", $result->column5);
+    $this->assertSame("o'clock", $result->column6);
+    $this->assertSame('default value', $result->column7);
+
+    // Force SQLite schema to create a new table and copy data by adding a not
+    // field with an initial value.
+    $this->schema->addField('test_table', 'new_column', ['type' => 'varchar', 'length' => 20, 'not null' => TRUE, 'description' => 'Added new column', 'initial' => 'test']);
+
+    // Test that the columns default values are still correct.
+    $this->connection->insert($table_name)->fields(['column1' => 2, 'new_column' => 'value'])->execute();
+    $result = $this->connection->select($table_name, 't')->fields('t', ['column2', 'column3', 'column4', 'column5', 'column6', 'column7'])->condition('column1', 2)->execute()->fetchObject();
+    $this->assertNull($result->column2);
+    $this->assertSame('200', $result->column3);
+    $this->assertSame('1.23', $result->column4);
+    $this->assertSame("'s o'clock'", $result->column5);
+    $this->assertSame("o'clock", $result->column6);
+    $this->assertSame('default value', $result->column7);
+  }
+
+  /**
+   * @covers \Drupal\Core\Database\Driver\pgsql\Schema::extensionExists
+   */
+  public function testPgsqlExtensionExists() {
+    if ($this->connection->databaseType() !== 'pgsql') {
+      $this->markTestSkipped("This test only runs for PostgreSQL.");
+    }
+
+    // Test the method for a non existing extension.
+    $this->assertFalse($this->schema->extensionExists('non_existing_extension'));
+
+    // Test the method for an existing extension.
+    $this->assertTrue($this->schema->extensionExists('pg_trgm'));
   }
 
 }

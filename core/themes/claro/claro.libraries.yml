@@ -71,12 +71,13 @@ global-styling:
     # such as inputs, action links, buttons, dropbuttons. For usability and
     # accessibility reasons, we keep target sizes big enough on touch screen
     # devices (by not making these elements smaller than their default size).
-    # Modernizr is used for recognizing whether user is using a touch device or
+    # Modernizr was used for recognizing whether user is using a touch device or
     # not. This allows conditionally rendering small variation of the control
-    # elements on non-touch devices. In some cases, such as when rendering
-    # links, it is hard recognize when Modernizr should be attached, therefore
-    # it has to be always attached.
-    - core/modernizr
+    # elements on non-touch devices. Modernizr's touch detection has since been
+    # replaced by core/drupal.touchevents-test.
+    # In some cases, such as when rendering links, it is hard recognize when
+    # this detection should be attached, therefore it is always attached.
+    - core/drupal.touchevents-test
 
 node-form:
   version: VERSION
@@ -114,7 +115,7 @@ drupal.nav-tabs:
   dependencies:
     - core/jquery
     - core/drupal
-    - core/jquery.once
+    - core/once
     - core/drupal.debounce
     - core/collapse
 
@@ -124,7 +125,7 @@ drupal.responsive-detail:
     js/responsive-details.js: {}
   dependencies:
     - core/jquery
-    - core/jquery.once
+    - core/once
     - core/collapse
 
 claro.jquery.ui:
@@ -138,6 +139,17 @@ claro.drupal.dialog:
   css:
     theme:
       css/components/dialog.css: {}
+
+claro.tabledrag:
+  version: VERSION
+  js:
+    js/tabledrag.js: {}
+
+ckeditor-admin:
+  version: VERSION
+  css:
+    theme:
+      css/theme/ckeditor.admin.css: {}
 
 ckeditor-dialog:
   version: VERSION
@@ -155,7 +167,7 @@ tour-styling:
   version: VERSION
   css:
     theme:
-      css/components/tour.theme.css: {}
+      css/theme/tour.theme.css: {}
 
 media-form:
   version: VERSION
@@ -203,6 +215,8 @@ autocomplete:
   version: VERSION
   js:
     js/autocomplete.js: {}
+  dependencies:
+    - core/once
 
 drupal.shortcut:
   version: VERSION
@@ -250,6 +264,8 @@ vertical-tabs:
   css:
     component:
       css/components/vertical-tabs.css: {}
+  js:
+     js/vertical-tabs.js: {}
   dependencies:
     - claro/global-styling
 
@@ -273,6 +289,10 @@ media_library.ui:
       css/components/media-library.ui.css : {}
   js:
     js/media-library.ui.js: { weight: -1 }
+  dependencies:
+    - core/drupal
+    - core/jquery
+    - core/once
 
 progress:
   version: VERSION

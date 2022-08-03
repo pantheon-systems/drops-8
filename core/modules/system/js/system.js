@@ -14,25 +14,25 @@
       });
 
       if (ids.length) {
-        $('body').once('copy-field-values').on('value:copy', this.valueTargetCopyHandler);
-        $("#".concat(ids.join(', #'))).once('copy-field-values').on('blur', this.valueSourceBlurHandler);
+        $(once('copy-field-values', 'body')).on('value:copy', this.valueTargetCopyHandler);
+        $(once('copy-field-values', "#".concat(ids.join(', #')))).on('blur', this.valueSourceBlurHandler);
       }
     },
     detach: function detach(context, settings, trigger) {
       if (trigger === 'unload' && ids.length) {
-        $('body').removeOnce('copy-field-values').off('value:copy');
-        $("#".concat(ids.join(', #'))).removeOnce('copy-field-values').off('blur');
+        $(once.remove('copy-field-values', 'body')).off('value:copy');
+        $(once.remove('copy-field-values', "#".concat(ids.join(', #')))).off('blur');
       }
     },
     valueTargetCopyHandler: function valueTargetCopyHandler(e, value) {
-      var $target = $(e.target);
+      var target = e.target;
 
-      if ($target.val() === '') {
-        $target.val(value);
+      if (target.value === '') {
+        target.value = value;
       }
     },
     valueSourceBlurHandler: function valueSourceBlurHandler(e) {
-      var value = $(e.target).val();
+      var value = e.target.value;
       var targetIds = drupalSettings.copyFieldValue[e.target.id];
       $("#".concat(targetIds.join(', #'))).trigger('value:copy', value);
     }

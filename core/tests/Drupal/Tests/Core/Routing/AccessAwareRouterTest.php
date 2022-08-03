@@ -18,6 +18,11 @@ use Symfony\Component\Routing\Route;
 class AccessAwareRouterTest extends UnitTestCase {
 
   /**
+   * @var \Drupal\Core\Routing\Router
+   */
+  protected $router;
+
+  /**
    * @var \Symfony\Component\Routing\Route
    */
   protected $route;
@@ -127,7 +132,7 @@ class AccessAwareRouterTest extends UnitTestCase {
 
     $this->router = $this->getMockBuilder('Drupal\Core\Routing\Router')
       ->disableOriginalConstructor()
-      ->setMethods(['add'])
+      ->addMethods(['add'])
       ->getMock();
     $this->router->expects($this->once())
       ->method('add')

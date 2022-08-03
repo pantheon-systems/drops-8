@@ -5,6 +5,7 @@
  * Exposes global functionality for creating image styles.
  */
 
+use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
@@ -14,6 +15,7 @@ use Drupal\field\FieldConfigInterface;
 use Drupal\field\FieldStorageConfigInterface;
 use Drupal\file\FileInterface;
 use Drupal\image\Entity\ImageStyle;
+use Drupal\image\ImageConfigUpdater;
 
 /**
  * The name of the query parameter for image derivative tokens.
@@ -369,6 +371,15 @@ function image_entity_presave(EntityInterface $entity) {
 }
 
 /**
+ * Implements hook_ENTITY_TYPE_presave() for entity_view_display.
+ */
+function image_entity_view_display_presave(EntityViewDisplayInterface $view_display): void {
+  $config_updater = \Drupal::classResolver(ImageConfigUpdater::class);
+  assert($config_updater instanceof ImageConfigUpdater);
+  $config_updater->processImageLazyLoad($view_display);
+}
+
+/**
  * Implements hook_ENTITY_TYPE_update() for 'field_storage_config'.
  */
 function image_field_storage_config_update(FieldStorageConfigInterface $field_storage) {
@@ -389,7 +400,7 @@ function image_field_storage_config_update(FieldStorageConfigInterface $field_st
 
     // Is there a new file?
     if ($file_new) {
-      $file_new->status = FILE_STATUS_PERMANENT;
+      $file_new->setPermanent();
       $file_new->save();
       \Drupal::service('file.usage')->add($file_new, 'image', 'default_image', $field_storage->uuid());
     }
@@ -404,7 +415,7 @@ function image_field_storage_config_update(FieldStorageConfigInterface $field_st
   if ($file_new && (StreamWrapperManager::getScheme($file_new->getFileUri()) != $field_storage->getSetting('uri_scheme'))) {
     $directory = $field_storage->getSetting('uri_scheme') . '://default_images/';
     \Drupal::service('file_system')->prepareDirectory($directory, FileSystemInterface::CREATE_DIRECTORY);
-    file_move($file_new, $directory . $file_new->getFilename());
+    \Drupal::service('file.repository')->move($file_new, $directory . $file_new->getFilename());
   }
 }
 
@@ -428,7 +439,7 @@ function image_field_config_update(FieldConfigInterface $field) {
   if ($uuid_new != $uuid_old) {
     // Save the new file, if present.
     if ($file_new) {
-      $file_new->status = FILE_STATUS_PERMANENT;
+      $file_new->setPermanent();
       $file_new->save();
       \Drupal::service('file.usage')->add($file_new, 'image', 'default_image', $field->uuid());
     }
@@ -442,7 +453,7 @@ function image_field_config_update(FieldConfigInterface $field) {
   if ($file_new && (StreamWrapperManager::getScheme($file_new->getFileUri()) != $field_storage->getSetting('uri_scheme'))) {
     $directory = $field_storage->getSetting('uri_scheme') . '://default_images/';
     \Drupal::service('file_system')->prepareDirectory($directory, FileSystemInterface::CREATE_DIRECTORY);
-    file_move($file_new, $directory . $file_new->getFilename());
+    \Drupal::service('file.repository')->move($file_new, $directory . $file_new->getFilename());
   }
 }
 

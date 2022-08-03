@@ -26,7 +26,7 @@ interface EntityStorageInterface {
   const FIELD_LOAD_REVISION = 'FIELD_LOAD_REVISION';
 
   /**
-   * Resets the internal, static entity cache.
+   * Resets the internal entity cache.
    *
    * @param $ids
    *   (optional) If specified, the cache is reset for the entities with the
@@ -229,5 +229,17 @@ interface EntityStorageInterface {
    *   Entity type definition.
    */
   public function getEntityType();
+
+  /**
+   * Retrieves the class name used to create the entity.
+   *
+   * @param string|null $bundle
+   *   (optional) A specific entity type bundle identifier. Can be omitted in
+   *   the case of entity types without bundles, like User.
+   *
+   * @return string
+   *   The entity class name.
+   */
+  public function getEntityClass(?string $bundle = NULL): string;
 
 }

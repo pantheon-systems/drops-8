@@ -15,12 +15,28 @@ use Drupal\Core\Extension\ExtensionDiscovery;
  *
  * @return
  *   The name of the module's install file, if successful; FALSE otherwise.
+ *
+ * @deprecated in drupal:9.4.0 and is removed from drupal:10.0.0. Use
+ *   \Drupal::moduleHandler()->loadInclude($module, 'install') instead. Note,
+ *   the replacement no longer allows including code from uninstalled modules.
+ *
+ * @see https://www.drupal.org/node/3220952
  */
 function module_load_install($module) {
+  @trigger_error('module_load_install() is deprecated in drupal:9.4.0 and is removed from drupal:10.0.0. Instead, you should use \Drupal::moduleHandler()->loadInclude($module, \'install\'). Note, the replacement no longer allows including code from uninstalled modules. See https://www.drupal.org/project/drupal/issues/2010380', E_USER_DEPRECATED);
   // Make sure the installation API is available
   include_once __DIR__ . '/install.inc';
 
-  return module_load_include('install', $module);
+  if (\Drupal::hasService('extension.list.module')) {
+    /** @var \Drupal\Core\Extension\ModuleExtensionList $module_list */
+    $module_list = \Drupal::service('extension.list.module');
+    $file = DRUPAL_ROOT . '/' . $module_list->getPath($module) . "/$module.install";
+    if (is_file($file)) {
+      require_once $file;
+      return $file;
+    }
+  }
+  return FALSE;
 }
 
 /**
@@ -47,21 +63,26 @@ function module_load_install($module) {
  *   (optional) The base file name (without the $type extension). If omitted,
  *   $module is used; i.e., resulting in "$module.$type" by default.
  *
- * @return
+ * @return string|false
  *   The name of the included file, if successful; FALSE otherwise.
  *
- * @todo The module_handler service has a loadInclude() method which performs
- *   this same task but only for enabled modules. Figure out a way to move this
- *   functionality entirely into the module_handler while keeping the ability to
- *   load the files of disabled modules.
+ * @deprecated in drupal:9.4.0 and is removed from drupal:11.0.0.
+ *   Use \Drupal::moduleHandler()->loadInclude($module, $type, $name = NULL).
+ *   Note that including code from uninstalled extensions is no longer
+ *   supported.
+ *
+ * @see https://www.drupal.org/node/2948698
  */
 function module_load_include($type, $module, $name = NULL) {
+  @trigger_error("module_load_include() is deprecated in drupal:9.4.0 and is removed from drupal:11.0.0. Instead, you should use \Drupal::moduleHandler()->loadInclude(). Note that including code from uninstalled extensions is no longer supported. See https://www.drupal.org/project/drupal/issues/697946", E_USER_DEPRECATED);
   if (!isset($name)) {
     $name = $module;
   }
 
-  if (function_exists('drupal_get_path')) {
-    $file = DRUPAL_ROOT . '/' . drupal_get_path('module', $module) . "/$name.$type";
+  if (\Drupal::hasService('extension.list.module')) {
+    /** @var \Drupal\Core\Extension\ModuleExtensionList $module_list */
+    $module_list = \Drupal::service('extension.list.module');
+    $file = DRUPAL_ROOT . '/' . $module_list->getPath($module) . "/$name.$type";
     if (is_file($file)) {
       require_once $file;
       return $file;
@@ -72,8 +93,14 @@ function module_load_include($type, $module, $name = NULL) {
 
 /**
  * Returns an array of modules required by core.
+ *
+ * @deprecated in drupal:9.4.0 and is removed from drupal:10.0.0. There's no
+ *   replacement.
+ *
+ * @see https://www.drupal.org/node/3262811
  */
 function drupal_required_modules() {
+  @trigger_error(__FUNCTION__ . "() is deprecated in drupal:9.4.0 and is removed from drupal:10.0.0. There's no replacement. See https://www.drupal.org/node/3262811", E_USER_DEPRECATED);
   $listing = new ExtensionDiscovery(\Drupal::root());
   $files = $listing->scan('module');
   $required = [];

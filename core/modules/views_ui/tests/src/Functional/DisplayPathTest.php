@@ -16,16 +16,11 @@ class DisplayPathTest extends UITestBase {
 
   use AssertPageCacheContextsAndTagsTrait;
 
-  protected function setUp($import_test_views = TRUE): void {
-    parent::setUp($import_test_views);
+  protected function setUp($import_test_views = TRUE, $modules = ['views_test_config']): void {
+    parent::setUp($import_test_views, $modules);
 
     $this->placeBlock('page_title_block');
   }
-
-  /**
-   * {@inheritdoc}
-   */
-  protected static $modules = ['menu_ui'];
 
   /**
    * {@inheritdoc}
@@ -56,7 +51,7 @@ class DisplayPathTest extends UITestBase {
 
     // Add a new page display and check the appearing text.
     $this->submitForm([], 'Add Page');
-    $this->assertText('No path is set', 'The right text appears if no path was set.');
+    $this->assertSession()->pageTextContains('No path is set');
     $this->assertSession()->linkNotExists('View page', 'No view page link found on the page.');
 
     // Save a path and make sure the summary appears as expected.
@@ -65,11 +60,10 @@ class DisplayPathTest extends UITestBase {
     //   longer use Url::fromUri(), and this path will be able to contain ':'.
     $random_path = str_replace(':', '', $random_path);
 
-    $this->drupalPostForm('admin/structure/views/nojs/display/test_view/page_1/path', ['path' => $random_path], 'Apply');
-    $this->assertText('/' . $random_path, 'The custom path appears in the summary.');
-    $display_link_text = t('View @display', ['@display' => 'Page']);
-    $this->assertSession()->linkExists($display_link_text, 0, 'view page link found on the page.');
-    $this->clickLink($display_link_text);
+    $this->drupalGet('admin/structure/views/nojs/display/test_view/page_1/path');
+    $this->submitForm(['path' => $random_path], 'Apply');
+    $this->assertSession()->pageTextContains('/' . $random_path);
+    $this->clickLink('View Page');
     $this->assertSession()->addressEquals($random_path);
   }
 
@@ -79,20 +73,24 @@ class DisplayPathTest extends UITestBase {
   public function doPathXssFilterTest() {
     $this->drupalGet('admin/structure/views/view/test_view');
     $this->submitForm([], 'Add Page');
-    $this->drupalPostForm('admin/structure/views/nojs/display/test_view/page_2/path', ['path' => '<object>malformed_path</object>'], 'Apply');
+    $this->drupalGet('admin/structure/views/nojs/display/test_view/page_2/path');
+    $this->submitForm(['path' => '<object>malformed_path</object>'], 'Apply');
     $this->submitForm([], 'Add Page');
-    $this->drupalPostForm('admin/structure/views/nojs/display/test_view/page_3/path', ['path' => '<script>alert("hello");</script>'], 'Apply');
+    $this->drupalGet('admin/structure/views/nojs/display/test_view/page_3/path');
+    $this->submitForm(['path' => '<script>alert("hello");</script>'], 'Apply');
     $this->submitForm([], 'Add Page');
-    $this->drupalPostForm('admin/structure/views/nojs/display/test_view/page_4/path', ['path' => '<script>alert("hello I have placeholders %");</script>'], 'Apply');
-    $this->drupalPostForm('admin/structure/views/view/test_view', [], 'Save');
+    $this->drupalGet('admin/structure/views/nojs/display/test_view/page_4/path');
+    $this->submitForm(['path' => '<script>alert("hello I have placeholders %");</script>'], 'Apply');
+    $this->drupalGet('admin/structure/views/view/test_view');
+    $this->submitForm([], 'Save');
     $this->drupalGet('admin/structure/views');
     // The anchor text should be escaped.
     $this->assertSession()->assertEscaped('/<object>malformed_path</object>');
     $this->assertSession()->assertEscaped('/<script>alert("hello");</script>');
     $this->assertSession()->assertEscaped('/<script>alert("hello I have placeholders %");</script>');
     // Links should be url-encoded.
-    $this->assertRaw('/%3Cobject%3Emalformed_path%3C/object%3E');
-    $this->assertRaw('/%3Cscript%3Ealert%28%22hello%22%29%3B%3C/script%3E');
+    $this->assertSession()->responseContains('/%3Cobject%3Emalformed_path%3C/object%3E');
+    $this->assertSession()->responseContains('/%3Cscript%3Ealert%28%22hello%22%29%3B%3C/script%3E');
   }
 
   /**
@@ -101,13 +99,15 @@ class DisplayPathTest extends UITestBase {
   protected function doAdvancedPathsValidationTest() {
     $url = 'admin/structure/views/nojs/display/test_view/page_1/path';
 
-    $this->drupalPostForm($url, ['path' => '%/magrathea'], 'Apply');
+    $this->drupalGet($url);
+    $this->submitForm(['path' => '%/magrathea'], 'Apply');
     $this->assertSession()->addressEquals($url);
-    $this->assertText('"%" may not be used for the first segment of a path.');
+    $this->assertSession()->pageTextContains('"%" may not be used for the first segment of a path.');
 
-    $this->drupalPostForm($url, ['path' => 'user/%1/example'], 'Apply');
+    $this->drupalGet($url);
+    $this->submitForm(['path' => 'user/%1/example'], 'Apply');
     $this->assertSession()->addressEquals($url);
-    $this->assertText("Numeric placeholders may not be used. Please use plain placeholders (%).");
+    $this->assertSession()->pageTextContains("Numeric placeholders may not be used. Please use plain placeholders (%).");
   }
 
   /**
@@ -118,39 +118,46 @@ class DisplayPathTest extends UITestBase {
     $this->submitForm([], 'Add Page');
     $this->submitForm([], 'Delete Page');
     $this->submitForm([], 'Save');
-    $this->assertRaw(t('The view %view has been saved.', ['%view' => 'Test view']));
+    $this->assertSession()->pageTextContains("The view Test view has been saved.");
   }
 
   /**
    * Tests the menu and tab option form.
    */
   public function testMenuOptions() {
-    $this->container->get('module_installer')->install(['menu_ui']);
     $this->drupalGet('admin/structure/views/view/test_view');
 
     // Add a new page display.
     $this->submitForm([], 'Add Page');
 
     // Add an invalid path (only fragment).
-    $this->drupalPostForm('admin/structure/views/nojs/display/test_view/page_1/path', ['path' => '#foo'], 'Apply');
-    $this->assertText('Path is empty');
+    $this->drupalGet('admin/structure/views/nojs/display/test_view/page_1/path');
+    $this->submitForm(['path' => '#foo'], 'Apply');
+    $this->assertSession()->pageTextContains('Path is empty');
 
     // Add an invalid path with a query.
-    $this->drupalPostForm('admin/structure/views/nojs/display/test_view/page_1/path', ['path' => 'foo?bar'], 'Apply');
-    $this->assertText('No query allowed.');
+    $this->drupalGet('admin/structure/views/nojs/display/test_view/page_1/path');
+    $this->submitForm(['path' => 'foo?bar'], 'Apply');
+    $this->assertSession()->pageTextContains('No query allowed.');
 
     // Add an invalid path with just a query.
-    $this->drupalPostForm('admin/structure/views/nojs/display/test_view/page_1/path', ['path' => '?bar'], 'Apply');
-    $this->assertText('Path is empty');
+    $this->drupalGet('admin/structure/views/nojs/display/test_view/page_1/path');
+    $this->submitForm(['path' => '?bar'], 'Apply');
+    $this->assertSession()->pageTextContains('Path is empty');
 
     // Provide a random, valid path string.
     $random_string = $this->randomMachineName();
 
     // Save a path.
-    $this->drupalPostForm('admin/structure/views/nojs/display/test_view/page_1/path', ['path' => $random_string], 'Apply');
+    $this->drupalGet('admin/structure/views/nojs/display/test_view/page_1/path');
+    $this->submitForm(['path' => $random_string], 'Apply');
     $this->drupalGet('admin/structure/views/view/test_view');
 
-    $this->drupalPostForm('admin/structure/views/nojs/display/test_view/page_1/menu', ['menu[type]' => 'default tab', 'menu[title]' => 'Test tab title'], 'Apply');
+    $this->drupalGet('admin/structure/views/nojs/display/test_view/page_1/menu');
+    $this->submitForm([
+      'menu[type]' => 'default tab',
+      'menu[title]' => 'Test tab title',
+    ], 'Apply');
     $this->assertSession()->statusCodeEquals(200);
     $this->assertSession()->addressEquals('admin/structure/views/nojs/display/test_view/page_1/tab_options');
 
@@ -166,16 +173,12 @@ class DisplayPathTest extends UITestBase {
     // Ensure that you can select a parent in case the parent does not exist.
     $this->drupalGet('admin/structure/views/nojs/display/test_page_display_menu/page_5/menu');
     $this->assertSession()->statusCodeEquals(200);
-    $menu_parent = $this->xpath('//select[@id="edit-menu-parent"]');
-    $menu_options = (array) $menu_parent[0]->findAll('css', 'option');
-    unset($menu_options['@attributes']);
-
-    // Convert array to make the next assertion possible.
+    $menu_options = $this->assertSession()->selectExists('edit-menu-parent')->findAll('css', 'option');
     $menu_options = array_map(function ($element) {
       return $element->getText();
     }, $menu_options);
 
-    $this->assertEqual([
+    $this->assertEquals([
       '<User account menu>',
       '-- My account',
       '-- Log out',
@@ -196,7 +199,8 @@ class DisplayPathTest extends UITestBase {
    * Tests the regression in https://www.drupal.org/node/2532490.
    */
   public function testDefaultMenuTabRegression() {
-    $this->container->get('module_installer')->install(['menu_ui', 'menu_link_content', 'toolbar', 'system']);
+    $this->container->get('module_installer')->install(['menu_link_content', 'toolbar', 'system']);
+    $this->resetAll();
     $admin_user = $this->drupalCreateUser([
       'administer views',
       'administer blocks',
@@ -215,9 +219,11 @@ class DisplayPathTest extends UITestBase {
       'link[0][uri]' => '/admin/foo',
       'menu_parent' => 'admin:system.admin',
     ];
-    $this->drupalPostForm('admin/structure/menu/manage/admin/add', $edit, 'Save');
+    $this->drupalGet('admin/structure/menu/manage/admin/add');
+    $this->submitForm($edit, 'Save');
 
     $menu_items = \Drupal::entityTypeManager()->getStorage('menu_link_content')->getQuery()
+      ->accessCheck(FALSE)
       ->sort('id', 'DESC')
       ->pager(1)
       ->execute();
@@ -232,26 +238,44 @@ class DisplayPathTest extends UITestBase {
     $edit['page[create]'] = TRUE;
     $edit['page[path]'] = 'admin/foo';
 
-    $this->drupalPostForm('admin/structure/views/add', $edit, 'Save and edit');
+    $this->drupalGet('admin/structure/views/add');
+    $this->submitForm($edit, 'Save and edit');
 
     $parameters = new MenuTreeParameters();
     $parameters->addCondition('id', $menu_link_content->getPluginId());
     $result = \Drupal::menuTree()->load('admin', $parameters);
     $plugin_definition = end($result)->link->getPluginDefinition();
-    $this->assertEqual('view.' . $view_id . '.page_1', $plugin_definition['route_name']);
+    $this->assertEquals('view.' . $view_id . '.page_1', $plugin_definition['route_name']);
 
-    $this->clickLink(t('No menu'));
+    $this->clickLink('No menu');
 
     $this->submitForm([
       'menu[type]' => 'default tab',
       'menu[title]' => 'Menu title',
     ], 'Apply');
 
-    $this->assertText('Default tab options');
+    $this->assertSession()->pageTextContains('Default tab options');
 
     $this->submitForm([
       'tab_options[type]' => 'normal',
       'tab_options[title]' => 'Parent title',
+    ], 'Apply');
+
+    // Open the menu options again.
+    $this->clickLink('Tab: Menu title');
+
+    // Assert a menu can be selected as a parent.
+    $this->assertSession()->optionExists('menu[parent]', 'admin:');
+
+    // Assert a parent menu item can be selected from within a menu.
+    $this->assertSession()->optionExists('menu[parent]', 'admin:system.admin');
+
+    // Check that parent menu item can now be
+    // added without the menu_ui module being enabled.
+    $this->submitForm([
+      'menu[type]' => 'normal',
+      'menu[parent]' => 'admin:system.admin',
+      'menu[title]' => 'Menu title',
     ], 'Apply');
 
     $this->submitForm([], 'Save');

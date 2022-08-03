@@ -15,8 +15,9 @@ abstract class ConditionFundamentals {
   protected $conditions = [];
 
   /**
-   * The conjunction of this condition group. The value is one of the following:
+   * The conjunction of this condition group.
    *
+   * The value is one of the following:
    * - AND (default)
    * - OR
    *
@@ -64,6 +65,7 @@ abstract class ConditionFundamentals {
   /**
    * {@inheritdoc}
    */
+  #[\ReturnTypeWillChange]
   public function count() {
     return count($this->conditions);
   }

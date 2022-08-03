@@ -69,7 +69,7 @@ class LanguageUILanguageNegotiationTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  protected $defaultTheme = 'classy';
+  protected $defaultTheme = 'stark';
 
   protected function setUp(): void {
     parent::setUp();
@@ -142,29 +142,34 @@ class LanguageUILanguageNegotiationTest extends BrowserTestBase {
       'string' => $default_string,
       'langcode' => $langcode_browser_fallback,
     ];
-    $this->drupalPostForm('admin/config/regional/translate', $search, 'Filter');
-    $textarea = current($this->xpath('//textarea'));
+    $this->drupalGet('admin/config/regional/translate');
+    $this->submitForm($search, 'Filter');
+    $textarea = $this->assertSession()->elementExists('xpath', '//textarea');
     $lid = $textarea->getAttribute('name');
     $edit = [
       $lid => $language_browser_fallback_string,
     ];
-    $this->drupalPostForm('admin/config/regional/translate', $edit, 'Save translations');
+    $this->drupalGet('admin/config/regional/translate');
+    $this->submitForm($edit, 'Save translations');
 
     $search = [
       'string' => $default_string,
       'langcode' => $langcode,
     ];
-    $this->drupalPostForm('admin/config/regional/translate', $search, 'Filter');
-    $textarea = current($this->xpath('//textarea'));
+    $this->drupalGet('admin/config/regional/translate');
+    $this->submitForm($search, 'Filter');
+    $textarea = $this->assertSession()->elementExists('xpath', '//textarea');
     $lid = $textarea->getAttribute('name');
     $edit = [
       $lid => $language_string,
     ];
-    $this->drupalPostForm('admin/config/regional/translate', $edit, 'Save translations');
+    $this->drupalGet('admin/config/regional/translate');
+    $this->submitForm($edit, 'Save translations');
 
     // Configure selected language negotiation to use zh-hans.
     $edit = ['selected_langcode' => $langcode];
-    $this->drupalPostForm('admin/config/regional/language/detection/selected', $edit, 'Save configuration');
+    $this->drupalGet('admin/config/regional/language/detection/selected');
+    $this->submitForm($edit, 'Save configuration');
     $test = [
       'language_negotiation' => [LanguageNegotiationSelected::METHOD_ID],
       'path' => 'admin/config',
@@ -368,7 +373,8 @@ class LanguageUILanguageNegotiationTest extends BrowserTestBase {
     // Go by session preference.
     $language_negotiation_session_param = $this->randomMachineName();
     $edit = ['language_negotiation_session_param' => $language_negotiation_session_param];
-    $this->drupalPostForm('admin/config/regional/language/detection/session', $edit, 'Save configuration');
+    $this->drupalGet('admin/config/regional/language/detection/session');
+    $this->submitForm($edit, 'Save configuration');
     $tests = [
       [
         'language_negotiation' => [LanguageNegotiationSession::METHOD_ID],
@@ -409,8 +415,8 @@ class LanguageUILanguageNegotiationTest extends BrowserTestBase {
     }
     $this->container->get('language_manager')->reset();
     $this->drupalGet($test['path'], $test['path_options'], $test['http_header']);
-    $this->assertText($test['expect'], $test['message']);
-    $this->assertText('Language negotiation method: ' . $test['expected_method_id']);
+    $this->assertSession()->pageTextContains($test['expect']);
+    $this->assertSession()->statusMessageContains('Language negotiation method: ' . $test['expected_method_id'], 'status');
 
     // Get the private file and ensure it is a 200. It is important to
     // invalidate the router cache to ensure the routing system runs a full
@@ -421,7 +427,7 @@ class LanguageUILanguageNegotiationTest extends BrowserTestBase {
   }
 
   /**
-   * Test URL language detection when the requested URL has no language.
+   * Tests URL language detection when the requested URL has no language.
    */
   public function testUrlLanguageFallback() {
     // Add the Italian language.
@@ -432,7 +438,8 @@ class LanguageUILanguageNegotiationTest extends BrowserTestBase {
     // Enable the path prefix for the default language: this way any unprefixed
     // URL must have a valid fallback value.
     $edit = ['prefix[en]' => 'en'];
-    $this->drupalPostForm('admin/config/regional/language/detection/url', $edit, 'Save configuration');
+    $this->drupalGet('admin/config/regional/language/detection/url');
+    $this->submitForm($edit, 'Save configuration');
 
     // Enable browser and URL language detection.
     $edit = [
@@ -441,7 +448,8 @@ class LanguageUILanguageNegotiationTest extends BrowserTestBase {
       'language_interface[weight][language-browser]' => -8,
       'language_interface[weight][language-url]' => -10,
     ];
-    $this->drupalPostForm('admin/config/regional/language/detection', $edit, 'Save settings');
+    $this->drupalGet('admin/config/regional/language/detection');
+    $this->submitForm($edit, 'Save settings');
     $this->drupalGet('admin/config/regional/language/detection');
 
     // Enable the language switcher block.
@@ -453,7 +461,10 @@ class LanguageUILanguageNegotiationTest extends BrowserTestBase {
     $this->drupalLogout();
 
     // Place a site branding block in the header region.
-    $this->drupalPlaceBlock('system_branding_block', ['region' => 'header']);
+    $this->drupalPlaceBlock('system_branding_block', [
+      'region' => 'header',
+      'id' => 'site-branding',
+    ]);
 
     // Access the front page without specifying any valid URL language prefix
     // and having as browser language preference a non-default language.
@@ -463,13 +474,11 @@ class LanguageUILanguageNegotiationTest extends BrowserTestBase {
 
     // Check that the language switcher active link matches the given browser
     // language.
-    $args = [':id' => 'block-test-language-block', ':url' => Url::fromRoute('<front>')->toString() . $langcode_browser_fallback];
-    $fields = $this->xpath('//div[@id=:id]//a[@class="language-link is-active" and starts-with(@href, :url)]', $args);
-    $this->assertSame($fields[0]->getText(), $languages[$langcode_browser_fallback]->getName(), 'The browser language is the URL active language');
+    $href = Url::fromRoute('<front>')->toString() . $langcode_browser_fallback;
+    $this->assertSession()->elementTextEquals('xpath', "//div[@id='block-test-language-block']//a[@class='language-link is-active' and starts-with(@href, '$href')]", $languages[$langcode_browser_fallback]->getName());
 
     // Check that URLs are rewritten using the given browser language.
-    $fields = $this->xpath('//div[@class="site-name"]/a[@rel="home" and @href=:url]', $args);
-    $this->assertSame($fields[0]->getText(), 'Drupal', 'URLs are rewritten using the browser language.');
+    $this->assertSession()->elementTextEquals('xpath', "//div[@id='block-site-branding']/a[@rel='home' and @href='$href'][2]", 'Drupal');
   }
 
   /**
@@ -491,15 +500,17 @@ class LanguageUILanguageNegotiationTest extends BrowserTestBase {
       'language_interface[enabled][language-url]' => TRUE,
       'language_interface[weight][language-url]' => -10,
     ];
-    $this->drupalPostForm('admin/config/regional/language/detection', $edit, 'Save settings');
+    $this->drupalGet('admin/config/regional/language/detection');
+    $this->submitForm($edit, 'Save settings');
 
     // Do not allow blank domain.
     $edit = [
       'language_negotiation_url_part' => LanguageNegotiationUrl::CONFIG_DOMAIN,
       'domain[en]' => '',
     ];
-    $this->drupalPostForm('admin/config/regional/language/detection/url', $edit, 'Save configuration');
-    $this->assertText('The domain may not be left blank for English', 'The form does not allow blank domains.');
+    $this->drupalGet('admin/config/regional/language/detection/url');
+    $this->submitForm($edit, 'Save configuration');
+    $this->assertSession()->statusMessageContains('The domain may not be left blank for English', 'error');
     $this->rebuildContainer();
 
     // Change the domain for the Italian language.
@@ -508,8 +519,9 @@ class LanguageUILanguageNegotiationTest extends BrowserTestBase {
       'domain[en]' => $base_url_host,
       'domain[it]' => 'it.example.com',
     ];
-    $this->drupalPostForm('admin/config/regional/language/detection/url', $edit, 'Save configuration');
-    $this->assertText('The configuration options have been saved', 'Domain configuration is saved.');
+    $this->drupalGet('admin/config/regional/language/detection/url');
+    $this->submitForm($edit, 'Save configuration');
+    $this->assertSession()->statusMessageContains('The configuration options have been saved', 'status');
     $this->rebuildContainer();
 
     // Try to use an invalid domain.
@@ -518,8 +530,9 @@ class LanguageUILanguageNegotiationTest extends BrowserTestBase {
       'domain[en]' => $base_url_host,
       'domain[it]' => 'it.example.com/',
     ];
-    $this->drupalPostForm('admin/config/regional/language/detection/url', $edit, 'Save configuration');
-    $this->assertRaw(t('The domain for %language may only contain the domain name, not a trailing slash, protocol and/or port.', ['%language' => 'Italian']));
+    $this->drupalGet('admin/config/regional/language/detection/url');
+    $this->submitForm($edit, 'Save configuration');
+    $this->assertSession()->statusMessageContains("The domain for Italian may only contain the domain name, not a trailing slash, protocol and/or port.", 'error');
 
     // Build the link we're going to test.
     $link = 'it.example.com' . rtrim(base_path(), '/') . '/admin';
@@ -530,19 +543,19 @@ class LanguageUILanguageNegotiationTest extends BrowserTestBase {
     $italian_url = Url::fromRoute('system.admin', [], ['language' => $languages['it']])->toString();
     $url_scheme = \Drupal::request()->isSecure() ? 'https://' : 'http://';
     $correct_link = $url_scheme . $link;
-    $this->assertEqual($italian_url, $correct_link, new FormattableMarkup('The right URL (@url) in accordance with the chosen language', ['@url' => $italian_url]));
+    $this->assertEquals($correct_link, $italian_url, new FormattableMarkup('The right URL (@url) in accordance with the chosen language', ['@url' => $italian_url]));
 
     // Test HTTPS via options.
     $italian_url = Url::fromRoute('system.admin', [], ['https' => TRUE, 'language' => $languages['it']])->toString();
     $correct_link = 'https://' . $link;
-    $this->assertTrue($italian_url == $correct_link, new FormattableMarkup('The right HTTPS URL (via options) (@url) in accordance with the chosen language', ['@url' => $italian_url]));
+    $this->assertSame($correct_link, $italian_url, new FormattableMarkup('The right HTTPS URL (via options) (@url) in accordance with the chosen language', ['@url' => $italian_url]));
 
     // Test HTTPS via current URL scheme.
     $request = Request::create('', 'GET', [], [], [], ['HTTPS' => 'on']);
     $this->container->get('request_stack')->push($request);
     $italian_url = Url::fromRoute('system.admin', [], ['language' => $languages['it']])->toString();
     $correct_link = 'https://' . $link;
-    $this->assertTrue($italian_url == $correct_link, new FormattableMarkup('The right URL (via current URL scheme) (@url) in accordance with the chosen language', ['@url' => $italian_url]));
+    $this->assertSame($correct_link, $italian_url, new FormattableMarkup('The right URL (via current URL scheme) (@url) in accordance with the chosen language', ['@url' => $italian_url]));
   }
 
   /**
@@ -555,7 +568,8 @@ class LanguageUILanguageNegotiationTest extends BrowserTestBase {
       'language_content[enabled][language-url]' => FALSE,
       'language_content[enabled][language-session]' => TRUE,
     ];
-    $this->drupalPostForm('admin/config/regional/language/detection', $edit, 'Save settings');
+    $this->drupalGet('admin/config/regional/language/detection');
+    $this->submitForm($edit, 'Save settings');
 
     // Check if configurability persisted.
     $config = $this->config('language.types');
@@ -584,7 +598,8 @@ class LanguageUILanguageNegotiationTest extends BrowserTestBase {
     $edit = [
       'language_content[configurable]' => FALSE,
     ];
-    $this->drupalPostForm('admin/config/regional/language/detection', $edit, 'Save settings');
+    $this->drupalGet('admin/config/regional/language/detection');
+    $this->submitForm($edit, 'Save settings');
     $this->assertSession()->statusCodeEquals(200);
 
     // Check if the language switcher block has been removed.

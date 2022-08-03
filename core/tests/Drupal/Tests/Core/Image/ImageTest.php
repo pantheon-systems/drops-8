@@ -64,7 +64,7 @@ class ImageTest extends UnitTestCase {
     $stubs = array_merge(['getPluginId', 'save'], $stubs);
     return $mock_builder
       ->disableOriginalConstructor()
-      ->setMethods($stubs)
+      ->onlyMethods($stubs)
       ->getMock();
   }
 
@@ -82,7 +82,7 @@ class ImageTest extends UnitTestCase {
     $mock_builder = $this->getMockBuilder('Drupal\system\Plugin\ImageToolkit\Operation\gd\\' . $class_name);
     $logger = $this->createMock('Psr\Log\LoggerInterface');
     return $mock_builder
-      ->setMethods(['execute'])
+      ->onlyMethods(['execute'])
       ->setConstructorArgs([[], '', [], $toolkit, $logger])
       ->getMock();
   }
@@ -116,6 +116,8 @@ class ImageTest extends UnitTestCase {
     }
 
     $this->image = new Image($this->toolkit, $this->source);
+
+    return $this->image;
   }
 
   /**
@@ -140,6 +142,8 @@ class ImageTest extends UnitTestCase {
       ->will($this->returnValue($this->toolkitOperation));
 
     $this->image = new Image($this->toolkit, $this->source);
+
+    return $this->image;
   }
 
   /**
@@ -210,17 +214,14 @@ class ImageTest extends UnitTestCase {
       ->method('save')
       ->will($this->returnValue(TRUE));
 
-    $image = $this->getMockBuilder('Drupal\Core\Image\Image')
-      ->setMethods(['chmod'])
-      ->setConstructorArgs([$toolkit, $this->image->getSource()])
-      ->getMock();
+    $image = new Image($toolkit, $this->image->getSource());
 
     $file_system = $this->prophesize(FileSystemInterface::class);
     $file_system->chmod($this->image->getSource())
       ->willReturn(TRUE);
 
     $container = $this->getMockBuilder('Symfony\Component\DependencyInjection\ContainerBuilder')
-      ->setMethods(['get'])
+      ->onlyMethods(['get'])
       ->getMock();
     $container->expects($this->once())
       ->method('get')
@@ -255,17 +256,14 @@ class ImageTest extends UnitTestCase {
       ->method('save')
       ->will($this->returnValue(TRUE));
 
-    $image = $this->getMockBuilder('Drupal\Core\Image\Image')
-      ->setMethods(['chmod'])
-      ->setConstructorArgs([$toolkit, $this->image->getSource()])
-      ->getMock();
+    $image = new Image($toolkit, $this->image->getSource());
 
     $file_system = $this->prophesize(FileSystemInterface::class);
     $file_system->chmod($this->image->getSource())
       ->willReturn(FALSE);
 
     $container = $this->getMockBuilder('Symfony\Component\DependencyInjection\ContainerBuilder')
-      ->setMethods(['get'])
+      ->onlyMethods(['get'])
       ->getMock();
     $container->expects($this->once())
       ->method('get')

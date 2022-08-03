@@ -68,7 +68,7 @@ class LibraryDiscoveryIntegrationTest extends KernelTestBase {
     $this->activateTheme('test_theme');
 
     // Assert that entire library was correctly overridden.
-    $this->assertEqual($this->libraryDiscovery->getLibraryByName('core', 'drupal.collapse'), $this->libraryDiscovery->getLibraryByName('test_theme', 'collapse'), 'Entire library correctly overridden.');
+    $this->assertEquals($this->libraryDiscovery->getLibraryByName('core', 'drupal.collapse'), $this->libraryDiscovery->getLibraryByName('test_theme', 'collapse'), 'Entire library correctly overridden.');
 
     // Assert that classy library assets were correctly overridden or removed.
     $this->assertNoAssetInLibrary('core/themes/classy/css/components/button.css', 'classy', 'base', 'css');
@@ -110,7 +110,7 @@ class LibraryDiscoveryIntegrationTest extends KernelTestBase {
     }
     catch (InvalidLibrariesOverrideSpecificationException $e) {
       $expected_message = 'drupalSettings may not be overridden in libraries-override. Trying to override core/drupal.ajax/drupalSettings. Use hook_library_info_alter() instead.';
-      $this->assertEqual($e->getMessage(), $expected_message, 'Throw Exception when trying to override drupalSettings');
+      $this->assertEquals($expected_message, $e->getMessage(), 'Throw Exception when trying to override drupalSettings');
     }
   }
 
@@ -128,7 +128,7 @@ class LibraryDiscoveryIntegrationTest extends KernelTestBase {
     }
     catch (InvalidLibrariesOverrideSpecificationException $e) {
       $expected_message = 'Library asset core/drupal.dialog/css is not correctly specified. It should be in the form "extension/library_name/sub_key/path/to/asset.js".';
-      $this->assertEqual($e->getMessage(), $expected_message, 'Throw Exception when specifying invalid override');
+      $this->assertEquals($expected_message, $e->getMessage(), 'Throw Exception when specifying invalid override');
     }
   }
 
@@ -147,7 +147,7 @@ class LibraryDiscoveryIntegrationTest extends KernelTestBase {
     $this->assertAssetInLibrary('public://my_css/vertical-tabs.css', 'core', 'drupal.vertical-tabs', 'css');
 
     // Assert a protocol-relative URI.
-    $this->assertAssetInLibrary('//my-server/my_theme/css/jquery_ui.css', 'core', 'jquery.ui', 'css');
+    $this->assertAssetInLibrary('//my-server/my_theme/js/overridden.js', 'core', 'drupal.displace', 'js');
 
     // Assert an absolute URI.
     $this->assertAssetInLibrary('http://example.com/my_theme/css/farbtastic.css', 'core', 'jquery.farbtastic', 'css');
@@ -199,7 +199,7 @@ class LibraryDiscoveryIntegrationTest extends KernelTestBase {
     }
     catch (InvalidLibrariesExtendSpecificationException $e) {
       $expected_message = 'The specified library "test_theme_libraries_extend/non_existent_library" does not exist.';
-      $this->assertEqual($e->getMessage(), $expected_message, 'Throw Exception when specifying non-existent libraries-extend.');
+      $this->assertEquals($expected_message, $e->getMessage(), 'Throw Exception when specifying non-existent libraries-extend.');
     }
 
     // Also, test non-string libraries-extend. An exception should be thrown.
@@ -210,7 +210,7 @@ class LibraryDiscoveryIntegrationTest extends KernelTestBase {
     }
     catch (InvalidLibrariesExtendSpecificationException $e) {
       $expected_message = 'The libraries-extend specification for each library must be a list of strings.';
-      $this->assertEqual($e->getMessage(), $expected_message, 'Throw Exception when specifying non-string libraries-extend.');
+      $this->assertEquals($expected_message, $e->getMessage(), 'Throw Exception when specifying non-string libraries-extend.');
     }
   }
 
@@ -262,25 +262,24 @@ class LibraryDiscoveryIntegrationTest extends KernelTestBase {
    *   The extension in which the $library is defined.
    * @param string $library_name
    *   Name of the library.
-   * @param mixed $sub_key
+   * @param string $sub_key
    *   The library sub key where the given asset is defined.
    * @param string $message
    *   (optional) A message to display with the assertion.
    *
-   * @return bool
-   *   TRUE if the specified asset is found in the library.
+   * @internal
    */
-  protected function assertAssetInLibrary($asset, $extension, $library_name, $sub_key, $message = NULL) {
+  protected function assertAssetInLibrary(string $asset, string $extension, string $library_name, string $sub_key, string $message = NULL): void {
     if (!isset($message)) {
       $message = sprintf('Asset %s found in library "%s/%s"', $asset, $extension, $library_name);
     }
     $library = $this->libraryDiscovery->getLibraryByName($extension, $library_name);
     foreach ($library[$sub_key] as $definition) {
       if ($asset == $definition['data']) {
-        return TRUE;
+        return;
       }
     }
-    return $this->fail($message);
+    $this->fail($message);
   }
 
   /**
@@ -292,25 +291,23 @@ class LibraryDiscoveryIntegrationTest extends KernelTestBase {
    *   The extension in which the $library_name is defined.
    * @param string $library_name
    *   Name of the library.
-   * @param mixed $sub_key
+   * @param string $sub_key
    *   The library sub key where the given asset is defined.
    * @param string $message
    *   (optional) A message to display with the assertion.
    *
-   * @return bool
-   *   TRUE if the specified asset is not found in the library.
+   * @internal
    */
-  protected function assertNoAssetInLibrary($asset, $extension, $library_name, $sub_key, $message = NULL) {
+  protected function assertNoAssetInLibrary(string $asset, string $extension, string $library_name, string $sub_key, string $message = NULL): void {
     if (!isset($message)) {
       $message = sprintf('Asset %s not found in library "%s/%s"', $asset, $extension, $library_name);
     }
     $library = $this->libraryDiscovery->getLibraryByName($extension, $library_name);
     foreach ($library[$sub_key] as $definition) {
       if ($asset == $definition['data']) {
-        return $this->fail($message);
+        $this->fail($message);
       }
     }
-    return TRUE;
   }
 
 }
