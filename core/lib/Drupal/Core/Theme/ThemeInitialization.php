@@ -140,10 +140,17 @@ class ThemeInitialization implements ThemeInitializationInterface {
       include_once $this->root . '/' . $active_theme->getOwner();
 
       if (function_exists($theme_engine . '_init')) {
+        @trigger_error('THEME_ENGINE_init() is deprecated in drupal:9.3.0 and removed in drupal:10.0.0. There is no replacement. See https://www.drupal.org/node/3246978', E_USER_DEPRECATED);
         foreach ($active_theme->getBaseThemeExtensions() as $base) {
           call_user_func($theme_engine . '_init', $base);
         }
         call_user_func($theme_engine . '_init', $active_theme->getExtension());
+      }
+      else {
+        foreach ($active_theme->getBaseThemeExtensions() as $base) {
+          $base->load();
+        }
+        $active_theme->getExtension()->load();
       }
     }
     else {
@@ -254,8 +261,8 @@ class ThemeInitialization implements ThemeInitializationInterface {
       }
     }
 
-    $values['engine'] = isset($theme->engine) ? $theme->engine : NULL;
-    $values['owner'] = isset($theme->owner) ? $theme->owner : NULL;
+    $values['engine'] = $theme->engine ?? NULL;
+    $values['owner'] = $theme->owner ?? NULL;
     $values['extension'] = $theme;
 
     $base_active_themes = [];

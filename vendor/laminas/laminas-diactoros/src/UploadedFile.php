@@ -1,11 +1,5 @@
 <?php
 
-/**
- * @see       https://github.com/laminas/laminas-diactoros for the canonical source repository
- * @copyright https://github.com/laminas/laminas-diactoros/blob/master/COPYRIGHT.md
- * @license   https://github.com/laminas/laminas-diactoros/blob/master/LICENSE.md New BSD License
- */
-
 declare(strict_types=1);
 
 namespace Laminas\Diactoros;
@@ -38,7 +32,7 @@ use const UPLOAD_ERR_PARTIAL;
 
 class UploadedFile implements UploadedFileInterface
 {
-    const ERROR_MESSAGES = [
+    public const ERROR_MESSAGES = [
         UPLOAD_ERR_OK         => 'There is no error, the file uploaded with success',
         UPLOAD_ERR_INI_SIZE   => 'The uploaded file exceeds the upload_max_filesize directive in php.ini',
         UPLOAD_ERR_FORM_SIZE  => 'The uploaded file exceeds the MAX_FILE_SIZE directive that was '
@@ -86,7 +80,7 @@ class UploadedFile implements UploadedFileInterface
     private $stream;
 
     /**
-     * @param string|resource $streamOrFile
+     * @param string|resource|StreamInterface $streamOrFile
      * @param int $size
      * @param int $errorStatus
      * @param string|null $clientFilename
@@ -193,6 +187,13 @@ class UploadedFile implements UploadedFileInterface
             case (empty($sapi) || 0 === strpos($sapi, 'cli') || 0 === strpos($sapi, 'phpdbg') || ! $this->file):
                 // Non-SAPI environment, or no filename present
                 $this->writeFile($targetPath);
+
+                if ($this->stream instanceof StreamInterface) {
+                    $this->stream->close();
+                }
+                if (is_string($this->file) && file_exists($this->file)) {
+                    unlink($this->file);
+                }
                 break;
             default:
                 // SAPI environment, with file present

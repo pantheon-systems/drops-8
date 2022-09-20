@@ -20,16 +20,15 @@
       this.$node.on('summaryUpdated', $.proxy(this.onSummaryUpdated, this)).trigger('summaryUpdated').find('> summary').append(this.$detailsSummarizedContentWrapper);
     },
     onSummaryUpdated: function onSummaryUpdated() {
-      var text = $.trim(this.$node.drupalGetSummary());
+      var text = this.$node.drupalGetSummary();
       this.$detailsSummarizedContentWrapper.html(Drupal.theme('detailsSummarizedContentText', text));
     }
   });
   Drupal.behaviors.detailsSummary = {
     attach: function attach(context) {
-      var $detailsElements = $(context).find('details').once('details');
-      DetailsSummarizedContent.instances = DetailsSummarizedContent.instances.concat($detailsElements.map(function (index, details) {
+      DetailsSummarizedContent.instances = DetailsSummarizedContent.instances.concat(once('details', 'details', context).map(function (details) {
         return new DetailsSummarizedContent(details);
-      }).get());
+      }));
     }
   };
   Drupal.DetailsSummarizedContent = DetailsSummarizedContent;

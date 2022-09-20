@@ -32,7 +32,7 @@
        *   The jQuery event for the keyup event that triggered the filter.
        */
       const filterBlockList = (e) => {
-        const query = $(e.target).val().toLowerCase();
+        const query = e.target.value.toLowerCase();
 
         /**
          * Shows or hides the block entry based on the query.
@@ -43,9 +43,9 @@
          *   The link to add the block.
          */
         const toggleBlockEntry = (index, link) => {
-          const $link = $(link);
-          const textMatch = $link.text().toLowerCase().indexOf(query) !== -1;
-          $link.toggle(textMatch);
+          const textMatch =
+            link.textContent.toLowerCase().indexOf(query) !== -1;
+          $(link).toggle(textMatch);
         };
 
         // Filter if the length of the query is at least 2 characters.
@@ -88,9 +88,9 @@
         }
       };
 
-      $('input.js-layout-builder-filter', context)
-        .once('block-filter-text')
-        .on('keyup', debounce(filterBlockList, 200));
+      $(
+        once('block-filter-text', 'input.js-layout-builder-filter', context),
+      ).on('keyup', debounce(filterBlockList, 200));
     },
   };
 
@@ -324,9 +324,8 @@
       const $layoutBuilderContentPreview = $('#layout-builder-content-preview');
 
       // data-content-preview-id specifies the layout being edited.
-      const contentPreviewId = $layoutBuilderContentPreview.data(
-        'content-preview-id',
-      );
+      const contentPreviewId =
+        $layoutBuilderContentPreview.data('content-preview-id');
 
       /**
        * Tracks if content preview is enabled for this layout. Defaults to true

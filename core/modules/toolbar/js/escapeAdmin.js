@@ -16,13 +16,13 @@
 
   Drupal.behaviors.escapeAdmin = {
     attach: function attach() {
-      var $toolbarEscape = $('[data-toolbar-escape-admin]').once('escapeAdmin');
+      var toolbarEscape = once('escapeAdmin', '[data-toolbar-escape-admin]');
 
-      if ($toolbarEscape.length && pathInfo.currentPathIsAdmin) {
+      if (toolbarEscape.length && pathInfo.currentPathIsAdmin) {
         if (escapeAdminPath !== null) {
-          $toolbarEscape.attr('href', escapeAdminPath);
+          $(toolbarEscape).attr('href', escapeAdminPath);
         } else {
-          $toolbarEscape.text(Drupal.t('Home'));
+          toolbarEscape[0].textContent = Drupal.t('Home');
         }
       }
     }

@@ -15,13 +15,18 @@ use Drupal\Core\Database\Database;
 use Drupal\Core\DrupalKernel;
 use Drupal\Core\Entity\Sql\SqlContentEntityStorage;
 use Drupal\Core\Entity\Sql\SqlContentEntityStorageSchema;
+use Drupal\Core\Extension\ExtensionLifecycle;
 use Drupal\Core\File\FileSystemInterface;
+use Drupal\Core\Link;
+use Drupal\Core\Utility\PhpRequirements;
+use Drupal\Core\Render\Markup;
 use Drupal\Core\Site\Settings;
 use Drupal\Core\StreamWrapper\PrivateStream;
 use Drupal\Core\StreamWrapper\PublicStream;
 use Drupal\Core\StringTranslation\PluralTranslatableMarkup;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Url;
+use GuzzleHttp\Exception\TransferException;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
@@ -29,9 +34,17 @@ use Symfony\Component\HttpFoundation\Request;
  */
 function system_requirements($phase) {
   global $install_state;
+
+  // Get the current default PHP requirements for this version of Drupal.
+  $minimum_supported_php = PhpRequirements::getMinimumSupportedPhp();
+
   // Reset the extension lists.
-  \Drupal::service('extension.list.module')->reset();
-  \Drupal::service('extension.list.theme')->reset();
+  /** @var \Drupal\Core\Extension\ModuleExtensionList $module_extension_list */
+  $module_extension_list = \Drupal::service('extension.list.module');
+  $module_extension_list->reset();
+  /** @var \Drupal\Core\Extension\ThemeExtensionList $theme_extension_list */
+  $theme_extension_list = \Drupal::service('extension.list.theme');
+  $theme_extension_list->reset();
   $requirements = [];
 
   // Report Drupal version
@@ -47,7 +60,7 @@ function system_requirements($phase) {
     // is not running the default installation profile.
     $profile = \Drupal::installProfile();
     if ($profile != 'standard') {
-      $info = \Drupal::service('extension.list.module')->getExtensionInfo($profile);
+      $info = $module_extension_list->getExtensionInfo($profile);
       $requirements['install_profile'] = [
         'title' => t('Installation profile'),
         'value' => t('%profile_name (%profile-%version)', [
@@ -60,15 +73,27 @@ function system_requirements($phase) {
       ];
     }
 
-    // Warn if any experimental modules are installed.
+    // Gather all obsolete and experimental modules being enabled.
+    $obsolete_extensions = [];
+    $deprecated_modules = [];
     $experimental_modules = [];
     $enabled_modules = \Drupal::moduleHandler()->getModuleList();
     foreach ($enabled_modules as $module => $data) {
-      $info = \Drupal::service('extension.list.module')->getExtensionInfo($module);
-      if (isset($info['package']) && $info['package'] === 'Core (Experimental)') {
-        $experimental_modules[$module] = $info['name'];
+      $info = $module_extension_list->getExtensionInfo($module);
+      if (isset($info[ExtensionLifecycle::LIFECYCLE_IDENTIFIER])) {
+        if ($info[ExtensionLifecycle::LIFECYCLE_IDENTIFIER] === ExtensionLifecycle::EXPERIMENTAL) {
+          $experimental_modules[$module] = $info['name'];
+        }
+        elseif ($info[ExtensionLifecycle::LIFECYCLE_IDENTIFIER] === ExtensionLifecycle::DEPRECATED) {
+          $deprecated_modules[] = ['name' => $info['name'], 'lifecycle_link' => $info['lifecycle_link']];
+        }
+        elseif ($info[ExtensionLifecycle::LIFECYCLE_IDENTIFIER] === ExtensionLifecycle::OBSOLETE) {
+          $obsolete_extensions[$module] = ['name' => $info['name'], 'lifecycle_link' => $info['lifecycle_link']];
+        }
       }
     }
+
+    // Warn if any experimental modules are installed.
     if (!empty($experimental_modules)) {
       $requirements['experimental_modules'] = [
         'title' => t('Experimental modules enabled'),
@@ -76,14 +101,48 @@ function system_requirements($phase) {
         'severity' => REQUIREMENT_WARNING,
       ];
     }
-    // Warn if any experimental themes are installed.
+    // Warn if any deprecated modules are installed.
+    if (!empty($deprecated_modules)) {
+      foreach ($deprecated_modules as $deprecated_module) {
+        $deprecated_modules_link_list[] = (string) Link::fromTextAndUrl($deprecated_module['name'], Url::fromUri($deprecated_module['lifecycle_link']))->toString();
+      }
+      $requirements['deprecated_modules'] = [
+        'title' => t('Deprecated modules enabled'),
+        'value' => t('Deprecated modules found: %module_list.', [
+          '%module_list' => Markup::create(implode(', ', $deprecated_modules_link_list)),
+        ]),
+        'severity' => REQUIREMENT_WARNING,
+      ];
+    }
+
+    // Gather all obsolete and experimental themes being enabled.
     $experimental_themes = [];
+    $deprecated_themes = [];
     $installed_themes = \Drupal::service('theme_handler')->listInfo();
     foreach ($installed_themes as $theme => $data) {
+      $info = $theme_extension_list->getExtensionInfo($theme);
+      if (isset($info[ExtensionLifecycle::LIFECYCLE_IDENTIFIER])) {
+        if ($info[ExtensionLifecycle::LIFECYCLE_IDENTIFIER] === ExtensionLifecycle::EXPERIMENTAL) {
+          $experimental_themes[$theme] = $info['name'];
+        }
+        elseif ($info[ExtensionLifecycle::LIFECYCLE_IDENTIFIER] === ExtensionLifecycle::DEPRECATED) {
+          $deprecated_themes[] = ['name' => $info['name'], 'lifecycle_link' => $info['lifecycle_link']];
+        }
+        elseif ($info[ExtensionLifecycle::LIFECYCLE_IDENTIFIER] === ExtensionLifecycle::OBSOLETE) {
+          $obsolete_extensions[$theme] = ['name' => $info['name'], 'lifecycle_link' => $info['lifecycle_link']];
+        }
+      }
+      // Currently, we check for both the key/value pairs 'experimental: true'
+      // and 'lifecycle: experimental' to determine if an extension is marked as
+      // experimental.
+      // @todo Remove the check for 'experimental: true' as part of
+      // https://www.drupal.org/node/3250342
       if (isset($data->info['experimental']) && $data->info['experimental']) {
         $experimental_themes[$theme] = $data->info['name'];
       }
     }
+
+    // Warn if any experimental themes are enabled.
     if (!empty($experimental_themes)) {
       $requirements['experimental_themes'] = [
         'title' => t('Experimental themes enabled'),
@@ -91,6 +150,36 @@ function system_requirements($phase) {
         'severity' => REQUIREMENT_WARNING,
       ];
     }
+
+    // Warn if any deprecated themes are enabled.
+    if (!empty($deprecated_themes)) {
+      foreach ($deprecated_themes as $deprecated_theme) {
+        $deprecated_themes_link_list[] = (string) Link::fromTextAndUrl($deprecated_theme['name'], Url::fromUri($deprecated_theme['lifecycle_link']))->toString();
+
+      }
+      $requirements['deprecated_themes'] = [
+        'title' => t('Deprecated themes enabled'),
+        'value' => t('Deprecated themes found: %theme_list.', [
+          '%theme_list' => Markup::create(implode(', ', $deprecated_themes_link_list)),
+        ]),
+        'severity' => REQUIREMENT_WARNING,
+      ];
+    }
+
+    // Warn if any obsolete extensions (themes or modules) are enabled.
+    if (!empty($obsolete_extensions)) {
+      foreach ($obsolete_extensions as $obsolete_extension) {
+        $obsolete_extensions_link_list[] = (string) Link::fromTextAndUrl($obsolete_extension['name'], Url::fromUri($obsolete_extension['lifecycle_link']))->toString();
+      }
+      $requirements['obsolete_extensions'] = [
+        'title' => t('Obsolete extensions enabled'),
+        'value' => t('Obsolete extensions found: %extensions. Obsolete extensions are provided only so that they can be uninstalled cleanly. You should immediately uninstall these extensions since they may be removed in a future release.', [
+          '%extensions' => Markup::create(implode(', ', $obsolete_extensions_link_list)),
+        ]),
+        'severity' => REQUIREMENT_WARNING,
+      ];
+    }
+    _system_advisories_requirements($requirements);
   }
 
   // Web server information.
@@ -161,7 +250,7 @@ function system_requirements($phase) {
         'title' => t('Apache version'),
         'value' => $apache_version_string,
         'severity' => REQUIREMENT_ERROR,
-        'description' => t('The minimum version of Apache needed to run Drupal without mod_rewrite enabled is 2.2.16. See the <a href=":link">enabling clean URLs</a> page for more information on mod_rewrite.', [':link' => 'http://drupal.org/docs/8/clean-urls-in-drupal-8']),
+        'description' => t('The minimum version of Apache needed to run Drupal without mod_rewrite enabled is 2.2.16. See the <a href=":link">enabling clean URLs</a> page for more information on mod_rewrite.', [':link' => 'https://www.drupal.org/docs/8/clean-urls-in-drupal-8']),
       ];
     }
 
@@ -170,7 +259,7 @@ function system_requirements($phase) {
         'title' => t('Clean URLs'),
         'value' => t('Disabled'),
         'severity' => REQUIREMENT_WARNING,
-        'description' => t('Your server is capable of using clean URLs, but it is not enabled. Using clean URLs gives an improved user experience and is recommended. <a href=":link">Enable clean URLs</a>', [':link' => 'http://drupal.org/docs/8/clean-urls-in-drupal-8']),
+        'description' => t('Your server is capable of using clean URLs, but it is not enabled. Using clean URLs gives an improved user experience and is recommended. <a href=":link">Enable clean URLs</a>', [':link' => 'https://www.drupal.org/docs/8/clean-urls-in-drupal-8']),
       ];
     }
   }
@@ -202,42 +291,54 @@ function system_requirements($phase) {
   }
 
   // Check if the PHP version is below what Drupal supports.
-  if (version_compare($phpversion, \Drupal::MINIMUM_SUPPORTED_PHP) < 0) {
-    $requirements['php']['description'] = t('Your PHP installation is too old. Drupal requires at least PHP %version. It is recommended to upgrade to PHP version %recommended or higher for the best ongoing support. See <a href="http://php.net/supported-versions.php">PHP\'s version support documentation</a> and the <a href=":php_requirements">Environment requirements of Drupal 9</a> page for more information.',
+  if (version_compare($phpversion, $minimum_supported_php) < 0) {
+    $requirements['php']['description'] = t('Your PHP installation is too old. Drupal requires at least PHP %version. It is recommended to upgrade to PHP version %recommended or higher for the best ongoing support. See <a href="http://php.net/supported-versions.php">PHP\'s version support documentation</a> and the <a href=":php_requirements">Drupal PHP requirements</a> page for more information.',
       [
-        '%version' => \Drupal::MINIMUM_SUPPORTED_PHP,
+        '%version' => $minimum_supported_php,
         '%recommended' => \Drupal::RECOMMENDED_PHP,
-        ':php_requirements' => 'https://www.drupal.org/docs/9/how-drupal-9-is-made-and-what-is-included/environment-requirements-of-drupal-9#s-php-version-requirement',
+        ':php_requirements' => 'https://www.drupal.org/docs/system-requirements/php-requirements',
       ]
     );
-    $requirements['php']['severity'] = REQUIREMENT_ERROR;
 
     // If the PHP version is also below the absolute minimum allowed, it's not
-    // safe to continue with the requirements check.
+    // safe to continue with the requirements check, and should always be an
+    // error.
     if (version_compare($phpversion, \Drupal::MINIMUM_PHP) < 0) {
+      $requirements['php']['severity'] = REQUIREMENT_ERROR;
       return $requirements;
     }
-    // Otherwise downgrade the error to a warning during updates. Even if there
-    // are some problems with the site's PHP version, it's still better for the
-    // site to keep its Drupal codebase up to date.
-    elseif ($phase === 'update') {
-      $requirements['php']['severity'] = REQUIREMENT_WARNING;
-    }
-    // Since we allow sites with unsupported PHP versions to still run Drupal
-    // updates, we also need to be able to run tests with those PHP versions,
-    // which requires the ability to install test sites. Not all tests are
-    // required to pass on these PHP versions, but we want to monitor which
-    // ones do and don't.
-    elseif ($phase === 'install' && drupal_valid_test_ua()) {
-      $requirements['php']['severity'] = REQUIREMENT_INFO;
-    }
+    // Otherwise, the message should be an error at runtime, and a warning
+    // during installation or update.
+    $requirements['php']['severity'] = ($phase === 'runtime') ? REQUIREMENT_ERROR : REQUIREMENT_WARNING;
+  }
+  // @todo Remove this when \Drupal::MINIMUM_PHP is at least 8.1.6 in
+  //   https://www.drupal.org/i/3305726.
+  elseif ($phase === 'runtime' && version_compare($phpversion, '8.1.0', '>=') && version_compare($phpversion, '8.1.6', '<')) {
+    $requirements['php']['description'] = t('PHP %version has <a href=":bug_url">an OPcache bug that can cause fatal errors with class autoloading</a>. This can be fixed by upgrading to PHP 8.1.6 or later. See <a href="http://php.net/supported-versions.php">PHP\'s version support documentation</a> and the <a href=":php_requirements">Drupal PHP requirements</a> page for more information.', [
+      '%version' => $phpversion,
+      ':bug_url' => 'https://github.com/php/php-src/issues/8164',
+      ':php_requirements' => 'https://www.drupal.org/docs/system-requirements/php-requirements',
+    ]);
+    $requirements['php']['severity'] = REQUIREMENT_WARNING;
   }
   // For PHP versions that are still supported but no longer recommended,
   // inform users of what's recommended, allowing them to take action before it
   // becomes urgent.
   elseif ($phase === 'runtime' && version_compare($phpversion, \Drupal::RECOMMENDED_PHP) < 0) {
-    $requirements['php']['description'] = t('It is recommended to upgrade to PHP version %recommended or higher for the best ongoing support.  See <a href="http://php.net/supported-versions.php">PHP\'s version support documentation</a> and the <a href=":php_requirements">Drupal 8 PHP requirements handbook page</a> for more information.', ['%recommended' => \Drupal::RECOMMENDED_PHP, ':php_requirements' => 'https://www.drupal.org/docs/8/system-requirements/php']);
-    $requirements['php']['severity'] = REQUIREMENT_INFO;
+    $requirements['php']['description'] = t('It is recommended to upgrade to PHP version %recommended or higher for the best ongoing support.  See <a href="http://php.net/supported-versions.php">PHP\'s version support documentation</a> and the <a href=":php_requirements">Drupal PHP requirements</a> page for more information.', ['%recommended' => \Drupal::RECOMMENDED_PHP, ':php_requirements' => 'https://www.drupal.org/docs/system-requirements/php-requirements']);
+  }
+  // If we're not on PHP 8.1 yet, warn about an OPcache bug in PHP 8.1.0 through
+  // 8.1.5, so that users know to avoid to those versions.
+  // @todo Remove this when \Drupal::MINIMUM_PHP is at least 8.1.6 in
+  //   https://www.drupal.org/i/3305726.
+  if ($phase === 'runtime' && version_compare($phpversion, '8.1.0', 'lt')) {
+    // Append the notice about the broken PHP versions to the existing
+    // description (if there is one), so that the existing translatable string
+    // is preserved untouched.
+    $requirements['php']['description'] = t('<p>@requirement</p><p>PHP versions 8.1.0 to 8.1.5 have <a href=":bug_url">an OPcache bug that can cause fatal errors with class autoloading</a>. It can be avoided by using PHP 8.1.6 or later.</p>', [
+      '@requirement' => $requirements['php']['description'] ?? '',
+      ':bug_url' => 'https://github.com/php/php-src/issues/8164',
+    ]);
   }
 
   // Test for PHP extensions.
@@ -372,7 +473,7 @@ function system_requirements($phase) {
         }
       }
       $args = [
-        ':drupal-php' => 'https://www.drupal.org/docs/8/system-requirements/php-requirements',
+        ':drupal-php' => 'https://www.drupal.org/docs/system-requirements/php-requirements',
         '%exception_message' => $e->getMessage(),
       ];
       if ($open_basedir_blocks_urandom) {
@@ -383,6 +484,18 @@ function system_requirements($phase) {
       }
       $requirements['php_random_bytes']['value'] = t('Less secure');
       $requirements['php_random_bytes']['severity'] = REQUIREMENT_ERROR;
+    }
+  }
+
+  // Verify there are no database entries in settings.php with table prefix in
+  // array format.
+  if ($phase === 'runtime' || $phase === 'update') {
+    if (_system_check_array_table_prefixes() === TRUE) {
+      $requirements['database_table_prefixes'] = [
+        'title' => t('Database table prefixes'),
+        'value' => t("There is at least one database entry in the \$database array in settings.php that has a 'prefix' value in the format of an array. Per-table prefixes are no longer supported. Change your settings.php file to ensure the value of every 'prefix' entry is a single string."),
+        'severity' => REQUIREMENT_WARNING,
+      ];
     }
   }
 
@@ -453,6 +566,37 @@ function system_requirements($phase) {
       ];
       $requirements['database_system_version']['severity'] = REQUIREMENT_ERROR;
       $requirements['database_system_version']['description'] = $error_message;
+    }
+  }
+
+  // Test with PostgreSQL databases for the status of the pg_trgm extension.
+  if ($phase === 'runtime') {
+    if (Database::isActiveConnection() && (Database::getConnection()->driver() == 'pgsql') && !Database::getConnection()->schema()->extensionExists('pg_trgm')) {
+      $requirements['pgsql_extension_pg_trgm'] = [
+        'severity' => REQUIREMENT_WARNING,
+        'title' => t('PostgreSQL pg_trgm extension'),
+        'value' => t('Not created'),
+        'description' => t('The <a href=":pg_trgm">pg_trgm</a> PostgreSQL extension is not present. The extension will be required by Drupal 10 to improve performance when using PostgreSQL. See <a href=":requirements">Drupal database server requirements</a> for more information.', [
+          ':pg_trgm' => 'https://www.postgresql.org/docs/current/pgtrgm.html',
+          ':requirements' => 'https://www.drupal.org/docs/system-requirements/database-server-requirements',
+        ]),
+      ];
+    }
+  }
+
+  if ($phase == 'runtime') {
+    // Test JSON support. To be required from Drupal 10.0.
+    // @todo remove in https://www.drupal.org/project/drupal/issues/3203193
+    $requirements['database_support_json'] = [
+      'title' => t('Database support for JSON'),
+      'severity' => REQUIREMENT_OK,
+      'value' => t('Available'),
+      'description' => t('Is required in Drupal 10.0.'),
+    ];
+
+    if (!Database::getConnection()->hasJson()) {
+      $requirements['database_support_json']['value'] = t('Not available');
+      $requirements['database_support_json']['severity'] = REQUIREMENT_WARNING;
     }
   }
 
@@ -785,10 +929,12 @@ function system_requirements($phase) {
 
     // Check installed modules.
     $has_pending_updates = FALSE;
+    /** @var \Drupal\Core\Update\UpdateHookRegistry $update_registry */
+    $update_registry = \Drupal::service('update.update_hook_registry');
     foreach (\Drupal::moduleHandler()->getModuleList() as $module => $filename) {
-      $updates = drupal_get_schema_versions($module);
-      if ($updates !== FALSE) {
-        $default = drupal_get_installed_schema_version($module);
+      $updates = $update_registry->getAvailableUpdates($module);
+      if ($updates) {
+        $default = $update_registry->getInstalledVersion($module);
         if (max($updates) > $default) {
           $has_pending_updates = TRUE;
           break;
@@ -882,8 +1028,8 @@ function system_requirements($phase) {
       ];
     };
     $profile = \Drupal::installProfile();
-    $files = \Drupal::service('extension.list.module')->getList();
-    $files += \Drupal::service('extension.list.theme')->getList();
+    $files = $module_extension_list->getList();
+    $files += $theme_extension_list->getList();
     $core_incompatible_extensions = [];
     $php_incompatible_extensions = [];
     foreach ($files as $extension_name => $file) {
@@ -920,7 +1066,7 @@ function system_requirements($phase) {
         // Check for an incompatible version.
         $required_file = $files[$required_module];
         $required_name = $required_file->info['name'];
-        $version = str_replace(\Drupal::CORE_COMPATIBILITY . '-', '', $required_file->info['version']);
+        $version = str_replace(\Drupal::CORE_COMPATIBILITY . '-', '', $required_file->info['version'] ?? '');
         if (!$requirement->isCompatible($version)) {
           $requirements["$extension_name-$required_module"] = [
             'title' => t('Unresolved dependency'),
@@ -999,10 +1145,8 @@ function system_requirements($phase) {
 
     // Look for invalid modules.
     $extension_config = \Drupal::configFactory()->get('core.extension');
-    /** @var \Drupal\Core\Extension\ExtensionList $extension_list */
-    $extension_list = \Drupal::service('extension.list.module');
-    $is_missing_extension = function ($extension_name) use (&$extension_list) {
-      return !$extension_list->exists($extension_name);
+    $is_missing_extension = function ($extension_name) use (&$module_extension_list) {
+      return !$module_extension_list->exists($extension_name);
     };
 
     $invalid_modules = array_filter(array_keys($extension_config->get('module')), $is_missing_extension);
@@ -1024,8 +1168,10 @@ function system_requirements($phase) {
     }
 
     // Look for invalid themes.
-    $extension_list = \Drupal::service('extension.list.theme');
-    $invalid_themes = array_filter(array_keys($extension_config->get('theme')), $is_missing_extension);
+    $is_missing_theme = function ($extension_name) use (&$theme_extension_list) {
+      return !$theme_extension_list->exists($extension_name);
+    };
+    $invalid_themes = array_filter(array_keys($extension_config->get('theme')), $is_missing_theme);
     if (!empty($invalid_themes)) {
       $requirements['invalid_theme'] = $create_extension_incompatibility_list(
         $invalid_themes,
@@ -1126,6 +1272,30 @@ function system_requirements($phase) {
     }
   }
 
+  // When the database driver is provided by a module, then check that the
+  // providing module is enabled.
+  if ($phase === 'runtime' || $phase === 'update') {
+    $connection = Database::getConnection();
+    $provider = $connection->getProvider();
+    if ($provider !== 'core' && !\Drupal::moduleHandler()->moduleExists($provider)) {
+      $autoload = $connection->getConnectionOptions()['autoload'] ?? '';
+      if (($pos = strpos($autoload, 'src/Driver/Database/')) !== FALSE) {
+        $post_update_registry = \Drupal::service('update.post_update_registry');
+        $pending_updates = $post_update_registry->getPendingUpdateInformation();
+        if (!in_array('enable_provider_database_driver', array_keys($pending_updates['system']['pending'] ?? []), TRUE)) {
+          // Only show the warning when the post update function has run and
+          // the module that is providing the database driver is not enabled.
+          $requirements['database_driver_provided_by_module'] = [
+            'title' => t('Database driver provided by module'),
+            'value' => t('Not enabled'),
+            'description' => t('The current database driver is provided by the module: %module. The module is currently not enabled. You should immediately <a href=":enable">enable</a> the module.', ['%module' => $provider, ':enable' => Url::fromRoute('system.modules_list')->toString()]),
+            'severity' => REQUIREMENT_ERROR,
+          ];
+        }
+      }
+    }
+  }
+
   // Check xdebug.max_nesting_level, as some pages will not work if it is too
   // low.
   if (extension_loaded('xdebug')) {
@@ -1139,34 +1309,6 @@ function system_requirements($phase) {
         'title' => t('Xdebug settings'),
         'value' => t('xdebug.max_nesting_level is set to %value.', ['%value' => $current_nesting_level]),
         'description' => t('Set <code>xdebug.max_nesting_level=@level</code> in your PHP configuration as some pages in your Drupal site will not work when this setting is too low.', ['@level' => $minimum_nesting_level]),
-        'severity' => REQUIREMENT_ERROR,
-      ];
-    }
-  }
-
-  // Warning for httpoxy on IIS with affected PHP versions
-  // @see https://www.drupal.org/node/2783079
-  if (strpos($software, 'Microsoft-IIS') !== FALSE && version_compare(PHP_VERSION, '7.0.9', '<')) {
-    $dom = new \DOMDocument('1.0', 'UTF-8');
-    $webconfig = file_get_contents('web.config');
-    // If you are here the web.config file must - of course - be well formed.
-    // But the PHP DOM component will throw warnings on some XML compliant
-    // stuff, so silently parse the configuration file.
-    @$dom->loadHTML($webconfig);
-    $httpoxy_rewrite = FALSE;
-    foreach ($dom->getElementsByTagName('rule') as $rule) {
-      foreach ($rule->attributes as $attr) {
-        if (@$attr->name == 'name' && @$attr->nodeValue == 'Erase HTTP_PROXY') {
-          $httpoxy_rewrite = TRUE;
-          break 2;
-        }
-      }
-    }
-    if (!$httpoxy_rewrite) {
-      $requirements['iis_httpoxy_protection'] = [
-        'title' => t('IIS httpoxy protection'),
-        'value' => t('Your PHP runtime version is affected by the httpoxy vulnerability.'),
-        'description' => t('Either update your PHP runtime version or uncomment the "Erase HTTP_PROXY" rule in your web.config file and add HTTP_PROXY to the allowed headers list. See more details in the <a href=":link">security advisory</a>.', [':link' => 'https://www.drupal.org/SA-CORE-2016-003']),
         'severity' => REQUIREMENT_ERROR,
       ];
     }
@@ -1193,7 +1335,7 @@ function system_requirements($phase) {
     $requirements['limited_date_range'] = [
       'title' => t('Limited date range'),
       'value' => t('Your PHP installation has a limited date range.'),
-      'description' => t('You are running on a system where PHP is compiled or limited to using 32-bit integers. This will limit the range of dates and timestamps to the years 1901-2038. Read about the <a href=":url">limitations of 32-bit PHP</a>.', [':url' => 'https://www.drupal.org/docs/8/system-requirements/limitations-of-32-bit-php']),
+      'description' => t('You are running on a system where PHP is compiled or limited to using 32-bit integers. This will limit the range of dates and timestamps to the years 1901-2038. Read about the <a href=":url">limitations of 32-bit PHP</a>.', [':url' => 'https://www.drupal.org/docs/system-requirements/limitations-of-32-bit-php']),
       'severity' => REQUIREMENT_WARNING,
     ];
   }
@@ -1230,20 +1372,25 @@ function system_requirements($phase) {
   // one that was last removed.
   if ($phase == 'update') {
     $module_handler = \Drupal::moduleHandler();
+    /** @var \Drupal\Core\Update\UpdateHookRegistry $update_registry */
+    $update_registry = \Drupal::service('update.update_hook_registry');
     $module_list = [];
-    foreach ($module_handler->getImplementations('update_last_removed') as $module) {
-      $last_removed = $module_handler->invoke($module, 'update_last_removed');
-      if ($last_removed && $last_removed > drupal_get_installed_schema_version($module)) {
+    $module_handler->invokeAllWith(
+      'update_last_removed',
+      function (callable $hook, string $module) use (&$module_list, $update_registry, $module_extension_list) {
+        $last_removed = $hook();
+        if ($last_removed && $last_removed > $update_registry->getInstalledVersion($module)) {
 
-        /** @var \Drupal\Core\Extension\Extension $module_info */
-        $module_info = \Drupal::service('extension.list.module')->get($module);
-        $module_list[$module] = [
-          'name' => $module_info->info['name'],
-          'last_removed' => $last_removed,
-          'installed_version' => drupal_get_installed_schema_version($module),
-        ];
+          /** @var \Drupal\Core\Extension\Extension $module_info */
+          $module_info = $module_extension_list->get($module);
+          $module_list[$module] = [
+            'name' => $module_info->info['name'],
+            'last_removed' => $last_removed,
+            'installed_version' => $update_registry->getInstalledVersion($module),
+          ];
+        }
       }
-    }
+    );
 
     // If system or workspaces is in the list then only show a specific message
     // for Drupal core.
@@ -1280,7 +1427,6 @@ function system_requirements($phase) {
       $existing_updates = \Drupal::service('keyvalue')->get('post_update')->get('existing_updates', []);
       $post_update_registry = \Drupal::service('update.post_update_registry');
       $modules = \Drupal::moduleHandler()->getModuleList();
-      $module_extension_list = \Drupal::service('extension.list.module');
       foreach ($modules as $module => $extension) {
         $module_info = $module_extension_list->get($module);
         $removed_post_updates = $post_update_registry->getRemovedPostUpdates($module);
@@ -1323,6 +1469,9 @@ function system_install() {
     $site->set('name', 'Drupal');
   }
   $site->save(TRUE);
+
+  // Populate the dummy query string added to all CSS and JavaScript files.
+  _drupal_flush_css_js();
 }
 
 /**
@@ -1371,7 +1520,7 @@ function system_schema() {
         'default' => 0,
       ],
       'session' => [
-        'description' => 'The serialized contents of $_SESSION, an array of name/value pairs that persists across page requests by this session ID. Drupal loads $_SESSION from here at the start of each request and saves it at the end.',
+        'description' => 'The serialized contents of the user\'s session, an array of name/value pairs that persists across page requests by this session ID. Drupal loads the user\'s session from here at the start of each request and saves it at the end.',
         'type' => 'blob',
         'not null' => FALSE,
         'size' => 'big',
@@ -1456,4 +1605,69 @@ function system_update_8901() {
       }
     }
   }
+}
+
+/**
+ * Display requirements from security advisories.
+ *
+ * @param array[] $requirements
+ *   The requirements array as specified in hook_requirements().
+ */
+function _system_advisories_requirements(array &$requirements): void {
+  if (!\Drupal::config('system.advisories')->get('enabled')) {
+    return;
+  }
+
+  /** @var \Drupal\system\SecurityAdvisories\SecurityAdvisoriesFetcher $fetcher */
+  $fetcher = \Drupal::service('system.sa_fetcher');
+  try {
+    $advisories = $fetcher->getSecurityAdvisories(TRUE, 5);
+  }
+  catch (TransferException $exception) {
+    $requirements['system_advisories']['title'] = t('Critical security announcements');
+    $requirements['system_advisories']['severity'] = REQUIREMENT_WARNING;
+    $requirements['system_advisories']['description'] = ['#theme' => 'system_security_advisories_fetch_error_message'];
+    watchdog_exception('system', $exception, 'Failed to retrieve security advisory data.');
+    return;
+  }
+
+  if (!empty($advisories)) {
+    $advisory_links = [];
+    $severity = REQUIREMENT_WARNING;
+    foreach ($advisories as $advisory) {
+      if (!$advisory->isPsa()) {
+        $severity = REQUIREMENT_ERROR;
+      }
+      $advisory_links[] = new Link($advisory->getTitle(), Url::fromUri($advisory->getUrl()));
+    }
+    $requirements['system_advisories']['title'] = t('Critical security announcements');
+    $requirements['system_advisories']['severity'] = $severity;
+    $requirements['system_advisories']['description'] = [
+      'list' => [
+        '#theme' => 'item_list',
+        '#items' => $advisory_links,
+      ],
+    ];
+    if (\Drupal::moduleHandler()->moduleExists('help')) {
+      $requirements['system_advisories']['description']['help_link'] = Link::createFromRoute(
+        'What are critical security announcements?',
+        'help.page', ['name' => 'system'],
+        ['fragment' => 'security-advisories']
+      )->toRenderable();
+    }
+  }
+}
+
+/**
+ * Checks if there are 'prefix' entries in array format for tables.
+ */
+function _system_check_array_table_prefixes() {
+  foreach (Database::getAllConnectionInfo() as $targets) {
+    foreach ($targets as $target) {
+      if (isset($target['extra_prefix']) && is_array($target['extra_prefix'])) {
+        return TRUE;
+      }
+    }
+  }
+  return FALSE;
 }

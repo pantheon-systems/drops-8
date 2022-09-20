@@ -4,6 +4,8 @@ namespace Drupal\Tests\migrate_drupal_ui\Functional\d7;
 
 use Drupal\Tests\migrate_drupal_ui\Functional\NoMultilingualReviewPageTestBase;
 
+// cspell:ignore Filefield Multiupload Imagefield
+
 /**
  * Tests Drupal 7 upgrade without translations.
  *
@@ -17,10 +19,10 @@ class NoMultilingualReviewPageTest extends NoMultilingualReviewPageTestBase {
    * {@inheritdoc}
    */
   protected static $modules = [
-    'aggregator',
     'book',
     'config_translation',
     'content_translation',
+    'datetime_range',
     'file',
     'forum',
     'language',
@@ -34,7 +36,10 @@ class NoMultilingualReviewPageTest extends NoMultilingualReviewPageTestBase {
    */
   protected function setUp(): void {
     parent::setUp();
-    $this->loadFixture(drupal_get_path('module', 'migrate_drupal') . '/tests/fixtures/drupal7.php');
+    $this->loadFixture($this->getModulePath('migrate_drupal') . '/tests/fixtures/drupal7.php');
+
+    // @todo Remove this in https://www.drupal.org/node/3267515
+    \Drupal::service('module_installer')->uninstall(['rdf']);
   }
 
   /**
@@ -49,14 +54,12 @@ class NoMultilingualReviewPageTest extends NoMultilingualReviewPageTestBase {
    */
   protected function getAvailablePaths() {
     return [
-      'Aggregator',
       'Block',
       'Block languages',
       'Book',
       'Bulk Export',
       'Chaos Tools (CTools) AJAX Example',
       'Chaos tools',
-      'Color',
       'Comment',
       'Contact',
       'Custom content panes',
@@ -77,17 +80,23 @@ class NoMultilingualReviewPageTest extends NoMultilingualReviewPageTestBase {
       'Entity Translation',
       'Entity feature module',
       'Entity tokens',
+      'Field translation',
       'Field',
       'Field SQL storage',
       'File',
       'Filter',
       'Forum',
       'Image',
+      'Internationalization',
       'Link',
       'List',
+      'Locale',
       'Menu',
       'Menu translation',
+      'Multiupload Filefield Widget',
+      'Multiupload Imagefield Widget',
       'Node',
+      'Node Reference',
       'Number',
       'OpenID',
       'Options',
@@ -97,21 +106,24 @@ class NoMultilingualReviewPageTest extends NoMultilingualReviewPageTestBase {
       'Phone',
       'Poll',
       'Profile',
-      'RDF',
       'Search',
       'Search embedded form',
       'Shortcut',
       'Statistics',
+      'String translation',
       'Stylizer',
       'Synchronize translations',
       'System',
+      'Taxonomy translation',
       'Taxonomy',
+      'Telephone',
       'Term Depth access',
       'Test search node tags',
       'Test search type',
       'Text',
       'Title',
       'User',
+      'User Reference',
       'Variable translation',
       'Views UI',
       'Views content panes',
@@ -143,21 +155,22 @@ class NoMultilingualReviewPageTest extends NoMultilingualReviewPageTestBase {
    */
   protected function getMissingPaths() {
     return [
+      'Aggregator',
       'Breakpoints',
+      // @todo Remove Color in https://www.drupal.org/project/drupal/issues/3270899
+      'Color',
       'Contact translation',
       'Entity Translation Menu',
       'Entity Translation Upgrade',
-      'Field translation',
       'FlexSlider Picture',
-      'Internationalization',
-      'Locale',
       'Multilingual content',
       'Multilingual forum',
       'Multilingual select',
       'Path translation',
       'Picture',
-      'String translation',
-      'Taxonomy translation',
+      'RDF',
+      'References',
+      'References UUID',
       'Translation redirect',
       'Translation sets',
       'User mail translation',

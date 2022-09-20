@@ -47,7 +47,7 @@
       }
 
       Object.keys(settings.tableDrag || {}).forEach((base) => {
-        initTableDrag($(context).find(`#${base}`).once('tabledrag'), base);
+        initTableDrag($(once('tabledrag', `#${base}`, context)), base);
       });
     },
   };
@@ -370,7 +370,10 @@
 
     // Trigger an event to allow other scripts to react to this display change.
     // Force the extra parameter as a bool.
-    $('table').findOnce('tabledrag').trigger('columnschange', !!displayWeight);
+    $(once.filter('tabledrag', 'table')).trigger(
+      'columnschange',
+      !!displayWeight,
+    );
   };
 
   /**
@@ -396,7 +399,7 @@
    * Undo showColumns().
    */
   Drupal.tableDrag.prototype.hideColumns = function () {
-    const $tables = $('table').findOnce('tabledrag');
+    const $tables = $(once.filter('tabledrag', 'table'));
     // Hide weight/parent cells and headers.
     $tables.find('.tabledrag-hide').css('display', 'none');
     // Show TableDrag handles.
@@ -413,7 +416,7 @@
    * Undo hideColumns().
    */
   Drupal.tableDrag.prototype.showColumns = function () {
-    const $tables = $('table').findOnce('tabledrag');
+    const $tables = $(once.filter('tabledrag', 'table'));
     // Show weight/parent cells and headers.
     $tables.find('.tabledrag-hide').css('display', '');
     // Hide TableDrag handles.
@@ -1134,8 +1137,11 @@
               });
           } else {
             // Assume a numeric input field.
-            let weight =
-              parseInt($(siblings[0]).find(targetClass).val(), 10) || 0;
+            let weight = 0;
+            const $siblingTarget = $(siblings[0]).find(targetClass);
+            if ($siblingTarget.length) {
+              weight = parseInt($siblingTarget[0].value, 10) || 0;
+            }
             $(siblings)
               .find(targetClass)
               .each(function () {
@@ -1317,7 +1323,7 @@
     if (this.indentEnabled) {
       this.indents = $tableRow.find('.js-indentation').length;
       this.children = this.findChildren(addClasses);
-      this.group = $.merge(this.group, this.children);
+      this.group = this.group.concat(this.children);
       // Find the depth of this entire group.
       for (let n = 0; n < this.group.length; n++) {
         this.groupDepth = Math.max(

@@ -150,7 +150,9 @@ class JsonApiDocumentTopLevelNormalizer extends NormalizerBase implements Denorm
           if (isset($relationship['data'][$delta]['meta'])) {
             $reference_item += $relationship['data'][$delta]['meta'];
           }
-          $canonical_ids[] = $reference_item;
+          $canonical_ids[] = array_filter($reference_item, function ($key) {
+            return substr($key, 0, strlen('drupal_internal__')) !== 'drupal_internal__';
+          }, ARRAY_FILTER_USE_KEY);
         }
 
         return array_filter($canonical_ids);
@@ -328,6 +330,13 @@ class JsonApiDocumentTopLevelNormalizer extends NormalizerBase implements Denorm
    */
   protected static function getLinkHash($salt, $link_href) {
     return substr(str_replace(['-', '_'], '', Crypt::hashBase64($salt . $link_href)), 0, 7);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function hasCacheableSupportsMethod(): bool {
+    return TRUE;
   }
 
 }

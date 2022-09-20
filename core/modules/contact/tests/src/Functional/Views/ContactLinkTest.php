@@ -4,7 +4,6 @@ namespace Drupal\Tests\contact\Functional\Views;
 
 use Drupal\Core\Cache\Cache;
 use Drupal\Tests\views\Functional\ViewTestBase;
-use Drupal\views\Tests\ViewTestData;
 use Drupal\user\Entity\User;
 
 /**
@@ -32,7 +31,7 @@ class ContactLinkTest extends ViewTestBase {
   /**
    * {@inheritdoc}
    */
-  protected $defaultTheme = 'classy';
+  protected $defaultTheme = 'stark';
 
   /**
    * Views used by this test.
@@ -44,10 +43,8 @@ class ContactLinkTest extends ViewTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp($import_test_views = TRUE): void {
-    parent::setUp($import_test_views);
-
-    ViewTestData::createTestViews(static::class, ['contact_test_views']);
+  protected function setUp($import_test_views = TRUE, $modules = ['contact_test_views']): void {
+    parent::setUp($import_test_views, $modules);
 
     $this->userData = $this->container->get('user.data');
   }
@@ -98,15 +95,14 @@ class ContactLinkTest extends ViewTestBase {
    *   All user objects used by the test.
    * @param array $names
    *   Users which should have contact links.
+   *
+   * @internal
    */
-  public function assertContactLinks(array $accounts, array $names) {
-    $result = $this->xpath('//div[contains(@class, "views-field-contact")]//a');
-    $this->assertSame(count($names), count($result));
+  public function assertContactLinks(array $accounts, array $names): void {
+    $this->assertSession()->elementsCount('xpath', '//div[contains(@class, "views-field-contact")]//a', count($names));
     foreach ($names as $name) {
-      $account = $accounts[$name];
-
-      $result = $this->xpath('//div[contains(@class, "views-field-contact")]//a[contains(@href, :url)]', [':url' => $account->toUrl('contact-form')->toString()]);
-      $this->assertGreaterThan(0, count($result));
+      $account_url = $accounts[$name]->toUrl('contact-form')->toString();
+      $this->assertSession()->elementExists('xpath', "//div[contains(@class, 'views-field-contact')]//a[contains(@href, '$account_url')]");
     }
   }
 

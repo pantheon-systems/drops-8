@@ -3,9 +3,13 @@
 namespace Drupal\Core\Datetime\Element;
 
 use Drupal\Component\Utility\NestedArray;
+use Drupal\Component\Utility\Variable;
 use Drupal\Core\Datetime\DateHelper;
 use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Security\DoTrustedCallbackTrait;
+use Drupal\Core\Security\StaticTrustedCallbackHelper;
+use Drupal\Core\Security\TrustedCallbackInterface;
 
 /**
  * Provides a datelist element.
@@ -13,6 +17,8 @@ use Drupal\Core\Form\FormStateInterface;
  * @FormElement("datelist")
  */
 class Datelist extends DateElementBase {
+
+  use DoTrustedCallbackTrait;
 
   /**
    * {@inheritdoc}
@@ -261,9 +267,8 @@ class Datelist extends DateElementBase {
     // Allows custom callbacks to alter the element.
     if (!empty($element['#date_date_callbacks'])) {
       foreach ($element['#date_date_callbacks'] as $callback) {
-        if (function_exists($callback)) {
-          $callback($element, $form_state, $date);
-        }
+        $message = sprintf('Datelist element #date_date_callbacks callbacks must be methods of a class that implements \Drupal\Core\Security\TrustedCallbackInterface or be an anonymous function. The callback was %s. Support for this callback implementation is deprecated in drupal:9.3.0 and will be removed in drupal:10.0.0. See https://www.drupal.org/node/3217966', Variable::callableToString($callback));
+        StaticTrustedCallbackHelper::callback($callback, [&$element, $form_state, $date], $message, TrustedCallbackInterface::TRIGGER_SILENCED_DEPRECATION);
       }
     }
 
@@ -338,6 +343,9 @@ class Datelist extends DateElementBase {
    *   Array of keys from the input array that have no value, may be empty.
    */
   protected static function checkEmptyInputs($input, $parts) {
+    // The object key does not represent an input value, see
+    // \Drupal\Core\Datetime\Element\Datelist::valueCallback().
+    unset($input['object']);
     // Filters out empty array values, any valid value would have a string length.
     $filtered_input = array_filter($input, 'strlen');
     return array_diff($parts, array_keys($filtered_input));
@@ -347,7 +355,9 @@ class Datelist extends DateElementBase {
    * Rounds minutes and seconds to nearest requested value.
    *
    * @param $date
+   *   The date.
    * @param $increment
+   *   The value to round to.
    *
    * @return
    */

@@ -79,7 +79,7 @@
       this.target.on('focus.viewsUi', this.unbind);
     },
     getTransliterated: function getTransliterated() {
-      var from = this.source.val();
+      var from = this.source.length ? this.source[0].value : '';
 
       if (this.exclude) {
         from = from.toLowerCase().replace(this.exclude, this.replace);
@@ -92,7 +92,7 @@
       var suffix = this.suffix;
       this.target.each(function (i) {
         var maxlength = $(this).attr('maxlength') - suffix.length;
-        $(this).val(transliterated.substr(0, maxlength) + suffix);
+        this.value = transliterated.substr(0, maxlength) + suffix;
       });
     },
     _unbind: function _unbind() {
@@ -113,7 +113,7 @@
         $form = $context.find('form[id^="views-ui-add-handler-form"]');
       }
 
-      if ($form.once('views-ui-add-handler-form').length) {
+      if (once('views-ui-add-handler-form', $form).length) {
         new Drupal.viewsUi.AddItemForm($form);
       }
     }
@@ -129,7 +129,7 @@
 
   Drupal.viewsUi.AddItemForm.prototype.handleCheck = function (event) {
     var $target = $(event.target);
-    var label = $.trim($target.closest('td').next().html());
+    var label = $target.closest('td').next().html().trim();
 
     if ($target.is(':checked')) {
       this.$selected_div.show().css('display', 'block');
@@ -159,21 +159,19 @@
 
   Drupal.behaviors.viewsUiRenderAddViewButton = {
     attach: function attach(context) {
-      var $menu = $(context).find('#views-display-menu-tabs').once('views-ui-render-add-view-button');
+      var menu = once('views-ui-render-add-view-button', '#views-display-menu-tabs', context);
 
-      if (!$menu.length) {
+      if (!menu.length) {
         return;
       }
 
+      var $menu = $(menu);
       var $addDisplayDropdown = $("<li class=\"add\"><a href=\"#\"><span class=\"icon add\"></span>".concat(Drupal.t('Add'), "</a><ul class=\"action-list\" style=\"display:none;\"></ul></li>"));
       var $displayButtons = $menu.nextAll('input.add-display').detach();
       $displayButtons.appendTo($addDisplayDropdown.find('.action-list')).wrap('<li>').parent().eq(0).addClass('first').end().eq(-1).addClass('last');
       $displayButtons.each(function () {
-        var label = $(this).val();
-
-        if (label.substr(0, 4) === 'Add ') {
-          $(this).val(label.substr(4));
-        }
+        var $this = $(this);
+        this.value = $this.attr('data-drupal-dropdown-label');
       });
       $addDisplayDropdown.appendTo($menu);
       $menu.find('li.add > a').on('click', function (event) {
@@ -206,7 +204,7 @@
         $form = $context.find('form[id^="views-ui-add-handler-form"]');
       }
 
-      if ($form.once('views-ui-filter-options').length) {
+      if (once('views-ui-filter-options', $form).length) {
         new Drupal.viewsUi.OptionsSearch($form);
       }
     }
@@ -244,7 +242,7 @@
         $title = $option.find('.title');
         $description = $option.find('.description');
         options[i] = {
-          searchText: "".concat($title.text().toLowerCase(), " ").concat($description.text().toLowerCase()),
+          searchText: "".concat($title[0].textContent.toLowerCase(), " ").concat($description[0].textContent.toLowerCase(), "\n              .toLowerCase()}"),
           $div: $option
         };
       }
@@ -252,9 +250,9 @@
       return options;
     },
     handleFilter: function handleFilter(event) {
-      var search = this.$searchBox.val().toLowerCase();
+      var search = this.$searchBox[0].value.toLowerCase();
       var words = search.split(' ');
-      var group = this.$controlGroup.val();
+      var group = this.$controlGroup[0].value;
       this.options.forEach(function (option) {
         function hasWord(word) {
           return option.searchText.indexOf(word) !== -1;
@@ -291,23 +289,8 @@
         $('#preview-args').parent().hide();
       }
 
-      if ($('#edit-displays-live-preview').once('edit-displays-live-preview').is(':checked')) {
-        $('#preview-submit').once('edit-displays-live-preview').trigger('click');
-      }
-    }
-  };
-  Drupal.behaviors.viewsUiRearrangeFilter = {
-    attach: function attach(context) {
-      if (typeof Drupal.tableDrag === 'undefined' || typeof Drupal.tableDrag['views-rearrange-filters'] === 'undefined') {
-        return;
-      }
-
-      var $context = $(context);
-      var $table = $context.find('#views-rearrange-filters').once('views-rearrange-filters');
-      var $operator = $context.find('.js-form-item-filter-groups-operator').once('views-rearrange-filters');
-
-      if ($table.length) {
-        new Drupal.viewsUi.RearrangeFilterHandler($table, $operator);
+      if ($(once('edit-displays-live-preview', '#edit-displays-live-preview')).is(':checked')) {
+        $(once('edit-displays-live-preview', '#preview-submit')).trigger('click');
       }
     }
   };
@@ -328,20 +311,20 @@
 
     this.modifyTableDrag();
     this.redrawOperatorLabels();
-    $table.find('.views-group-title select').once('views-rearrange-filter-handler').on('change.views-rearrange-filter-handler', $.proxy(this, 'redrawOperatorLabels'));
-    $table.find('a.views-groups-remove-link').once('views-rearrange-filter-handler').on('click.views-rearrange-filter-handler', $.proxy(this, 'updateRowspans')).on('click.views-rearrange-filter-handler', $.proxy(this, 'redrawOperatorLabels'));
+    $(once('views-rearrange-filter-handler', $table.find('.views-group-title select'))).on('change.views-rearrange-filter-handler', $.proxy(this, 'redrawOperatorLabels'));
+    $(once('views-rearrange-filter-handler', $table.find('a.views-groups-remove-link'))).on('click.views-rearrange-filter-handler', $.proxy(this, 'updateRowspans')).on('click.views-rearrange-filter-handler', $.proxy(this, 'redrawOperatorLabels'));
   };
 
   $.extend(Drupal.viewsUi.RearrangeFilterHandler.prototype, {
     insertAddRemoveFilterGroupLinks: function insertAddRemoveFilterGroupLinks() {
-      $("<ul class=\"action-links\"><li><a id=\"views-add-group-link\" href=\"#\">".concat(this.addGroupButton.val(), "</a></li></ul>")).prependTo(this.table.parent()).once('views-rearrange-filter-handler').find('#views-add-group-link').on('click.views-rearrange-filter-handler', $.proxy(this, 'clickAddGroupButton'));
+      $(once('views-rearrange-filter-handler', $("<ul class=\"action-links\"><li><a id=\"views-add-group-link\" href=\"#\">".concat(this.addGroupButton[0].value, "</a></li></ul>")).prependTo(this.table.parent()))).find('#views-add-group-link').on('click.views-rearrange-filter-handler', $.proxy(this, 'clickAddGroupButton'));
       var length = this.removeGroupButtons.length;
       var i;
 
       for (i = 0; i < length; i++) {
         var $removeGroupButton = $(this.removeGroupButtons[i]);
         var buttonId = $removeGroupButton.attr('id');
-        $("<a href=\"#\" class=\"views-remove-group-link\">".concat(Drupal.t('Remove group'), "</a>")).insertBefore($removeGroupButton).once('views-rearrange-filter-handler').on('click.views-rearrange-filter-handler', {
+        $(once('views-rearrange-filter-handler', $("<a href=\"#\" class=\"views-remove-group-link\">".concat(Drupal.t('Remove group'), "</a>")).insertBefore($removeGroupButton))).on('click.views-rearrange-filter-handler', {
           buttonId: buttonId
         }, $.proxy(this, 'clickRemoveGroupButton'));
       }
@@ -357,7 +340,7 @@
     duplicateGroupsOperator: function duplicateGroupsOperator() {
       var newRow;
       var titleRow;
-      var titleRows = $('tr.views-group-title').once('duplicateGroupsOperator');
+      var titleRows = once('duplicateGroupsOperator', 'tr.views-group-title');
 
       if (!titleRows.length) {
         return this.operator;
@@ -394,7 +377,9 @@
     operatorChangeHandler: function operatorChangeHandler(event) {
       var $target = $(event.target);
       var operators = this.dropdowns.find('select').not($target);
-      operators.val($target.val());
+      operators.each(function (index, item) {
+        item.value = $target[0].value;
+      });
     },
     modifyTableDrag: function modifyTableDrag() {
       var tableDrag = Drupal.tableDrag['views-rearrange-filters'];
@@ -437,7 +422,7 @@
         if (!groupField.is(".views-group-select-".concat(groupName))) {
           var oldGroupName = groupField.attr('class').replace(/([^ ]+[ ]+)*views-group-select-([^ ]+)([ ]+[^ ]+)*/, '$2');
           groupField.removeClass("views-group-select-".concat(oldGroupName)).addClass("views-group-select-".concat(groupName));
-          groupField.val(groupName);
+          groupField[0].value = groupName;
         }
       };
     },
@@ -456,11 +441,11 @@
             if ($existingOperatorLabel.length) {
               $existingOperatorLabel.replaceWith(operatorLabel);
             } else {
-                $firstCell.append(operatorLabel);
-              }
-          } else {
-              $existingOperatorLabel.remove();
+              $firstCell.append(operatorLabel);
             }
+          } else {
+            $existingOperatorLabel.remove();
+          }
         }
       }
     },
@@ -491,12 +476,12 @@
   });
   Drupal.behaviors.viewsFilterConfigSelectAll = {
     attach: function attach(context) {
-      var $context = $(context);
-      var $selectAll = $context.find('.js-form-item-options-value-all').once('filterConfigSelectAll');
-      var $selectAllCheckbox = $selectAll.find('input[type=checkbox]');
-      var $checkboxes = $selectAll.closest('.form-checkboxes').find('.js-form-type-checkbox:not(.js-form-item-options-value-all) input[type="checkbox"]');
+      var selectAll = once('filterConfigSelectAll', '.js-form-item-options-value-all', context);
 
-      if ($selectAll.length) {
+      if (selectAll.length) {
+        var $selectAll = $(selectAll);
+        var $selectAllCheckbox = $selectAll.find('input[type=checkbox]');
+        var $checkboxes = $selectAll.closest('.form-checkboxes').find('.js-form-type-checkbox:not(.js-form-item-options-value-all) input[type="checkbox"]');
         $selectAll.show();
         $selectAllCheckbox.on('click', function () {
           $checkboxes.prop('checked', $(this).is(':checked'));
@@ -511,18 +496,14 @@
   };
   Drupal.behaviors.viewsRemoveIconClass = {
     attach: function attach(context) {
-      $(context).find('.dropbutton').once('dropbutton-icon').find('.icon').removeClass('icon');
+      $(once('dropbutton-icon', '.dropbutton', context)).find('.icon').removeClass('icon');
     }
   };
   Drupal.behaviors.viewsUiCheckboxify = {
     attach: function attach(context, settings) {
-      var $buttons = $('[data-drupal-selector="edit-options-expose-button-button"], [data-drupal-selector="edit-options-group-button-button"]').once('views-ui-checkboxify');
-      var length = $buttons.length;
-      var i;
-
-      for (i = 0; i < length; i++) {
-        new Drupal.viewsUi.Checkboxifier($buttons[i]);
-      }
+      var buttons = once('views-ui-checkboxify', '[data-drupal-selector="edit-options-expose-button-button"], [data-drupal-selector="edit-options-group-button-button"]').forEach(function (button) {
+        return new Drupal.viewsUi.Checkboxifier(button);
+      });
     }
   };
   Drupal.behaviors.viewsUiChangeDefaultWidget = {
@@ -560,23 +541,25 @@
 
   Drupal.behaviors.viewsUiOverrideSelect = {
     attach: function attach(context) {
-      $(context).find('[data-drupal-selector="edit-override-dropdown"]').once('views-ui-override-button-text').each(function () {
+      once('views-ui-override-button-text', '[data-drupal-selector="edit-override-dropdown"]', context).forEach(function (dropdown) {
         var $context = $(context);
-        var $submit = $context.find('[id^=edit-submit]');
-        var oldValue = $submit.val();
-        $submit.once('views-ui-override-button-text').on('mouseup', function () {
-          $(this).val(oldValue);
+        var submit = context.querySelector('[id^=edit-submit]');
+        var oldValue = submit ? submit.value : '';
+        $(once('views-ui-override-button-text', submit)).on('mouseup', function () {
+          this.value = oldValue;
           return true;
         });
-        $(this).on('change', function () {
-          var $this = $(this);
+        $(dropdown).on('change', function () {
+          if (!submit) {
+            return;
+          }
 
-          if ($this.val() === 'default') {
-            $submit.val(Drupal.t('Apply (all displays)'));
-          } else if ($this.val() === 'default_revert') {
-            $submit.val(Drupal.t('Revert to default'));
+          if (this.value === 'default') {
+            submit.value = Drupal.t('Apply (all displays)');
+          } else if (this.value === 'default_revert') {
+            submit.value = Drupal.t('Revert to default');
           } else {
-            $submit.val(Drupal.t('Apply (this display)'));
+            submit.value = Drupal.t('Apply (this display)');
           }
 
           var $dialog = $context.closest('.ui-dialog-content');
@@ -588,18 +571,32 @@
   Drupal.behaviors.viewsUiHandlerRemoveLink = {
     attach: function attach(context) {
       var $context = $(context);
-      $context.find('a.views-remove-link').once('views').on('click', function (event) {
+      $(once('views', 'a.views-remove-link', context)).on('click', function (event) {
         var id = $(this).attr('id').replace('views-remove-link-', '');
         $context.find("#views-row-".concat(id)).hide();
         $context.find("#views-removed-".concat(id)).prop('checked', true);
         event.preventDefault();
       });
-      $context.find('a.display-remove-link').once('display').on('click', function (event) {
+      $(once('display', 'a.display-remove-link', context)).on('click', function (event) {
         var id = $(this).attr('id').replace('display-remove-link-', '');
         $context.find("#display-row-".concat(id)).hide();
         $context.find("#display-removed-".concat(id)).prop('checked', true);
         event.preventDefault();
       });
+    }
+  };
+  Drupal.behaviors.viewsUiRearrangeFilter = {
+    attach: function attach(context) {
+      if (typeof Drupal.tableDrag === 'undefined' || typeof Drupal.tableDrag['views-rearrange-filters'] === 'undefined') {
+        return;
+      }
+
+      var table = once('views-rearrange-filters', '#views-rearrange-filters', context);
+      var operator = once('views-rearrange-filters', '.js-form-item-filter-groups-operator', context);
+
+      if (table.length) {
+        new Drupal.viewsUi.RearrangeFilterHandler($(table), $(operator));
+      }
     }
   };
 })(jQuery, Drupal, drupalSettings);

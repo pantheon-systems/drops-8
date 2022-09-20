@@ -35,15 +35,15 @@ class NextIdTest extends DatabaseTestBase {
     // We can test for exact increase in here because we know there is no
     // other process operating on these tables -- normally we could only
     // expect $second > $first.
-    $this->assertEqual($first + 1, $second, 'The second call from a sequence provides a number increased by one.');
+    $this->assertEquals($first + 1, $second, 'The second call from a sequence provides a number increased by one.');
     $result = $this->connection->nextId(1000);
-    $this->assertEqual($result, 1001, 'Sequence provides a larger number than the existing ID.');
+    $this->assertEquals(1001, $result, 'Sequence provides a larger number than the existing ID.');
   }
 
   /**
    * Tests that sequences table clear up works when a connection is closed.
    *
-   * @see \Drupal\Core\Database\Driver\mysql\Connection::__destruct()
+   * @see \Drupal\mysql\Driver\Database\mysql\Connection::__destruct()
    */
   public function testDbNextIdClosedConnection() {
     // Only run this test for the 'mysql' driver.
@@ -67,7 +67,7 @@ class NextIdTest extends DatabaseTestBase {
     // Close the connection.
     Database::closeConnection('next_id');
 
-    // Test that \Drupal\Core\Database\Driver\mysql\Connection::__destruct()
+    // Test that \Drupal\mysql\Driver\Database\mysql\Connection::__destruct()
     // successfully trims the sequences table if the connection is closed.
     $count = $this->connection->select('sequences')->countQuery()->execute()->fetchField();
     $this->assertEquals(1, $count);
