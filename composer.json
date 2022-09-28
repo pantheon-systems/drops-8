@@ -16,10 +16,10 @@
     ],
     "require": {
         "composer/installers": "^1.9",
-        "drupal/core-composer-scaffold": "^9.1",
-        "drupal/core-project-message": "^9.1",
-        "drupal/core-recommended": "^9.1",
-        "drupal/core-vendor-hardening": "^9.1"
+        "drupal/core-composer-scaffold": "^9.4",
+        "drupal/core-project-message": "^9.4",
+        "drupal/core-recommended": "^9.4",
+        "drupal/core-vendor-hardening": "^9.4"
     },
     "conflict": {
         "drupal/drupal": "*"
@@ -27,6 +27,13 @@
     "minimum-stability": "stable",
     "prefer-stable": true,
     "config": {
+        "allow-plugins": {
+            "composer/installers": true,
+            "drupal/core-composer-scaffold": true,
+            "drupal/core-project-message": true,
+            "drupal/core-vendor-hardening": true,
+            "dealerdirect/phpcodesniffer-composer-installer": true
+        },
         "sort-packages": true
     },
     "extra": {

@@ -97,23 +97,33 @@ class MetadataGeneratorTest extends QuickEditTestBase {
 
     // Verify metadata for field 1.
     $items_1 = $entity->get($field_1_name);
+    \Drupal::state()->set('quickedit_test_field_access', 'forbidden');
+    $this->assertSame(['access' => FALSE], $this->metadataGenerator->generateFieldMetadata($items_1, 'default'));
+    \Drupal::state()->set('quickedit_test_field_access', 'neutral');
+    $this->assertSame(['access' => FALSE], $this->metadataGenerator->generateFieldMetadata($items_1, 'default'));
+    \Drupal::state()->set('quickedit_test_field_access', 'allowed');
     $metadata_1 = $this->metadataGenerator->generateFieldMetadata($items_1, 'default');
     $expected_1 = [
       'access' => TRUE,
       'label' => 'Plain text field',
       'editor' => 'plain_text',
     ];
-    $this->assertEqual($expected_1, $metadata_1, 'The correct metadata is generated for the first field.');
+    $this->assertEquals($expected_1, $metadata_1, 'The correct metadata is generated for the first field.');
 
     // Verify metadata for field 2.
     $items_2 = $entity->get($field_2_name);
+    \Drupal::state()->set('quickedit_test_field_access', 'forbidden');
+    $this->assertSame(['access' => FALSE], $this->metadataGenerator->generateFieldMetadata($items_2, 'default'));
+    \Drupal::state()->set('quickedit_test_field_access', 'neutral');
+    $this->assertSame(['access' => FALSE], $this->metadataGenerator->generateFieldMetadata($items_2, 'default'));
+    \Drupal::state()->set('quickedit_test_field_access', 'allowed');
     $metadata_2 = $this->metadataGenerator->generateFieldMetadata($items_2, 'default');
     $expected_2 = [
       'access' => TRUE,
       'label' => 'Simple number field',
       'editor' => 'form',
     ];
-    $this->assertEqual($expected_2, $metadata_2, 'The correct metadata is generated for the second field.');
+    $this->assertEquals($expected_2, $metadata_2, 'The correct metadata is generated for the second field.');
   }
 
   /**
@@ -163,6 +173,11 @@ class MetadataGeneratorTest extends QuickEditTestBase {
 
     // Verify metadata.
     $items = $entity->get($field_name);
+    \Drupal::state()->set('quickedit_test_field_access', 'forbidden');
+    $this->assertSame(['access' => FALSE], $this->metadataGenerator->generateFieldMetadata($items, 'default'));
+    \Drupal::state()->set('quickedit_test_field_access', 'neutral');
+    $this->assertSame(['access' => FALSE], $this->metadataGenerator->generateFieldMetadata($items, 'default'));
+    \Drupal::state()->set('quickedit_test_field_access', 'allowed');
     $metadata = $this->metadataGenerator->generateFieldMetadata($items, 'default');
     $expected = [
       'access' => TRUE,
@@ -172,7 +187,7 @@ class MetadataGeneratorTest extends QuickEditTestBase {
         'format' => 'full_html',
       ],
     ];
-    $this->assertEqual($expected, $metadata, 'The correct metadata (including custom metadata) is generated.');
+    $this->assertEquals($expected, $metadata, 'The correct metadata (including custom metadata) is generated.');
   }
 
 }

@@ -195,11 +195,11 @@ class EntityUnitTest extends UnitTestCase {
   public function testAccess() {
     $access = $this->createMock('\Drupal\Core\Entity\EntityAccessControlHandlerInterface');
     $operation = $this->randomMachineName();
-    $access->expects($this->at(0))
+    $access->expects($this->once())
       ->method('access')
       ->with($this->entity, $operation)
       ->will($this->returnValue(AccessResult::allowed()));
-    $access->expects($this->at(1))
+    $access->expects($this->once())
       ->method('createAccess')
       ->will($this->returnValue(AccessResult::allowed()));
     $this->entityTypeManager->expects($this->exactly(2))
@@ -216,9 +216,9 @@ class EntityUnitTest extends UnitTestCase {
   public function testLanguage() {
     $this->entityType->expects($this->any())
       ->method('getKey')
-      ->will($this->returnValueMap([
+      ->willReturnMap([
         ['langcode', 'langcode'],
-      ]));
+      ]);
     $this->assertSame('en', $this->entity->language()->getId());
   }
 
@@ -235,7 +235,7 @@ class EntityUnitTest extends UnitTestCase {
     unset($methods[array_search('create', $methods)]);
     $this->entity = $this->getMockBuilder(EntityTestMul::class)
       ->disableOriginalConstructor()
-      ->setMethods($methods)
+      ->onlyMethods($methods)
       ->getMock();
 
   }
@@ -396,19 +396,21 @@ class EntityUnitTest extends UnitTestCase {
    * @covers ::postSave
    */
   public function testPostSave() {
-    $this->cacheTagsInvalidator->expects($this->at(0))
+    $this->cacheTagsInvalidator->expects($this->exactly(2))
       ->method('invalidateTags')
-      ->with([
-        // List cache tag.
-        $this->entityTypeId . '_list',
-      ]);
-    $this->cacheTagsInvalidator->expects($this->at(1))
-      ->method('invalidateTags')
-      ->with([
-        // Own cache tag.
-        $this->entityTypeId . ':' . $this->values['id'],
-        // List cache tag.
-        $this->entityTypeId . '_list',
+      ->withConsecutive([
+        [
+          // List cache tag.
+          $this->entityTypeId . '_list',
+        ],
+      ],
+      [
+        [
+          // List cache tag.
+          $this->entityTypeId . '_list',
+          // Own cache tag.
+          $this->entityTypeId . ':' . $this->values['id'],
+        ],
       ]);
 
     // This method is internal, so check for errors on calling it only.
@@ -425,21 +427,23 @@ class EntityUnitTest extends UnitTestCase {
    * @covers ::postSave
    */
   public function testPostSaveBundle() {
-    $this->cacheTagsInvalidator->expects($this->at(0))
+    $this->cacheTagsInvalidator->expects($this->exactly(2))
       ->method('invalidateTags')
-      ->with([
-        // List cache tag.
-        $this->entityTypeId . '_list',
-        $this->entityTypeId . '_list:' . $this->entity->bundle(),
-      ]);
-    $this->cacheTagsInvalidator->expects($this->at(1))
-      ->method('invalidateTags')
-      ->with([
-        // Own cache tag.
-        $this->entityTypeId . ':' . $this->values['id'],
-        // List cache tag.
-        $this->entityTypeId . '_list',
-        $this->entityTypeId . '_list:' . $this->entity->bundle(),
+      ->withConsecutive([
+        [
+          // List cache tag.
+          $this->entityTypeId . '_list',
+          $this->entityTypeId . '_list:' . $this->entity->bundle(),
+        ],
+      ],
+      [
+        [
+          // List cache tag.
+          $this->entityTypeId . '_list',
+          $this->entityTypeId . '_list:' . $this->entity->bundle(),
+          // Own cache tag.
+          $this->entityTypeId . ':' . $this->values['id'],
+        ],
       ]);
 
     $this->entityType->expects($this->atLeastOnce())
@@ -496,8 +500,8 @@ class EntityUnitTest extends UnitTestCase {
     $this->cacheTagsInvalidator->expects($this->once())
       ->method('invalidateTags')
       ->with([
-        $this->entityTypeId . ':' . $this->values['id'],
         $this->entityTypeId . '_list',
+        $this->entityTypeId . ':' . $this->values['id'],
       ]);
     $storage = $this->createMock('\Drupal\Core\Entity\EntityStorageInterface');
     $storage->expects($this->once())
@@ -514,11 +518,16 @@ class EntityUnitTest extends UnitTestCase {
   public function testPostDeleteBundle() {
     $this->cacheTagsInvalidator->expects($this->once())
       ->method('invalidateTags')
-      ->with([
-        $this->entityTypeId . ':' . $this->values['id'],
-        $this->entityTypeId . '_list',
-        $this->entityTypeId . '_list:' . $this->entity->bundle(),
-      ]);
+      // with() also asserts on the order of array values and array keys that
+      // is something we should avoid here.
+      ->willReturnCallback(function (array $tags) {
+        self::assertEqualsCanonicalizing([
+          $this->entityTypeId . '_list',
+          $this->entityTypeId . ':' . $this->values['id'],
+          $this->entityTypeId . '_list:' . $this->entity->bundle(),
+        ], $tags);
+        return NULL;
+      });
     $this->entityType->expects($this->atLeastOnce())
       ->method('hasKey')
       ->with('bundle')
@@ -557,8 +566,8 @@ class EntityUnitTest extends UnitTestCase {
    */
   public function testCacheTags() {
     // Ensure that both methods return the same by default.
-    $this->assertEquals([$this->entityTypeId . ':' . 1], $this->entity->getCacheTags());
-    $this->assertEquals([$this->entityTypeId . ':' . 1], $this->entity->getCacheTagsToInvalidate());
+    $this->assertEqualsCanonicalizing([$this->entityTypeId . ':' . 1], $this->entity->getCacheTags());
+    $this->assertEqualsCanonicalizing([$this->entityTypeId . ':' . 1], $this->entity->getCacheTagsToInvalidate());
 
     // Add an additional cache tag and make sure only getCacheTags() returns
     // that.
@@ -566,10 +575,9 @@ class EntityUnitTest extends UnitTestCase {
 
     // EntityTypeId is random so it can shift order. We need to duplicate the
     // sort from \Drupal\Core\Cache\Cache::mergeTags().
-    $tags = ['additional_cache_tag', $this->entityTypeId . ':' . 1];
-    sort($tags);
-    $this->assertEquals($tags, $this->entity->getCacheTags());
-    $this->assertEquals([$this->entityTypeId . ':' . 1], $this->entity->getCacheTagsToInvalidate());
+    $tags = [$this->entityTypeId . ':' . 1, 'additional_cache_tag'];
+    $this->assertEqualsCanonicalizing($tags, $this->entity->getCacheTags());
+    $this->assertEqualsCanonicalizing([$this->entityTypeId . ':' . 1], $this->entity->getCacheTagsToInvalidate());
   }
 
   /**
@@ -587,11 +595,11 @@ class EntityUnitTest extends UnitTestCase {
     \Drupal::setContainer($container);
 
     // There are no cache contexts by default.
-    $this->assertEquals([], $this->entity->getCacheContexts());
+    $this->assertEqualsCanonicalizing([], $this->entity->getCacheContexts());
 
     // Add an additional cache context.
     $this->entity->addCacheContexts(['user']);
-    $this->assertEquals(['user'], $this->entity->getCacheContexts());
+    $this->assertEqualsCanonicalizing(['user'], $this->entity->getCacheContexts());
   }
 
   /**

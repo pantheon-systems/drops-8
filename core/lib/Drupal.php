@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal.
- */
-
 use Drupal\Core\DependencyInjection\ContainerNotInitializedException;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -80,7 +75,7 @@ class Drupal {
   /**
    * The current system version.
    */
-  const VERSION = '9.1.0';
+  const VERSION = '9.4.7';
 
   /**
    * Core API compatibility.
@@ -95,13 +90,12 @@ class Drupal {
   /**
    * Minimum supported version of PHP.
    *
-   * Below this version:
-   * - New sites cannot be installed, except from within tests.
-   * - Updates from previous Drupal versions can be run, but users are warned
-   *   that Drupal no longer supports that PHP version.
-   * - An error is shown in the status report that the PHP version is too old.
+   * @deprecated in drupal:9.4.0 and is removed from drupal:10.0.0. Use
+   *   \Drupal\Core\Utility\PhpRequirements::getMinimumSupportedPhp() instead.
+   *
+   * @see https://www.drupal.org/node/3261451
    */
-  const MINIMUM_SUPPORTED_PHP = '7.3.0';
+  const MINIMUM_SUPPORTED_PHP = '7.4.0';
 
   /**
    * Minimum allowed version of PHP for Drupal to be bootstrapped.
@@ -137,7 +131,7 @@ class Drupal {
    * message, but Drupal can still be installed. Used for (e.g.) PHP versions
    * that have reached their EOL or will in the near future.
    */
-  const RECOMMENDED_PHP = '7.3';
+  const RECOMMENDED_PHP = '8.0';
 
   /**
    * The currently active container object, or NULL if not initialized yet.

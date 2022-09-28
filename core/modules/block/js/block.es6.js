@@ -3,7 +3,7 @@
  * Block behaviors.
  */
 
-(function ($, window, Drupal) {
+(function ($, window, Drupal, once) {
   /**
    * Provide the summary information for the block settings vertical tabs.
    *
@@ -46,7 +46,7 @@
       }
 
       $(
-        '[data-drupal-selector="edit-visibility-node-type"], [data-drupal-selector="edit-visibility-language"], [data-drupal-selector="edit-visibility-user-role"]',
+        '[data-drupal-selector="edit-visibility-node-type"], [data-drupal-selector="edit-visibility-entity-bundlenode"], [data-drupal-selector="edit-visibility-language"], [data-drupal-selector="edit-visibility-user-role"]',
       ).drupalSetSummary(checkboxesSummary);
 
       $(
@@ -55,7 +55,7 @@
         const $pages = $(context).find(
           'textarea[name="visibility[request_path][pages]"]',
         );
-        if (!$pages.val()) {
+        if (!$pages.length || !$pages[0].value) {
           return Drupal.t('Not restricted');
         }
 
@@ -157,13 +157,13 @@
           .find(`.region-${region}-message`)
           .nextUntil('.region-title')
           .find('select.block-weight')
-          .val(
+          .each(function () {
             // Increment the weight before assigning it to prevent using the
             // absolute minimum available weight. This way we always have an
             // unused upper and lower bound, which makes manually setting the
             // weights easier for users who prefer to do it that way.
-            () => ++weight,
-          );
+            this.value = ++weight;
+          });
       }
 
       const table = $('#blocks');
@@ -211,17 +211,16 @@
           weightField
             .removeClass(`block-weight-${oldRegionName}`)
             .addClass(`block-weight-${regionName}`);
-          regionField.val(regionName);
+          regionField[0].value = regionName;
         }
 
         updateBlockWeights(table, regionName);
       };
 
       // Add the behavior to each region select list.
-      $(context)
-        .find('select.block-region-select')
-        .once('block-region-select')
-        .on('change', function (event) {
+      $(once('block-region-select', 'select.block-region-select', context)).on(
+        'change',
+        function (event) {
           // Make our new row and select field.
           const row = $(this).closest('tr');
           const select = $(this);
@@ -256,7 +255,8 @@
           }
           // Remove focus from selectbox.
           select.trigger('blur');
-        });
+        },
+      );
     },
   };
-})(jQuery, window, Drupal);
+})(jQuery, window, Drupal, once);

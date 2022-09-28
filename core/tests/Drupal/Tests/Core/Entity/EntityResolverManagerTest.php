@@ -463,7 +463,7 @@ class EntityResolverManagerTest extends UnitTestCase {
       ]));
     $this->entityTypeManager->expects($this->any())
       ->method('getDefinition')
-      ->will($this->returnCallback(function ($entity_type) use ($definition, $revisionable_definition) {
+      ->willReturnCallback(function ($entity_type) use ($definition, $revisionable_definition) {
         if ($entity_type == 'entity_test') {
           return $definition;
         }
@@ -473,7 +473,7 @@ class EntityResolverManagerTest extends UnitTestCase {
         else {
           return NULL;
         }
-      }));
+      });
   }
 
 }
@@ -515,12 +515,14 @@ class BasicForm extends FormBase {
    * {@inheritdoc}
    */
   public function getFormId() {
+    return '';
   }
 
   /**
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state, EntityInterface $entity_test = NULL) {
+    return [];
   }
 
   /**
@@ -540,12 +542,14 @@ class BasicFormNoUpcasting extends FormBase {
    * {@inheritdoc}
    */
   public function getFormId() {
+    return '';
   }
 
   /**
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state, $entity_test = NULL) {
+    return [];
   }
 
   /**
@@ -562,12 +566,14 @@ class BasicFormNoContainerInjectionInterface implements FormInterface {
    * {@inheritdoc}
    */
   public function getFormId() {
+    return '';
   }
 
   /**
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state, EntityInterface $entity_test = NULL) {
+    return [];
   }
 
   /**

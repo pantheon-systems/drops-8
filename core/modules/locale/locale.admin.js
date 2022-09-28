@@ -8,9 +8,10 @@
 (function ($, Drupal) {
   Drupal.behaviors.localeTranslateDirty = {
     attach: function attach() {
-      var $form = $('#locale-translate-edit-form').once('localetranslatedirty');
+      var form = once('localetranslatedirty', '#locale-translate-edit-form');
 
-      if ($form.length) {
+      if (form.length) {
+        var $form = $(form);
         $form.one('formUpdated.localeTranslateDirty', 'table', function () {
           var $marker = $(Drupal.theme('localeTranslateChangedWarning')).hide();
           $(this).addClass('changed').before($marker);
@@ -18,31 +19,32 @@
         });
         $form.on('formUpdated.localeTranslateDirty', 'tr', function () {
           var $row = $(this);
-          var $rowToMark = $row.once('localemark');
+          var rowToMark = once('localemark', $row);
           var marker = Drupal.theme('localeTranslateChangedMarker');
           $row.addClass('changed');
 
-          if ($rowToMark.length) {
-            $rowToMark.find('td:first-child .js-form-item').append(marker);
+          if (rowToMark.length) {
+            $(rowToMark).find('td:first-child .js-form-item').append(marker);
           }
         });
       }
     },
     detach: function detach(context, settings, trigger) {
       if (trigger === 'unload') {
-        var $form = $('#locale-translate-edit-form').removeOnce('localetranslatedirty');
+        var form = once.remove('localetranslatedirty', '#locale-translate-edit-form');
 
-        if ($form.length) {
-          $form.off('formUpdated.localeTranslateDirty');
+        if (form.length) {
+          $(form).off('formUpdated.localeTranslateDirty');
         }
       }
     }
   };
   Drupal.behaviors.hideUpdateInformation = {
     attach: function attach(context, settings) {
-      var $table = $('#locale-translation-status-form').once('expand-updates');
+      var table = once('expand-updates', '#locale-translation-status-form');
 
-      if ($table.length) {
+      if (table.length) {
+        var $table = $(table);
         var $tbodies = $table.find('tbody');
         $tbodies.on('click keydown', '.description', function (e) {
           if (e.keyCode && e.keyCode !== 13 && e.keyCode !== 32) {
@@ -52,13 +54,11 @@
           e.preventDefault();
           var $tr = $(this).closest('tr');
           $tr.toggleClass('expanded');
-          $tr.find('.locale-translation-update__prefix').text(function () {
-            if ($tr.hasClass('expanded')) {
-              return Drupal.t('Hide description');
-            }
+          var $localePrefix = $tr.find('.locale-translation-update__prefix');
 
-            return Drupal.t('Show description');
-          });
+          if ($localePrefix.length) {
+            $localePrefix[0].textContent = $tr.hasClass('expanded') ? Drupal.t('Hide description') : Drupal.t('Show description');
+          }
         });
         $table.find('.requirements, .links').hide();
       }

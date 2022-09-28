@@ -10,7 +10,7 @@ use Drupal\Core\Url;
  *
  * @group jsonapi
  */
-class ConfigTestTest extends ResourceTestBase {
+class ConfigTestTest extends ConfigEntityResourceTestBase {
 
   /**
    * {@inheritdoc}
@@ -116,6 +116,7 @@ class ConfigTestTest extends ResourceTestBase {
    */
   protected function getPostDocument() {
     // @todo Update in https://www.drupal.org/node/2300677.
+    return [];
   }
 
 }
