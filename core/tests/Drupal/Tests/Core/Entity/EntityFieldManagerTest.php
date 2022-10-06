@@ -17,6 +17,7 @@ use Drupal\Core\Entity\ContentEntityTypeInterface;
 use Drupal\Core\Entity\EntityDisplayRepositoryInterface;
 use Drupal\Core\Entity\EntityFieldManager;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\EntityLastInstalledSchemaRepositoryInterface;
 use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
@@ -89,7 +90,7 @@ class EntityFieldManagerTest extends UnitTestCase {
   /**
    * The event dispatcher.
    *
-   * @var \Symfony\Component\EventDispatcher\EventDispatcherInterface|\Prophecy\Prophecy\ProphecyInterface
+   * @var \Symfony\Contracts\EventDispatcher\EventDispatcherInterface|\Prophecy\Prophecy\ProphecyInterface
    */
   protected $eventDispatcher;
 
@@ -143,6 +144,13 @@ class EntityFieldManagerTest extends UnitTestCase {
   protected $entityType;
 
   /**
+   * The entity last installed schema repository.
+   *
+   * @var \Prophecy\Prophecy\ObjectProphecy|\Drupal\Core\Entity\EntityLastInstalledSchemaRepositoryInterface
+   */
+  protected $entityLastInstalledSchemaRepository;
+
+  /**
    * {@inheritdoc}
    */
   protected function setUp(): void {
@@ -175,8 +183,9 @@ class EntityFieldManagerTest extends UnitTestCase {
     $this->entityTypeRepository = $this->prophesize(EntityTypeRepositoryInterface::class);
     $this->entityTypeBundleInfo = $this->prophesize(EntityTypeBundleInfoInterface::class);
     $this->entityDisplayRepository = $this->prophesize(EntityDisplayRepositoryInterface::class);
+    $this->entityLastInstalledSchemaRepository = $this->prophesize(EntityLastInstalledSchemaRepositoryInterface::class);
 
-    $this->entityFieldManager = new TestEntityFieldManager($this->entityTypeManager->reveal(), $this->entityTypeBundleInfo->reveal(), $this->entityDisplayRepository->reveal(), $this->typedDataManager->reveal(), $this->languageManager->reveal(), $this->keyValueFactory->reveal(), $this->moduleHandler->reveal(), $this->cacheBackend->reveal());
+    $this->entityFieldManager = new TestEntityFieldManager($this->entityTypeManager->reveal(), $this->entityTypeBundleInfo->reveal(), $this->entityDisplayRepository->reveal(), $this->typedDataManager->reveal(), $this->languageManager->reveal(), $this->keyValueFactory->reveal(), $this->moduleHandler->reveal(), $this->cacheBackend->reveal(), $this->entityLastInstalledSchemaRepository->reveal());
   }
 
   /**
@@ -253,15 +262,32 @@ class EntityFieldManagerTest extends UnitTestCase {
     $field_storage_definition = $this->prophesize(FieldStorageDefinitionInterface::class);
     $field_storage_definition->getName()->willReturn('field_storage');
 
-    $definitions = ['field_storage' => $field_storage_definition->reveal()];
+    $base_field_definition = $this->prophesize(BaseFieldDefinition::class);
+    $base_field_definition->setProvider('example_module')->shouldBeCalled();
+    $base_field_definition->setName('base_field')->shouldBeCalled();
+    $base_field_definition->setTargetEntityTypeId('test_entity_type')->shouldBeCalled();
 
-    $this->moduleHandler->getImplementations('entity_base_field_info')->willReturn([]);
-    $this->moduleHandler->getImplementations('entity_field_storage_info')->willReturn(['example_module']);
-    $this->moduleHandler->invoke('example_module', 'entity_field_storage_info', [$this->entityType])->willReturn($definitions);
+    $definitions = [
+      'base_field' => $base_field_definition->reveal(),
+      'field_storage' => $field_storage_definition->reveal(),
+    ];
+
+    $this->moduleHandler->invokeAllWith('entity_base_field_info', Argument::any());
+    $this->moduleHandler->invokeAllWith('entity_field_storage_info', Argument::any())
+      ->will(function ($arguments) use ($definitions) {
+        [$hook, $callback] = $arguments;
+        $callback(
+          function () use ($definitions) {
+            return $definitions;
+          },
+          'example_module',
+        );
+      });
     $this->moduleHandler->alter('entity_field_storage_info', $definitions, $this->entityType)->willReturn(NULL);
 
     $expected = [
       'id' => $field_definition,
+      'base_field' => $base_field_definition->reveal(),
       'field_storage' => $field_storage_definition->reveal(),
     ];
     $this->assertSame($expected, $this->entityFieldManager->getFieldStorageDefinitions('test_entity_type'));
@@ -418,8 +444,16 @@ class EntityFieldManagerTest extends UnitTestCase {
 
     $definitions = ['field_storage' => $field_storage_definition->reveal()];
 
-    $this->moduleHandler->getImplementations('entity_field_storage_info')->willReturn(['example_module']);
-    $this->moduleHandler->invoke('example_module', 'entity_field_storage_info', [$this->entityType])->willReturn($definitions);
+    $this->moduleHandler->invokeAllWith('entity_field_storage_info', Argument::any())
+      ->will(function ($arguments) use ($definitions) {
+        [$hook, $callback] = $arguments;
+        $callback(
+          function () use ($definitions) {
+            return $definitions;
+          },
+          'example_module',
+        );
+      });
     $this->moduleHandler->alter('entity_field_storage_info', $definitions, $this->entityType)->willReturn(NULL);
 
     $expected = [
@@ -485,9 +519,16 @@ class EntityFieldManagerTest extends UnitTestCase {
     $field_definition->setTargetBundle(NULL)->shouldBeCalled();
     $field_definition->setTargetBundle('test_bundle')->shouldBeCalled();
 
-    $this->moduleHandler->getImplementations(Argument::type('string'))->willReturn([$module]);
-    $this->moduleHandler->invoke($module, 'entity_base_field_info', [$this->entityType])->willReturn([$field_definition->reveal()]);
-    $this->moduleHandler->invoke($module, 'entity_bundle_field_info', Argument::type('array'))->willReturn([$field_definition->reveal()]);
+    $this->moduleHandler->invokeAllWith(Argument::type('string'), Argument::any())
+      ->will(function ($arguments) use ($field_definition, $module) {
+        [$hook, $callback] = $arguments;
+        $callback(
+          function () use ($field_definition) {
+            return [$field_definition->reveal()];
+          },
+          $module,
+        );
+      });
 
     $this->entityFieldManager->getFieldDefinitions('test_entity_type', 'test_bundle');
   }
@@ -525,7 +566,7 @@ class EntityFieldManagerTest extends UnitTestCase {
     $entity_class::$bundleFieldDefinitions = [];
 
     if (!$custom_invoke_all) {
-      $this->moduleHandler->getImplementations(Argument::cetera())->willReturn([]);
+      $this->moduleHandler->invokeAllWith(Argument::cetera(), Argument::cetera());
     }
 
     // Mock the base field definition override.
@@ -665,7 +706,7 @@ class EntityFieldManagerTest extends UnitTestCase {
       'first_bundle' => 'first_bundle',
       'second_bundle' => 'second_bundle',
     ])->shouldBeCalled();
-    $this->moduleHandler->getImplementations('entity_base_field_info')->willReturn([]);
+    $this->moduleHandler->invokeAllWith('entity_base_field_info', Argument::any());
 
     $expected = [
       'test_entity_type' => [
@@ -720,7 +761,7 @@ class EntityFieldManagerTest extends UnitTestCase {
       'first_bundle' => 'first_bundle',
       'second_bundle' => 'second_bundle',
     ])->shouldBeCalled();
-    $this->moduleHandler->getImplementations('entity_base_field_info')->willReturn([])->shouldBeCalled();
+    $this->moduleHandler->invokeAllWith('entity_base_field_info', Argument::any())->shouldBeCalled();
 
     // Define an ID field definition as a base field.
     $id_definition = $this->prophesize(FieldDefinitionInterface::class);

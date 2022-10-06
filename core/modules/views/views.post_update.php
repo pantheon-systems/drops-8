@@ -6,6 +6,7 @@
  */
 
 use Drupal\Core\Config\Entity\ConfigEntityUpdater;
+use Drupal\views\ViewEntityInterface;
 use Drupal\views\ViewsConfigUpdater;
 
 /**
@@ -50,4 +51,57 @@ function views_post_update_field_names_for_multivalue_fields(&$sandbox = NULL) {
  */
 function views_post_update_configuration_entity_relationships() {
   // Empty update to clear Views data.
+}
+
+/**
+ * Rename the setting for showing the default display to 'default_display'.
+ */
+function views_post_update_rename_default_display_setting() {
+  $config = \Drupal::configFactory()->getEditable('views.settings');
+  $config->set('ui.show.default_display', $config->get('ui.show.master_display'));
+  $config->clear('ui.show.master_display');
+  $config->save();
+}
+
+/**
+ * Clear caches due to removal of sorting for global custom text field.
+ */
+function views_post_update_remove_sorting_global_text_field() {
+  // Empty post-update hook.
+}
+
+/**
+ * Rebuild routes to fix view title translations.
+ */
+function views_post_update_title_translations() {
+  \Drupal::service('router.builder')->setRebuildNeeded();
+}
+
+/**
+ * Add the identifier option to all sort handler configurations.
+ */
+function views_post_update_sort_identifier(?array &$sandbox = NULL): void {
+  /** @var \Drupal\views\ViewsConfigUpdater $view_config_updater */
+  $view_config_updater = \Drupal::classResolver(ViewsConfigUpdater::class);
+  \Drupal::classResolver(ConfigEntityUpdater::class)->update($sandbox, 'view', function (ViewEntityInterface $view) use ($view_config_updater): bool {
+    return $view_config_updater->needsSortFieldIdentifierUpdate($view);
+  });
+}
+
+/**
+ * Clear caches due to adding a relationship from revision table to base table.
+ */
+function views_post_update_provide_revision_table_relationship() {
+  // Empty post-update hook.
+}
+
+/**
+ * Add lazy load options to all image type field configurations.
+ */
+function views_post_update_image_lazy_load(?array &$sandbox = NULL): void {
+  /** @var \Drupal\views\ViewsConfigUpdater $view_config_updater */
+  $view_config_updater = \Drupal::classResolver(ViewsConfigUpdater::class);
+  \Drupal::classResolver(ConfigEntityUpdater::class)->update($sandbox, 'view', function (ViewEntityInterface $view) use ($view_config_updater): bool {
+    return $view_config_updater->needsImageLazyLoadFieldUpdate($view);
+  });
 }

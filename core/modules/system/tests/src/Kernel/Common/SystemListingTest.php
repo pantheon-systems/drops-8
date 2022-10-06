@@ -46,10 +46,7 @@ class SystemListingTest extends KernelTestBase {
     foreach ($expected_directories as $module => $directories) {
       $expected_directory = array_shift($directories);
       $expected_uri = "$expected_directory/$module/$module.info.yml";
-      $this->assertEqual($files[$module]->getPathname(), $expected_uri, new FormattableMarkup('Module @actual was found at @expected.', [
-        '@actual' => $files[$module]->getPathname(),
-        '@expected' => $expected_uri,
-      ]));
+      $this->assertEquals($expected_uri, $files[$module]->getPathname(), new FormattableMarkup('Module @actual was found at @expected.', ['@actual' => $files[$module]->getPathname(), '@expected' => $expected_uri]));
     }
   }
 
@@ -62,7 +59,7 @@ class SystemListingTest extends KernelTestBase {
     $files = $listing->scan('module');
     $this->assertArrayHasKey('drupal_system_listing_compatible_test', $files);
 
-    // Reset the static to force a rescan of the directories.
+    // Reset the static to force a re-scan of the directories.
     $reflected_class = new \ReflectionClass(ExtensionDiscovery::class);
     $reflected_property = $reflected_class->getProperty('files');
     $reflected_property->setAccessible(TRUE);

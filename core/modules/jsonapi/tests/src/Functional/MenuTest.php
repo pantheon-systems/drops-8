@@ -10,7 +10,7 @@ use Drupal\system\Entity\Menu;
  *
  * @group jsonapi
  */
-class MenuTest extends ResourceTestBase {
+class MenuTest extends ConfigEntityResourceTestBase {
 
   /**
    * {@inheritdoc}
@@ -106,6 +106,7 @@ class MenuTest extends ResourceTestBase {
    */
   protected function getPostDocument() {
     // @todo Update in https://www.drupal.org/node/2300677.
+    return [];
   }
 
 }

@@ -27,7 +27,7 @@ abstract class BaseFieldDefinitionTestBase extends UnitTestCase {
     parent::setUp();
 
     // getModuleAndPath() returns an array of the module name and directory.
-    list($module_name, $module_dir) = $this->getModuleAndPath();
+    [$module_name, $module_dir] = $this->getModuleAndPath();
 
     $namespaces = new \ArrayObject();
     $namespaces["Drupal\\$module_name"] = $module_dir . '/src';
@@ -64,9 +64,6 @@ abstract class BaseFieldDefinitionTestBase extends UnitTestCase {
 
   /**
    * Returns the module name and the module directory for the plugin.
-   *
-   * Function drupal_get_path() cannot be used here, because it is not available
-   * in Drupal PHPUnit tests.
    *
    * @return array
    *   A one-dimensional array containing the following strings:

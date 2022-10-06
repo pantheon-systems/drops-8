@@ -17,7 +17,6 @@ description: 'A clean, accessible, and flexible Drupal front-end theme.'
 alt text: 'Screenshot of Olivero, Drupal front-end theme.'
 package: Core
 version: VERSION
-experimental: true
 libraries:
   - olivero/global-styling
 regions:
@@ -31,16 +30,24 @@ regions:
   content_above: Content Above
   content: Content
   sidebar: 'Sidebar'
-  content_below: 'Content Below (Flex Layout)'
-  footer_top: 'Footer Top (Flex Layout)'
+  content_below: 'Content Below'
+  footer_top: 'Footer Top'
   footer_bottom: 'Footer Bottom'
 libraries-override:
+  system/admin:
+    css:
+      theme:
+        css/system.admin.css: false
   system/base:
     css:
       component:
         css/components/ajax-progress.module.css: css/components/ajax-progress.module.css
         css/components/autocomplete-loading.module.css: css/components/autocomplete-loading.module.css
   core/drupal.checkbox: false
+  core/drupal.dropbutton:
+    css:
+      component:
+        misc/dropbutton/dropbutton.css: css/components/dropbutton.css
   core/drupal.vertical-tabs:
     css:
       component:
@@ -51,15 +58,15 @@ libraries-override:
   layout_builder/fourcol_section: olivero/layout_builder_fourcol_section
 libraries-extend:
   core/drupal.message:
-    - olivero/messages
+    - olivero/drupal.message
   core/drupal.collapse:
     - olivero/details
+  core/drupal.dialog:
+    - olivero/drupal.dialog
   core/drupal.dialog.off_canvas:
     - olivero/dialog.off_canvas
   core/drupal.progress:
     - olivero/progress
-  core/drupal.dropbutton:
-    - olivero/dropbutton
   layout_discovery/onecol:
     - olivero/layout_discovery_section
   layout_discovery/twocol_bricks:
@@ -83,3 +90,5 @@ ckeditor_stylesheets:
   - css/components/table.css
   - css/components/text-content.css
   - css/theme/ckeditor-frame.css
+
+ckeditor5-stylesheets: false

@@ -38,6 +38,7 @@ class NodeAccessMenuLinkTest extends NodeTestBase {
     $this->contentAdminUser = $this->drupalCreateUser([
       'access content',
       'administer content types',
+      'bypass node access',
       'administer menu',
     ]);
 
@@ -58,7 +59,8 @@ class NodeAccessMenuLinkTest extends NodeTestBase {
       'menu[enabled]' => 1,
       'menu[title]' => $menu_link_title,
     ];
-    $this->drupalPostForm('node/add/page', $edit, 'Save');
+    $this->drupalGet('node/add/page');
+    $this->submitForm($edit, 'Save');
     $this->assertSession()->linkExists($menu_link_title);
 
     // Ensure anonymous users without "access content" permission do not see

@@ -19,21 +19,41 @@ abstract class Database {
    *
    * This is used for queries that have no reasonable return value anyway, such
    * as INSERT statements to a table without a serial primary key.
+   *
+   * @deprecated in drupal:9.4.0 and is removed from drupal:11.0.0. There is no
+   *   replacement.
+   *
+   * @see https://www.drupal.org/node/3185520
    */
   const RETURN_NULL = 0;
 
   /**
    * Flag to indicate a query call should return the prepared statement.
+   *
+   * @deprecated in drupal:9.4.0 and is removed from drupal:11.0.0. There is no
+   *   replacement.
+   *
+   * @see https://www.drupal.org/node/3185520
    */
   const RETURN_STATEMENT = 1;
 
   /**
    * Flag to indicate a query call should return the number of affected rows.
+   *
+   * @deprecated in drupal:9.4.0 and is removed from drupal:11.0.0. There is no
+   *   replacement.
+   *
+   * @see https://www.drupal.org/node/3185520
    */
   const RETURN_AFFECTED = 2;
 
   /**
    * Flag to indicate a query call should return the "last insert id".
+   *
+   * @deprecated in drupal:9.4.0 and is removed from drupal:11.0.0. There is no
+   *   replacement.
+   *
+   * @see https://www.drupal.org/node/3185520
    */
   const RETURN_INSERT_ID = 3;
 
@@ -216,22 +236,61 @@ abstract class Database {
     }
 
     // Parse the prefix information.
+    // @todo in Drupal 10, fail hard if $info['prefix'] is an array.
+    // @see https://www.drupal.org/project/drupal/issues/3124382
     if (!isset($info['prefix'])) {
       // Default to an empty prefix.
-      $info['prefix'] = [
-        'default' => '',
-      ];
+      $info['prefix'] = '';
     }
-    elseif (!is_array($info['prefix'])) {
-      // Transform the flat form into an array form.
-      $info['prefix'] = [
-        'default' => $info['prefix'],
-      ];
+    elseif (is_array($info['prefix'])) {
+      $prefix = $info['prefix']['default'] ?? '';
+      unset($info['prefix']['default']);
+      // If there are keys left besides the 'default' one, we are in a
+      // multi-prefix scenario (for per-table prefixing, or migrations).
+      // In that case, we put the non-default keys in a 'extra_prefix' key
+      // to avoid mixing up with the normal 'prefix', which is a string since
+      // Drupal 9.1.0.
+      if (count($info['prefix'])) {
+        $info['extra_prefix'] = $info['prefix'];
+      }
+      $info['prefix'] = $prefix;
     }
 
-    // Fallback for Drupal 7 settings.php if namespace is not provided.
-    if (empty($info['namespace'])) {
-      $info['namespace'] = 'Drupal\\Core\\Database\\Driver\\' . $info['driver'];
+    // Backwards compatibility layer for Drupal 8 style database connection
+    // arrays. Those have the wrong 'namespace' key set, or not set at all
+    // for core supported database drivers.
+    if (empty($info['namespace']) || (strpos($info['namespace'], 'Drupal\\Core\\Database\\Driver\\') === 0)) {
+      switch (strtolower($info['driver'])) {
+        case 'mysql':
+          $info['namespace'] = 'Drupal\\mysql\\Driver\\Database\\mysql';
+          break;
+
+        case 'pgsql':
+          $info['namespace'] = 'Drupal\\pgsql\\Driver\\Database\\pgsql';
+          break;
+
+        case 'sqlite':
+          $info['namespace'] = 'Drupal\\sqlite\\Driver\\Database\\sqlite';
+          break;
+      }
+    }
+    // Backwards compatibility layer for Drupal 8 style database connection
+    // arrays. Those do not have the 'autoload' key set for core database
+    // drivers.
+    if (empty($info['autoload'])) {
+      switch (trim($info['namespace'], '\\')) {
+        case "Drupal\\mysql\\Driver\\Database\\mysql":
+          $info['autoload'] = "core/modules/mysql/src/Driver/Database/mysql/";
+          break;
+
+        case "Drupal\\pgsql\\Driver\\Database\\pgsql":
+          $info['autoload'] = "core/modules/pgsql/src/Driver/Database/pgsql/";
+          break;
+
+        case "Drupal\\sqlite\\Driver\\Database\\sqlite":
+          $info['autoload'] = "core/modules/sqlite/src/Driver/Database/sqlite/";
+          break;
+      }
     }
 
     return $info;
@@ -245,7 +304,9 @@ abstract class Database {
    * Under normal circumstances the preferred way to specify database
    * credentials is via settings.php. However, this method allows them to be
    * added at arbitrary times, such as during unit tests, when connecting to
-   * admin-defined third party databases, etc.
+   * admin-defined third party databases, etc. Use
+   * \Drupal\Core\Database\Database::setActiveConnection to select the
+   * connection to use.
    *
    * If the given key/target pair already exists, this method will be ignored.
    *
@@ -257,10 +318,28 @@ abstract class Database {
    *   The database connection information, as defined in settings.php. The
    *   structure of this array depends on the database driver it is connecting
    *   to.
+   * @param \Composer\Autoload\ClassLoader $class_loader
+   *   The class loader. Used for adding the database driver to the autoloader
+   *   if $info['autoload'] is set.
+   * @param string $app_root
+   *   The app root.
+   *
+   * @see \Drupal\Core\Database\Database::setActiveConnection
    */
-  final public static function addConnectionInfo($key, $target, array $info) {
+  final public static function addConnectionInfo($key, $target, array $info, $class_loader = NULL, $app_root = NULL) {
     if (empty(self::$databaseInfo[$key][$target])) {
-      self::$databaseInfo[$key][$target] = self::parseConnectionInfo($info);
+      $info = self::parseConnectionInfo($info);
+      self::$databaseInfo[$key][$target] = $info;
+
+      // If the database driver is provided by a module, then its code may need
+      // to be instantiated prior to when the module's root namespace is added
+      // to the autoloader, because that happens during service container
+      // initialization but the container definition is likely in the database.
+      // Therefore, allow the connection info to specify an autoload directory
+      // for the driver.
+      if (isset($info['autoload']) && $class_loader && $app_root) {
+        $class_loader->addPsr4($info['namespace'] . '\\', $app_root . '/' . $info['autoload']);
+      }
     }
   }
 
@@ -293,11 +372,16 @@ abstract class Database {
    * @param array $databases
    *   A multi-dimensional array specifying database connection parameters, as
    *   defined in settings.php.
+   * @param \Composer\Autoload\ClassLoader $class_loader
+   *   The class loader. Used for adding the database driver(s) to the
+   *   autoloader if $databases[$key][$target]['autoload'] is set.
+   * @param string $app_root
+   *   The app root.
    */
-  final public static function setMultipleConnectionInfo(array $databases) {
+  final public static function setMultipleConnectionInfo(array $databases, $class_loader = NULL, $app_root = NULL) {
     foreach ($databases as $key => $targets) {
       foreach ($targets as $target => $info) {
-        self::addConnectionInfo($key, $target, $info);
+        self::addConnectionInfo($key, $target, $info, $class_loader, $app_root);
       }
     }
   }
@@ -371,7 +455,7 @@ abstract class Database {
       throw new ConnectionNotDefinedException('The specified database connection is not defined: ' . $key);
     }
 
-    if (!$driver = self::$databaseInfo[$key][$target]['driver']) {
+    if (!self::$databaseInfo[$key][$target]['driver']) {
       throw new DriverNotSpecifiedException('Driver not specified for this database connection: ' . $key);
     }
 
@@ -458,38 +542,42 @@ abstract class Database {
     $driver = $matches[1];
 
     // Determine if the database driver is provided by a module.
+    // @todo https://www.drupal.org/project/drupal/issues/3250999. Refactor when
+    // all database drivers are provided by modules.
     $module = NULL;
     $connection_class = NULL;
     $url_components = parse_url($url);
-    if (isset($url_components['query'])) {
-      parse_str($url_components['query'], $query);
-      if (isset($query['module']) && $query['module']) {
-        $module = $query['module'];
-        // Set up an additional autoloader. We don't use the main autoloader as
-        // this method can be called before Drupal is installed and is never
-        // called during regular runtime.
-        $namespace = "Drupal\\$module\\Driver\\Database\\$driver";
-        $psr4_base_directory = Database::findDriverAutoloadDirectory($namespace, $root, TRUE);
-        $additional_class_loader = new ClassLoader();
-        $additional_class_loader->addPsr4($namespace . '\\', $psr4_base_directory);
-        $additional_class_loader->register(TRUE);
-        $connection_class = $custom_connection_class = $namespace . '\\Connection';
-      }
+    $url_component_query = $url_components['query'] ?? '';
+    parse_str($url_component_query, $query);
+
+    // Add the module key for core database drivers when the module key is not
+    // set.
+    if (!isset($query['module']) && in_array($driver, ['mysql', 'pgsql', 'sqlite'], TRUE)) {
+      $query['module'] = $driver;
+    }
+
+    if (isset($query['module']) && $query['module']) {
+      $module = $query['module'];
+      // Set up an additional autoloader. We don't use the main autoloader as
+      // this method can be called before Drupal is installed and is never
+      // called during regular runtime.
+      $namespace = "Drupal\\$module\\Driver\\Database\\$driver";
+      $psr4_base_directory = Database::findDriverAutoloadDirectory($namespace, $root, TRUE);
+      $additional_class_loader = new ClassLoader();
+      $additional_class_loader->addPsr4($namespace . '\\', $psr4_base_directory);
+      $additional_class_loader->register(TRUE);
+      $connection_class = $namespace . '\\Connection';
     }
 
     if (!$module) {
       // Determine the connection class to use. Discover if the URL has a valid
-      // driver scheme. Try with Drupal 8 style custom drivers first, since
-      // those can override/extend the core ones.
-      $connection_class = $custom_connection_class = "Drupal\\Driver\\Database\\{$driver}\\Connection";
-      if (!class_exists($connection_class)) {
-        // If the URL is not relative to a custom driver, try with core ones.
-        $connection_class = "Drupal\\Core\\Database\\Driver\\{$driver}\\Connection";
-      }
+      // driver scheme for a Drupal 8 style custom driver.
+      // @todo Remove this in Drupal 10.
+      $connection_class = "Drupal\\Driver\\Database\\{$driver}\\Connection";
     }
 
     if (!class_exists($connection_class)) {
-      throw new \InvalidArgumentException("Can not convert '$url' to a database connection, class '$custom_connection_class' does not exist");
+      throw new \InvalidArgumentException("Can not convert '$url' to a database connection, class '$connection_class' does not exist");
     }
 
     $options = $connection_class::createConnectionOptionsFromUrl($url, $root);
@@ -634,8 +722,8 @@ abstract class Database {
     if (isset($connection_info['namespace'])) {
       return $connection_info['namespace'];
     }
-    // Fallback for Drupal 7 settings.php.
-    return 'Drupal\\Core\\Database\\Driver\\' . $connection_info['driver'];
+    // Fallback for when the namespace is not provided in settings.php.
+    return 'Drupal\\' . $connection_info['driver'] . '\\Driver\\Database\\' . $connection_info['driver'];
   }
 
   /**

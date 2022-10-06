@@ -1,8 +1,11 @@
 <?php
-// @codingStandardsIgnoreFile
+
+// phpcs:ignoreFile Portions of this file are a direct copy of
+// \Symfony\Component\DependencyInjection\Container.
 
 namespace Drupal\Core\DependencyInjection;
 
+use Symfony\Component\DependencyInjection\Alias;
 use Symfony\Component\DependencyInjection\ContainerBuilder as SymfonyContainerBuilder;
 use Symfony\Component\DependencyInjection\Container as SymfonyContainer;
 use Symfony\Component\DependencyInjection\Definition;
@@ -84,17 +87,21 @@ class ContainerBuilder extends SymfonyContainerBuilder {
   /**
    * {@inheritdoc}
    */
-  public function register($id, $class = null) {
+  public function register($id, $class = null): Definition {
     if (strtolower($id) !== $id) {
       throw new \InvalidArgumentException("Service ID names must be lowercase: $id");
     }
-    return parent::register($id, $class);
+    $definition = new Definition($class);
+    // As of Symfony 5.2 all services are private by default, but in Drupal
+    // services are still public by default.
+    $definition->setPublic(TRUE);
+    return $this->setDefinition($id, $definition);
   }
 
   /**
    * {@inheritdoc}
    */
-  public function setAlias($alias, $id) {
+  public function setAlias($alias, $id): Alias {
     $alias = parent::setAlias($alias, $id);
     // As of Symfony 3.4 all aliases are private by default.
     $alias->setPublic(TRUE);
@@ -104,14 +111,15 @@ class ContainerBuilder extends SymfonyContainerBuilder {
   /**
    * {@inheritdoc}
    */
-  public function setDefinition($id, Definition $definition) {
+  public function setDefinition($id, Definition $definition): Definition {
     $definition = parent::setDefinition($id, $definition);
     // As of Symfony 3.4 all definitions are private by default.
     // \Symfony\Component\DependencyInjection\Compiler\ResolvePrivatesPassOnly
     // removes services marked as private from the container even if they are
     // also marked as public. Drupal requires services that are public to
     // remain in the container and not be removed.
-    if ($definition->isPublic()) {
+    if ($definition->isPublic() && $definition->isPrivate()) {
+      @trigger_error('Not marking service definitions as public is deprecated in drupal:9.2.0 and is required in drupal:10.0.0. Call $definition->setPublic(TRUE) before calling ::setDefinition(). See https://www.drupal.org/node/3194517', E_USER_DEPRECATED);
       $definition->setPrivate(FALSE);
     }
     return $definition;

@@ -119,7 +119,7 @@ final class Settings {
     if (isset(self::$deprecatedSettings[$name])) {
       @trigger_error(self::$deprecatedSettings[$name]['message'], E_USER_DEPRECATED);
     }
-    return isset(self::$instance->storage[$name]) ? self::$instance->storage[$name] : $default;
+    return self::$instance->storage[$name] ?? $default;
   }
 
   /**
@@ -160,20 +160,7 @@ final class Settings {
     self::handleDeprecations($settings);
 
     // Initialize databases.
-    foreach ($databases as $key => $targets) {
-      foreach ($targets as $target => $info) {
-        Database::addConnectionInfo($key, $target, $info);
-        // If the database driver is provided by a module, then its code may
-        // need to be instantiated prior to when the module's root namespace
-        // is added to the autoloader, because that happens during service
-        // container initialization but the container definition is likely in
-        // the database. Therefore, allow the connection info to specify an
-        // autoload directory for the driver.
-        if (isset($info['autoload'])) {
-          $class_loader->addPsr4($info['namespace'] . '\\', $info['autoload']);
-        }
-      }
-    }
+    Database::setMultipleConnectionInfo($databases, $class_loader, $app_root);
 
     // Initialize Settings.
     new Settings($settings);
@@ -212,9 +199,13 @@ final class Settings {
    * module directories setting apcu_ensure_unique_prefix would allow the sites
    * to share APCu cache items.
    *
-   * @param $identifier
+   * @param string $identifier
    *   An identifier for the prefix. For example, 'class_loader' or
    *   'cache_backend'.
+   * @param string $root
+   *   The app root.
+   * @param string $site_path
+   *   (optional) The site path. Defaults to an empty string.
    *
    * @return string
    *   The prefix for APCu user cache keys.

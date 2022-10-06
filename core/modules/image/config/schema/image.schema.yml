@@ -14,14 +14,14 @@ image.style.*:
       sequence:
         type: mapping
         mapping:
-          id:
-            type: string
-          data:
-            type: image.effect.[%parent.id]
-          weight:
-            type: integer
           uuid:
             type: uuid
+          id:
+            type: string
+          weight:
+            type: integer
+          data:
+            type: image.effect.[%parent.id]
 
 image.effect.*:
   type: mapping
@@ -142,6 +142,13 @@ field.formatter.settings.image:
     image_style:
       type: string
       label: 'Image style'
+    image_loading:
+      type: mapping
+      label: 'Image loading settings'
+      mapping:
+        attribute:
+          type: string
+          label: 'Loading attribute'
 
 field.formatter.settings.image_url:
   type: mapping

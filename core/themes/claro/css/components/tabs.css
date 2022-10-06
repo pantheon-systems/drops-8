@@ -24,7 +24,7 @@
   flex-direction: column;
   width: 100%;
   margin: 0 0 1.5rem 0;
-  border: 1px solid #d4d4d8;
+  border: 1px solid #d3d4d9;
   border-radius: 2px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
@@ -35,8 +35,8 @@
 
 .tabs__tab {
   position: relative;
-  border-bottom: 1px solid #d4d4d8;
-  background-color: #fafbfd;
+  border-bottom: 1px solid #d3d4d9;
+  background-color: #f9faff;
   font-size: 0.889rem;
   font-weight: bold;
 }
@@ -62,7 +62,7 @@
   min-height: 3rem;
   padding: 0.75rem 1.5rem;
   text-decoration: none;
-  color: #545560;
+  color: #55565b;
   line-height: 1.2rem;
 }
 
@@ -71,7 +71,7 @@
   margin: -1px;
   padding-left: calc(1.5rem - 2px); /* LTR */
   text-decoration: none;
-  color: #545560;
+  color: #55565b;
   border: 3px solid #26a769;
   border-radius: 2px;
   outline: none;
@@ -85,13 +85,13 @@
 
 .tabs__link:hover {
   text-decoration: none;
-  color: #222330;
+  color: #232429;
 }
 
 .tabs__link.is-active {
   z-index: 1;
   flex-grow: 1;
-  color: #003cc5;
+  color: #003ecc;
 }
 
 .tabs__link.is-active:focus {
@@ -112,7 +112,7 @@
 }
 
 .tabs__link.is-active:hover {
-  color: #222330;
+  color: #232429;
 }
 
 /* Active and hover indicator. */
@@ -128,16 +128,16 @@
   z-index: 2;
   top: -1px;
   left: -1px; /* LTR */
-  width: 3px;
+  width: 0.1875rem;
   height: calc(100% + 2px);
-  border-left: 3px solid #003cc5; /* LTR */
+  border-left: 3px solid #003ecc; /* LTR */
   border-top-left-radius: 2px; /* LTR */
 }
 
 [dir="rtl"] .tabs__tab.is-active::before {
   right: -1px;
   left: auto;
-  border-right: 3px solid #003cc5;
+  border-right: 3px solid #003ecc;
   border-left: none;
   border-radius: 0 2px 0 2px;
 }
@@ -151,7 +151,7 @@
 }
 
 .tabs__tab.is-active:focus::before {
-  top: -3px;
+  top: -0.1875rem;
   height: calc(3rem + 2px);
 }
 
@@ -194,6 +194,11 @@
   .tabs-wrapper {
     display: flex;
   }
+
+  .tabs-wrapper--secondary {
+    position: relative;
+  }
+
   .is-horizontal .tabs {
     flex-direction: row;
     width: auto;
@@ -204,8 +209,8 @@
 
   .is-horizontal .tabs--secondary {
     overflow: hidden;
-    margin: -6px -6px 0;
-    padding: 6px 6px 0;
+    margin: -0.375rem -0.375rem 0;
+    padding: 0.375rem 0.375rem 0;
     border-radius: 0;
   }
 
@@ -230,7 +235,7 @@
     display: block;
     width: 100%;
     content: "";
-    border-bottom: 1px solid #d4d4d8;
+    border-bottom: 1px solid #d3d4d9;
   }
 
   .is-horizontal .tabs__tab {
@@ -239,6 +244,7 @@
     background: none;
     font-size: 1rem;
   }
+
   .is-horizontal .tabs__tab.is-active {
     order: 0;
     background: none;
@@ -268,7 +274,7 @@
     margin: 0;
     padding-right: 2rem;
     padding-left: 2rem;
-    color: #222330;
+    color: #232429;
     border: none;
     border-radius: 2px 2px 0 0;
     outline: 2px dotted transparent;
@@ -283,7 +289,7 @@
 
   .is-horizontal .tabs__link:hover {
     color: #0036b1;
-    background: #e6ecf8;
+    background: #e5edff;
   }
 
   .is-horizontal .tabs__link.is-active::before {
@@ -292,9 +298,9 @@
     bottom: 0;
     left: 0;
     width: 100%;
-    height: 3px;
+    height: 0.1875rem;
     border-right: none;
-    border-bottom: 3px solid #003cc5;
+    border-bottom: 3px solid #003ecc;
     border-left: none;
   }
 }

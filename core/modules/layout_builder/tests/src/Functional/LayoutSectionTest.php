@@ -272,7 +272,8 @@ class LayoutSectionTest extends BrowserTestBase {
     $display = LayoutBuilderEntityViewDisplay::load('node.bundle_with_section_field.default');
     $this->assertInstanceOf(LayoutBuilderEntityViewDisplay::class, $display);
 
-    $this->drupalPostForm('/admin/structure/types/manage/bundle_with_section_field/delete', [], 'Delete');
+    $this->drupalGet('/admin/structure/types/manage/bundle_with_section_field/delete');
+    $this->submitForm([], 'Delete');
     $assert_session->statusCodeEquals(200);
 
     $display = LayoutBuilderEntityViewDisplay::load('node.bundle_with_section_field.default');
@@ -292,8 +293,10 @@ class LayoutSectionTest extends BrowserTestBase {
    *   A string of cache tags to be found in the header.
    * @param string $expected_dynamic_cache
    *   The expected dynamic cache header. Either 'HIT', 'MISS' or 'UNCACHEABLE'.
+   *
+   * @internal
    */
-  protected function assertLayoutSection($expected_selector, $expected_content, $expected_cache_contexts = '', $expected_cache_tags = '', $expected_dynamic_cache = 'MISS') {
+  protected function assertLayoutSection($expected_selector, $expected_content, string $expected_cache_contexts = '', string $expected_cache_tags = '', string $expected_dynamic_cache = 'MISS'): void {
     $assert_session = $this->assertSession();
     // Find the given selector.
     foreach ((array) $expected_selector as $selector) {

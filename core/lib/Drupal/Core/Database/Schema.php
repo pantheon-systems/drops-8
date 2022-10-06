@@ -72,13 +72,13 @@ abstract class Schema implements PlaceholderInterface {
   /**
    * Get information about the table name and schema from the prefix.
    *
-   * @param
+   * @param string $table
    *   Name of table to look prefix up for. Defaults to 'default' because that's
    *   default key for prefix.
-   * @param $add_prefix
+   * @param bool $add_prefix
    *   Boolean that indicates whether the given table name should be prefixed.
    *
-   * @return
+   * @return array
    *   A keyed array with information about the schema, table name and prefix.
    */
   protected function getPrefixInfo($table = 'default', $add_prefix = TRUE) {
@@ -180,7 +180,12 @@ abstract class Schema implements PlaceholderInterface {
    * Finds all tables that are like the specified base table name.
    *
    * @param string $table_expression
-   *   An SQL expression, for example "cache_%" (without the quotes).
+   *   A case-insensitive pattern against which table names are compared. Both
+   *   '_' and '%' are treated like wildcards in MySQL 'LIKE' expressions, where
+   *   '_' matches any single character and '%' matches an arbitrary number of
+   *   characters (including zero characters). So 'foo%bar' matches table names
+   *   like 'foobar', 'fooXBar', 'fooXBaR',  or 'fooXxBar'; whereas 'foo_bar'
+   *   matches 'fooXBar' and 'fooXBaR' but not 'fooBar' or 'fooXxxBar'.
    *
    * @return array
    *   Both the keys and the values are the matching tables.
@@ -238,9 +243,9 @@ abstract class Schema implements PlaceholderInterface {
   /**
    * Check if a column exists in the given table.
    *
-   * @param $table
+   * @param string $table
    *   The name of the table in drupal (no prefixing).
-   * @param $column
+   * @param string $column
    *   The name of the column.
    *
    * @return
@@ -310,7 +315,7 @@ abstract class Schema implements PlaceholderInterface {
    *   created field will be set to the value of the key in all rows.
    *   This is most useful for creating NOT NULL columns with no default
    *   value in existing tables.
-   *   Alternatively, the 'initial_form_field' key may be used, which will
+   *   Alternatively, the 'initial_from_field' key may be used, which will
    *   auto-populate the new field with values from the specified field.
    * @param $keys_new
    *   (optional) Keys and indexes specification to be created on the

@@ -8,7 +8,6 @@ install:
   - block
   - breakpoint
   - ckeditor
-  - color
   - config
   - comment
   - contextual
@@ -16,7 +15,6 @@ install:
   - menu_link_content
   - datetime
   - block_content
-  - quickedit
   - editor
   - help
   - image
@@ -39,5 +37,5 @@ install:
   - tour
   - automated_cron
 themes:
-  - bartik
-  - seven
+  - olivero
+  - claro

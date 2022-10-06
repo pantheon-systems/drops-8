@@ -59,8 +59,28 @@ class UninstallTest extends BrowserTestBase {
     ]);
     $node->save();
 
+    // Change the config directly to "install" non-stable modules.
+    $this->config('core.extension')
+      ->set('module.system_status_obsolete_test', 0)
+      ->set('module.deprecated_module', 0)
+      ->set('module.experimental_module_test', 0)
+      ->save();
+    $this->rebuildAll();
+
     $this->drupalGet('admin/modules/uninstall');
     $this->assertSession()->titleEquals('Uninstall | Drupal');
+
+    // Check that the experimental module link was rendered correctly.
+    $this->assertSession()->elementExists('xpath', "//a[contains(@aria-label, 'View information on the Experimental status of the module Experimental Test')]");
+    $this->assertSession()->elementExists('xpath', "//a[contains(@href, 'https://example.com/experimental')]");
+
+    // Check that the deprecated module link was rendered correctly.
+    $this->assertSession()->elementExists('xpath', "//a[contains(@aria-label, 'View information on the Deprecated status of the module Deprecated module')]");
+    $this->assertSession()->elementExists('xpath', "//a[contains(@href, 'http://example.com/deprecated')]");
+
+    // Check that the obsolete module link was rendered correctly.
+    $this->assertSession()->elementExists('xpath', "//a[contains(@aria-label, 'View information on the Obsolete status of the module System obsolete status test')]");
+    $this->assertSession()->elementExists('xpath', "//a[contains(@href, 'https://example.com/obsolete')]");
 
     foreach (\Drupal::service('extension.list.module')->getAllInstalledInfo() as $module => $info) {
       $field_name = "uninstall[$module]";
@@ -75,36 +95,38 @@ class UninstallTest extends BrowserTestBase {
 
     // Be sure labels are rendered properly.
     // @see regression https://www.drupal.org/node/2512106
-    $this->assertRaw('<label for="edit-uninstall-node" class="module-name table-filter-text-source">Node</label>');
+    $this->assertSession()->responseContains('<label for="edit-uninstall-node" class="module-name table-filter-text-source">Node</label>');
 
-    $this->assertText('The following reason prevents Node from being uninstalled:');
-    $this->assertText('There is content for the entity type: Content');
+    $this->assertSession()->pageTextContains('The following reason prevents Node from being uninstalled:');
+    $this->assertSession()->pageTextContains('There is content for the entity type: Content');
     // Delete the node to allow node to be uninstalled.
     $node->delete();
 
     // Uninstall module_test.
     $edit = [];
     $edit['uninstall[module_test]'] = TRUE;
-    $this->drupalPostForm('admin/modules/uninstall', $edit, 'Uninstall');
-    $this->assertNoText('Configuration deletions', 'No configuration deletions listed on the module install confirmation page.');
-    $this->assertText('Configuration updates', 'Configuration updates listed on the module install confirmation page.');
-    $this->assertText($node_type->label());
+    $this->drupalGet('admin/modules/uninstall');
+    $this->submitForm($edit, 'Uninstall');
+    $this->assertSession()->pageTextNotContains('Configuration deletions');
+    $this->assertSession()->pageTextContains('Configuration updates');
+    $this->assertSession()->pageTextContains($node_type->label());
     $this->submitForm([], 'Uninstall');
-    $this->assertText('The selected modules have been uninstalled.', 'Modules status has been updated.');
+    $this->assertSession()->pageTextContains('The selected modules have been uninstalled.');
 
     // Uninstall node testing that the configuration that will be deleted is
     // listed.
-    $node_dependencies = \Drupal::service('config.manager')->findConfigEntityDependentsAsEntities('module', ['node']);
+    $node_dependencies = \Drupal::service('config.manager')->findConfigEntityDependenciesAsEntities('module', ['node']);
     $edit = [];
     $edit['uninstall[node]'] = TRUE;
-    $this->drupalPostForm('admin/modules/uninstall', $edit, 'Uninstall');
-    $this->assertText('Configuration deletions', 'Configuration deletions listed on the module install confirmation page.');
-    $this->assertNoText('Configuration updates', 'No configuration updates listed on the module install confirmation page.');
+    $this->drupalGet('admin/modules/uninstall');
+    $this->submitForm($edit, 'Uninstall');
+    $this->assertSession()->pageTextContains('Configuration deletions');
+    $this->assertSession()->pageTextNotContains('Configuration updates');
 
     $entity_types = [];
     foreach ($node_dependencies as $entity) {
       $label = $entity->label() ?: $entity->id();
-      $this->assertText($label);
+      $this->assertSession()->pageTextContains($label);
       $entity_types[] = $entity->getEntityTypeId();
     }
     $entity_types = array_unique($entity_types);
@@ -112,19 +134,19 @@ class UninstallTest extends BrowserTestBase {
       $entity_type = \Drupal::entityTypeManager()->getDefinition($entity_type_id);
       // Add h3's since the entity type label is often repeated in the entity
       // labels.
-      $this->assertRaw('<h3>' . $entity_type->getLabel() . '</h3>');
+      $this->assertSession()->responseContains('<h3>' . $entity_type->getLabel() . '</h3>');
     }
 
     // Set a unique cache entry to be able to test whether all caches are
     // cleared during the uninstall.
     \Drupal::cache()->set('uninstall_test', 'test_uninstall_page', Cache::PERMANENT);
     $cached = \Drupal::cache()->get('uninstall_test');
-    $this->assertEqual($cached->data, 'test_uninstall_page', new FormattableMarkup('Cache entry found: @bin', ['@bin' => $cached->data]));
+    $this->assertEquals('test_uninstall_page', $cached->data, new FormattableMarkup('Cache entry found: @bin', ['@bin' => $cached->data]));
 
     $this->submitForm([], 'Uninstall');
-    $this->assertText('The selected modules have been uninstalled.', 'Modules status has been updated.');
+    $this->assertSession()->pageTextContains('The selected modules have been uninstalled.');
     // Check that the page does not have double escaped HTML tags.
-    $this->assertNoRaw('&lt;label');
+    $this->assertSession()->responseNotContains('&lt;label');
 
     // Make sure our unique cache entry is gone.
     $cached = \Drupal::cache()->get('uninstall_test');
@@ -132,7 +154,7 @@ class UninstallTest extends BrowserTestBase {
     // Make sure we get an error message when we try to confirm uninstallation
     // of an empty list of modules.
     $this->drupalGet('admin/modules/uninstall/confirm');
-    $this->assertText('The selected modules could not be uninstalled, either due to a website problem or due to the uninstall confirmation form timing out. Please try again.', 'Module uninstall confirmation form displays error message');
+    $this->assertSession()->pageTextContains('The selected modules could not be uninstalled, either due to a website problem or due to the uninstall confirmation form timing out. Please try again.');
 
     // Make sure confirmation page is accessible only during uninstall process.
     $this->drupalGet('admin/modules/uninstall/confirm');
@@ -141,8 +163,9 @@ class UninstallTest extends BrowserTestBase {
 
     // Make sure the correct error is shown when no modules are selected.
     $edit = [];
-    $this->drupalPostForm('admin/modules/uninstall', $edit, 'Uninstall');
-    $this->assertText('No modules selected.', 'No module is selected to uninstall');
+    $this->drupalGet('admin/modules/uninstall');
+    $this->submitForm($edit, 'Uninstall');
+    $this->assertSession()->pageTextContains('No modules selected.');
   }
 
   /**
@@ -164,12 +187,13 @@ class UninstallTest extends BrowserTestBase {
     // Even though the module failed to install properly, its configuration
     // status is "enabled" and should still be available to uninstall.
     $this->drupalGet('admin/modules/uninstall');
-    $this->assertText('Module installer config test');
+    $this->assertSession()->pageTextContains('Module installer config test');
     $edit['uninstall[module_installer_config_test]'] = TRUE;
-    $this->drupalPostForm('admin/modules/uninstall', $edit, 'Uninstall');
+    $this->drupalGet('admin/modules/uninstall');
+    $this->submitForm($edit, 'Uninstall');
     $this->submitForm([], 'Uninstall');
-    $this->assertText('The selected modules have been uninstalled.');
-    $this->assertNoText('Module installer config test');
+    $this->assertSession()->pageTextContains('The selected modules have been uninstalled.');
+    $this->assertSession()->pageTextNotContains('Module installer config test');
   }
 
 }

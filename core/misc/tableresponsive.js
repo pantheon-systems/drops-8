@@ -19,15 +19,9 @@
 
   Drupal.behaviors.tableResponsive = {
     attach: function attach(context, settings) {
-      var $tables = $(context).find('table.responsive-enabled').once('tableresponsive');
-
-      if ($tables.length) {
-        var il = $tables.length;
-
-        for (var i = 0; i < il; i++) {
-          TableResponsive.tables.push(new TableResponsive($tables[i]));
-        }
-      }
+      once('tableresponsive', 'table.responsive-enabled', context).forEach(function (table) {
+        TableResponsive.tables.push(new TableResponsive(table));
+      });
     }
   };
   $.extend(TableResponsive, {
@@ -39,11 +33,13 @@
       var hiddenLength = this.$headers.filter('.priority-medium:hidden, .priority-low:hidden').length;
 
       if (hiddenLength > 0) {
-        this.$link.show().text(this.showText);
+        this.$link.show();
+        this.$link[0].textContent = this.showText;
       }
 
       if (!pegged && hiddenLength === 0) {
-        this.$link.hide().text(this.hideText);
+        this.$link.hide();
+        this.$link[0].textContent = this.hideText;
       }
     },
     eventhandlerToggleColumns: function eventhandlerToggleColumns(e) {
@@ -64,32 +60,34 @@
           $header.show();
           self.$revealedCells = $().add(self.$revealedCells).add($header);
         });
-        this.$link.text(this.hideText).data('pegged', 1);
+        this.$link[0].textContent = this.hideText;
+        this.$link.data('pegged', 1);
       } else {
-          this.$revealedCells.hide();
-          this.$revealedCells.each(function (index, element) {
-            var $cell = $(this);
-            var properties = $cell.attr('style').split(';');
-            var newProps = [];
-            var match = /^display\s*:\s*none$/;
+        this.$revealedCells.hide();
+        this.$revealedCells.each(function (index, element) {
+          var $cell = $(this);
+          var properties = $cell.attr('style').split(';');
+          var newProps = [];
+          var match = /^display\s*:\s*none$/;
 
-            for (var i = 0; i < properties.length; i++) {
-              var prop = properties[i];
-              prop.trim();
-              var isDisplayNone = match.exec(prop);
+          for (var i = 0; i < properties.length; i++) {
+            var prop = properties[i];
+            prop.trim();
+            var isDisplayNone = match.exec(prop);
 
-              if (isDisplayNone) {
-                continue;
-              }
-
-              newProps.push(prop);
+            if (isDisplayNone) {
+              continue;
             }
 
-            $cell.attr('style', newProps.join(';'));
-          });
-          this.$link.text(this.showText).data('pegged', 0);
-          $(window).trigger('resize.tableresponsive');
-        }
+            newProps.push(prop);
+          }
+
+          $cell.attr('style', newProps.join(';'));
+        });
+        this.$link[0].textContent = this.showText;
+        this.$link.data('pegged', 0);
+        $(window).trigger('resize.tableresponsive');
+      }
     }
   });
   Drupal.TableResponsive = TableResponsive;

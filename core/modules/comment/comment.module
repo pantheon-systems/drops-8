@@ -171,7 +171,7 @@ function comment_field_storage_config_insert(FieldStorageConfigInterface $field_
 function comment_field_config_delete(FieldConfigInterface $field) {
   if ($field->getType() == 'comment') {
     // Delete all comments that used by the entity bundle.
-    $entity_query = \Drupal::entityQuery('comment');
+    $entity_query = \Drupal::entityQuery('comment')->accessCheck(FALSE);
     $entity_query->condition('entity_type', $field->getEntityTypeId());
     $entity_query->condition('field_name', $field->getName());
     $cids = $entity_query->execute();
@@ -318,7 +318,7 @@ function comment_entity_predelete(EntityInterface $entity) {
   // entity type that has an integer ID, $entity->id() might be a string
   // containing a number), and then cast it to an integer when querying.
   if ($entity instanceof FieldableEntityInterface && is_numeric($entity->id())) {
-    $entity_query = \Drupal::entityQuery('comment');
+    $entity_query = \Drupal::entityQuery('comment')->accessCheck(FALSE);
     $entity_query->condition('entity_id', (int) $entity->id());
     $entity_query->condition('entity_type', $entity->getEntityTypeId());
     $cids = $entity_query->execute();
@@ -460,8 +460,15 @@ function comment_user_cancel($edit, UserInterface $account, $method) {
       /** @var \Drupal\comment\CommentInterface[] $comments */
       $comments = \Drupal::entityTypeManager()->getStorage('comment')->loadByProperties(['uid' => $account->id()]);
       foreach ($comments as $comment) {
-        $comment->setOwnerId(0);
-        $comment->setAuthorName(\Drupal::config('user.settings')->get('anonymous'));
+        $langcodes = array_keys($comment->getTranslationLanguages());
+        // For efficiency manually save the original comment before applying any
+        // changes.
+        $comment->original = clone $comment;
+        foreach ($langcodes as $langcode) {
+          $comment_translated = $comment->getTranslation($langcode);
+          $comment_translated->setOwnerId(0);
+          $comment_translated->setAuthorName(\Drupal::config('user.settings')->get('anonymous'));
+        }
         $comment->save();
       }
       break;
@@ -472,7 +479,7 @@ function comment_user_cancel($edit, UserInterface $account, $method) {
  * Implements hook_ENTITY_TYPE_predelete() for user entities.
  */
 function comment_user_predelete($account) {
-  $entity_query = \Drupal::entityQuery('comment');
+  $entity_query = \Drupal::entityQuery('comment')->accessCheck(FALSE);
   $entity_query->condition('uid', $account->id());
   $cids = $entity_query->execute();
   $comment_storage = \Drupal::entityTypeManager()->getStorage('comment');
@@ -529,7 +536,7 @@ function comment_preview(CommentInterface $comment, FormStateInterface $form_sta
   }
 
   $preview_build['comment_output_below'] = $build;
-  $preview_build['comment_output_below']['#weight'] = 100;
+  $preview_build['comment_output_below']['#weight'] = 200;
 
   return $preview_build;
 }
@@ -545,6 +552,15 @@ function comment_preprocess_block(&$variables) {
 
 /**
  * Prepares variables for comment templates.
+ *
+ * By default this function performs special preprocessing of some base fields
+ * so they are available as variables in the template. For example 'subject'
+ * appears as 'title'. This preprocessing is skipped if:
+ * - a module makes the field's display configurable via the field UI by means
+ *   of BaseFieldDefinition::setDisplayConfigurable()
+ * - AND the additional entity type property
+ *   'enable_base_field_custom_preprocess_skipping' has been set using
+ *   hook_entity_type_build().
  *
  * Default template: comment.html.twig.
  *
@@ -563,51 +579,56 @@ function template_preprocess_comment(&$variables) {
   $variables['commented_entity'] = $commented_entity;
   $variables['threaded'] = $variables['elements']['#comment_threaded'];
 
-  $account = $comment->getOwner();
-  $username = [
-    '#theme' => 'username',
-    '#account' => $account,
-  ];
-  $variables['author'] = \Drupal::service('renderer')->render($username);
-  $variables['author_id'] = $comment->getOwnerId();
-  $variables['new_indicator_timestamp'] = $comment->getChangedTime();
-  $variables['created'] = $date_formatter->format($comment->getCreatedTime());
-  // Avoid calling DateFormatterInterface::format() twice on the same timestamp.
-  if ($comment->getChangedTime() == $comment->getCreatedTime()) {
-    $variables['changed'] = $variables['created'];
-  }
-  else {
-    $variables['changed'] = $date_formatter->format($comment->getChangedTime());
-  }
+  $skip_custom_preprocessing = $comment->getEntityType()->get('enable_base_field_custom_preprocess_skipping');
 
-  if (theme_get_setting('features.comment_user_picture')) {
-    // To change user picture settings (for instance, image style), edit the
-    // 'compact' view mode on the User entity.
-    $variables['user_picture'] = \Drupal::entityTypeManager()
-      ->getViewBuilder('user')
-      ->view($account, 'compact');
-  }
-  else {
-    $variables['user_picture'] = [];
+  // Make created, uid, pid and subject fields available separately. Skip this
+  // custom preprocessing if the field display is configurable and skipping has
+  // been enabled.
+  // @todo https://www.drupal.org/project/drupal/issues/3015623
+  //   Eventually delete this code and matching template lines. Using
+  //   $variables['content'] is more flexible and consistent.
+  $submitted_configurable = $comment->getFieldDefinition('created')->isDisplayConfigurable('view') || $comment->getFieldDefinition('uid')->isDisplayConfigurable('view');
+
+  if (!$skip_custom_preprocessing || !$submitted_configurable) {
+    $account = $comment->getOwner();
+    $username = [
+      '#theme' => 'username',
+      '#account' => $account,
+    ];
+    $variables['author'] = \Drupal::service('renderer')->render($username);
+    $variables['author_id'] = $comment->getOwnerId();
+    $variables['new_indicator_timestamp'] = $comment->getChangedTime();
+    $variables['created'] = $date_formatter->format($comment->getCreatedTime());
+    // Avoid calling DateFormatterInterface::format() twice on the same timestamp.
+    if ($comment->getChangedTime() == $comment->getCreatedTime()) {
+      $variables['changed'] = $variables['created'];
+    }
+    else {
+      $variables['changed'] = $date_formatter->format($comment->getChangedTime());
+    }
+
+    if (theme_get_setting('features.comment_user_picture')) {
+      // To change user picture settings (for instance, image style), edit the
+      // 'compact' view mode on the User entity.
+      $variables['user_picture'] = \Drupal::entityTypeManager()
+        ->getViewBuilder('user')
+        ->view($account, 'compact');
+    }
+    else {
+      $variables['user_picture'] = [];
+    }
+
+    $variables['submitted'] = t('Submitted by @username on @datetime', ['@username' => $variables['author'], '@datetime' => $variables['created']]);
   }
 
   if (isset($comment->in_preview)) {
-    $variables['title'] = Link::fromTextAndUrl($comment->getSubject(), Url::fromRoute('<front>'))->toString();
     $variables['permalink'] = Link::fromTextAndUrl(t('Permalink'), Url::fromRoute('<front>'))->toString();
   }
   else {
-    $uri = $comment->permalink();
-    $attributes = $uri->getOption('attributes') ?: [];
-    $attributes += ['class' => ['permalink'], 'rel' => 'bookmark'];
-    $uri->setOption('attributes', $attributes);
-    $variables['title'] = Link::fromTextAndUrl($comment->getSubject(), $uri)->toString();
-
     $variables['permalink'] = Link::fromTextAndUrl(t('Permalink'), $comment->permalink())->toString();
   }
 
-  $variables['submitted'] = t('Submitted by @username on @datetime', ['@username' => $variables['author'], '@datetime' => $variables['created']]);
-
-  if ($comment_parent = $comment->getParentComment()) {
+  if (($comment_parent = $comment->getParentComment()) && (!$skip_custom_preprocessing || !$comment->getFieldDefinition('pid')->isDisplayConfigurable('view'))) {
     // Fetch and store the parent comment information for use in templates.
     $account_parent = $comment_parent->getOwner();
     $variables['parent_comment'] = $comment_parent;
@@ -641,6 +662,19 @@ function template_preprocess_comment(&$variables) {
     $variables['parent_title'] = '';
     $variables['parent_permalink'] = '';
     $variables['parent'] = '';
+  }
+
+  if (!$skip_custom_preprocessing || !$comment->getFieldDefinition('subject')->isDisplayConfigurable('view')) {
+    if (isset($comment->in_preview)) {
+      $variables['title'] = Link::fromTextAndUrl($comment->getSubject(), Url::fromRoute('<front>'))->toString();
+    }
+    else {
+      $uri = $comment->permalink();
+      $attributes = $uri->getOption('attributes') ?: [];
+      $attributes += ['class' => ['permalink'], 'rel' => 'bookmark'];
+      $uri->setOption('attributes', $attributes);
+      $variables['title'] = Link::fromTextAndUrl($comment->getSubject(), $uri)->toString();
+    }
   }
 
   // Helpful $content variable for templates.
@@ -712,7 +746,7 @@ function comment_entity_view_display_presave(EntityViewDisplayInterface $display
   }
 
   // Disable the comment field formatter when the used view display is disabled.
-  foreach ($storage->loadMultiple() as $id => $view_display) {
+  foreach ($storage->loadMultiple() as $view_display) {
     $changed = FALSE;
     /** @var \Drupal\Core\Entity\Display\EntityViewDisplayInterface $view_display */
     foreach ($view_display->getComponents() as $field => $component) {

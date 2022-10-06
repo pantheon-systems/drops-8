@@ -3,7 +3,6 @@
 namespace Drupal\Tests\block\Functional;
 
 use Drupal\block\Entity\Block;
-use Drupal\Component\Render\FormattableMarkup;
 
 /**
  * Provides test assertions for testing block appearance.
@@ -19,8 +18,7 @@ trait AssertBlockAppearsTrait {
    *   The block entity to find on the page.
    */
   protected function assertBlockAppears(Block $block) {
-    $result = $this->findBlockInstance($block);
-    $this->assertTrue(!empty($result), new FormattableMarkup('The block @id appears on the page', ['@id' => $block->id()]));
+    $this->assertSession()->elementExists('xpath', "//div[@id = 'block-{$block->id()}']");
   }
 
   /**
@@ -30,8 +28,7 @@ trait AssertBlockAppearsTrait {
    *   The block entity to find on the page.
    */
   protected function assertNoBlockAppears(Block $block) {
-    $result = $this->findBlockInstance($block);
-    $this->assertFalse(!empty($result), new FormattableMarkup('The block @id does not appear on the page', ['@id' => $block->id()]));
+    $this->assertSession()->elementNotExists('xpath', "//div[@id = 'block-{$block->id()}']");
   }
 
   /**
