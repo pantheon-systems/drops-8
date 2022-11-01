@@ -21,7 +21,8 @@
         "pantheon-systems/drupal-integrations": "^8",
         "cweagans/composer-patches": "^1.7",
         "drush/drush": "^10",
-        "drupal/core-project-message": "^8.8"
+        "drupal/core-project-message": "^8.8",
+        "drupal/core-vendor-hardening": "^8.8"
     },
     "require-dev": {
         "drupal/core-dev": "^8.8"
