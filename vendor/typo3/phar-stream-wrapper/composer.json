@@ -1,0 +1,34 @@
+{
+    "name": "typo3/phar-stream-wrapper",
+    "description": "Interceptors for PHP's native phar:// stream handling",
+    "type": "library",
+    "license": "MIT",
+    "homepage": "https://typo3.org/",
+    "keywords": ["php", "phar", "stream-wrapper", "security"],
+    "require": {
+        "php": "^7.0",
+        "ext-json": "*"
+    },
+    "require-dev": {
+        "ext-xdebug": "*",
+        "phpunit/phpunit": "^6.5"
+    },
+    "suggest": {
+        "ext-fileinfo": "For PHP builtin file type guessing, otherwise uses internal processing"
+    },
+    "autoload": {
+        "psr-4": {
+            "TYPO3\\PharStreamWrapper\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "TYPO3\\PharStreamWrapper\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-master": "v3.x-dev"
+        }
+    }
+}

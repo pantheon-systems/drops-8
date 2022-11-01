@@ -4,7 +4,11 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
+<<<<<<< HEAD
     "content-hash": "0cddb9d0b61b1b50db5f58f2d9b9c6f6",
+=======
+    "content-hash": "6ea1a346dc1e60285388f6b27eb07195",
+>>>>>>> master
     "packages": [
         {
             "name": "asm89/stack-cors",
@@ -56,6 +60,7 @@
                 "cors",
                 "stack"
             ],
+<<<<<<< HEAD
             "support": {
                 "issues": "https://github.com/asm89/stack-cors/issues",
                 "source": "https://github.com/asm89/stack-cors/tree/1.3.0"
@@ -115,6 +120,11 @@
             "time": "2020-12-05T05:59:11+00:00"
         },
         {
+=======
+            "time": "2019-12-24T22:41:47+00:00"
+        },
+        {
+>>>>>>> master
             "name": "composer/installers",
             "version": "v1.12.0",
             "source": {
@@ -245,10 +255,13 @@
                 "zend",
                 "zikula"
             ],
+<<<<<<< HEAD
             "support": {
                 "issues": "https://github.com/composer/installers/issues",
                 "source": "https://github.com/composer/installers/tree/v1.12.0"
             },
+=======
+>>>>>>> master
             "funding": [
                 {
                     "url": "https://packagist.com",
@@ -324,6 +337,7 @@
                 "validation",
                 "versioning"
             ],
+<<<<<<< HEAD
             "support": {
                 "irc": "irc://irc.freenode.org/composer",
                 "issues": "https://github.com/composer/semver/issues",
@@ -1260,6 +1274,11 @@
             "time": "2017-01-20T21:14:22+00:00"
         },
         {
+=======
+            "time": "2020-01-13T12:06:48+00:00"
+        },
+        {
+>>>>>>> master
             "name": "doctrine/annotations",
             "version": "v1.4.0",
             "source": {
@@ -1325,10 +1344,13 @@
                 "docblock",
                 "parser"
             ],
+<<<<<<< HEAD
             "support": {
                 "issues": "https://github.com/doctrine/annotations/issues",
                 "source": "https://github.com/doctrine/annotations/tree/v1.4.0"
             },
+=======
+>>>>>>> master
             "time": "2017-02-24T16:22:25+00:00"
         },
         {
@@ -1399,10 +1421,13 @@
                 "cache",
                 "caching"
             ],
+<<<<<<< HEAD
             "support": {
                 "issues": "https://github.com/doctrine/cache/issues",
                 "source": "https://github.com/doctrine/cache/tree/1.6.x"
             },
+=======
+>>>>>>> master
             "time": "2017-07-22T12:49:21+00:00"
         },
         {
@@ -1470,10 +1495,13 @@
                 "collections",
                 "iterator"
             ],
+<<<<<<< HEAD
             "support": {
                 "issues": "https://github.com/doctrine/collections/issues",
                 "source": "https://github.com/doctrine/collections/tree/master"
             },
+=======
+>>>>>>> master
             "time": "2017-01-03T10:49:41+00:00"
         },
         {
@@ -1547,10 +1575,13 @@
                 "persistence",
                 "spl"
             ],
+<<<<<<< HEAD
             "support": {
                 "issues": "https://github.com/doctrine/common/issues",
                 "source": "https://github.com/doctrine/common/tree/v2.7.3"
             },
+=======
+>>>>>>> master
             "time": "2017-07-22T08:35:12+00:00"
         },
         {
@@ -1618,9 +1649,12 @@
                 "singularize",
                 "string"
             ],
+<<<<<<< HEAD
             "support": {
                 "source": "https://github.com/doctrine/inflector/tree/master"
             },
+=======
+>>>>>>> master
             "time": "2017-07-22T12:18:28+00:00"
         },
         {
@@ -1681,20 +1715,26 @@
                 "parser",
                 "php"
             ],
+<<<<<<< HEAD
             "support": {
                 "issues": "https://github.com/doctrine/lexer/issues",
                 "source": "https://github.com/doctrine/lexer/tree/1.0.2"
             },
+=======
+>>>>>>> master
             "time": "2019-06-08T11:03:04+00:00"
         },
         {
             "name": "drupal/core",
             "version": "8.9.20",
+<<<<<<< HEAD
             "source": {
                 "type": "git",
                 "url": "https://github.com/drupal/core.git",
                 "reference": "39e2e1c32498338921923af66a90cb4a23a5b389"
             },
+=======
+>>>>>>> master
             "dist": {
                 "type": "zip",
                 "url": "https://api.github.com/repos/drupal/core/zipball/39e2e1c32498338921923af66a90cb4a23a5b389",
@@ -1898,8 +1938,13 @@
             "autoload": {
                 "psr-4": {
                     "Drupal\\Core\\": "lib/Drupal/Core",
+<<<<<<< HEAD
                     "Drupal\\Driver\\": "../drivers/lib/Drupal/Driver",
                     "Drupal\\Component\\": "lib/Drupal/Component"
+=======
+                    "Drupal\\Component\\": "lib/Drupal/Component",
+                    "Drupal\\Driver\\": "../drivers/lib/Drupal/Driver"
+>>>>>>> master
                 },
                 "classmap": [
                     "lib/Drupal.php",
@@ -1911,11 +1956,23 @@
                     "lib/Drupal/Core/Site/Settings.php"
                 ]
             },
+<<<<<<< HEAD
             "notification-url": "https://packagist.org/downloads/",
+=======
+            "scripts": {
+                "pre-autoload-dump": [
+                    "Drupal\\Core\\Composer\\Composer::preAutoloadDump"
+                ],
+                "post-autoload-dump": [
+                    "Drupal\\Core\\Composer\\Composer::ensureHtaccess"
+                ]
+            },
+>>>>>>> master
             "license": [
                 "GPL-2.0-or-later"
             ],
             "description": "Drupal is an open source content management platform powering millions of websites and applications.",
+<<<<<<< HEAD
             "support": {
                 "source": "https://github.com/drupal/core/tree/8.9.20"
             },
@@ -1933,11 +1990,30 @@
                 "type": "zip",
                 "url": "https://api.github.com/repos/drupal/core-composer-scaffold/zipball/5f37a9e4008b34e3e4f6bb34ce0b3f7e5ec8984f",
                 "reference": "5f37a9e4008b34e3e4f6bb34ce0b3f7e5ec8984f",
+=======
+            "source": {
+                "type": "git",
+                "url": "https://github.com/drupal/core.git",
+                "reference": "39e2e1c32498338921923af66a90cb4a23a5b389"
+            }
+        },
+        {
+            "name": "drupal/core-composer-scaffold",
+            "version": "8.9.20",
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/drupal/core-composer-scaffold/zipball/c902d07cb49ef73777e2b33a39e54c2861a8c81d",
+                "reference": "c902d07cb49ef73777e2b33a39e54c2861a8c81d",
+>>>>>>> master
                 "shasum": ""
             },
             "require": {
                 "composer-plugin-api": "^1 || ^2",
+<<<<<<< HEAD
                 "php": ">=7.3.0"
+=======
+                "php": ">=7.0.8"
+>>>>>>> master
             },
             "conflict": {
                 "drupal-composer/drupal-scaffold": "*"
@@ -1957,7 +2033,10 @@
                     "Drupal\\Composer\\Plugin\\Scaffold\\": ""
                 }
             },
+<<<<<<< HEAD
             "notification-url": "https://packagist.org/downloads/",
+=======
+>>>>>>> master
             "license": [
                 "GPL-2.0-or-later"
             ],
@@ -1966,19 +2045,30 @@
             "keywords": [
                 "drupal"
             ],
+<<<<<<< HEAD
             "support": {
                 "source": "https://github.com/drupal/core-composer-scaffold/tree/9.4.8"
             },
             "time": "2022-06-19T16:14:23+00:00"
+=======
+            "source": {
+                "type": "git",
+                "url": "https://github.com/drupal/core-composer-scaffold.git",
+                "reference": "c902d07cb49ef73777e2b33a39e54c2861a8c81d"
+            }
+>>>>>>> master
         },
         {
             "name": "drupal/core-project-message",
             "version": "8.9.20",
+<<<<<<< HEAD
             "source": {
                 "type": "git",
                 "url": "https://github.com/drupal/core-project-message.git",
                 "reference": "3f8fa28128f1fef68ee0e6647011a543ef92be5b"
             },
+=======
+>>>>>>> master
             "dist": {
                 "type": "zip",
                 "url": "https://api.github.com/repos/drupal/core-project-message/zipball/3f8fa28128f1fef68ee0e6647011a543ef92be5b",
@@ -1998,7 +2088,10 @@
                     "Drupal\\Composer\\Plugin\\ProjectMessage\\": "."
                 }
             },
+<<<<<<< HEAD
             "notification-url": "https://packagist.org/downloads/",
+=======
+>>>>>>> master
             "license": [
                 "GPL-2.0-or-later"
             ],
@@ -2007,19 +2100,30 @@
             "keywords": [
                 "drupal"
             ],
+<<<<<<< HEAD
             "support": {
                 "source": "https://github.com/drupal/core-project-message/tree/8.9.4"
             },
             "time": "2020-08-02T22:04:49+00:00"
+=======
+            "source": {
+                "type": "git",
+                "url": "https://github.com/drupal/core-project-message.git",
+                "reference": "3f8fa28128f1fef68ee0e6647011a543ef92be5b"
+            }
+>>>>>>> master
         },
         {
             "name": "drupal/core-recommended",
             "version": "8.9.20",
+<<<<<<< HEAD
             "source": {
                 "type": "git",
                 "url": "https://github.com/drupal/core-recommended.git",
                 "reference": "49b9abf15bf4b82c5b47692e39770f2f3a76eaf1"
             },
+=======
+>>>>>>> master
             "dist": {
                 "type": "zip",
                 "url": "https://api.github.com/repos/drupal/core-recommended/zipball/49b9abf15bf4b82c5b47692e39770f2f3a76eaf1",
@@ -2087,24 +2191,38 @@
                 "webflo/drupal-core-strict": "*"
             },
             "type": "metapackage",
+<<<<<<< HEAD
             "notification-url": "https://packagist.org/downloads/",
+=======
+>>>>>>> master
             "license": [
                 "GPL-2.0-or-later"
             ],
             "description": "Locked core dependencies; require this project INSTEAD OF drupal/core.",
+<<<<<<< HEAD
             "support": {
                 "source": "https://github.com/drupal/core-recommended/tree/8.9.20"
             },
             "time": "2021-11-17T21:24:28+00:00"
+=======
+            "source": {
+                "type": "git",
+                "url": "https://github.com/drupal/core-recommended.git",
+                "reference": "49b9abf15bf4b82c5b47692e39770f2f3a76eaf1"
+            }
+>>>>>>> master
         },
         {
             "name": "drupal/core-vendor-hardening",
             "version": "8.9.20",
+<<<<<<< HEAD
             "source": {
                 "type": "git",
                 "url": "https://github.com/drupal/core-vendor-hardening.git",
                 "reference": "7c2922e60df83ce1a062626833d7f172ff0f268a"
             },
+=======
+>>>>>>> master
             "dist": {
                 "type": "zip",
                 "url": "https://api.github.com/repos/drupal/core-vendor-hardening/zipball/7c2922e60df83ce1a062626833d7f172ff0f268a",
@@ -2124,7 +2242,10 @@
                     "Drupal\\Composer\\Plugin\\VendorHardening\\": "."
                 }
             },
+<<<<<<< HEAD
             "notification-url": "https://packagist.org/downloads/",
+=======
+>>>>>>> master
             "license": [
                 "GPL-2.0-or-later"
             ],
@@ -2133,6 +2254,7 @@
             "keywords": [
                 "drupal"
             ],
+<<<<<<< HEAD
             "support": {
                 "source": "https://github.com/drupal/core-vendor-hardening/tree/8.9.4"
             },
@@ -2282,6 +2404,13 @@
                 }
             ],
             "time": "2021-12-15T17:09:54+00:00"
+=======
+            "source": {
+                "type": "git",
+                "url": "https://github.com/drupal/core-vendor-hardening.git",
+                "reference": "7c2922e60df83ce1a062626833d7f172ff0f268a"
+            }
+>>>>>>> master
         },
         {
             "name": "easyrdf/easyrdf",
@@ -2343,12 +2472,15 @@
                 "rdfa",
                 "sparql"
             ],
+<<<<<<< HEAD
             "support": {
                 "forum": "http://groups.google.com/group/easyrdf/",
                 "irc": "irc://chat.freenode.net/easyrdf",
                 "issues": "http://github.com/njh/easyrdf/issues",
                 "source": "https://github.com/easyrdf/easyrdf/tree/0.9.1"
             },
+=======
+>>>>>>> master
             "time": "2015-02-27T09:45:49+00:00"
         },
         {
@@ -2407,6 +2539,7 @@
                 "validation",
                 "validator"
             ],
+<<<<<<< HEAD
             "support": {
                 "issues": "https://github.com/egulias/EmailValidator/issues",
                 "source": "https://github.com/egulias/EmailValidator/tree/2.1.17"
@@ -2583,6 +2716,11 @@
             "time": "2017-12-16T16:06:03+00:00"
         },
         {
+=======
+            "time": "2020-02-13T22:36:52+00:00"
+        },
+        {
+>>>>>>> master
             "name": "guzzlehttp/guzzle",
             "version": "6.5.4",
             "source": {
@@ -2618,12 +2756,21 @@
                 }
             },
             "autoload": {
+<<<<<<< HEAD
                 "files": [
                     "src/functions_include.php"
                 ],
                 "psr-4": {
                     "GuzzleHttp\\": "src/"
                 }
+=======
+                "psr-4": {
+                    "GuzzleHttp\\": "src/"
+                },
+                "files": [
+                    "src/functions_include.php"
+                ]
+>>>>>>> master
             },
             "notification-url": "https://packagist.org/downloads/",
             "license": [
@@ -2647,10 +2794,13 @@
                 "rest",
                 "web service"
             ],
+<<<<<<< HEAD
             "support": {
                 "issues": "https://github.com/guzzle/guzzle/issues",
                 "source": "https://github.com/guzzle/guzzle/tree/6.5"
             },
+=======
+>>>>>>> master
             "time": "2020-05-25T19:35:05+00:00"
         },
         {
@@ -2680,12 +2830,21 @@
                 }
             },
             "autoload": {
+<<<<<<< HEAD
                 "files": [
                     "src/functions_include.php"
                 ],
                 "psr-4": {
                     "GuzzleHttp\\Promise\\": "src/"
                 }
+=======
+                "psr-4": {
+                    "GuzzleHttp\\Promise\\": "src/"
+                },
+                "files": [
+                    "src/functions_include.php"
+                ]
+>>>>>>> master
             },
             "notification-url": "https://packagist.org/downloads/",
             "license": [
@@ -2702,10 +2861,13 @@
             "keywords": [
                 "promise"
             ],
+<<<<<<< HEAD
             "support": {
                 "issues": "https://github.com/guzzle/promises/issues",
                 "source": "https://github.com/guzzle/promises/tree/master"
             },
+=======
+>>>>>>> master
             "time": "2016-12-20T10:07:11+00:00"
         },
         {
@@ -2744,12 +2906,21 @@
                 }
             },
             "autoload": {
+<<<<<<< HEAD
                 "files": [
                     "src/functions_include.php"
                 ],
                 "psr-4": {
                     "GuzzleHttp\\Psr7\\": "src/"
                 }
+=======
+                "psr-4": {
+                    "GuzzleHttp\\Psr7\\": "src/"
+                },
+                "files": [
+                    "src/functions_include.php"
+                ]
+>>>>>>> master
             },
             "notification-url": "https://packagist.org/downloads/",
             "license": [
@@ -2777,10 +2948,13 @@
                 "uri",
                 "url"
             ],
+<<<<<<< HEAD
             "support": {
                 "issues": "https://github.com/guzzle/psr7/issues",
                 "source": "https://github.com/guzzle/psr7/tree/1.6.1"
             },
+=======
+>>>>>>> master
             "time": "2019-07-01T23:21:34+00:00"
         },
         {
@@ -2856,6 +3030,7 @@
                 "psr",
                 "psr-7"
             ],
+<<<<<<< HEAD
             "support": {
                 "chat": "https://laminas.dev/chat",
                 "docs": "https://docs.laminas.dev/laminas-diactoros/",
@@ -2864,6 +3039,8 @@
                 "rss": "https://github.com/laminas/laminas-diactoros/releases.atom",
                 "source": "https://github.com/laminas/laminas-diactoros"
             },
+=======
+>>>>>>> master
             "time": "2020-03-23T15:28:28+00:00"
         },
         {
@@ -2913,6 +3090,7 @@
                 "escaper",
                 "laminas"
             ],
+<<<<<<< HEAD
             "support": {
                 "chat": "https://laminas.dev/chat",
                 "docs": "https://docs.laminas.dev/laminas-escaper/",
@@ -2921,6 +3099,8 @@
                 "rss": "https://github.com/laminas/laminas-escaper/releases.atom",
                 "source": "https://github.com/laminas/laminas-escaper"
             },
+=======
+>>>>>>> master
             "time": "2019-12-31T16:43:30+00:00"
         },
         {
@@ -2988,6 +3168,7 @@
                 "feed",
                 "laminas"
             ],
+<<<<<<< HEAD
             "support": {
                 "chat": "https://laminas.dev/chat",
                 "docs": "https://docs.laminas.dev/laminas-feed/",
@@ -2996,6 +3177,8 @@
                 "rss": "https://github.com/laminas/laminas-feed/releases.atom",
                 "source": "https://github.com/laminas/laminas-feed"
             },
+=======
+>>>>>>> master
             "time": "2020-03-29T12:36:29+00:00"
         },
         {
@@ -3046,6 +3229,7 @@
                 "laminas",
                 "stdlib"
             ],
+<<<<<<< HEAD
             "support": {
                 "chat": "https://laminas.dev/chat",
                 "docs": "https://docs.laminas.dev/laminas-stdlib/",
@@ -3054,6 +3238,8 @@
                 "rss": "https://github.com/laminas/laminas-stdlib/releases.atom",
                 "source": "https://github.com/laminas/laminas-stdlib"
             },
+=======
+>>>>>>> master
             "time": "2019-12-31T17:51:15+00:00"
         },
         {
@@ -3106,12 +3292,15 @@
                 "laminas",
                 "zf"
             ],
+<<<<<<< HEAD
             "support": {
                 "forum": "https://discourse.laminas.dev/",
                 "issues": "https://github.com/laminas/laminas-zendframework-bridge/issues",
                 "rss": "https://github.com/laminas/laminas-zendframework-bridge/releases.atom",
                 "source": "https://github.com/laminas/laminas-zendframework-bridge"
             },
+=======
+>>>>>>> master
             "funding": [
                 {
                     "url": "https://funding.communitybridge.org/projects/laminas-project",
@@ -3121,6 +3310,7 @@
             "time": "2020-05-20T16:45:56+00:00"
         },
         {
+<<<<<<< HEAD
             "name": "league/container",
             "version": "2.5.0",
             "source": {
@@ -3198,6 +3388,8 @@
             "time": "2021-02-22T09:20:06+00:00"
         },
         {
+=======
+>>>>>>> master
             "name": "masterminds/html5",
             "version": "2.3.0",
             "source": {
@@ -3260,6 +3452,7 @@
                 "serializer",
                 "xml"
             ],
+<<<<<<< HEAD
             "support": {
                 "issues": "https://github.com/Masterminds/html5-php/issues",
                 "source": "https://github.com/Masterminds/html5-php/tree/2.x"
@@ -3387,6 +3580,11 @@
             }
         },
         {
+=======
+            "time": "2017-09-04T12:26:28+00:00"
+        },
+        {
+>>>>>>> master
             "name": "paragonie/random_compat",
             "version": "v9.99.99",
             "source": {
@@ -3429,11 +3627,14 @@
                 "pseudorandom",
                 "random"
             ],
+<<<<<<< HEAD
             "support": {
                 "email": "info@paragonie.com",
                 "issues": "https://github.com/paragonie/random_compat/issues",
                 "source": "https://github.com/paragonie/random_compat"
             },
+=======
+>>>>>>> master
             "time": "2018-07-02T15:55:56+00:00"
         },
         {
@@ -3500,10 +3701,13 @@
                 "archive",
                 "tar"
             ],
+<<<<<<< HEAD
             "support": {
                 "issues": "http://pear.php.net/bugs/search.php?cmd=display&package_name[]=Archive_Tar",
                 "source": "https://github.com/pear/Archive_Tar"
             },
+=======
+>>>>>>> master
             "funding": [
                 {
                     "url": "https://github.com/mrook",
@@ -3561,10 +3765,13 @@
                 }
             ],
             "description": "More info available on: http://pear.php.net/package/Console_Getopt",
+<<<<<<< HEAD
             "support": {
                 "issues": "http://pear.php.net/bugs/search.php?cmd=display&package_name[]=Console_Getopt",
                 "source": "https://github.com/pear/Console_Getopt"
             },
+=======
+>>>>>>> master
             "time": "2019-11-20T18:27:48+00:00"
         },
         {
@@ -3609,10 +3816,13 @@
                 }
             ],
             "description": "Minimal set of PEAR core files to be used as composer dependency",
+<<<<<<< HEAD
             "support": {
                 "issues": "http://pear.php.net/bugs/search.php?cmd=display&package_name[]=PEAR",
                 "source": "https://github.com/pear/pear-core-minimal"
             },
+=======
+>>>>>>> master
             "time": "2019-11-19T19:00:24+00:00"
         },
         {
@@ -3668,10 +3878,13 @@
             "keywords": [
                 "exception"
             ],
+<<<<<<< HEAD
             "support": {
                 "issues": "http://pear.php.net/bugs/search.php?cmd=display&package_name[]=PEAR_Exception",
                 "source": "https://github.com/pear/PEAR_Exception"
             },
+=======
+>>>>>>> master
             "time": "2019-12-10T10:24:42+00:00"
         },
         {
@@ -3721,10 +3934,13 @@
                 "container-interop",
                 "psr"
             ],
+<<<<<<< HEAD
             "support": {
                 "issues": "https://github.com/php-fig/container/issues",
                 "source": "https://github.com/php-fig/container/tree/master"
             },
+=======
+>>>>>>> master
             "time": "2017-02-14T16:28:37+00:00"
         },
         {
@@ -3775,9 +3991,12 @@
                 "request",
                 "response"
             ],
+<<<<<<< HEAD
             "support": {
                 "source": "https://github.com/php-fig/http-message/tree/master"
             },
+=======
+>>>>>>> master
             "time": "2016-08-06T14:39:51+00:00"
         },
         {
@@ -3825,6 +4044,7 @@
                 "psr",
                 "psr-3"
             ],
+<<<<<<< HEAD
             "support": {
                 "source": "https://github.com/php-fig/log/tree/1.1.3"
             },
@@ -3906,6 +4126,11 @@
             "time": "2021-11-30T14:05:36+00:00"
         },
         {
+=======
+            "time": "2020-03-23T09:12:05+00:00"
+        },
+        {
+>>>>>>> master
             "name": "ralouphie/getallheaders",
             "version": "3.0.3",
             "source": {
@@ -3943,10 +4168,13 @@
                 }
             ],
             "description": "A polyfill for getallheaders.",
+<<<<<<< HEAD
             "support": {
                 "issues": "https://github.com/ralouphie/getallheaders/issues",
                 "source": "https://github.com/ralouphie/getallheaders/tree/develop"
             },
+=======
+>>>>>>> master
             "time": "2019-03-08T08:55:37+00:00"
         },
         {
@@ -3996,10 +4224,13 @@
             "keywords": [
                 "stack"
             ],
+<<<<<<< HEAD
             "support": {
                 "issues": "https://github.com/stackphp/builder/issues",
                 "source": "https://github.com/stackphp/builder/tree/master"
             },
+=======
+>>>>>>> master
             "time": "2017-11-18T14:57:29+00:00"
         },
         {
@@ -4059,10 +4290,13 @@
                 "database",
                 "routing"
             ],
+<<<<<<< HEAD
             "support": {
                 "issues": "https://github.com/symfony-cmf/routing/issues",
                 "source": "https://github.com/symfony-cmf/routing/tree/1.4"
             },
+=======
+>>>>>>> master
             "time": "2017-05-09T08:10:41+00:00"
         },
         {
@@ -4119,9 +4353,12 @@
             ],
             "description": "Symfony ClassLoader Component",
             "homepage": "https://symfony.com",
+<<<<<<< HEAD
             "support": {
                 "source": "https://github.com/symfony/class-loader/tree/3.4"
             },
+=======
+>>>>>>> master
             "funding": [
                 {
                     "url": "https://symfony.com/sponsor",
@@ -4208,9 +4445,12 @@
             ],
             "description": "Symfony Console Component",
             "homepage": "https://symfony.com",
+<<<<<<< HEAD
             "support": {
                 "source": "https://github.com/symfony/console/tree/v3.4.41"
             },
+=======
+>>>>>>> master
             "funding": [
                 {
                     "url": "https://symfony.com/sponsor",
@@ -4281,9 +4521,12 @@
             ],
             "description": "Symfony Debug Component",
             "homepage": "https://symfony.com",
+<<<<<<< HEAD
             "support": {
                 "source": "https://github.com/symfony/debug/tree/3.4"
             },
+=======
+>>>>>>> master
             "funding": [
                 {
                     "url": "https://symfony.com/sponsor",
@@ -4298,7 +4541,10 @@
                     "type": "tidelift"
                 }
             ],
+<<<<<<< HEAD
             "abandoned": "symfony/error-handler",
+=======
+>>>>>>> master
             "time": "2020-05-22T18:25:20+00:00"
         },
         {
@@ -4370,9 +4616,12 @@
             ],
             "description": "Symfony DependencyInjection Component",
             "homepage": "https://symfony.com",
+<<<<<<< HEAD
             "support": {
                 "source": "https://github.com/symfony/dependency-injection/tree/3.4"
             },
+=======
+>>>>>>> master
             "funding": [
                 {
                     "url": "https://symfony.com/sponsor",
@@ -4450,9 +4699,12 @@
             ],
             "description": "Symfony EventDispatcher Component",
             "homepage": "https://symfony.com",
+<<<<<<< HEAD
             "support": {
                 "source": "https://github.com/symfony/event-dispatcher/tree/3.4"
             },
+=======
+>>>>>>> master
             "funding": [
                 {
                     "url": "https://symfony.com/sponsor",
@@ -4470,6 +4722,7 @@
             "time": "2020-05-05T15:06:23+00:00"
         },
         {
+<<<<<<< HEAD
             "name": "symfony/filesystem",
             "version": "v3.4.47",
             "source": {
@@ -4593,6 +4846,8 @@
             "time": "2020-11-16T17:02:08+00:00"
         },
         {
+=======
+>>>>>>> master
             "name": "symfony/http-foundation",
             "version": "v3.4.41",
             "source": {
@@ -4644,9 +4899,12 @@
             ],
             "description": "Symfony HttpFoundation Component",
             "homepage": "https://symfony.com",
+<<<<<<< HEAD
             "support": {
                 "source": "https://github.com/symfony/http-foundation/tree/3.4"
             },
+=======
+>>>>>>> master
             "funding": [
                 {
                     "url": "https://symfony.com/sponsor",
@@ -4751,9 +5009,12 @@
             ],
             "description": "Symfony HttpKernel Component",
             "homepage": "https://symfony.com",
+<<<<<<< HEAD
             "support": {
                 "source": "https://github.com/symfony/http-kernel/tree/v3.4.44"
             },
+=======
+>>>>>>> master
             "funding": [
                 {
                     "url": "https://symfony.com/sponsor",
@@ -4797,12 +5058,21 @@
                 }
             },
             "autoload": {
+<<<<<<< HEAD
                 "files": [
                     "bootstrap.php"
                 ],
                 "psr-4": {
                     "Symfony\\Polyfill\\Ctype\\": ""
                 }
+=======
+                "psr-4": {
+                    "Symfony\\Polyfill\\Ctype\\": ""
+                },
+                "files": [
+                    "bootstrap.php"
+                ]
+>>>>>>> master
             },
             "notification-url": "https://packagist.org/downloads/",
             "license": [
@@ -4826,9 +5096,12 @@
                 "polyfill",
                 "portable"
             ],
+<<<<<<< HEAD
             "support": {
                 "source": "https://github.com/symfony/polyfill-ctype/tree/v1.17.0"
             },
+=======
+>>>>>>> master
             "funding": [
                 {
                     "url": "https://symfony.com/sponsor",
@@ -4872,12 +5145,21 @@
                 }
             },
             "autoload": {
+<<<<<<< HEAD
                 "files": [
                     "bootstrap.php"
                 ],
                 "psr-4": {
                     "Symfony\\Polyfill\\Iconv\\": ""
                 }
+=======
+                "psr-4": {
+                    "Symfony\\Polyfill\\Iconv\\": ""
+                },
+                "files": [
+                    "bootstrap.php"
+                ]
+>>>>>>> master
             },
             "notification-url": "https://packagist.org/downloads/",
             "license": [
@@ -4902,9 +5184,12 @@
                 "portable",
                 "shim"
             ],
+<<<<<<< HEAD
             "support": {
                 "source": "https://github.com/symfony/polyfill-iconv/tree/v1.17.0"
             },
+=======
+>>>>>>> master
             "funding": [
                 {
                     "url": "https://symfony.com/sponsor",
@@ -4950,12 +5235,21 @@
                 }
             },
             "autoload": {
+<<<<<<< HEAD
                 "files": [
                     "bootstrap.php"
                 ],
                 "psr-4": {
                     "Symfony\\Polyfill\\Intl\\Idn\\": ""
                 }
+=======
+                "psr-4": {
+                    "Symfony\\Polyfill\\Intl\\Idn\\": ""
+                },
+                "files": [
+                    "bootstrap.php"
+                ]
+>>>>>>> master
             },
             "notification-url": "https://packagist.org/downloads/",
             "license": [
@@ -4981,9 +5275,12 @@
                 "portable",
                 "shim"
             ],
+<<<<<<< HEAD
             "support": {
                 "source": "https://github.com/symfony/polyfill-intl-idn/tree/master"
             },
+=======
+>>>>>>> master
             "funding": [
                 {
                     "url": "https://symfony.com/sponsor",
@@ -5027,12 +5324,21 @@
                 }
             },
             "autoload": {
+<<<<<<< HEAD
                 "files": [
                     "bootstrap.php"
                 ],
                 "psr-4": {
                     "Symfony\\Polyfill\\Mbstring\\": ""
                 }
+=======
+                "psr-4": {
+                    "Symfony\\Polyfill\\Mbstring\\": ""
+                },
+                "files": [
+                    "bootstrap.php"
+                ]
+>>>>>>> master
             },
             "notification-url": "https://packagist.org/downloads/",
             "license": [
@@ -5057,9 +5363,12 @@
                 "portable",
                 "shim"
             ],
+<<<<<<< HEAD
             "support": {
                 "source": "https://github.com/symfony/polyfill-mbstring/tree/v1.17.0"
             },
+=======
+>>>>>>> master
             "funding": [
                 {
                     "url": "https://symfony.com/sponsor",
@@ -5101,12 +5410,21 @@
                 }
             },
             "autoload": {
+<<<<<<< HEAD
                 "files": [
                     "bootstrap.php"
                 ],
                 "psr-4": {
                     "Symfony\\Polyfill\\Php56\\": ""
                 }
+=======
+                "psr-4": {
+                    "Symfony\\Polyfill\\Php56\\": ""
+                },
+                "files": [
+                    "bootstrap.php"
+                ]
+>>>>>>> master
             },
             "notification-url": "https://packagist.org/downloads/",
             "license": [
@@ -5130,9 +5448,12 @@
                 "portable",
                 "shim"
             ],
+<<<<<<< HEAD
             "support": {
                 "source": "https://github.com/symfony/polyfill-php56/tree/v1.17.0"
             },
+=======
+>>>>>>> master
             "funding": [
                 {
                     "url": "https://symfony.com/sponsor",
@@ -5174,12 +5495,21 @@
                 }
             },
             "autoload": {
+<<<<<<< HEAD
                 "files": [
                     "bootstrap.php"
                 ],
                 "psr-4": {
                     "Symfony\\Polyfill\\Php70\\": ""
                 },
+=======
+                "psr-4": {
+                    "Symfony\\Polyfill\\Php70\\": ""
+                },
+                "files": [
+                    "bootstrap.php"
+                ],
+>>>>>>> master
                 "classmap": [
                     "Resources/stubs"
                 ]
@@ -5206,9 +5536,12 @@
                 "portable",
                 "shim"
             ],
+<<<<<<< HEAD
             "support": {
                 "source": "https://github.com/symfony/polyfill-php70/tree/master"
             },
+=======
+>>>>>>> master
             "funding": [
                 {
                     "url": "https://symfony.com/sponsor",
@@ -5249,12 +5582,21 @@
                 }
             },
             "autoload": {
+<<<<<<< HEAD
                 "files": [
                     "bootstrap.php"
                 ],
                 "psr-4": {
                     "Symfony\\Polyfill\\Php72\\": ""
                 }
+=======
+                "psr-4": {
+                    "Symfony\\Polyfill\\Php72\\": ""
+                },
+                "files": [
+                    "bootstrap.php"
+                ]
+>>>>>>> master
             },
             "notification-url": "https://packagist.org/downloads/",
             "license": [
@@ -5278,9 +5620,12 @@
                 "portable",
                 "shim"
             ],
+<<<<<<< HEAD
             "support": {
                 "source": "https://github.com/symfony/polyfill-php72/tree/master"
             },
+=======
+>>>>>>> master
             "funding": [
                 {
                     "url": "https://symfony.com/sponsor",
@@ -5298,6 +5643,7 @@
             "time": "2020-05-12T16:47:27+00:00"
         },
         {
+<<<<<<< HEAD
             "name": "symfony/polyfill-php80",
             "version": "v1.26.0",
             "source": {
@@ -5381,6 +5727,8 @@
             "time": "2022-05-10T07:21:04+00:00"
         },
         {
+=======
+>>>>>>> master
             "name": "symfony/polyfill-util",
             "version": "v1.17.0",
             "source": {
@@ -5430,9 +5778,12 @@
                 "polyfill",
                 "shim"
             ],
+<<<<<<< HEAD
             "support": {
                 "source": "https://github.com/symfony/polyfill-util/tree/master"
             },
+=======
+>>>>>>> master
             "funding": [
                 {
                     "url": "https://symfony.com/sponsor",
@@ -5496,9 +5847,12 @@
             ],
             "description": "Symfony Process Component",
             "homepage": "https://symfony.com",
+<<<<<<< HEAD
             "support": {
                 "source": "https://github.com/symfony/process/tree/v3.4.41"
             },
+=======
+>>>>>>> master
             "funding": [
                 {
                     "url": "https://symfony.com/sponsor",
@@ -5576,10 +5930,13 @@
                 "psr-17",
                 "psr-7"
             ],
+<<<<<<< HEAD
             "support": {
                 "issues": "https://github.com/symfony/psr-http-message-bridge/issues",
                 "source": "https://github.com/symfony/psr-http-message-bridge/tree/v1.1.2"
             },
+=======
+>>>>>>> master
             "time": "2019-04-03T17:09:40+00:00"
         },
         {
@@ -5656,9 +6013,12 @@
                 "uri",
                 "url"
             ],
+<<<<<<< HEAD
             "support": {
                 "source": "https://github.com/symfony/routing/tree/3.4"
             },
+=======
+>>>>>>> master
             "funding": [
                 {
                     "url": "https://symfony.com/sponsor",
@@ -5752,9 +6112,12 @@
             ],
             "description": "Symfony Serializer Component",
             "homepage": "https://symfony.com",
+<<<<<<< HEAD
             "support": {
                 "source": "https://github.com/symfony/serializer/tree/v3.4.41"
             },
+=======
+>>>>>>> master
             "funding": [
                 {
                     "url": "https://symfony.com/sponsor",
@@ -5839,9 +6202,12 @@
             ],
             "description": "Symfony Translation Component",
             "homepage": "https://symfony.com",
+<<<<<<< HEAD
             "support": {
                 "source": "https://github.com/symfony/translation/tree/3.4"
             },
+=======
+>>>>>>> master
             "funding": [
                 {
                     "url": "https://symfony.com/sponsor",
@@ -5942,9 +6308,12 @@
             ],
             "description": "Symfony Validator Component",
             "homepage": "https://symfony.com",
+<<<<<<< HEAD
             "support": {
                 "source": "https://github.com/symfony/validator/tree/3.4"
             },
+=======
+>>>>>>> master
             "funding": [
                 {
                     "url": "https://symfony.com/sponsor",
@@ -5962,6 +6331,7 @@
             "time": "2020-05-30T18:43:38+00:00"
         },
         {
+<<<<<<< HEAD
             "name": "symfony/var-dumper",
             "version": "v4.4.47",
             "source": {
@@ -6051,6 +6421,8 @@
             "time": "2022-10-03T15:15:11+00:00"
         },
         {
+=======
+>>>>>>> master
             "name": "symfony/yaml",
             "version": "v3.4.41",
             "source": {
@@ -6107,9 +6479,12 @@
             ],
             "description": "Symfony Yaml Component",
             "homepage": "https://symfony.com",
+<<<<<<< HEAD
             "support": {
                 "source": "https://github.com/symfony/yaml/tree/v3.4.41"
             },
+=======
+>>>>>>> master
             "funding": [
                 {
                     "url": "https://symfony.com/sponsor",
@@ -6188,10 +6563,13 @@
             "keywords": [
                 "templating"
             ],
+<<<<<<< HEAD
             "support": {
                 "issues": "https://github.com/twigphp/Twig/issues",
                 "source": "https://github.com/twigphp/Twig/tree/1.x"
             },
+=======
+>>>>>>> master
             "time": "2020-02-11T05:59:23+00:00"
         },
         {
@@ -6242,6 +6620,7 @@
                 "security",
                 "stream-wrapper"
             ],
+<<<<<<< HEAD
             "support": {
                 "issues": "https://github.com/TYPO3/phar-stream-wrapper/issues",
                 "source": "https://github.com/TYPO3/phar-stream-wrapper/tree/master"
@@ -9770,12 +10149,26 @@
     "stability-flags": {
         "pantheon-upstreams/upstream-configuration": 20
     },
+=======
+            "time": "2019-12-10T11:53:27+00:00"
+        }
+    ],
+    "packages-dev": [],
+    "aliases": [],
+    "minimum-stability": "dev",
+    "stability-flags": [],
+>>>>>>> master
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": [],
     "platform-dev": [],
+<<<<<<< HEAD
     "platform-overrides": {
         "php": "7.4"
     },
     "plugin-api-version": "2.3.0"
 }
+=======
+    "plugin-api-version": "1.1.0"
+}
+>>>>>>> master
