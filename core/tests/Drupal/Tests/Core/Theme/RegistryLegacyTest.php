@@ -2,6 +2,7 @@
 
 namespace Drupal\Tests\Core\Theme;
 
+use Drupal\Core\Extension\ModuleExtensionList;
 use Drupal\Core\Theme\ActiveTheme;
 use Drupal\Core\Theme\Registry;
 use Drupal\Tests\UnitTestCase;
@@ -65,6 +66,13 @@ class RegistryLegacyTest extends UnitTestCase {
   protected $themeManager;
 
   /**
+   * The module extension list.
+   *
+   * @var \Drupal\Core\Extension\ModuleExtensionList|\PHPUnit\Framework\MockObject\MockObject
+   */
+  protected $moduleList;
+
+  /**
    * {@inheritdoc}
    */
   protected function setUp(): void {
@@ -76,6 +84,7 @@ class RegistryLegacyTest extends UnitTestCase {
     $this->themeHandler = $this->createMock('Drupal\Core\Extension\ThemeHandlerInterface');
     $this->themeInitialization = $this->createMock('Drupal\Core\Theme\ThemeInitializationInterface');
     $this->themeManager = $this->createMock('Drupal\Core\Theme\ThemeManagerInterface');
+    $this->moduleList = $this->createMock(ModuleExtensionList::class);
 
     $this->setupTheme();
   }
@@ -104,13 +113,19 @@ class RegistryLegacyTest extends UnitTestCase {
 
     // Include the module and theme files so that hook_theme can be called.
     include_once $this->root . '/core/modules/system/tests/modules/theme_legacy_test/theme_legacy_test.module';
-    $this->moduleHandler->expects($this->once())
-      ->method('getImplementations')
+    $this->moduleHandler->expects($this->atLeastOnce())
+      ->method('invokeAllWith')
       ->with('theme')
-      ->will($this->returnValue(['theme_legacy_test']));
+      ->willReturnCallback(function (string $hook, callable $callback) {
+        $callback(function () {}, 'theme_legacy_test');
+      });
     $this->moduleHandler->expects($this->atLeastOnce())
       ->method('getModuleList')
       ->willReturn([]);
+    $this->moduleList->expects($this->once())
+      ->method('getPath')
+      ->with('theme_legacy_test')
+      ->willReturn('core/modules/system/tests/modules/theme_legacy_test');
 
     $registry = $this->registry->get();
 
@@ -132,8 +147,18 @@ class RegistryLegacyTest extends UnitTestCase {
 
   protected function setupTheme() {
     $this->registry = $this->getMockBuilder(Registry::class)
-      ->setMethods(['getPath'])
-      ->setConstructorArgs([$this->root, $this->cache, $this->lock, $this->moduleHandler, $this->themeHandler, $this->themeInitialization])
+      ->onlyMethods(['getPath'])
+      ->setConstructorArgs([
+        $this->root,
+        $this->cache,
+        $this->lock,
+        $this->moduleHandler,
+        $this->themeHandler,
+        $this->themeInitialization,
+        NULL,
+        NULL,
+        $this->moduleList,
+      ])
       ->getMock();
     $this->registry->expects($this->any())
       ->method('getPath')

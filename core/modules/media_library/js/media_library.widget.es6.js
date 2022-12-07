@@ -22,7 +22,7 @@
             $(widget)
               .children()
               .each((index, child) => {
-                $(child).find('.js-media-library-item-weight').val(index);
+                $(child).find('.js-media-library-item-weight')[0].value = index;
               });
           },
         });
@@ -44,25 +44,29 @@
         show: Drupal.t('Show media item weights'),
         hide: Drupal.t('Hide media item weights'),
       };
-      $('.js-media-library-widget-toggle-weight', context)
-        .once('media-library-toggle')
-        .on('click', (e) => {
-          e.preventDefault();
-          $(e.currentTarget)
-            .toggleClass('active')
-            .text(
-              $(e.currentTarget).hasClass('active')
-                ? strings.hide
-                : strings.show,
-            )
-            .closest('.js-media-library-widget')
-            .find('.js-media-library-item-weight')
-            .parent()
-            .toggle();
-        })
-        .text(strings.show);
-      $('.js-media-library-item-weight', context)
-        .once('media-library-toggle')
+      const mediaLibraryToggle = once(
+        'media-library-toggle',
+        '.js-media-library-widget-toggle-weight',
+        context,
+      );
+      $(mediaLibraryToggle).on('click', (e) => {
+        e.preventDefault();
+        const $target = $(e.currentTarget);
+        e.currentTarget.textContent = $target.hasClass('active')
+          ? strings.show
+          : strings.hide;
+        $target
+          .toggleClass('active')
+          .closest('.js-media-library-widget')
+          .find('.js-media-library-item-weight')
+          .parent()
+          .toggle();
+      });
+      mediaLibraryToggle.forEach((item) => {
+        item.textContent = strings.show;
+      });
+
+      $(once('media-library-toggle', '.js-media-library-item-weight', context))
         .parent()
         .hide();
     },
@@ -83,18 +87,20 @@
       // more items, the button needs to be disabled. Since we can't shift the
       // focus to disabled elements, the focus is set back to the open button
       // via JavaScript by adding the 'data-disabled-focus' attribute.
-      $('.js-media-library-open-button[data-disabled-focus="true"]', context)
-        .once('media-library-disable')
-        .each(function () {
-          $(this).focus();
+      once(
+        'media-library-disable',
+        '.js-media-library-open-button[data-disabled-focus="true"]',
+        context,
+      ).forEach((button) => {
+        $(button).focus();
 
-          // There is a small delay between the focus set by the browser and the
-          // focus of screen readers. We need to give screen readers time to
-          // shift the focus as well before the button is disabled.
-          setTimeout(() => {
-            $(this).attr('disabled', 'disabled');
-          }, 50);
-        });
+        // There is a small delay between the focus set by the browser and the
+        // focus of screen readers. We need to give screen readers time to shift
+        // the focus as well before the button is disabled.
+        setTimeout(() => {
+          $(button).attr('disabled', 'disabled');
+        }, 50);
+      });
     },
   };
 })(jQuery, Drupal, Sortable);

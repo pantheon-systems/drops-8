@@ -106,7 +106,7 @@ drupal.nav-tabs:
   dependencies:
     - core/jquery
     - core/drupal
-    - core/jquery.once
+    - core/once
     - core/drupal.debounce
     - core/collapse
 
@@ -116,7 +116,7 @@ drupal.responsive-detail:
     js/responsive-details.js: {}
   dependencies:
     - core/jquery
-    - core/jquery.once
+    - core/once
     - core/collapse
 
 vertical-tabs:
@@ -136,6 +136,12 @@ seven.drupal.dialog:
   css:
     theme:
       css/components/dialog.css: {}
+
+ckeditor-admin:
+  version: VERSION
+  css:
+    theme:
+      css/theme/ckeditor-admin.css: {}
 
 ckeditor-dialog:
   version: VERSION

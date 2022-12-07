@@ -11,13 +11,15 @@ function _nonIterableSpread() { throw new TypeError("Invalid attempt to spread n
 
 function _unsupportedIterableToArray(o, minLen) { if (!o) return; if (typeof o === "string") return _arrayLikeToArray(o, minLen); var n = Object.prototype.toString.call(o).slice(8, -1); if (n === "Object" && o.constructor) n = o.constructor.name; if (n === "Map" || n === "Set") return Array.from(o); if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray(o, minLen); }
 
-function _iterableToArray(iter) { if (typeof Symbol !== "undefined" && Symbol.iterator in Object(iter)) return Array.from(iter); }
+function _iterableToArray(iter) { if (typeof Symbol !== "undefined" && iter[Symbol.iterator] != null || iter["@@iterator"] != null) return Array.from(iter); }
 
 function _arrayWithoutHoles(arr) { if (Array.isArray(arr)) return _arrayLikeToArray(arr); }
 
 function _arrayLikeToArray(arr, len) { if (len == null || len > arr.length) len = arr.length; for (var i = 0, arr2 = new Array(len); i < len; i++) { arr2[i] = arr[i]; } return arr2; }
 
-(function ($, window, Drupal, drupalSettings) {
+(function ($, window, Drupal, drupalSettings, _ref) {
+  var isFocusable = _ref.isFocusable,
+      tabbable = _ref.tabbable;
   Drupal.behaviors.AJAX = {
     attach: function attach(context, settings) {
       function loadAjaxBehavior(base) {
@@ -27,8 +29,8 @@ function _arrayLikeToArray(arr, len) { if (len == null || len > arr.length) len 
           elementSettings.selector = "#".concat(base);
         }
 
-        $(elementSettings.selector).once('drupal-ajax').each(function () {
-          elementSettings.element = this;
+        once('drupal-ajax', $(elementSettings.selector)).forEach(function (el) {
+          elementSettings.element = el;
           elementSettings.base = base;
           Drupal.ajax(elementSettings);
         });
@@ -38,16 +40,16 @@ function _arrayLikeToArray(arr, len) { if (len == null || len > arr.length) len 
         return loadAjaxBehavior(base);
       });
       Drupal.ajax.bindAjaxLinks(document.body);
-      $('.use-ajax-submit').once('ajax').each(function () {
+      once('ajax', '.use-ajax-submit').forEach(function (el) {
         var elementSettings = {};
-        elementSettings.url = $(this.form).attr('action');
+        elementSettings.url = $(el.form).attr('action');
         elementSettings.setClick = true;
         elementSettings.event = 'click';
         elementSettings.progress = {
           type: 'throbber'
         };
-        elementSettings.base = $(this).attr('id');
-        elementSettings.element = this;
+        elementSettings.base = el.id;
+        elementSettings.element = el;
         Drupal.ajax(elementSettings);
       });
     },
@@ -81,7 +83,7 @@ function _arrayLikeToArray(arr, len) { if (len == null || len > arr.length) len 
 
     try {
       statusText = "\n".concat(Drupal.t('StatusText: !statusText', {
-        '!statusText': $.trim(xmlhttp.statusText)
+        '!statusText': xmlhttp.statusText.trim()
       }));
     } catch (e) {}
 
@@ -89,7 +91,7 @@ function _arrayLikeToArray(arr, len) { if (len == null || len > arr.length) len 
 
     try {
       responseText = "\n".concat(Drupal.t('ResponseText: !responseText', {
-        '!responseText': $.trim(xmlhttp.responseText)
+        '!responseText': xmlhttp.responseText.trim()
       }));
     } catch (e) {}
 
@@ -137,7 +139,7 @@ function _arrayLikeToArray(arr, len) { if (len == null || len > arr.length) len 
   };
 
   Drupal.ajax.bindAjaxLinks = function (element) {
-    $(element).find('.use-ajax').once('ajax').each(function (i, ajaxLink) {
+    once('ajax', '.use-ajax', element).forEach(function (ajaxLink) {
       var $linkElement = $(ajaxLink);
       var elementSettings = {
         progress: {
@@ -443,7 +445,7 @@ function _arrayLikeToArray(arr, len) { if (len == null || len > arr.length) len 
       if (response[i].command && _this.commands[response[i].command]) {
         _this.commands[response[i].command](_this, response[i], status);
 
-        if (response[i].command === 'invoke' && response[i].method === 'focus') {
+        if (response[i].command === 'invoke' && response[i].method === 'focus' || response[i].command === 'focusFirst') {
           focusChanged = true;
         }
       }
@@ -626,6 +628,26 @@ function _arrayLikeToArray(arr, len) { if (len == null || len > arr.length) len 
     data: function data(ajax, response, status) {
       $(response.selector).data(response.name, response.value);
     },
+    focusFirst: function focusFirst(ajax, response, status) {
+      var focusChanged = false;
+      var container = document.querySelector(response.selector);
+
+      if (container) {
+        var tabbableElements = tabbable(container);
+
+        if (tabbableElements.length) {
+          tabbableElements[0].focus();
+          focusChanged = true;
+        } else if (isFocusable(container)) {
+          container.focus();
+          focusChanged = true;
+        }
+      }
+
+      if (ajax.hasOwnProperty('element') && !focusChanged) {
+        ajax.element.focus();
+      }
+    },
     invoke: function invoke(ajax, response, status) {
       var $element = $(response.selector);
       $element[response.method].apply($element, _toConsumableArray(response.args));
@@ -634,7 +656,9 @@ function _arrayLikeToArray(arr, len) { if (len == null || len > arr.length) len 
       $(response.selector).find('> tbody > tr:visible, > tr:visible').removeClass('odd even').filter(':even').addClass('odd').end().filter(':odd').addClass('even');
     },
     update_build_id: function update_build_id(ajax, response, status) {
-      $("input[name=\"form_build_id\"][value=\"".concat(response.old, "\"]")).val(response.new);
+      document.querySelectorAll("input[name=\"form_build_id\"][value=\"".concat(response.old, "\"]")).forEach(function (item) {
+        item.value = response.new;
+      });
     },
     add_css: function add_css(ajax, response, status) {
       $('head').prepend(response.data);
@@ -649,4 +673,4 @@ function _arrayLikeToArray(arr, len) { if (len == null || len > arr.length) len 
       messages.add(response.message, response.messageOptions);
     }
   };
-})(jQuery, window, Drupal, drupalSettings);
+})(jQuery, window, Drupal, drupalSettings, window.tabbable);

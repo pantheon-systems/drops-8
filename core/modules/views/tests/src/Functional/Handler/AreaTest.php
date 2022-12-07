@@ -34,8 +34,8 @@ class AreaTest extends ViewTestBase {
    */
   protected $defaultTheme = 'stark';
 
-  protected function setUp($import_test_views = TRUE): void {
-    parent::setUp($import_test_views);
+  protected function setUp($import_test_views = TRUE, $modules = ['views_test_config']): void {
+    parent::setUp($import_test_views, $modules);
 
     $this->enableViewsTestModule();
   }
@@ -69,14 +69,16 @@ class AreaTest extends ViewTestBase {
       $edit_path = 'admin/structure/views/nojs/handler/test_example_area/default/' . $type . '/test_example';
 
       // First setup an empty label.
-      $this->drupalPostForm($edit_path, [], 'Apply');
-      $this->assertText('Test Example area');
+      $this->drupalGet($edit_path);
+      $this->submitForm([], 'Apply');
+      $this->assertSession()->pageTextContains('Test Example area');
 
       // Then setup a no empty label.
       $labels[$type] = $this->randomMachineName();
-      $this->drupalPostForm($edit_path, ['options[admin_label]' => $labels[$type]], 'Apply');
+      $this->drupalGet($edit_path);
+      $this->submitForm(['options[admin_label]' => $labels[$type]], 'Apply');
       // Make sure that the new label appears on the site.
-      $this->assertText($labels[$type]);
+      $this->assertSession()->pageTextContains($labels[$type]);
 
       // Test that the settings (empty/admin_label) are accessible.
       $this->drupalGet($edit_path);
@@ -173,8 +175,7 @@ class AreaTest extends ViewTestBase {
     $this->drupalGet('admin/structure/views/nojs/handler/test_example_area/default/empty/test_example');
 
     // Test that the list is token present.
-    $element = $this->xpath('//ul[@class="global-tokens"]');
-    $this->assertNotEmpty($element, 'Token list found on the options form.');
+    $this->assertSession()->elementExists('xpath', '//ul[@class="global-tokens"]');
 
     $empty_handler = &$view->empty['test_example'];
 
@@ -186,7 +187,7 @@ class AreaTest extends ViewTestBase {
 
       // Test that each item exists in the list.
       foreach ($available[$type] as $token => $info) {
-        $this->assertText("[$type:$token]");
+        $this->assertSession()->pageTextContains("[$type:$token]");
       }
     }
 
@@ -223,7 +224,7 @@ class AreaTest extends ViewTestBase {
     $view->storage->enable()->save();
 
     $this->drupalGet('node');
-    $this->assertText('Overridden title', 'Overridden title found.');
+    $this->assertSession()->pageTextContains('Overridden title');
   }
 
 }

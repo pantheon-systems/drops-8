@@ -68,6 +68,7 @@ class UrlHelperTest extends TestCase {
       'john%20doe:secret:foo@example.org/',
       'example.org/~,$\'*;',
       'caf%C3%A9.example.org',
+      // cspell:ignore FEDC
       '[FEDC:BA98:7654:3210:FEDC:BA98:7654:3210]:80/index.html',
     ];
 
@@ -448,6 +449,8 @@ class UrlHelperTest extends TestCase {
    *   Expected escaped value.
    * @param array $protocols
    *   Protocols to allow.
+   *
+   * @runInSeparateProcess
    */
   public function testFilterBadProtocol($uri, $expected, $protocols) {
     UrlHelper::setAllowedProtocols($protocols);
@@ -487,6 +490,8 @@ class UrlHelperTest extends TestCase {
    *   Expected escaped value.
    * @param array $protocols
    *   Protocols to allow.
+   *
+   * @runInSeparateProcess
    */
   public function testStripDangerousProtocols($uri, $expected, $protocols) {
     UrlHelper::setAllowedProtocols($protocols);
@@ -552,7 +557,7 @@ class UrlHelperTest extends TestCase {
   }
 
   /**
-   * Test detecting external urls that point to local resources.
+   * Tests detecting external urls that point to local resources.
    *
    * @param string $url
    *   The external url to test.
@@ -607,7 +612,7 @@ class UrlHelperTest extends TestCase {
   }
 
   /**
-   * Test invalid url arguments.
+   * Tests invalid url arguments.
    *
    * @param string $url
    *   The url to test.

@@ -30,7 +30,7 @@ services:
       - { name: theme_negotiator, priority: 1000 }
   theme.negotiator.system.db_update:
     class: Drupal\system\Theme\DbUpdateNegotiator
-    arguments: ['@config.factory']
+    arguments: ['@config.factory', '@theme_handler']
     tags:
       - { name: theme_negotiator, priority: 100 }
   system.config_subscriber:
@@ -46,5 +46,21 @@ services:
   system.timezone_resolver:
     class: Drupal\system\TimeZoneResolver
     arguments: ['@current_user', '@config.factory']
+    tags:
+      - { name: event_subscriber }
+  system.file_event.subscriber:
+    class: Drupal\system\EventSubscriber\SecurityFileUploadEventSubscriber
+    arguments: ['@config.factory']
+    tags:
+      - { name: event_subscriber }
+  logger.channel.system:
+    parent: logger.channel_base
+    arguments: ['system']
+  system.sa_fetcher:
+    class: Drupal\system\SecurityAdvisories\SecurityAdvisoriesFetcher
+    arguments: ['@config.factory', '@keyvalue.expirable', '@http_client', '@extension.list.module', '@extension.list.theme', '@extension.list.profile', '@logger.channel.system', '@settings']
+  system.advisories_config_subscriber:
+    class: Drupal\system\EventSubscriber\AdvisoriesConfigSubscriber
+    arguments: ['@system.sa_fetcher']
     tags:
       - { name: event_subscriber }

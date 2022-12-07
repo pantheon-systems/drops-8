@@ -3,8 +3,7 @@
 namespace Drupal\Core\Password;
 
 /**
- * Secure password hashing functions based on the Portable PHP password
- * hashing framework.
+ * Secure hashing functions based on Portable PHP password hashing framework.
  *
  * @see http://www.openwall.com/phpass/
  */
@@ -167,9 +166,9 @@ class PhpassHashedPassword implements PasswordInterface {
       return FALSE;
     }
     $count_log2 = $this->getCountLog2($setting);
-    // Stored hashes may have been crypted with any iteration count. However we
-    // do not allow applying the algorithm for unreasonable low and high values
-    // respectively.
+    // Stored hashes may have been encrypted with any iteration count. However
+    // we do not allow applying the algorithm for unreasonable low and high
+    // values respectively.
     if ($count_log2 != $this->enforceLog2Boundaries($count_log2)) {
       return FALSE;
     }

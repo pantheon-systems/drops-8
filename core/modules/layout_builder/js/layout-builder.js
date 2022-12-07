@@ -18,12 +18,11 @@
       var $filterLinks = $categories.find('.js-layout-builder-block-link');
 
       var filterBlockList = function filterBlockList(e) {
-        var query = $(e.target).val().toLowerCase();
+        var query = e.target.value.toLowerCase();
 
         var toggleBlockEntry = function toggleBlockEntry(index, link) {
-          var $link = $(link);
-          var textMatch = $link.text().toLowerCase().indexOf(query) !== -1;
-          $link.toggle(textMatch);
+          var textMatch = link.textContent.toLowerCase().indexOf(query) !== -1;
+          $(link).toggle(textMatch);
         };
 
         if (query.length >= 2) {
@@ -42,7 +41,7 @@
         }
       };
 
-      $('input.js-layout-builder-filter', context).once('block-filter-text').on('keyup', debounce(filterBlockList, 200));
+      $(once('block-filter-text', 'input.js-layout-builder-filter', context)).on('keyup', debounce(filterBlockList, 200));
     }
   };
 

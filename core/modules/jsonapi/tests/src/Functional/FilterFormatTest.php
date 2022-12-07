@@ -10,7 +10,7 @@ use Drupal\filter\Entity\FilterFormat;
  *
  * @group jsonapi
  */
-class FilterFormatTest extends ResourceTestBase {
+class FilterFormatTest extends ConfigEntityResourceTestBase {
 
   /**
    * {@inheritdoc}
@@ -120,6 +120,7 @@ class FilterFormatTest extends ResourceTestBase {
    */
   protected function getPostDocument() {
     // @todo Update in https://www.drupal.org/node/2300677.
+    return [];
   }
 
 }

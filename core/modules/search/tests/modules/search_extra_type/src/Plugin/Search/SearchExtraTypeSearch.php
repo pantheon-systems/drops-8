@@ -26,6 +26,7 @@ class SearchExtraTypeSearch extends ConfigurableSearchPluginBase {
       $parameters['search_conditions'] = '';
     }
     parent::setSearch($keywords, $parameters, $attributes);
+    return $this;
   }
 
   /**
@@ -99,7 +100,7 @@ class SearchExtraTypeSearch extends ConfigurableSearchPluginBase {
       '#type' => 'select',
       '#title' => t('Boost method'),
       '#options' => [
-        'bi' => t('Bistromathic'),
+        'bi' => t('Bistro mathematics'),
         'ii' => t('Infinite Improbability'),
       ],
       '#default_value' => $this->configuration['boost'],

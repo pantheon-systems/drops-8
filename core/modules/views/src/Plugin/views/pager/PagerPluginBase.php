@@ -43,7 +43,7 @@ abstract class PagerPluginBase extends PluginBase {
    * most pagers will not need to override this method.
    */
   public function getItemsPerPage() {
-    return isset($this->options['items_per_page']) ? $this->options['items_per_page'] : 0;
+    return $this->options['items_per_page'] ?? 0;
   }
 
   /**
@@ -62,7 +62,7 @@ abstract class PagerPluginBase extends PluginBase {
    * so few pagers will need to override this method.
    */
   public function getOffset() {
-    return isset($this->options['offset']) ? $this->options['offset'] : 0;
+    return $this->options['offset'] ?? 0;
   }
 
   /**
@@ -108,16 +108,16 @@ abstract class PagerPluginBase extends PluginBase {
    * Get the pager id, if it exists.
    */
   public function getPagerId() {
-    return isset($this->options['id']) ? $this->options['id'] : 0;
+    return $this->options['id'] ?? 0;
   }
 
   /**
-   * Provide the default form form for validating options.
+   * Provide the default form for validating options.
    */
   public function validateOptionsForm(&$form, FormStateInterface $form_state) {}
 
   /**
-   * Provide the default form form for submitting options.
+   * Provide the default form for submitting options.
    */
   public function submitOptionsForm(&$form, FormStateInterface $form_state) {}
 

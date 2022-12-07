@@ -44,10 +44,16 @@ class DbLogTest extends KernelTestBase {
     $this->assertGreaterThan($row_limit, $count, new FormattableMarkup('Dblog row count of @count exceeds row limit of @limit', ['@count' => $count, '@limit' => $row_limit]));
 
     // Get the number of enabled modules. Cron adds a log entry for each module.
-    $list = $this->container->get('module_handler')->getImplementations('cron');
-    $module_count = count($list);
+    $implementation_count = 0;
+    \Drupal::moduleHandler()->invokeAllWith(
+      'cron',
+      function (callable $hook, string $module) use (&$implementation_count) {
+        $implementation_count++;
+      }
+    );
+
     $cron_detailed_count = $this->runCron();
-    $this->assertEquals($module_count + 2, $cron_detailed_count, new FormattableMarkup('Cron added @count of @expected new log entries', ['@count' => $cron_detailed_count, '@expected' => $module_count + 2]));
+    $this->assertEquals($implementation_count + 2, $cron_detailed_count, new FormattableMarkup('Cron added @count of @expected new log entries', ['@count' => $cron_detailed_count, '@expected' => $implementation_count + 2]));
 
     // Test disabling of detailed cron logging.
     $this->config('system.cron')->set('logging', 0)->save();
@@ -67,7 +73,7 @@ class DbLogTest extends KernelTestBase {
     // reliably add the number of newly created log entries to the current count
     // to measure number of log entries created by cron.
     $query = $connection->select('watchdog');
-    $query->addExpression('MAX(wid)');
+    $query->addExpression('MAX([wid])');
     $last_id = $query->execute()->fetchField();
 
     // Run a cron job.
@@ -75,7 +81,7 @@ class DbLogTest extends KernelTestBase {
 
     // Get last ID after cron was run.
     $query = $connection->select('watchdog');
-    $query->addExpression('MAX(wid)');
+    $query->addExpression('MAX([wid])');
     $current_id = $query->execute()->fetchField();
 
     return $current_id - $last_id;

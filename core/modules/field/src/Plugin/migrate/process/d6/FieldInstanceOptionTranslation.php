@@ -20,7 +20,7 @@ class FieldInstanceOptionTranslation extends ProcessPluginBase {
    * {@inheritdoc}
    */
   public function transform($value, MigrateExecutableInterface $migrate_executable, Row $row, $destination_property) {
-    list($field_type, $global_settings) = $value;
+    [$field_type, $global_settings] = $value;
 
     $option_key = 0;
     $translation = '';
@@ -34,7 +34,7 @@ class FieldInstanceOptionTranslation extends ProcessPluginBase {
           for ($i = 0; $i < 2; $i++) {
             $value = $list[$i];
             $tmp = explode("|", $value);
-            $original_option_key = isset($tmp[0]) ? $tmp[0] : NULL;
+            $original_option_key = $tmp[0] ?? NULL;
             $option_key = ($i === 0) ? 'off_label' : 'on_label';
             // Find property with name matching the original option.
             if ($option == $original_option_key) {

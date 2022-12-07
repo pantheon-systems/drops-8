@@ -1,23 +1,32 @@
 {
   "extends": "stylelint-config-standard",
   "plugins": [
-    "stylelint-no-browser-hacks/lib",
     "stylelint-order"
   ],
   "rules": {
+    "alpha-value-notation": "number",
+    "at-rule-no-vendor-prefix": null,
+    "color-function-notation": "legacy",
     "comment-empty-line-before": null,
+    "custom-property-pattern": "^[a-z][-_a-z0-9IE]*$",
+    "declaration-block-no-redundant-longhand-properties": null,
     "function-linear-gradient-no-nonstandard-direction": null,
+    "function-url-quotes": null,
     "function-whitespace-after": null,
+    "hue-degree-notation": "number",
     "no-descending-specificity": null,
     "no-duplicate-selectors": null,
     "no-unknown-animations": true,
+    "max-line-length": null,
     "media-feature-name-no-unknown": [true, {
       "ignoreMediaFeatureNames": [
         "prefers-reduced-motion",
         "min--moz-device-pixel-ratio"
       ]
     }],
+    "media-feature-name-no-vendor-prefix": null,
     "number-leading-zero": "always",
+    "number-max-precision": 5,
     "order/order": [
       "custom-properties",
       "dollar-variables",
@@ -445,28 +454,25 @@
       "font-smooth",
       "line-height"
     ],
-    "plugin/no-browser-hacks": [true, {
-      "browsers": [
-        "ie >= 9",
-        "edge >= 13",
-        "firefox >= 5",
-        "opera >= 12",
-        "safari >= 5",
-        "chrome >= 56"
-      ]
-    }],
     "property-no-unknown": null,
+    "property-no-vendor-prefix": null,
     "rule-empty-line-before": null,
+    "selector-attribute-quotes": null,
+    "selector-class-pattern": null,
+    "selector-id-pattern": "^[a-z][-_a-z0-9]*$",
+    "selector-no-vendor-prefix": null,
     "selector-pseudo-element-colon-notation": null,
     "shorthand-property-no-redundant-values": null,
     "string-quotes": "double",
-    "unit-allowed-list": ["deg", "em", "ex", "fr", "ms", "rem", "%", "s", "px", "vw", "vh"],
+    "unit-allowed-list": ["ch", "deg", "em", "ex", "fr", "ms", "rem", "%", "s", "px", "vw", "vh"],
     "value-keyword-case": ["lower", {
+      "camelCaseSvgKeywords": true,
       "ignoreProperties": [
         "--font-family",
         "font-family"
       ]
-    }]
+    }],
+    "value-no-vendor-prefix": null
   },
   "ignoreFiles": [
     "assets/vendor/**/*.css",

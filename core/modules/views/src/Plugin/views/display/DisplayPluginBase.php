@@ -439,7 +439,6 @@ abstract class DisplayPluginBase extends PluginBase implements DisplayPluginInte
     // If the display cannot use a pager, then we cannot default it.
     if (!$this->usesPager()) {
       unset($sections['pager']);
-      unset($sections['items_per_page']);
     }
 
     foreach ($this->extenders as $extender) {
@@ -806,7 +805,7 @@ abstract class DisplayPluginBase extends PluginBase implements DisplayPluginInte
     // Query plugins allow specifying a specific query class per base table.
     if ($type == 'query') {
       $views_data = Views::viewsData()->get($this->view->storage->get('base_table'));
-      $name = isset($views_data['table']['base']['query_id']) ? $views_data['table']['base']['query_id'] : 'views_query';
+      $name = $views_data['table']['base']['query_id'] ?? 'views_query';
     }
     else {
       $name = $options['type'];
@@ -2205,9 +2204,9 @@ abstract class DisplayPluginBase extends PluginBase implements DisplayPluginInte
     $cache = $this->getPlugin('cache');
 
     (new CacheableMetadata())
-      ->setCacheTags(Cache::mergeTags($this->view->getCacheTags(), isset($this->display['cache_metadata']['tags']) ? $this->display['cache_metadata']['tags'] : []))
-      ->setCacheContexts(isset($this->display['cache_metadata']['contexts']) ? $this->display['cache_metadata']['contexts'] : [])
-      ->setCacheMaxAge(Cache::mergeMaxAges($cache->getCacheMaxAge(), isset($this->display['cache_metadata']['max-age']) ? $this->display['cache_metadata']['max-age'] : Cache::PERMANENT))
+      ->setCacheTags(Cache::mergeTags($this->view->getCacheTags(), $this->display['cache_metadata']['tags'] ?? []))
+      ->setCacheContexts($this->display['cache_metadata']['contexts'] ?? [])
+      ->setCacheMaxAge(Cache::mergeMaxAges($cache->getCacheMaxAge(), $this->display['cache_metadata']['max-age'] ?? Cache::PERMANENT))
       ->merge(CacheableMetadata::createFromRenderArray($element))
       ->applyTo($element);
   }
@@ -2232,7 +2231,7 @@ abstract class DisplayPluginBase extends PluginBase implements DisplayPluginInte
     $element['#feed_icons'] = !empty($view->feedIcons) ? $view->feedIcons : [];
 
     if ($view->display_handler->renderPager()) {
-      $exposed_input = isset($view->exposed_raw_input) ? $view->exposed_raw_input : NULL;
+      $exposed_input = $view->exposed_raw_input ?? NULL;
       $element['#pager'] = $view->renderPager($exposed_input);
     }
 
@@ -2410,6 +2409,12 @@ abstract class DisplayPluginBase extends PluginBase implements DisplayPluginInte
       // Places like \Drupal\views\ViewExecutable::setCurrentPage() set up an
       // additional cache context.
       $this->view->element['#cache']['keys'] = array_merge(['views', 'display', $this->view->element['#name'], $this->view->element['#display_id']], $this->view->element['#cache']['keys']);
+
+      // Add arguments to the cache key.
+      if ($args) {
+        $this->view->element['#cache']['keys'][] = 'args';
+        $this->view->element['#cache']['keys'][] = implode(',', $args);
+      }
     }
     else {
       // Remove the cache keys, to ensure render caching is not triggered. We
@@ -2514,7 +2519,7 @@ abstract class DisplayPluginBase extends PluginBase implements DisplayPluginInte
     // Check for missing relationships.
     $relationships = array_keys($this->getHandlers('relationship'));
     foreach (ViewExecutable::getHandlerTypes() as $type => $handler_type_info) {
-      foreach ($this->getHandlers($type) as $handler_id => $handler) {
+      foreach ($this->getHandlers($type) as $handler) {
         if (!empty($handler->options['relationship']) && $handler->options['relationship'] != 'none' && !in_array($handler->options['relationship'], $relationships)) {
           $errors[] = $this->t('The %handler_type %handler uses a relationship that has been removed.', ['%handler_type' => $handler_type_info['lstitle'], '%handler' => $handler->adminLabel()]);
         }

@@ -15,12 +15,14 @@ use Laminas\Diactoros\Response\HtmlResponse;
  */
 class TestControllers {
 
+  const LONG_TEXT = 'This is text long enough to trigger Apache mod_deflate to add a `vary: accept-encoding` header to the response.';
+
   public function test() {
     return new Response('test');
   }
 
   public function test1() {
-    return new Response('test1');
+    return new Response(self::LONG_TEXT);
   }
 
   public function test2() {
@@ -65,7 +67,7 @@ class TestControllers {
   }
 
   /**
-   * Test controller for ExceptionHandlingTest::testBacktraceEscaping().
+   * Tests controller for ExceptionHandlingTest::testBacktraceEscaping().
    *
    * Passes unsafe HTML as an argument to a method which throws an exception.
    * This can be used to test if the generated backtrace is properly escaped.

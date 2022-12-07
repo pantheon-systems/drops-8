@@ -41,7 +41,7 @@ const SIMPLETEST_SCRIPT_EXIT_FAILURE = 1;
 const SIMPLETEST_SCRIPT_EXIT_EXCEPTION = 2;
 
 // Set defaults and get overrides.
-list($args, $count) = simpletest_script_parse_args();
+[$args, $count] = simpletest_script_parse_args();
 
 if ($args['help'] || $count == 0) {
   simpletest_script_help();
@@ -67,7 +67,7 @@ if ($args['list']) {
   echo "\nAvailable test groups & classes\n";
   echo "-------------------------------\n\n";
   $test_discovery = new TestDiscovery(
-    \Drupal::service('app.root'),
+    \Drupal::root(),
     \Drupal::service('class_loader')
   );
   try {
@@ -100,7 +100,7 @@ if ($args['list']) {
 if ($args['list-files'] || $args['list-files-json']) {
   // List all files which could be run as tests.
   $test_discovery = new TestDiscovery(
-    \Drupal::service('app.root'),
+    \Drupal::root(),
     \Drupal::service('class_loader')
   );
   // TestDiscovery::findAllClassFiles() gives us a classmap similar to a
@@ -276,11 +276,13 @@ All arguments are long options.
 
   --class     Run tests identified by specific class names, instead of group names.
               A specific test method can be added, for example,
-              'Drupal\book\Tests\BookTest::testBookExport'.
+              'Drupal\book\Tests\BookTest::testBookExport'. This argument must
+              be last on the command line.
 
   --file      Run tests identified by specific file names, instead of group names.
               Specify the path and the extension
-              (i.e. 'core/modules/user/user.test').
+              (i.e. 'core/modules/user/user.test'). This argument must be last
+              on the command line.
 
   --types
 
@@ -465,7 +467,7 @@ function simpletest_script_init() {
   elseif ($sudo = getenv('SUDO_COMMAND')) {
     // 'SUDO_COMMAND' is an environment variable set by the sudo program.
     // Extract only the PHP interpreter, not the rest of the command.
-    list($php) = explode(' ', $sudo, 2);
+    [$php] = explode(' ', $sudo, 2);
   }
   else {
     simpletest_script_print_error('Unable to automatically determine the path to the PHP interpreter. Supply the --php command line argument.');
@@ -478,7 +480,7 @@ function simpletest_script_init() {
   // using the presence of 'drupalci' in the sqlite argument.
   // @todo https://www.drupal.org/project/drupalci_testbot/issues/2860941 Use
   //   better environment variable to detect DrupalCI.
-  if (!$args['execute-test'] && preg_match('/drupalci/', $args['sqlite'])) {
+  if (!$args['execute-test'] && preg_match('/drupalci/', $args['sqlite'] ?? '')) {
     // Update PHPUnit if needed and possible. There is a later check once the
     // autoloader is in place to ensure we're on the correct version. We need to
     // do this before the autoloader is in place to ensure that it is correct.
@@ -498,7 +500,7 @@ function simpletest_script_init() {
     $parsed_url = parse_url($args['url']);
     $host = $parsed_url['host'] . (isset($parsed_url['port']) ? ':' . $parsed_url['port'] : '');
     $path = isset($parsed_url['path']) ? rtrim(rtrim($parsed_url['path']), '/') : '';
-    $port = (isset($parsed_url['port']) ? $parsed_url['port'] : $port);
+    $port = $parsed_url['port'] ?? $port;
     if ($path == '/') {
       $path = '';
     }
@@ -642,9 +644,7 @@ function simpletest_script_setup_database($new = FALSE) {
     $databases['test-runner']['default'] = [
       'driver' => 'sqlite',
       'database' => $sqlite,
-      'prefix' => [
-        'default' => '',
-      ],
+      'prefix' => '',
     ];
     // Create the test runner SQLite database, unless it exists already.
     if ($new && !file_exists($sqlite)) {
@@ -824,7 +824,7 @@ function simpletest_script_run_one_test($test_id, $test_class) {
     // tests and that none ran.
     $status = SIMPLETEST_SCRIPT_EXIT_SUCCESS;
     if (strpos($test_class, '::') > 0) {
-      list($class_name, $method) = explode('::', $test_class, 2);
+      [$class_name, $method] = explode('::', $test_class, 2);
       $methods = [$method];
     }
     else {
@@ -1024,7 +1024,7 @@ function simpletest_script_get_test_list() {
   global $args;
 
   $test_discovery = new TestDiscovery(
-    \Drupal::service('app.root'),
+    \Drupal::root(),
     \Drupal::service('class_loader')
   );
   $types_processed = empty($args['types']);
@@ -1048,7 +1048,7 @@ function simpletest_script_get_test_list() {
     if ($args['class']) {
       $test_list = [];
       foreach ($args['test_names'] as $test_class) {
-        list($class_name) = explode('::', $test_class, 2);
+        [$class_name] = explode('::', $test_class, 2);
         if (class_exists($class_name)) {
           $test_list[] = $test_class;
         }
@@ -1135,11 +1135,12 @@ function simpletest_script_get_test_list() {
         simpletest_script_print_alternatives($first_group, $all_groups);
         exit(SIMPLETEST_SCRIPT_EXIT_FAILURE);
       }
-      // Ensure our list of tests contains only one entry for each test.
+      // Merge the tests from the groups together.
       foreach ($args['test_names'] as $group_name) {
-        $test_list = array_merge($test_list, array_flip(array_keys($groups[$group_name])));
+        $test_list = array_merge($test_list, array_keys($groups[$group_name]));
       }
-      $test_list = array_flip($test_list);
+      // Ensure our list of tests contains only one entry for each test.
+      $test_list = array_unique($test_list);
     }
   }
 
@@ -1264,7 +1265,7 @@ function simpletest_script_reporter_write_xml_results() {
       $case = $dom_document->createElement('testcase');
       $case->setAttribute('classname', $test_class);
       if (strpos($result->function, '->') !== FALSE) {
-        list($class, $name) = explode('->', $result->function, 2);
+        [$class, $name] = explode('->', $result->function, 2);
       }
       else {
         $name = $result->function;
@@ -1311,7 +1312,7 @@ function simpletest_script_reporter_write_xml_results() {
 function simpletest_script_reporter_timer_stop() {
   echo "\n";
   $end = Timer::stop('run-tests');
-  echo "Test run duration: " . \Drupal::service('date.formatter')->formatInterval($end['time'] / 1000);
+  echo "Test run duration: " . \Drupal::service('date.formatter')->formatInterval((int) ($end['time'] / 1000));
   echo "\n\n";
 }
 
@@ -1493,7 +1494,7 @@ function simpletest_script_load_messages_by_test_id($test_ids) {
   foreach ($test_id_chunks as $test_id_chunk) {
     try {
       $result_chunk = Database::getConnection('default', 'test-runner')
-        ->query("SELECT * FROM {simpletest} WHERE test_id IN ( :test_ids[] ) ORDER BY test_class, message_id", [
+        ->query("SELECT * FROM {simpletest} WHERE [test_id] IN ( :test_ids[] ) ORDER BY [test_class], [message_id]", [
           ':test_ids[]' => $test_id_chunk,
         ])->fetchAll();
     }

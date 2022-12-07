@@ -264,11 +264,13 @@ class RendererTest extends RendererTestBase {
       '#attributes' => ['class' => ['baz']],
     ];
     $setup_code_type_link = function () {
-      $this->setupThemeContainer();
-      $this->themeManager->expects($this->at(0))
+      $this->themeManager->expects($this->exactly(2))
         ->method('render')
-        ->with('common_test_foo', $this->anything())
+        ->with($this->logicalOr('common_test_foo', 'container'))
         ->willReturnCallback(function ($theme, $vars) {
+          if ($theme == 'container') {
+            return '<div' . (string) (new Attribute($vars['#attributes'])) . '>' . $vars['#children'] . "</div>\n";
+          }
           return $vars['#foo'] . $vars['#bar'];
         });
     };
@@ -289,12 +291,14 @@ class RendererTest extends RendererTestBase {
       '#title' => 'bar',
     ];
     $setup_code_type_link = function () {
-      $this->setupThemeContainer();
-      $this->themeManager->expects($this->at(0))
+      $this->themeManager->expects($this->exactly(2))
         ->method('render')
-        ->with('link', $this->anything())
+        ->with($this->logicalOr('link', 'container'))
         ->willReturnCallback(function ($theme, $vars) {
-          $attributes = new Attribute(['href' => $vars['#url']] + (isset($vars['#attributes']) ? $vars['#attributes'] : []));
+          if ($theme == 'container') {
+            return '<div' . (string) (new Attribute($vars['#attributes'])) . '>' . $vars['#children'] . "</div>\n";
+          }
+          $attributes = new Attribute(['href' => $vars['#url']] + ($vars['#attributes'] ?? []));
           return '<a' . (string) $attributes . '>' . $vars['#title'] . '</a>';
         });
     };
@@ -326,7 +330,12 @@ class RendererTest extends RendererTestBase {
       ],
     ];
     $setup_code = function () {
-      $this->setupThemeContainer($this->any());
+      $this->themeManager->expects($this->exactly(2))
+        ->method('render')
+        ->with('container')
+        ->willReturnCallback(function ($theme, $vars) {
+          return '<div' . (string) (new Attribute($vars['#attributes'])) . '>' . $vars['#children'] . "</div>\n";
+        });
     };
     $data[] = [$build, '<div class="foo"><div class="bar"></div>' . "\n" . '</div>' . "\n", $setup_code];
 
@@ -336,7 +345,12 @@ class RendererTest extends RendererTestBase {
       '#attributes' => ['class' => ['foo']],
     ];
     $setup_code = function () {
-      $this->setupThemeContainerMultiSuggestion($this->any());
+      $this->themeManager->expects($this->once())
+        ->method('render')
+        ->with(['container'])
+        ->willReturnCallback(function ($theme, $vars) {
+          return '<div' . (string) (new Attribute($vars['#attributes'])) . '>' . $vars['#children'] . "</div>\n";
+        });
     };
     $data[] = [$build, '<div class="foo"></div>' . "\n", $setup_code];
 
@@ -493,11 +507,12 @@ class RendererTest extends RendererTestBase {
     $this->assertTrue($elements['#sorted'], "'#sorted' => TRUE was added to the array");
 
     // Pass $elements through \Drupal\Core\Render\Element::children() and
-    // ensure it remains sorted in the correct order. drupal_render() will
-    // return an empty string if used on the same array in the same request.
+    // ensure it remains sorted in the correct order.
+    // \Drupal::service('renderer')->render() will return an empty string if
+    // used on the same array in the same request.
     $children = Element::children($elements);
-    $this->assertTrue(array_shift($children) == 'first', 'Child found in the correct order.');
-    $this->assertTrue(array_shift($children) == 'second', 'Child found in the correct order.');
+    $this->assertSame('first', array_shift($children), 'Child found in the correct order.');
+    $this->assertSame('second', array_shift($children), 'Child found in the correct order.');
   }
 
   /**
@@ -618,7 +633,7 @@ class RendererTest extends RendererTestBase {
 
     $this->renderer->renderPlain($build);
 
-    $this->assertEquals(['languages:language_interface', 'theme', 'user'], $build['#cache']['contexts']);
+    $this->assertEqualsCanonicalizing(['languages:language_interface', 'theme', 'user'], $build['#cache']['contexts']);
   }
 
   /**
@@ -716,10 +731,12 @@ class RendererTest extends RendererTestBase {
    *
    * @param array $build
    *   A render array with either #access or #access_callback.
-   * @param bool $access
+   * @param \Drupal\Core\Access\AccessResultInterface|bool $access
    *   Whether the render array is accessible or not.
+   *
+   * @internal
    */
-  protected function assertAccess($build, $access) {
+  protected function assertAccess(array $build, $access): void {
     $sensitive_content = $this->randomContextValue();
     $build['#markup'] = $sensitive_content;
     if (($access instanceof AccessResultInterface && $access->isAllowed()) || $access === TRUE) {
@@ -728,24 +745,6 @@ class RendererTest extends RendererTestBase {
     else {
       $this->assertSame('', (string) $this->renderer->renderRoot($build));
     }
-  }
-
-  protected function setupThemeContainer($matcher = NULL) {
-    $this->themeManager->expects($matcher ?: $this->at(1))
-      ->method('render')
-      ->with('container', $this->anything())
-      ->willReturnCallback(function ($theme, $vars) {
-        return '<div' . (string) (new Attribute($vars['#attributes'])) . '>' . $vars['#children'] . "</div>\n";
-      });
-  }
-
-  protected function setupThemeContainerMultiSuggestion($matcher = NULL) {
-    $this->themeManager->expects($matcher ?: $this->at(1))
-      ->method('render')
-      ->with(['container'], $this->anything())
-      ->willReturnCallback(function ($theme, $vars) {
-        return '<div' . (string) (new Attribute($vars['#attributes'])) . '>' . $vars['#children'] . "</div>\n";
-      });
   }
 
   /**
@@ -763,7 +762,7 @@ class RendererTest extends RendererTestBase {
       ->willReturn('foobar');
 
     // Test that defaults work.
-    $this->assertEquals($this->renderer->renderRoot($element), 'foobar', 'Defaults work');
+    $this->assertEquals('foobar', $this->renderer->renderRoot($element), 'Defaults work');
   }
 
   /**

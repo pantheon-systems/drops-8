@@ -66,6 +66,9 @@ use Drupal\Core\Url;
  *   in some cases. See also #attached.
  * - #defaults_loaded: (bool) Set to TRUE during rendering when the defaults
  *   for the element #type have been added to the element.
+ * - #value: (mixed) A value that cannot be edited by the user.
+ * - #has_garbage_value: (bool) Internal only. Set to TRUE to indicate that the
+ *   #value property of an element should not be used or processed.
  * - #id: (string) The HTML ID on the element. This is automatically set for
  *   form elements, but not for all render elements; you can override the
  *   default value or add an ID by setting this property.
@@ -323,7 +326,7 @@ abstract class RenderElement extends PluginBase implements ElementInterface {
 
     // Attach JavaScript settings to the element.
     if (isset($element['#ajax']['event'])) {
-      $element['#attached']['library'][] = 'core/jquery.form';
+      $element['#attached']['library'][] = 'core/internal.jquery.form';
       $element['#attached']['library'][] = 'core/drupal.ajax';
 
       $settings = $element['#ajax'];

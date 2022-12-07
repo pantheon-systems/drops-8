@@ -11,12 +11,12 @@ use Drupal\node\Entity\NodeType;
  *
  * @group jsonapi
  */
-class EntityViewDisplayTest extends ResourceTestBase {
+class EntityViewDisplayTest extends ConfigEntityResourceTestBase {
 
   /**
    * {@inheritdoc}
    */
-  protected static $modules = ['node'];
+  protected static $modules = ['node', 'field_ui'];
 
   /**
    * {@inheritdoc}
@@ -127,6 +127,7 @@ class EntityViewDisplayTest extends ResourceTestBase {
    */
   protected function getPostDocument() {
     // @todo Update in https://www.drupal.org/node/2300677.
+    return [];
   }
 
   /**

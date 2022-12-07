@@ -1,0 +1,14 @@
+--- core/lib/Drupal/Core/Database/Driver/mysql/Install/Tasks.php
++++ core/lib/Drupal/Core/Database/Driver/mysql/Install/Tasks.php
+@@ -27,7 +27,10 @@ class Tasks extends InstallTasks {
+    * 10.3.7 is the first stable (GA) release in the 10.3 series.
+    * @see https://mariadb.com/kb/en/changes-improvements-in-mariadb-103/#list-of-all-mariadb-103-releases
+    */
+-  const MARIADB_MINIMUM_VERSION = '10.3.7';
++   // Set the MARIADB version to the one available on Pantheon.
++   // https://github.com/stevector/drupal-9-project/issues/2
++   const MARIADB_MINIMUM_VERSION = '10.0.22';
++   // const MARIADB_MINIMUM_VERSION = '10.3.7';
+ 
+   /**
+    * Minimum required MySQLnd version.

@@ -6,7 +6,6 @@ use Drupal\block_content\Entity\BlockContent;
 use Drupal\block_content\Entity\BlockContentType;
 use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Tests\views\Functional\ViewTestBase;
-use Drupal\views\Tests\ViewTestData;
 
 /**
  * Base class for all block_content tests.
@@ -40,16 +39,12 @@ abstract class BlockContentTestBase extends ViewTestBase {
     'block_content_test_views',
   ];
 
-  protected function setUp($import_test_views = TRUE) {
-    parent::setUp($import_test_views);
+  protected function setUp($import_test_views = TRUE, $modules = ['block_content_test_views']) {
+    parent::setUp($import_test_views, $modules);
     // Ensure the basic bundle exists. This is provided by the standard profile.
     $this->createBlockContentType(['id' => 'basic']);
 
     $this->adminUser = $this->drupalCreateUser($this->permissions);
-
-    if ($import_test_views) {
-      ViewTestData::createTestViews(static::class, ['block_content_test_views']);
-    }
   }
 
   /**
@@ -71,7 +66,7 @@ abstract class BlockContentTestBase extends ViewTestBase {
     if ($block_content = BlockContent::create($values)) {
       $status = $block_content->save();
     }
-    $this->assertEqual($status, SAVED_NEW, new FormattableMarkup('Created block content %info.', ['%info' => $block_content->label()]));
+    $this->assertEquals(SAVED_NEW, $status, new FormattableMarkup('Created block content %info.', ['%info' => $block_content->label()]));
     return $block_content;
   }
 
@@ -103,7 +98,7 @@ abstract class BlockContentTestBase extends ViewTestBase {
     $status = $bundle->save();
     block_content_add_body_field($bundle->id());
 
-    $this->assertEqual($status, SAVED_NEW, new FormattableMarkup('Created block content type %bundle.', ['%bundle' => $bundle->id()]));
+    $this->assertEquals(SAVED_NEW, $status, new FormattableMarkup('Created block content type %bundle.', ['%bundle' => $bundle->id()]));
     return $bundle;
   }
 
