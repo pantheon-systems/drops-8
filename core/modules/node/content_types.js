@@ -4,33 +4,30 @@
 * https://www.drupal.org/node/2815083
 * @preserve
 **/
-
 (function ($, Drupal) {
   Drupal.behaviors.contentTypes = {
     attach: function attach(context) {
       var $context = $(context);
       $context.find('#edit-submission').drupalSetSummary(function (context) {
         var vals = [];
-        vals.push(Drupal.checkPlain($(context).find('#edit-title-label').val()) || Drupal.t('Requires a title'));
+        vals.push(Drupal.checkPlain($(context).find('#edit-title-label')[0].value) || Drupal.t('Requires a title'));
         return vals.join(', ');
       });
       $context.find('#edit-workflow').drupalSetSummary(function (context) {
         var vals = [];
         $(context).find('input[name^="options"]:checked').next('label').each(function () {
-          vals.push(Drupal.checkPlain($(this).text()));
+          vals.push(Drupal.checkPlain(this.textContent));
         });
-
         if (!$(context).find('#edit-options-status').is(':checked')) {
           vals.unshift(Drupal.t('Not published'));
         }
-
         return vals.join(', ');
       });
       $('#edit-language', context).drupalSetSummary(function (context) {
         var vals = [];
-        vals.push($('.js-form-item-language-configuration-langcode select option:selected', context).text());
+        vals.push($('.js-form-item-language-configuration-langcode select option:selected', context)[0].textContent);
         $('input:checked', context).next('label').each(function () {
-          vals.push(Drupal.checkPlain($(this).text()));
+          vals.push(Drupal.checkPlain(this.textContent));
         });
         return vals.join(', ');
       });
@@ -38,13 +35,11 @@
         var vals = [];
         var $editContext = $(context);
         $editContext.find('input:checked').next('label').each(function () {
-          vals.push(Drupal.checkPlain($(this).text()));
+          vals.push(Drupal.checkPlain(this.textContent));
         });
-
         if (!$editContext.find('#edit-display-submitted').is(':checked')) {
           vals.unshift(Drupal.t("Don't display post information"));
         }
-
         return vals.join(', ');
       });
     }

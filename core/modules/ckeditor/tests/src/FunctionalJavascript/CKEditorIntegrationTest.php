@@ -15,6 +15,7 @@ use Drupal\Tests\ckeditor\Traits\CKEditorTestTrait;
  * Tests the integration of CKEditor.
  *
  * @group ckeditor
+ * @group legacy
  */
 class CKEditorIntegrationTest extends WebDriverTestBase {
 
@@ -45,7 +46,14 @@ class CKEditorIntegrationTest extends WebDriverTestBase {
   protected static $modules = ['node', 'ckeditor', 'filter', 'ckeditor_test'];
 
   /**
-   * {@inheritdoc}
+   * The theme to install as the default for testing.
+   *
+   * @var string
+   *
+   * @todo This test's reliance on classes makes Stark a bad fit as a base theme.
+   *   Change the default theme to Starterkit once it is stable.
+   *
+   * @see https://www.drupal.org/project/drupal/issues/3275827
    */
   protected function setUp(): void {
     parent::setUp();
@@ -206,11 +214,11 @@ class CKEditorIntegrationTest extends WebDriverTestBase {
     // not overridden by the off-canvas css reset.
     $assert_session->elementExists('css', '.cke_top');
     $ckeditor_top_bg_color = $this->getSession()->evaluateScript('window.getComputedStyle(document.getElementsByClassName(\'cke_top\')[0]).backgroundColor');
-    $this->assertEqual($ckeditor_top_bg_color, 'rgb(248, 248, 248)');
+    $this->assertEquals('rgb(248, 248, 248)', $ckeditor_top_bg_color);
 
     $assert_session->elementExists('css', '.cke_button__source');
     $ckeditor_source_button_bg_color = $this->getSession()->evaluateScript('window.getComputedStyle(document.getElementsByClassName(\'cke_button__source\')[0]).backgroundColor');
-    $this->assertEqual($ckeditor_source_button_bg_color, 'rgba(0, 0, 0, 0)');
+    $this->assertEquals('rgba(0, 0, 0, 0)', $ckeditor_source_button_bg_color);
 
     // Check that only one off-canvas style is cached in local storage and that
     // it gets updated with the cache-busting query string.
@@ -218,7 +226,7 @@ class CKEditorIntegrationTest extends WebDriverTestBase {
     $old_keys = $this->getSession()->evaluateScript($get_cache_keys);
     // Flush the caches to ensure the new timestamp is altered into the
     // drupal.ckeditor library's javascript settings.
-    drupal_flush_all_caches();
+    $this->resetAll();
     // Normally flushing caches regenerates the cache busting query string, but
     // as it's based on the request time, it won't change within this test so
     // explicitly set it.

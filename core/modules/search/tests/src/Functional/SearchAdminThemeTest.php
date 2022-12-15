@@ -30,7 +30,7 @@ class SearchAdminThemeTest extends BrowserTestBase {
    *
    * @var string
    */
-  protected $adminTheme = 'seven';
+  protected $adminTheme = 'claro';
 
   /**
    * {@inheritdoc}
@@ -93,13 +93,15 @@ class SearchAdminThemeTest extends BrowserTestBase {
    *
    * @param bool $is_admin
    *   TRUE to test for administrative theme, FALSE otherwise.
+   *
+   * @internal
    */
-  protected function assertAdminTheme($is_admin) {
+  protected function assertAdminTheme(bool $is_admin): void {
     if ($is_admin) {
-      $this->assertRaw('core/themes/' . $this->adminTheme);
+      $this->assertSession()->responseContains('core/themes/' . $this->adminTheme);
     }
     else {
-      $this->assertNoRaw('core/themes/' . $this->adminTheme);
+      $this->assertSession()->responseNotContains('core/themes/' . $this->adminTheme);
     }
   }
 

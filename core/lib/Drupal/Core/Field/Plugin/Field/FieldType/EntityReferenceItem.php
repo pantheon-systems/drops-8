@@ -10,6 +10,7 @@ use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Entity\TypedData\EntityDataDefinition;
 use Drupal\Core\Field\FieldDefinitionInterface;
+use Drupal\Core\Field\FieldException;
 use Drupal\Core\Field\FieldItemBase;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Field\PreconfiguredFieldUiOptionsInterface;
@@ -66,6 +67,12 @@ class EntityReferenceItem extends FieldItemBase implements OptionsProviderInterf
   public static function propertyDefinitions(FieldStorageDefinitionInterface $field_definition) {
     $settings = $field_definition->getSettings();
     $target_type_info = \Drupal::entityTypeManager()->getDefinition($settings['target_type']);
+
+    // If the target entity type doesn't have an ID key, we cannot determine
+    // the target_id data type.
+    if (!$target_type_info->hasKey('id')) {
+      throw new FieldException('Entity type "' . $target_type_info->id() . '" has no ID key and cannot be targeted by entity reference field "' . $field_definition->getName() . '"');
+    }
 
     $target_id_data_type = 'string';
     if ($target_type_info->entityClassImplements(FieldableEntityInterface::class)) {
@@ -338,7 +345,7 @@ class EntityReferenceItem extends FieldItemBase implements OptionsProviderInterf
    *   Either the bundle string, or NULL if there is no bundle.
    */
   protected static function getRandomBundle(EntityTypeInterface $entity_type, array $selection_settings) {
-    if ($bundle_key = $entity_type->getKey('bundle')) {
+    if ($entity_type->getKey('bundle')) {
       if (!empty($selection_settings['target_bundles'])) {
         $bundle_ids = $selection_settings['target_bundles'];
       }
@@ -355,14 +362,24 @@ class EntityReferenceItem extends FieldItemBase implements OptionsProviderInterf
   public function storageSettingsForm(array &$form, FormStateInterface $form_state, $has_data) {
     $element['target_type'] = [
       '#type' => 'select',
-      '#title' => t('Type of item to reference'),
-      '#options' => \Drupal::service('entity_type.repository')->getEntityTypeLabels(TRUE),
+      '#title' => $this->t('Type of item to reference'),
       '#default_value' => $this->getSetting('target_type'),
       '#required' => TRUE,
       '#disabled' => $has_data,
       '#size' => 1,
     ];
 
+    // Only allow the field to target entity types that have an ID key. This
+    // is enforced in ::propertyDefinitions().
+    $entity_type_manager = \Drupal::entityTypeManager();
+    $filter = function (string $entity_type_id) use ($entity_type_manager): bool {
+      return $entity_type_manager->getDefinition($entity_type_id)
+        ->hasKey('id');
+    };
+    $options = \Drupal::service('entity_type.repository')->getEntityTypeLabels(TRUE);
+    foreach ($options as $group_name => $group) {
+      $element['target_type']['#options'][$group_name] = array_filter($group, $filter, ARRAY_FILTER_USE_KEY);
+    }
     return $element;
   }
 
@@ -396,7 +413,7 @@ class EntityReferenceItem extends FieldItemBase implements OptionsProviderInterf
     ];
     $form['handler'] = [
       '#type' => 'details',
-      '#title' => t('Reference type'),
+      '#title' => $this->t('Reference type'),
       '#open' => TRUE,
       '#tree' => TRUE,
       '#process' => [[static::class, 'formProcessMergeParent']],
@@ -404,7 +421,7 @@ class EntityReferenceItem extends FieldItemBase implements OptionsProviderInterf
 
     $form['handler']['handler'] = [
       '#type' => 'select',
-      '#title' => t('Reference method'),
+      '#title' => $this->t('Reference method'),
       '#options' => $handlers_options,
       '#default_value' => $field->getSetting('handler'),
       '#required' => TRUE,
@@ -413,7 +430,7 @@ class EntityReferenceItem extends FieldItemBase implements OptionsProviderInterf
     ];
     $form['handler']['handler_submit'] = [
       '#type' => 'submit',
-      '#value' => t('Change handler'),
+      '#value' => $this->t('Change handler'),
       '#limit_validation_errors' => [],
       '#attributes' => [
         'class' => ['js-hide'],
@@ -618,8 +635,9 @@ class EntityReferenceItem extends FieldItemBase implements OptionsProviderInterf
   }
 
   /**
-   * Render API callback: Processes the field settings form and allows access to
-   * the form state.
+   * Render API callback: Processes the field settings form.
+   *
+   * Allows access to the form state.
    *
    * @see static::fieldSettingsForm()
    */

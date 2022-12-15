@@ -24,11 +24,11 @@ class ArgsStub extends EnumStub
 
     public function __construct(array $args, string $function, ?string $class)
     {
-        list($variadic, $params) = self::getParameters($function, $class);
+        [$variadic, $params] = self::getParameters($function, $class);
 
         $values = [];
         foreach ($args as $k => $v) {
-            $values[$k] = !is_scalar($v) && !$v instanceof Stub ? new CutStub($v) : $v;
+            $values[$k] = !\is_scalar($v) && !$v instanceof Stub ? new CutStub($v) : $v;
         }
         if (null === $params) {
             parent::__construct($values, false);

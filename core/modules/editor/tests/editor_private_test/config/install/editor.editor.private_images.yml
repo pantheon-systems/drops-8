@@ -1,24 +1,12 @@
-format: private_images
-status: true
 langcode: en
-editor: ckeditor
-settings:
-  toolbar:
-    rows:
-      -
-        -
-          name: Media
-          items:
-            - DrupalImage
-        -
-          name: Tools
-          items:
-            - Source
-  plugins:
-    language:
-      language_list: un
-    stylescombo:
-      styles: ''
+status: true
+dependencies:
+  config:
+    - filter.format.private_images
+  module:
+    - editor_test
+format: private_images
+editor: unicorn
 image_upload:
   status: true
   scheme: private
@@ -27,8 +15,3 @@ image_upload:
   max_dimensions:
     width: null
     height: null
-dependencies:
-  config:
-    - filter.format.private_images
-  module:
-    - ckeditor

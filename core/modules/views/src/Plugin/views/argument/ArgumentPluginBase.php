@@ -66,9 +66,11 @@ abstract class ArgumentPluginBase extends HandlerBase implements CacheableDepend
   public $name_table;
 
   /**
-   * The field to use for the name to use in the summary, which is
-   * the displayed output. For example, for the node: nid argument,
-   * the argument itself is the nid, but node.title is displayed.
+   * The field to use for the name to display in the summary.
+   *
+   * For example, for the node: nid argument, the argument itself is the nid,
+   * but node.title is displayed.
+   *
    * @var string
    */
   public $name_field;
@@ -89,7 +91,7 @@ abstract class ArgumentPluginBase extends HandlerBase implements CacheableDepend
 
   public function isException($arg = NULL) {
     if (!isset($arg)) {
-      $arg = isset($this->argument) ? $this->argument : NULL;
+      $arg = $this->argument ?? NULL;
     }
     return !empty($this->options['exception']['value']) && $this->options['exception']['value'] === $arg;
   }
@@ -380,8 +382,8 @@ abstract class ArgumentPluginBase extends HandlerBase implements CacheableDepend
 
     foreach ($this->view->display_handler->getHandlers('argument') as $arg => $handler) {
       /** @var \Drupal\views\Plugin\views\argument\ArgumentPluginBase $handler */
-      $options[(string) t('Arguments')]["{{ arguments.$arg }}"] = $this->t('@argument title', ['@argument' => $handler->adminLabel()]);
-      $options[(string) t('Arguments')]["{{ raw_arguments.$arg }}"] = $this->t('@argument input', ['@argument' => $handler->adminLabel()]);
+      $options[(string) $this->t('Arguments')]["{{ arguments.$arg }}"] = $this->t('@argument title', ['@argument' => $handler->adminLabel()]);
+      $options[(string) $this->t('Arguments')]["{{ raw_arguments.$arg }}"] = $this->t('@argument input', ['@argument' => $handler->adminLabel()]);
     }
 
     // We have some options, so make a list.
@@ -491,6 +493,8 @@ abstract class ArgumentPluginBase extends HandlerBase implements CacheableDepend
   }
 
   /**
+   * Default actions.
+   *
    * Provide a list of default behaviors for this argument if the argument
    * is not present.
    *
@@ -701,7 +705,7 @@ abstract class ArgumentPluginBase extends HandlerBase implements CacheableDepend
    *
    * Override this method only with extreme care.
    *
-   * @return
+   * @return bool
    *   A boolean value; if TRUE, continue building this view. If FALSE,
    *   building the view will be aborted here.
    */
@@ -854,9 +858,6 @@ abstract class ArgumentPluginBase extends HandlerBase implements CacheableDepend
    * - addField: add a 'num_nodes' field for the count. Usually it will
    *   be a count on $view->base_field
    * - setCountField: Reset the count field so we get the right paging.
-   *
-   * @return
-   *   The alias used to get the number of records (count) for this entry.
    */
   protected function summaryQuery() {
     $this->ensureMyTable();
@@ -864,7 +865,7 @@ abstract class ArgumentPluginBase extends HandlerBase implements CacheableDepend
     $this->base_alias = $this->query->addField($this->tableAlias, $this->realField);
 
     $this->summaryNameField();
-    return $this->summaryBasics();
+    $this->summaryBasics();
   }
 
   /**
@@ -926,6 +927,9 @@ abstract class ArgumentPluginBase extends HandlerBase implements CacheableDepend
    *
    * @param $order
    *   The order selected in the UI.
+   * @param string|null $by
+   *   (optional) This parameter sets the direction for which to order.
+   *   Defaults to NULL.
    */
   public function summarySort($order, $by = NULL) {
     $this->query->addOrderBy(NULL, NULL, $order, (!empty($by) ? $by : $this->name_alias));
@@ -951,8 +955,8 @@ abstract class ArgumentPluginBase extends HandlerBase implements CacheableDepend
    *   The query results for the row.
    */
   public function summaryName($data) {
-    $value = $data->{$this->name_alias};
-    if (empty($value) && !empty($this->definition['empty field name'])) {
+    $value = (string) $data->{$this->name_alias};
+    if ($value === '' && isset($this->definition['empty field name'])) {
       $value = $this->definition['empty field name'];
     }
     return $value;
@@ -1063,7 +1067,7 @@ abstract class ArgumentPluginBase extends HandlerBase implements CacheableDepend
       $position++;
     }
 
-    $arg = isset($this->view->args[$position]) ? $this->view->args[$position] : NULL;
+    $arg = $this->view->args[$position] ?? NULL;
     $this->position = $position;
 
     // Clone ourselves so that we don't break things when we're really
@@ -1120,7 +1124,7 @@ abstract class ArgumentPluginBase extends HandlerBase implements CacheableDepend
     // we only fetch the options if we're fetching the plugin actually
     // in use.
     if ($name == $plugin_name) {
-      $options = isset($this->options[$options_name]) ? $this->options[$options_name] : [];
+      $options = $this->options[$options_name] ?? [];
     }
 
     $plugin = Views::pluginManager($type)->createInstance($name);
@@ -1168,11 +1172,11 @@ abstract class ArgumentPluginBase extends HandlerBase implements CacheableDepend
           // The key is sanitized in drupal_attributes() during output from the
           // theme function.
           '#return_value' => $key,
-          '#default_value' => isset($element['#default_value']) ? $element['#default_value'] : NULL,
+          '#default_value' => $element['#default_value'] ?? NULL,
           '#attributes' => $element['#attributes'],
           '#parents' => $element['#parents'],
           '#id' => Html::getUniqueId('edit-' . implode('-', $parents_for_id)),
-          '#ajax' => isset($element['#ajax']) ? $element['#ajax'] : NULL,
+          '#ajax' => $element['#ajax'] ?? NULL,
         ];
         $element[$key . '_options'] = [
           '#type' => 'container',

@@ -20,7 +20,7 @@ class ProfileFieldOptionTranslation extends ProcessPluginBase {
    * {@inheritdoc}
    */
   public function transform($value, MigrateExecutableInterface $migrate_executable, Row $row, $destination_property) {
-    list($field_type, $translation) = $value;
+    [$field_type, $translation] = $value;
 
     $new_value = NULL;
     if (isset($translation)) {
@@ -29,7 +29,7 @@ class ProfileFieldOptionTranslation extends ProcessPluginBase {
       $list = array_map('trim', $list);
       $list = array_filter($list, 'strlen');
       if ($field_type === 'list_string') {
-        foreach ($list as $key => $value) {
+        foreach ($list as $value) {
           $allowed_values[] = ['label' => $value];
         }
       }

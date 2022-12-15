@@ -35,11 +35,27 @@ class UnicornEditor extends EditorBase {
    */
   public function buildConfigurationForm(array $form, FormStateInterface $form_state) {
     $form['ponies_too'] = [
-      '#title' => t('Pony mode'),
+      '#title' => $this->t('Pony mode'),
       '#type' => 'checkbox',
       '#default_value' => TRUE,
     ];
+    $form_state->loadInclude('editor', 'admin.inc');
+    $form['image_upload'] = editor_image_upload_settings_form($form_state->get('editor'));
+    $form['image_upload']['#element_validate'][] = [$this, 'validateImageUploadSettings'];
     return $form;
+  }
+
+  /**
+   * #element_validate handler for "image_upload" in buildConfigurationForm().
+   *
+   * Moves the text editor's image upload settings into $editor->image_upload.
+   *
+   * @see editor_image_upload_settings_form()
+   */
+  public function validateImageUploadSettings(array $element, FormStateInterface $form_state) {
+    $settings = &$form_state->getValue(['editor', 'settings', 'image_upload']);
+    $form_state->get('editor')->setImageUploadSettings($settings);
+    $form_state->unsetValue(['editor', 'settings', 'image_upload']);
   }
 
   /**

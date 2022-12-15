@@ -25,6 +25,9 @@ class ArbitraryRebuildTest extends BrowserTestBase {
    */
   protected $defaultTheme = 'stark';
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp(): void {
     parent::setUp();
 
@@ -59,8 +62,9 @@ class ArbitraryRebuildTest extends BrowserTestBase {
       'name' => 'foo',
       'mail' => 'bar@example.com',
     ];
-    $this->drupalPostForm('user/register', $edit, 'Rebuild');
-    $this->assertText('Form rebuilt.');
+    $this->drupalGet('user/register');
+    $this->submitForm($edit, 'Rebuild');
+    $this->assertSession()->pageTextContains('Form rebuilt.');
     $this->assertSession()->fieldValueEquals('name', 'foo');
     $this->assertSession()->fieldValueEquals('mail', 'bar@example.com');
   }
@@ -73,8 +77,9 @@ class ArbitraryRebuildTest extends BrowserTestBase {
       'name' => 'foo',
       'mail' => 'bar@example.com',
     ];
-    $this->drupalPostForm('user/register', $edit, 'Add another item');
-    $this->assertText('Test a multiple valued field', 'Form has been rebuilt.');
+    $this->drupalGet('user/register');
+    $this->submitForm($edit, 'Add another item');
+    $this->assertSession()->pageTextContains('Test a multiple valued field');
     $this->assertSession()->fieldValueEquals('name', 'foo');
     $this->assertSession()->fieldValueEquals('mail', 'bar@example.com');
   }

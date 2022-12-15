@@ -10,7 +10,7 @@ use Drupal\taxonomy\Entity\Vocabulary;
  *
  * @group jsonapi
  */
-class VocabularyTest extends ResourceTestBase {
+class VocabularyTest extends ConfigEntityResourceTestBase {
 
   /**
    * {@inheritdoc}
@@ -100,6 +100,7 @@ class VocabularyTest extends ResourceTestBase {
    */
   protected function getPostDocument() {
     // @todo Update in https://www.drupal.org/node/2300677.
+    return [];
   }
 
   /**

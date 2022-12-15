@@ -1,17 +1,10 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\Tests\block\Unit\BlockRepositoryTest.
- */
-
 namespace Drupal\Tests\block\Unit;
 
 use Drupal\block\BlockRepository;
 use Drupal\Core\Access\AccessResult;
-use Drupal\Core\Block\BlockPluginInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Core\Plugin\ContextAwarePluginInterface;
 use Drupal\Tests\UnitTestCase;
 
 /**
@@ -63,7 +56,7 @@ class BlockRepositoryTest extends UnitTestCase {
     $theme_manager = $this->createMock('Drupal\Core\Theme\ThemeManagerInterface');
     $theme_manager->expects($this->atLeastOnce())
       ->method('getActiveTheme')
-      ->will($this->returnValue($active_theme));
+      ->willReturn($active_theme);
 
     $this->contextHandler = $this->createMock('Drupal\Core\Plugin\Context\ContextHandlerInterface');
     $this->blockStorage = $this->createMock('Drupal\Core\Entity\EntityStorageInterface');
@@ -89,7 +82,7 @@ class BlockRepositoryTest extends UnitTestCase {
       $block = $this->createMock('Drupal\block\BlockInterface');
       $block->expects($this->once())
         ->method('access')
-        ->will($this->returnValue($block_config[0]));
+        ->willReturn($block_config[0]);
       $block->expects($block_config[0] ? $this->atLeastOnce() : $this->never())
         ->method('getRegion')
         ->willReturn($block_config[1]);
@@ -190,7 +183,4 @@ class BlockRepositoryTest extends UnitTestCase {
     $this->assertEquals(['config:block.block.block_id'], $cacheable_metadata['top']->getCacheTags());
   }
 
-}
-
-interface TestContextAwareBlockInterface extends BlockPluginInterface, ContextAwarePluginInterface {
 }

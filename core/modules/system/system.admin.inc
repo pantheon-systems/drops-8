@@ -18,10 +18,11 @@ use Drupal\Core\Url;
  *
  * @param $variables
  *   An associative array containing:
- *   - content: An array containing information about the block. Each element
- *     of the array represents an administrative menu item, and must at least
- *     contain the keys 'title', 'link_path', and 'localized_options', which are
- *     passed to l(). A 'description' key may also be provided.
+ *   - content: List of administrative menu items. Each menu item contains:
+ *     - url: Path to the admin section.
+ *     - title: Short name of the section.
+ *     - description: Description of the administrative menu item.
+ *     - options: URL options. See \Drupal\Core\Url::fromUri() for details.
  */
 function template_preprocess_admin_block_content(&$variables) {
   if (!empty($variables['content'])) {
@@ -87,7 +88,7 @@ function template_preprocess_system_admin_index(&$variables) {
   $stripe = 0;
   // Iterate over all modules.
   foreach ($variables['menu_items'] as $module => $block) {
-    list($description, $items) = $block;
+    [$description, $items] = $block;
     $position = ++$stripe % 2 ? 'left' : 'right';
     // Output links.
     if (count($items)) {
@@ -287,7 +288,7 @@ function template_preprocess_system_themes_page(&$variables) {
       else {
         $current_theme['screenshot'] = [
           '#theme' => 'image',
-          '#uri' => drupal_get_path('module', 'system') . '/images/no_screenshot.png',
+          '#uri' => \Drupal::service('extension.list.module')->getPath('system') . '/images/no_screenshot.png',
           '#alt' => t('No screenshot'),
           '#title' => t('No screenshot'),
           '#attributes' => new Attribute(['class' => ['no-screenshot']]),
@@ -299,7 +300,7 @@ function template_preprocess_system_themes_page(&$variables) {
 
       $current_theme['attributes'] = new Attribute();
       $current_theme['name'] = $theme->info['name'];
-      $current_theme['version'] = isset($theme->info['version']) ? $theme->info['version'] : '';
+      $current_theme['version'] = $theme->info['version'] ?? '';
       $current_theme['notes'] = $theme->notes;
       $current_theme['is_default'] = $theme->is_default;
       $current_theme['is_admin'] = $theme->is_admin;
