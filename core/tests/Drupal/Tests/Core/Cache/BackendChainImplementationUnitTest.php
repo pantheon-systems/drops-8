@@ -43,6 +43,9 @@ class BackendChainImplementationUnitTest extends UnitTestCase {
    */
   protected $thirdBackend;
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp(): void {
     parent::setUp();
 
@@ -81,7 +84,7 @@ class BackendChainImplementationUnitTest extends UnitTestCase {
   }
 
   /**
-   * Test the get feature.
+   * Tests the get feature.
    */
   public function testGet() {
     $cached = $this->chain->get('t123');
@@ -98,7 +101,7 @@ class BackendChainImplementationUnitTest extends UnitTestCase {
   }
 
   /**
-   * Test the get multiple feature.
+   * Tests the get multiple feature.
    */
   public function testGetMultiple() {
     $cids = ['t123', 't23', 't3', 't4'];
@@ -116,7 +119,7 @@ class BackendChainImplementationUnitTest extends UnitTestCase {
   }
 
   /**
-   * Test that set will propagate.
+   * Tests that set will propagate.
    */
   public function testSet() {
     $this->chain->set('test', 123);
@@ -135,7 +138,7 @@ class BackendChainImplementationUnitTest extends UnitTestCase {
   }
 
   /**
-   * Test that delete will propagate.
+   * Tests that delete will propagate.
    */
   public function testDelete() {
     $this->chain->set('test', 5);
@@ -192,7 +195,8 @@ class BackendChainImplementationUnitTest extends UnitTestCase {
   }
 
   /**
-   * Test that the delete all operation is propagated to all backends in the chain.
+   * Tests that the delete all operation is propagated to all backends in the
+   * chain.
    */
   public function testDeleteAllPropagation() {
     // Set both expiring and permanent keys.
@@ -209,7 +213,7 @@ class BackendChainImplementationUnitTest extends UnitTestCase {
   }
 
   /**
-   * Test that the delete tags operation is propagated to all backends
+   * Tests that the delete tags operation is propagated to all backends
    * in the chain.
    */
   public function testDeleteTagsPropagation() {
@@ -286,7 +290,7 @@ class BackendChainImplementationUnitTest extends UnitTestCase {
   }
 
   /**
-   * Test that removing bin propagates to all backends.
+   * Tests that removing bin propagates to all backends.
    */
   public function testRemoveBin() {
     $chain = new BackendChain();

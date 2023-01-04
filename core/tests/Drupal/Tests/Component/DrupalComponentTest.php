@@ -38,9 +38,10 @@ class DrupalComponentTest extends TestCase {
    *
    * @param $component_path
    *   The path to the component.
+   *
    * @dataProvider \Drupal\Tests\Component\DrupalComponentTest::getComponents
    */
-  public function testComponentLicence($component_path) {
+  public function testComponentLicense($component_path) {
     $this->assertFileExists($component_path . DIRECTORY_SEPARATOR . 'LICENSE.txt');
     $this->assertSame('e84dac1d9fbb5a4a69e38654ce644cea769aa76b', hash_file('sha1', $component_path . DIRECTORY_SEPARATOR . 'LICENSE.txt'));
   }
@@ -89,13 +90,15 @@ class DrupalComponentTest extends TestCase {
    *
    * @param string $class_path
    *   The full path to the class that should be checked.
+   *
+   * @internal
    */
-  protected function assertNoCoreUsage($class_path) {
+  protected function assertNoCoreUsage(string $class_path): void {
     $contents = file_get_contents($class_path);
     preg_match_all('/^.*Drupal\\\Core.*$/m', $contents, $matches);
     $matches = array_filter($matches[0], function ($line) {
-      // Filter references to @see as they don't really matter.
-      return strpos($line, '@see') === FALSE;
+      // Filter references that don't really matter.
+      return preg_match('/@see|E_USER_DEPRECATED|expectDeprecation/', $line) === 0;
     });
     $this->assertEmpty($matches, "Checking for illegal reference to 'Drupal\\Core' namespace in $class_path");
   }

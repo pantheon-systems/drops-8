@@ -63,7 +63,7 @@ class NotCompromisedPasswordValidator extends ConstraintValidator
             return;
         }
 
-        if (null !== $value && !is_scalar($value) && !(\is_object($value) && method_exists($value, '__toString'))) {
+        if (null !== $value && !\is_scalar($value) && !(\is_object($value) && method_exists($value, '__toString'))) {
             throw new UnexpectedValueException($value, 'string');
         }
 
@@ -91,7 +91,7 @@ class NotCompromisedPasswordValidator extends ConstraintValidator
         }
 
         foreach (explode("\r\n", $result) as $line) {
-            list($hashSuffix, $count) = explode(':', $line);
+            [$hashSuffix, $count] = explode(':', $line);
 
             if ($hashPrefix.$hashSuffix === $hash && $constraint->threshold <= (int) $count) {
                 $this->context->buildViolation($constraint->message)

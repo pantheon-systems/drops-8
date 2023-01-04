@@ -4,13 +4,12 @@
 * https://www.drupal.org/node/2815083
 * @preserve
 **/
-
 (function ($, Drupal) {
   Drupal.behaviors.commentFieldsetSummaries = {
     attach: function attach(context) {
       var $context = $(context);
       $context.find('fieldset.comment-entity-settings-form').drupalSetSummary(function (context) {
-        return Drupal.checkPlain($(context).find('.js-form-item-comment input:checked').next('label').text());
+        return Drupal.checkPlain($(context).find('.js-form-item-comment input:checked').next('label')[0].textContent);
       });
     }
   };

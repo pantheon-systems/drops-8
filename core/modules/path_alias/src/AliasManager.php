@@ -251,6 +251,10 @@ class AliasManager implements AliasManagerInterface {
    * {@inheritdoc}
    */
   public function cacheClear($source = NULL) {
+    // Note this method does not flush the preloaded path lookup cache. This is
+    // because if a path is missing from this cache, it still results in the
+    // alias being loaded correctly, only less efficiently.
+
     if ($source) {
       foreach (array_keys($this->lookupMap) as $lang) {
         unset($this->lookupMap[$lang][$source]);
@@ -263,7 +267,6 @@ class AliasManager implements AliasManagerInterface {
     $this->noAlias = [];
     $this->langcodePreloaded = [];
     $this->preloadedPathLookups = [];
-    $this->cache->delete($this->cacheKey);
     $this->pathAliasWhitelistRebuild($source);
   }
 
@@ -272,9 +275,6 @@ class AliasManager implements AliasManagerInterface {
    *
    * @param string $path
    *   An optional path for which an alias is being inserted.
-   *
-   * @return
-   *   An array containing a white list of path aliases.
    */
   protected function pathAliasWhitelistRebuild($path = NULL) {
     // When paths are inserted, only rebuild the whitelist if the path has a top

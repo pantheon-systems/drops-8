@@ -49,6 +49,9 @@ class ConfigEntityQueryTest extends KernelTestBase {
    */
   protected $entities;
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp(): void {
     parent::setUp();
 
@@ -446,7 +449,7 @@ class ConfigEntityQueryTest extends KernelTestBase {
       ->condition($and_condition_2)
       ->count()
       ->execute();
-    $this->assertIdentical($count, 2);
+    $this->assertSame(2, $count);
   }
 
   /**
@@ -457,52 +460,52 @@ class ConfigEntityQueryTest extends KernelTestBase {
     $this->queryResults = $this->entityStorage->getQuery()
       ->sort('number', 'DESC')
       ->execute();
-    $this->assertIdentical(array_values($this->queryResults), ['7', '3', '5', '2', '1', '4', '6']);
+    $this->assertSame(['7', '3', '5', '2', '1', '4', '6'], array_values($this->queryResults));
 
     $this->queryResults = $this->entityStorage->getQuery()
       ->sort('number', 'ASC')
       ->execute();
-    $this->assertIdentical(array_values($this->queryResults), ['6', '4', '1', '2', '5', '3', '7']);
+    $this->assertSame(['6', '4', '1', '2', '5', '3', '7'], array_values($this->queryResults));
 
     // Apply some filters and sort.
     $this->queryResults = $this->entityStorage->getQuery()
       ->condition('id', '3', '>')
       ->sort('number', 'DESC')
       ->execute();
-    $this->assertIdentical(array_values($this->queryResults), ['7', '5', '4', '6']);
+    $this->assertSame(['7', '5', '4', '6'], array_values($this->queryResults));
 
     $this->queryResults = $this->entityStorage->getQuery()
       ->condition('id', '3', '>')
       ->sort('number', 'ASC')
       ->execute();
-    $this->assertIdentical(array_values($this->queryResults), ['6', '4', '5', '7']);
+    $this->assertSame(['6', '4', '5', '7'], array_values($this->queryResults));
 
     // Apply a pager and sort.
     $this->queryResults = $this->entityStorage->getQuery()
       ->sort('number', 'DESC')
       ->range('2', '2')
       ->execute();
-    $this->assertIdentical(array_values($this->queryResults), ['5', '2']);
+    $this->assertSame(['5', '2'], array_values($this->queryResults));
 
     $this->queryResults = $this->entityStorage->getQuery()
       ->sort('number', 'ASC')
       ->range('2', '2')
       ->execute();
-    $this->assertIdentical(array_values($this->queryResults), ['1', '2']);
+    $this->assertSame(['1', '2'], array_values($this->queryResults));
 
     // Add a range to a query without a start parameter.
     $this->queryResults = $this->entityStorage->getQuery()
       ->range(0, '3')
       ->sort('id', 'ASC')
       ->execute();
-    $this->assertIdentical(array_values($this->queryResults), ['1', '2', '3']);
+    $this->assertSame(['1', '2', '3'], array_values($this->queryResults));
 
     // Apply a pager with limit 4.
     $this->queryResults = $this->entityStorage->getQuery()
       ->pager('4', 0)
       ->sort('id', 'ASC')
       ->execute();
-    $this->assertIdentical(array_values($this->queryResults), ['1', '2', '3', '4']);
+    $this->assertSame(['1', '2', '3', '4'], array_values($this->queryResults));
   }
 
   /**
@@ -510,8 +513,8 @@ class ConfigEntityQueryTest extends KernelTestBase {
    */
   public function testTableSort() {
     $header = [
-      ['data' => t('ID'), 'specifier' => 'id'],
-      ['data' => t('Number'), 'specifier' => 'number'],
+      ['data' => 'ID', 'specifier' => 'id'],
+      ['data' => 'Number', 'specifier' => 'number'],
     ];
 
     // Sort key: id
@@ -520,28 +523,28 @@ class ConfigEntityQueryTest extends KernelTestBase {
       ->tableSort($header)
       ->sort('id', 'DESC')
       ->execute();
-    $this->assertIdentical(array_values($this->queryResults), ['7', '6', '5', '4', '3', '2', '1']);
+    $this->assertSame(['7', '6', '5', '4', '3', '2', '1'], array_values($this->queryResults));
 
     // Sorting with 'ASC' upper case
     $this->queryResults = $this->entityStorage->getQuery()
       ->tableSort($header)
       ->sort('id', 'ASC')
       ->execute();
-    $this->assertIdentical(array_values($this->queryResults), ['1', '2', '3', '4', '5', '6', '7']);
+    $this->assertSame(['1', '2', '3', '4', '5', '6', '7'], array_values($this->queryResults));
 
     // Sorting with 'desc' lower case
     $this->queryResults = $this->entityStorage->getQuery()
       ->tableSort($header)
       ->sort('id', 'desc')
       ->execute();
-    $this->assertIdentical(array_values($this->queryResults), ['7', '6', '5', '4', '3', '2', '1']);
+    $this->assertSame(['7', '6', '5', '4', '3', '2', '1'], array_values($this->queryResults));
 
     // Sorting with 'asc' lower case
     $this->queryResults = $this->entityStorage->getQuery()
       ->tableSort($header)
       ->sort('id', 'asc')
       ->execute();
-    $this->assertIdentical(array_values($this->queryResults), ['1', '2', '3', '4', '5', '6', '7']);
+    $this->assertSame(['1', '2', '3', '4', '5', '6', '7'], array_values($this->queryResults));
 
     // Sort key: number
     // Sorting with 'DeSc' mixed upper and lower case
@@ -549,28 +552,28 @@ class ConfigEntityQueryTest extends KernelTestBase {
       ->tableSort($header)
       ->sort('number', 'DeSc')
       ->execute();
-    $this->assertIdentical(array_values($this->queryResults), ['7', '3', '5', '2', '1', '4', '6']);
+    $this->assertSame(['7', '3', '5', '2', '1', '4', '6'], array_values($this->queryResults));
 
     // Sorting with 'AsC' mixed upper and lower case
     $this->queryResults = $this->entityStorage->getQuery()
       ->tableSort($header)
       ->sort('number', 'AsC')
       ->execute();
-    $this->assertIdentical(array_values($this->queryResults), ['6', '4', '1', '2', '5', '3', '7']);
+    $this->assertSame(['6', '4', '1', '2', '5', '3', '7'], array_values($this->queryResults));
 
     // Sorting with 'dEsC' mixed upper and lower case
     $this->queryResults = $this->entityStorage->getQuery()
       ->tableSort($header)
       ->sort('number', 'dEsC')
       ->execute();
-    $this->assertIdentical(array_values($this->queryResults), ['7', '3', '5', '2', '1', '4', '6']);
+    $this->assertSame(['7', '3', '5', '2', '1', '4', '6'], array_values($this->queryResults));
 
     // Sorting with 'aSc' mixed upper and lower case
     $this->queryResults = $this->entityStorage->getQuery()
       ->tableSort($header)
       ->sort('number', 'aSc')
       ->execute();
-    $this->assertIdentical(array_values($this->queryResults), ['6', '4', '1', '2', '5', '3', '7']);
+    $this->assertSame(['6', '4', '1', '2', '5', '3', '7'], array_values($this->queryResults));
   }
 
   /**
@@ -683,7 +686,7 @@ class ConfigEntityQueryTest extends KernelTestBase {
     $entity->save();
 
     $expected[] = $entity->getConfigDependencyName();
-    $this->assertEqual($expected, $key_value->get('style:test'));
+    $this->assertEquals($expected, $key_value->get('style:test'));
 
     $entity = $storage->create([
       'label' => 'entity_2',
@@ -694,7 +697,7 @@ class ConfigEntityQueryTest extends KernelTestBase {
     $entity->enforceIsNew();
     $entity->save();
     $expected[] = $entity->getConfigDependencyName();
-    $this->assertEqual($expected, $key_value->get('style:test'));
+    $this->assertEquals($expected, $key_value->get('style:test'));
 
     $entity = $storage->create([
       'label' => 'entity_3',
@@ -705,20 +708,20 @@ class ConfigEntityQueryTest extends KernelTestBase {
     $entity->save();
     // Do not add this entity to the list of expected result as it has a
     // different value.
-    $this->assertEqual($expected, $key_value->get('style:test'));
-    $this->assertEqual([$entity->getConfigDependencyName()], $key_value->get('style:blah'));
+    $this->assertEquals($expected, $key_value->get('style:test'));
+    $this->assertEquals([$entity->getConfigDependencyName()], $key_value->get('style:blah'));
 
     // Ensure that a delete clears a key.
     $entity->delete();
-    $this->assertEqual(NULL, $key_value->get('style:blah'));
+    $this->assertNull($key_value->get('style:blah'));
 
     // Ensure that delete only clears one key.
     $entity_id = array_pop($expected);
     $test_entities[$entity_id]->delete();
-    $this->assertEqual($expected, $key_value->get('style:test'));
+    $this->assertEquals($expected, $key_value->get('style:test'));
     $entity_id = array_pop($expected);
     $test_entities[$entity_id]->delete();
-    $this->assertEqual(NULL, $key_value->get('style:test'));
+    $this->assertNull($key_value->get('style:test'));
   }
 
   /**
@@ -726,13 +729,15 @@ class ConfigEntityQueryTest extends KernelTestBase {
    *
    * @param array $expected
    *   Array of expected entity IDs.
+   *
+   * @internal
    */
-  protected function assertResults($expected) {
+  protected function assertResults(array $expected): void {
     $expected_count = count($expected);
     $this->assertCount($expected_count, $this->queryResults);
     foreach ($expected as $value) {
       // This also tests whether $this->queryResults[$value] is even set at all.
-      $this->assertIdentical($this->queryResults[$value], $value);
+      $this->assertSame($value, $this->queryResults[$value]);
     }
   }
 

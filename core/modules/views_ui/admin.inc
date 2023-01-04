@@ -182,7 +182,7 @@ function views_ui_add_ajax_wrapper($element, FormStateInterface $form_state) {
 /**
  * Updates a part of the add view form via AJAX.
  *
- * @return
+ * @return array
  *   The part of the form that has changed.
  */
 function views_ui_ajax_update_form($form, FormStateInterface $form_state) {
@@ -222,15 +222,15 @@ function views_ui_standard_display_dropdown(&$form, FormStateInterface $form_sta
 
   // Add the "2 of 3" progress indicator.
   if ($form_progress = $view->getFormProgress()) {
-    $form['progress']['#markup'] = '<div id="views-progress-indicator" class="views-progress-indicator">' . t('@current of @total', ['@current' => $form_progress['current'], '@total' => $form_progress['total']]) . '</div>';
-    $form['progress']['#weight'] = -1001;
+    $arguments = $form['#title']->getArguments() + ['@current' => $form_progress['current'], '@total' => $form_progress['total']];
+    $form['#title'] = t('Configure @type @current of @total: @item', $arguments);
   }
 
   // The dropdown should not be added when :
   // - this is the default display.
-  // - there is no master shown and just one additional display (mostly page)
+  // - there is no default shown and just one additional display (mostly page)
   //   and the current display is defaulted.
-  if ($current_display->isDefaultDisplay() || ($current_display->isDefaulted($section) && !\Drupal::config('views.settings')->get('ui.show.master_display') && count($displays) <= 2)) {
+  if ($current_display->isDefaultDisplay() || ($current_display->isDefaulted($section) && !\Drupal::config('views.settings')->get('ui.show.default_display') && count($displays) <= 2)) {
     return;
   }
 

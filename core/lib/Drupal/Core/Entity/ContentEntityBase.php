@@ -606,7 +606,7 @@ abstract class ContentEntityBase extends EntityBase implements \IteratorAggregat
           // $this->defaultLangcode might not be set if we are initializing the
           // default language code cache, in which case there is no valid
           // langcode to assign.
-          $field_langcode = isset($this->defaultLangcode) ? $this->defaultLangcode : LanguageInterface::LANGCODE_NOT_SPECIFIED;
+          $field_langcode = $this->defaultLangcode ?? LanguageInterface::LANGCODE_NOT_SPECIFIED;
         }
         else {
           $field_langcode = $langcode;
@@ -658,6 +658,7 @@ abstract class ContentEntityBase extends EntityBase implements \IteratorAggregat
   /**
    * {@inheritdoc}
    */
+  #[\ReturnTypeWillChange]
   public function getIterator() {
     return new \ArrayIterator($this->getFields());
   }
@@ -768,7 +769,7 @@ abstract class ContentEntityBase extends EntityBase implements \IteratorAggregat
    * Updates language for already instantiated fields.
    */
   protected function updateFieldLangcodes($langcode) {
-    foreach ($this->fields as $name => $items) {
+    foreach ($this->fields as $items) {
       if (!empty($items[LanguageInterface::LANGCODE_DEFAULT])) {
         $items[LanguageInterface::LANGCODE_DEFAULT]->setLangcode($langcode);
       }
@@ -1128,6 +1129,23 @@ abstract class ContentEntityBase extends EntityBase implements \IteratorAggregat
   /**
    * {@inheritdoc}
    */
+  public static function create(array $values = []) {
+    $entity_type_repository = \Drupal::service('entity_type.repository');
+    $entity_type_manager = \Drupal::entityTypeManager();
+    $class_name = static::class;
+    $storage = $entity_type_manager->getStorage($entity_type_repository->getEntityTypeFromClass($class_name));
+
+    // Always explicitly specify the bundle if the entity has a bundle class.
+    if ($storage instanceof BundleEntityStorageInterface && ($bundle = $storage->getBundleFromClass($class_name))) {
+      $values[$storage->getEntityType()->getKey('bundle')] = $bundle;
+    }
+
+    return $storage->create($values);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function createDuplicate() {
     if ($this->translations[$this->activeLangcode]['status'] == static::TRANSLATION_REMOVED) {
       throw new \InvalidArgumentException("The entity object refers to a removed translation ({$this->activeLangcode}) and cannot be manipulated.");
@@ -1434,7 +1452,7 @@ abstract class ContentEntityBase extends EntityBase implements \IteratorAggregat
 
     foreach ($this->getFieldDefinitions() as $field_name => $definition) {
       // @todo Avoid special-casing the following fields. See
-      //    https://www.drupal.org/node/2329253.
+      //   https://www.drupal.org/node/2329253.
       if (in_array($field_name, $skip_fields, TRUE) || ($skip_untranslatable_fields && !$definition->isTranslatable())) {
         continue;
       }

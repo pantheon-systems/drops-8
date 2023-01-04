@@ -31,6 +31,9 @@ class OptionsFloatFieldImportTest extends FieldTestBase {
    */
   protected $defaultTheme = 'stark';
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp(): void {
     parent::setUp();
 
@@ -60,7 +63,7 @@ class OptionsFloatFieldImportTest extends FieldTestBase {
     // necessary configuration for this test is created by installing that
     // module.
     $field_storage = FieldStorageConfig::loadByName('node', $field_name);
-    $this->assertIdentical($field_storage->getSetting('allowed_values'), $array = ['0' => 'Zero', '0.5' => 'Point five']);
+    $this->assertSame($array = ['0' => 'Zero', '0.5' => 'Point five'], $field_storage->getSetting('allowed_values'));
 
     $admin_path = 'admin/structure/types/manage/' . $type . '/fields/node.' . $type . '.' . $field_name . '/storage';
 
@@ -69,16 +72,17 @@ class OptionsFloatFieldImportTest extends FieldTestBase {
 
     // Set the active to not use dots in the allowed values key names.
     $edit = ['settings[allowed_values]' => "0|Zero\n1|One"];
-    $this->drupalPostForm($admin_path, $edit, 'Save field settings');
+    $this->drupalGet($admin_path);
+    $this->submitForm($edit, 'Save field settings');
     $field_storage = FieldStorageConfig::loadByName('node', $field_name);
-    $this->assertIdentical($field_storage->getSetting('allowed_values'), $array = ['0' => 'Zero', '1' => 'One']);
+    $this->assertSame($array = ['0' => 'Zero', '1' => 'One'], $field_storage->getSetting('allowed_values'));
 
     // Import configuration with dots in the allowed values key names. This
     // tests \Drupal\Core\Config\Entity\ConfigEntityStorage::importUpdate().
     $this->drupalGet('admin/config/development/configuration');
     $this->submitForm([], 'Import all');
     $field_storage = FieldStorageConfig::loadByName('node', $field_name);
-    $this->assertIdentical($field_storage->getSetting('allowed_values'), $array = ['0' => 'Zero', '0.5' => 'Point five']);
+    $this->assertSame($array = ['0' => 'Zero', '0.5' => 'Point five'], $field_storage->getSetting('allowed_values'));
 
     // Delete field to test creation. This tests
     // \Drupal\Core\Config\Entity\ConfigEntityStorage::importCreate().
@@ -87,7 +91,7 @@ class OptionsFloatFieldImportTest extends FieldTestBase {
     $this->drupalGet('admin/config/development/configuration');
     $this->submitForm([], 'Import all');
     $field_storage = FieldStorageConfig::loadByName('node', $field_name);
-    $this->assertIdentical($field_storage->getSetting('allowed_values'), $array = ['0' => 'Zero', '0.5' => 'Point five']);
+    $this->assertSame($array = ['0' => 'Zero', '0.5' => 'Point five'], $field_storage->getSetting('allowed_values'));
   }
 
 }

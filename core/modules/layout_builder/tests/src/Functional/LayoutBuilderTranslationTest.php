@@ -125,15 +125,6 @@ class LayoutBuilderTranslationTest extends ContentTranslationTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function getAdministratorPermissions() {
-    $permissions = parent::getAdministratorPermissions();
-    $permissions[] = 'administer entity_test_mul display';
-    return $permissions;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   protected function getTranslatorPermissions() {
     $permissions = parent::getTranslatorPermissions();
     $permissions[] = 'view test entity translations';
@@ -148,11 +139,6 @@ class LayoutBuilderTranslationTest extends ContentTranslationTestBase {
   protected function setUpEntities() {
     $this->drupalLogin($this->administrator);
 
-    $field_ui_prefix = 'entity_test_mul/structure/entity_test_mul';
-    // Allow overrides for the layout.
-    $this->drupalPostForm("$field_ui_prefix/display/default", ['layout[enabled]' => TRUE], 'Save');
-    $this->drupalPostForm("$field_ui_prefix/display/default", ['layout[allow_custom]' => TRUE], 'Save');
-
     // @todo The Layout Builder UI relies on local tasks; fix in
     //   https://www.drupal.org/project/drupal/issues/2917777.
     $this->drupalPlaceBlock('local_tasks_block');
@@ -160,6 +146,7 @@ class LayoutBuilderTranslationTest extends ContentTranslationTestBase {
     // Create a test entity.
     $id = $this->createEntity([
       $this->fieldName => [['value' => 'The untranslated field value']],
+      'name' => 'Test entity',
     ], $this->langcodes[0]);
     $storage = $this->container->get('entity_type.manager')
       ->getStorage($this->entityTypeId);
@@ -176,7 +163,11 @@ class LayoutBuilderTranslationTest extends ContentTranslationTestBase {
       'bundle' => $this->bundle,
       'mode' => 'default',
       'status' => TRUE,
-    ])->setComponent($this->fieldName, ['type' => 'string'])->save();
+    ])
+      ->setComponent($this->fieldName, ['type' => 'string'])
+      ->enableLayoutBuilder()
+      ->setOverridable()
+      ->save();
   }
 
   /**
@@ -190,9 +181,8 @@ class LayoutBuilderTranslationTest extends ContentTranslationTestBase {
       'source' => $this->langcodes[0],
       'target' => $this->langcodes[2],
     ]);
-    $this->drupalPostForm($add_translation_url, [
-      "{$this->fieldName}[0][value]" => 'The translated field value',
-    ], 'Save');
+    $this->drupalGet($add_translation_url);
+    $this->submitForm(["{$this->fieldName}[0][value]" => 'The translated field value'], 'Save');
     $this->drupalLogin($user);
   }
 

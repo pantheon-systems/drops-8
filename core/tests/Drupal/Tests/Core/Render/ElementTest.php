@@ -5,7 +5,6 @@ namespace Drupal\Tests\Core\Render;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Tests\UnitTestCase;
 use Drupal\Core\Render\Element;
-use PHPUnit\Framework\Error\Error;
 
 /**
  * @coversDefaultClass \Drupal\Core\Render\Element
@@ -20,6 +19,7 @@ class ElementTest extends UnitTestCase {
     $this->assertTrue(Element::property('#property'));
     $this->assertFalse(Element::property('property'));
     $this->assertFalse(Element::property('property#'));
+    $this->assertFalse(Element::property(0));
   }
 
   /**
@@ -30,13 +30,12 @@ class ElementTest extends UnitTestCase {
       '#property1' => 'property1',
       '#property2' => 'property2',
       'property3' => 'property3',
+      0 => [],
     ];
 
     $properties = Element::properties($element);
 
-    $this->assertContains('#property1', $properties);
-    $this->assertContains('#property2', $properties);
-    $this->assertNotContains('property3', $properties);
+    $this->assertSame(['#property1', '#property2'], $properties);
   }
 
   /**
@@ -107,8 +106,8 @@ class ElementTest extends UnitTestCase {
     $element = [
       'foo' => 'bar',
     ];
-    $this->expectException(Error::class);
-    $this->expectExceptionMessage('"foo" is an invalid render array key');
+    $this->expectError();
+    $this->expectErrorMessage('"foo" is an invalid render array key');
     Element::children($element);
   }
 
@@ -189,6 +188,29 @@ class ElementTest extends UnitTestCase {
   public function providerTestIsEmpty() {
     return [
       [[], TRUE],
+      [['#attached' => []], TRUE],
+      [['#cache' => []], TRUE],
+      [['#weight' => []], TRUE],
+      // Variations.
+      [['#attached' => [], '#cache' => []], TRUE],
+      [['#attached' => [], '#weight' => []], TRUE],
+      [['#attached' => [], '#weight' => [], '#cache' => []], TRUE],
+      [['#cache' => [], '#weight' => []], TRUE],
+      [['#cache' => [], '#weight' => [], '#any_other_property' => []], FALSE],
+      [
+        [
+          '#attached' => [],
+          '#weight' => [],
+          '#cache' => [],
+          '#any_other_property' => [],
+        ],
+        FALSE,
+      ],
+      // Cover sorting.
+      [['#cache' => [], '#weight' => [], '#attached' => []], TRUE],
+      [['#attached' => [], '#cache' => [], '#weight' => []], TRUE],
+      [['#weight' => [], '#attached' => [], '#cache' => []], TRUE],
+
       [['#cache' => []], TRUE],
       [['#cache' => ['tags' => ['foo']]], TRUE],
       [['#cache' => ['contexts' => ['bar']]], TRUE],

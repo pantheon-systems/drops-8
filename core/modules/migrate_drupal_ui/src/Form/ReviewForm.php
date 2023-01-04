@@ -2,6 +2,7 @@
 
 namespace Drupal\migrate_drupal_ui\Form;
 
+use Drupal\Core\Batch\BatchBuilder;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Extension\Exception\UnknownExtensionException;
 use Drupal\Core\Extension\ModuleHandlerInterface;
@@ -240,20 +241,16 @@ class ReviewForm extends MigrateUpgradeFormBase {
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
     $config['source_base_path'] = $this->store->get('source_base_path');
-    $batch = [
-      'title' => $this->t('Running upgrade'),
-      'progress_message' => '',
-      'operations' => [
-        [
-          [MigrateUpgradeImportBatch::class, 'run'],
-          [array_keys($this->migrations), $config],
-        ],
-      ],
-      'finished' => [
-        MigrateUpgradeImportBatch::class, 'finished',
-      ],
-    ];
-    batch_set($batch);
+    $config['source_private_file_path'] = $this->store->get('source_private_file_path');
+    $batch_builder = (new BatchBuilder())
+      ->setTitle($this->t('Running upgrade'))
+      ->setProgressMessage('')
+      ->addOperation([
+        MigrateUpgradeImportBatch::class,
+        'run',
+      ], [array_keys($this->migrations), $config])
+      ->setFinishCallback([MigrateUpgradeImportBatch::class, 'finished']);
+    batch_set($batch_builder->toArray());
     $form_state->setRedirect('<front>');
     $this->store->set('step', 'overview');
     $this->state->set('migrate_drupal_ui.performed', REQUEST_TIME);
@@ -287,7 +284,10 @@ class ReviewForm extends MigrateUpgradeFormBase {
   protected function prepareOutput(array $migration_state) {
     $output = [];
     foreach ($migration_state as $source_machine_name => $destination_modules) {
-      $data = unserialize($this->systemData['module'][$source_machine_name]['info']);
+      $data = NULL;
+      if (isset($this->systemData['module'][$source_machine_name]['info'])) {
+        $data = unserialize($this->systemData['module'][$source_machine_name]['info']);
+      }
       $source_module_name = $data['name'] ?? $source_machine_name;
       // Get the names of all the destination modules.
       $destination_module_names = [];

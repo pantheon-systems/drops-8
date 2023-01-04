@@ -12,57 +12,67 @@
 
 .container {
   width: 100%;
-  max-width: 1350px;
-  padding-left: 18px;
-  padding-right: 18px
+  max-width: 84.375rem;
+  padding-right: 1.125rem;
+  padding-left: 1.125rem;
 }
 
-@media (min-width: 1200px) {
+@media (min-width: 75rem) {
 
-.container {
-    padding-left: 36px;
-    padding-right: 36px
-}
+  .container {
+    padding-right: 2.25rem;
+    padding-left: 2.25rem;
   }
+}
 
 .page-wrapper {
-  max-width: 1570px;
+  max-width: 98.125rem;
   background: #fff;
+}
+
+/**
+ * Creates stacking context ensuring that child elements can never appear in
+ * front of mobile navigation.
+ */
+
+.layout-main-wrapper {
+  position: relative;
+  z-index: 2; /* Ensure dropdown is not cut off by footer. */
 }
 
 /* Contains the social sidebar, and the primary content area. */
 
-@media (min-width: 1200px) {
+@media (min-width: 75rem) {
 
-.layout-main {
+  .layout-main {
     display: flex;
     flex-direction: row-reverse;
-    flex-wrap: wrap
+    flex-wrap: wrap;
+  }
 }
+
+@media (min-width: 75rem) {
+
+  [dir="ltr"] .main-content {
+    margin-right: auto;
   }
 
-@media (min-width: 1200px) {
-
-[dir="ltr"] .main-content {
-    margin-right: auto
+  [dir="rtl"] .main-content {
+    margin-left: auto;
   }
 
-[dir="rtl"] .main-content {
-    margin-left: auto
+  .main-content {
+    width: calc(100% - 5.625rem);
   }
-
-.main-content {
-    width: calc(100% - 90px)
 }
-  }
 
 .main-content__container {
-  padding-top: 54px
+  padding-top: 3.375rem;
 }
 
-@media (min-width: 700px) {
+@media (min-width: 43.75rem) {
 
-.main-content__container {
-    padding-top: 90px
-}
+  .main-content__container {
+    padding-top: 5.625rem;
   }
+}

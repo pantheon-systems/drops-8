@@ -2,10 +2,10 @@
 
 namespace Drupal\Tests\tour\Functional\Rest;
 
-use Drupal\Tests\rest\Functional\EntityResource\EntityResourceTestBase;
+use Drupal\Tests\rest\Functional\EntityResource\ConfigEntityResourceTestBase;
 use Drupal\tour\Entity\Tour;
 
-abstract class TourResourceTestBase extends EntityResourceTestBase {
+abstract class TourResourceTestBase extends ConfigEntityResourceTestBase {
 
   /**
    * {@inheritdoc}
@@ -50,9 +50,7 @@ abstract class TourResourceTestBase extends EntityResourceTestBase {
           'label' => 'Llama',
           'body' => 'Who handle the awesomeness of llamas?',
           'weight' => 100,
-          'attributes' => [
-            'data-id' => 'tour-llama-1',
-          ],
+          'selector' => '#tour-llama-1',
         ],
       ],
     ]);
@@ -84,9 +82,7 @@ abstract class TourResourceTestBase extends EntityResourceTestBase {
           'label' => 'Llama',
           'body' => 'Who handle the awesomeness of llamas?',
           'weight' => 100,
-          'attributes' => [
-            'data-id' => 'tour-llama-1',
-          ],
+          'selector' => '#tour-llama-1',
         ],
       ],
       'uuid' => $this->entity->uuid(),
@@ -98,6 +94,7 @@ abstract class TourResourceTestBase extends EntityResourceTestBase {
    */
   protected function getNormalizedPostEntity() {
     // @todo Update in https://www.drupal.org/node/2300677.
+    return [];
   }
 
   /**

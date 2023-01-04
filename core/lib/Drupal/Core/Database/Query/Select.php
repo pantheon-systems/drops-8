@@ -93,8 +93,9 @@ class Select extends Query implements SelectInterface {
   protected $range;
 
   /**
-   * An array whose elements specify a query to UNION, and the UNION type. The
-   * 'type' key may be '', 'ALL', or 'DISTINCT' to represent a 'UNION',
+   * An array whose elements specify a query to UNION, and the UNION type.
+   *
+   * The 'type' key may be '', 'ALL', or 'DISTINCT' to represent a 'UNION',
    * 'UNION ALL', or 'UNION DISTINCT' statement, respectively.
    *
    * All entries in this array will be applied from front to back, with the
@@ -123,17 +124,19 @@ class Select extends Query implements SelectInterface {
    *
    * @param \Drupal\Core\Database\Connection $connection
    *   Database connection object.
-   * @param string $table
-   *   The name of the table that is being queried.
+   * @param string|\Drupal\Core\Database\Query\SelectInterface $table
+   *   The table name or subquery that is being queried.
    * @param string $alias
    *   The alias for the table.
    * @param array $options
    *   Array of query options.
    */
   public function __construct(Connection $connection, $table, $alias = NULL, $options = []) {
+    // @todo Remove $options['return'] in Drupal 11.
+    // @see https://www.drupal.org/project/drupal/issues/3256524
     $options['return'] = Database::RETURN_STATEMENT;
     parent::__construct($connection, $options);
-    $conjunction = isset($options['conjunction']) ? $options['conjunction'] : 'AND';
+    $conjunction = $options['conjunction'] ?? 'AND';
     $this->condition = $this->connection->condition($conjunction);
     $this->having = $this->connection->condition($conjunction);
     $this->addJoin(NULL, $table, $alias);
@@ -180,7 +183,7 @@ class Select extends Query implements SelectInterface {
    * {@inheritdoc}
    */
   public function getMetaData($key) {
-    return isset($this->alterMetaData[$key]) ? $this->alterMetaData[$key] : NULL;
+    return $this->alterMetaData[$key] ?? NULL;
   }
 
   /**
@@ -318,9 +321,11 @@ class Select extends Query implements SelectInterface {
    * {@inheritdoc}
    */
   public function extend($extender_name) {
-    $override_class = $extender_name . '_' . $this->connection->driver();
-    if (class_exists($override_class)) {
-      $extender_name = $override_class;
+    $parts = explode('\\', $extender_name);
+    $class = end($parts);
+    $driver_class = $this->connection->getDriverClass($class);
+    if ($driver_class !== $class) {
+      return new $driver_class($this, $this->connection);
     }
     return new $extender_name($this, $this->connection);
   }
