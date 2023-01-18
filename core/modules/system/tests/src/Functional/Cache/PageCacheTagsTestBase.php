@@ -12,13 +12,6 @@ abstract class PageCacheTagsTestBase extends BrowserTestBase {
 
   /**
    * {@inheritdoc}
-   *
-   * Always enable header dumping in page cache tags tests, this aids debugging.
-   */
-  protected $dumpHeaders = TRUE;
-
-  /**
-   * {@inheritdoc}
    */
   protected function setUp() {
     parent::setUp();
@@ -52,7 +45,7 @@ abstract class PageCacheTagsTestBase extends BrowserTestBase {
       sort($cache_entry->tags);
       $tags = array_unique($tags);
       sort($tags);
-      $this->assertIdentical($cache_entry->tags, $tags);
+      $this->assertSame($cache_entry->tags, $tags);
     }
   }
 

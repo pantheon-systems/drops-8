@@ -26,6 +26,9 @@ class SerializationTest extends KernelTestBase {
    */
   protected $serializer;
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp(): void {
     parent::setUp();
     $this->serializer = $this->container->get('serializer');
@@ -40,7 +43,7 @@ class SerializationTest extends KernelTestBase {
     $expected = 'Normalized by SerializationTestNormalizer, Encoded by SerializationTestEncoder';
 
     // Ensure the serialization invokes the expected normalizer and encoder.
-    $this->assertIdentical($this->serializer->serialize($object, $format), $expected);
+    $this->assertSame($expected, $this->serializer->serialize($object, $format));
 
     // Ensure the serialization fails for an unsupported format.
     try {

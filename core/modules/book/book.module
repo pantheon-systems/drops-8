@@ -78,7 +78,7 @@ function book_theme() {
  * Implements hook_entity_type_build().
  */
 function book_entity_type_build(array &$entity_types) {
-  /** @var $entity_types \Drupal\Core\Entity\EntityTypeInterface[] */
+  /** @var \Drupal\Core\Entity\EntityTypeInterface[] $entity_types */
   $entity_types['node']
     ->setFormClass('book_outline', 'Drupal\book\Form\BookOutlineForm')
     ->setLinkTemplate('book-outline-form', '/node/{node}/outline')
@@ -202,7 +202,7 @@ function book_pick_book_nojs_submit($form, FormStateInterface $form_state) {
  * This function is called via Ajax when the selected book is changed on a node
  * or book outline form.
  *
- * @return
+ * @return array
  *   The rendered parent page select element.
  */
 function book_form_update($form, FormStateInterface $form_state) {

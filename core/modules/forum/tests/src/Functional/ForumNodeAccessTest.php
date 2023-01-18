@@ -22,7 +22,6 @@ class ForumNodeAccessTest extends BrowserTestBase {
     'comment',
     'forum',
     'taxonomy',
-    'tracker',
     'node_access_test',
     'block',
   ];
@@ -32,6 +31,9 @@ class ForumNodeAccessTest extends BrowserTestBase {
    */
   protected $defaultTheme = 'stark';
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp(): void {
     parent::setUp();
     node_access_rebuild();
@@ -65,9 +67,10 @@ class ForumNodeAccessTest extends BrowserTestBase {
       'body[0][value]' => $this->randomMachineName(200),
       'private[0][value]' => TRUE,
     ];
-    $this->drupalPostForm('node/add/forum', $edit, 'Save', ['query' => ['forum_id' => 1]]);
+    $this->drupalGet('node/add/forum', ['query' => ['forum_id' => 1]]);
+    $this->submitForm($edit, 'Save');
     $private_node = $this->drupalGetNodeByTitle($private_node_title);
-    $this->assertTrue(!empty($private_node), 'New private forum node found in database.');
+    $this->assertNotEmpty($private_node, 'New private forum node found in database.');
 
     // Create a public node.
     $public_node_title = $this->randomMachineName(20);
@@ -75,9 +78,10 @@ class ForumNodeAccessTest extends BrowserTestBase {
       'title[0][value]' => $public_node_title,
       'body[0][value]' => $this->randomMachineName(200),
     ];
-    $this->drupalPostForm('node/add/forum', $edit, 'Save', ['query' => ['forum_id' => 1]]);
+    $this->drupalGet('node/add/forum', ['query' => ['forum_id' => 1]]);
+    $this->submitForm($edit, 'Save');
     $public_node = $this->drupalGetNodeByTitle($public_node_title);
-    $this->assertTrue(!empty($public_node), 'New public forum node found in database.');
+    $this->assertNotEmpty($public_node, 'New public forum node found in database.');
 
     // Enable the new and active forum blocks.
     $this->drupalPlaceBlock('forum_active_block');
@@ -88,16 +92,16 @@ class ForumNodeAccessTest extends BrowserTestBase {
     $this->drupalGet('');
 
     // Ensure private node and public node are found.
-    $this->assertText($private_node->getTitle(), 'Private node found in block by $access_user');
-    $this->assertText($public_node->getTitle(), 'Public node found in block by $access_user');
+    $this->assertSession()->pageTextContains($private_node->getTitle());
+    $this->assertSession()->pageTextContains($public_node->getTitle());
 
     // Test for $no_access_user.
     $this->drupalLogin($no_access_user);
     $this->drupalGet('');
 
     // Ensure private node is not found but public is found.
-    $this->assertNoText($private_node->getTitle(), 'Private node not found in block by $no_access_user');
-    $this->assertText($public_node->getTitle(), 'Public node found in block by $no_access_user');
+    $this->assertSession()->pageTextNotContains($private_node->getTitle());
+    $this->assertSession()->pageTextContains($public_node->getTitle());
   }
 
 }

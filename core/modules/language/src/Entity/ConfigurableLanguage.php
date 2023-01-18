@@ -166,7 +166,7 @@ class ConfigurableLanguage extends ConfigEntityBase implements ConfigurableLangu
   /**
    * {@inheritdoc}
    *
-   * @throws \DeleteDefaultLanguageException
+   * @throws \Drupal\language\Exception\DeleteDefaultLanguageException
    *   Exception thrown if we're trying to delete the default language entity.
    *   This is not allowed as a site must have a default language.
    */
@@ -284,7 +284,7 @@ class ConfigurableLanguage extends ConfigEntityBase implements ConfigurableLangu
       return static::create([
         'id' => $langcode,
         'label' => $standard_languages[$langcode][0],
-        'direction' => isset($standard_languages[$langcode][2]) ? $standard_languages[$langcode][2] : static::DIRECTION_LTR,
+        'direction' => $standard_languages[$langcode][2] ?? static::DIRECTION_LTR,
       ]);
     }
   }

@@ -114,8 +114,8 @@ class ViewAjaxController implements ContainerInjectionInterface {
     $name = $request->request->get('view_name');
     $display_id = $request->request->get('view_display_id');
     if (isset($name) && isset($display_id)) {
-      $args = Html::decodeEntities($request->request->get('view_args'));
-      $args = isset($args) && $args !== '' ? explode('/', $args) : [];
+      $args = $request->request->get('view_args', '');
+      $args = $args !== '' ? explode('/', Html::decodeEntities($args)) : [];
 
       // Arguments can be empty, make sure they are passed on as NULL so that
       // argument validation is not triggered.
@@ -136,17 +136,17 @@ class ViewAjaxController implements ContainerInjectionInterface {
       // @todo Remove this parsing once these are removed from the request in
       //   https://www.drupal.org/node/2504709.
       foreach ([
-          'view_name',
-          'view_display_id',
-          'view_args',
-          'view_path',
-          'view_dom_id',
-          'pager_element',
-          'view_base_path',
-          AjaxResponseSubscriber::AJAX_REQUEST_PARAMETER,
-          FormBuilderInterface::AJAX_FORM_REQUEST,
-          MainContentViewSubscriber::WRAPPER_FORMAT,
-        ] as $key) {
+        'view_name',
+        'view_display_id',
+        'view_args',
+        'view_path',
+        'view_dom_id',
+        'pager_element',
+        'view_base_path',
+        AjaxResponseSubscriber::AJAX_REQUEST_PARAMETER,
+        FormBuilderInterface::AJAX_FORM_REQUEST,
+        MainContentViewSubscriber::WRAPPER_FORMAT,
+      ] as $key) {
         $request->query->remove($key);
         $request->request->remove($key);
       }

@@ -4,29 +4,26 @@
 * https://www.drupal.org/node/2815083
 * @preserve
 **/
-
 (function ($, Drupal, drupalSettings) {
   Drupal.behaviors.nodeDetailsSummaries = {
     attach: function attach(context) {
       var $context = $(context);
       $context.find('.node-form-author').drupalSetSummary(function (context) {
-        var $authorContext = $(context);
-        var name = $authorContext.find('.field--name-uid input').val();
-        var date = $authorContext.find('.field--name-created input').val();
-
+        var nameElement = context.querySelector('.field--name-uid input');
+        var name = nameElement && nameElement.value;
+        var dateElement = context.querySelector('.field--name-created input');
+        var date = dateElement && dateElement.value;
         if (name && date) {
           return Drupal.t('By @name on @date', {
             '@name': name,
             '@date': date
           });
         }
-
         if (name) {
           return Drupal.t('By @name', {
             '@name': name
           });
         }
-
         if (date) {
           return Drupal.t('Authored on @date', {
             '@date': date
@@ -36,14 +33,12 @@
       $context.find('.node-form-options').drupalSetSummary(function (context) {
         var $optionsContext = $(context);
         var vals = [];
-
         if ($optionsContext.find('input').is(':checked')) {
           $optionsContext.find('input:checked').next('label').each(function () {
-            vals.push(Drupal.checkPlain($.trim($(this).text())));
+            vals.push(Drupal.checkPlain(this.textContent.trim()));
           });
           return vals.join(', ');
         }
-
         return Drupal.t('Not promoted');
       });
     }

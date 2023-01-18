@@ -143,7 +143,7 @@ abstract class AccessResult implements AccessResultInterface, RefinableCacheable
     if ($conjunction == 'AND' && !empty($permissions)) {
       $access = TRUE;
       foreach ($permissions as $permission) {
-        if (!$permission_access = $account->hasPermission($permission)) {
+        if (!$account->hasPermission($permission)) {
           $access = FALSE;
           break;
         }
@@ -151,7 +151,7 @@ abstract class AccessResult implements AccessResultInterface, RefinableCacheable
     }
     else {
       foreach ($permissions as $permission) {
-        if ($permission_access = $account->hasPermission($permission)) {
+        if ($account->hasPermission($permission)) {
           $access = TRUE;
           break;
         }
@@ -304,10 +304,10 @@ abstract class AccessResult implements AccessResultInterface, RefinableCacheable
         $merge_other = TRUE;
       }
 
-      if ($this->isForbidden() && $this instanceof AccessResultReasonInterface && !is_null($this->getReason())) {
+      if ($this->isForbidden() && $this instanceof AccessResultReasonInterface && $this->getReason() !== '') {
         $result->setReason($this->getReason());
       }
-      elseif ($other->isForbidden() && $other instanceof AccessResultReasonInterface && !is_null($other->getReason())) {
+      elseif ($other->isForbidden() && $other instanceof AccessResultReasonInterface && $other->getReason() !== '') {
         $result->setReason($other->getReason());
       }
     }
@@ -323,10 +323,10 @@ abstract class AccessResult implements AccessResultInterface, RefinableCacheable
         $merge_other = TRUE;
       }
 
-      if ($this instanceof AccessResultReasonInterface && !is_null($this->getReason())) {
+      if ($this instanceof AccessResultReasonInterface && $this->getReason() !== '') {
         $result->setReason($this->getReason());
       }
-      elseif ($other instanceof AccessResultReasonInterface && !is_null($other->getReason())) {
+      elseif ($other instanceof AccessResultReasonInterface && $other->getReason() !== '') {
         $result->setReason($other->getReason());
       }
     }

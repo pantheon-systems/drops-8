@@ -42,14 +42,14 @@ class NodeFieldAccessTest extends EntityKernelTestBase {
   protected $readOnlyFields = ['changed', 'revision_uid', 'revision_timestamp'];
 
   /**
-   * Test permissions on nodes status field.
+   * Tests permissions on nodes status field.
    */
   public function testAccessToAdministrativeFields() {
 
     // Create the page node type with revisions disabled.
     $page = NodeType::create([
       'type' => 'page',
-        'new_revision' => FALSE,
+      'new_revision' => FALSE,
     ]);
     $page->save();
 

@@ -23,6 +23,14 @@ class FileTransferTest extends BrowserTestBase {
    */
   protected $defaultTheme = 'stark';
 
+  /**
+   * @var \Drupal\Tests\system\Functional\FileTransfer\TestFileTransfer
+   */
+  protected $testConnection;
+
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp(): void {
     parent::setUp();
     $this->testConnection = TestFileTransfer::factory($this->root, ['hostname' => $this->hostname, 'username' => $this->username, 'password' => $this->password, 'port' => $this->port]);

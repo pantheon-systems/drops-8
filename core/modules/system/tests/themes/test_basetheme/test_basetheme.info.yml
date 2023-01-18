@@ -11,15 +11,14 @@ libraries-override:
   core/drupal.dialog:
     js:
       misc/dialog/dialog.js: false
-  core/jquery.farbtastic:
-    css:
-      component:
-        assets/vendor/farbtastic/farbtastic.css: css/farbtastic.css
+  core/loadjs:
+    js:
+      assets/vendor/loadjs/loadjs.min.js: js/loadjs.min.js
   theme_test/theme_stylesheets_override_and_remove_test:
     css:
       base:
         css/base-remove.css: false
 
 libraries-extend:
-  classy/base:
+  starterkit_theme/base:
     - test_basetheme/global-styling

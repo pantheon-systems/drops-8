@@ -111,7 +111,7 @@ class LoggerChannel implements LoggerChannelInterface {
     if ($this->requestStack && $request = $this->requestStack->getCurrentRequest()) {
       $context['request_uri'] = $request->getUri();
       $context['referer'] = $request->headers->get('Referer', '');
-      $context['ip'] = $request->getClientIP();
+      $context['ip'] = $request->getClientIP() ?: '';
 
       if ($this->currentUser) {
         $context['uid'] = $this->currentUser->id();
@@ -165,13 +165,8 @@ class LoggerChannel implements LoggerChannelInterface {
    *   An array of sorted loggers by priority.
    */
   protected function sortLoggers() {
-    $sorted = [];
     krsort($this->loggers);
-
-    foreach ($this->loggers as $loggers) {
-      $sorted = array_merge($sorted, $loggers);
-    }
-    return $sorted;
+    return array_merge([], ...$this->loggers);
   }
 
 }

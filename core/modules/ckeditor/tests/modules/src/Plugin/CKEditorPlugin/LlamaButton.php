@@ -20,7 +20,7 @@ class LlamaButton extends Llama implements CKEditorPluginButtonsInterface {
   public function getButtons() {
     return [
       'Llama' => [
-        'label' => t('Insert Llama'),
+        'label' => $this->t('Insert Llama'),
       ],
     ];
   }
@@ -29,7 +29,7 @@ class LlamaButton extends Llama implements CKEditorPluginButtonsInterface {
    * {@inheritdoc}
    */
   public function getFile() {
-    return drupal_get_path('module', 'ckeditor_test') . '/js/llama_button.js';
+    return $this->moduleList->getPath('ckeditor_test') . '/js/llama_button.js';
   }
 
 }
