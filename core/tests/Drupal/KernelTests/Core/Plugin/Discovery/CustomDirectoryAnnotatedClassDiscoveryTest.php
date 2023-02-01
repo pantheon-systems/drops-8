@@ -3,6 +3,7 @@
 namespace Drupal\KernelTests\Core\Plugin\Discovery;
 
 use Drupal\Core\Plugin\Discovery\AnnotatedClassDiscovery;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
 
 /**
  * Tests that plugins in a custom directory are correctly discovered using
@@ -12,6 +13,9 @@ use Drupal\Core\Plugin\Discovery\AnnotatedClassDiscovery;
  */
 class CustomDirectoryAnnotatedClassDiscoveryTest extends DiscoveryTestBase {
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp(): void {
     parent::setUp();
 
@@ -40,7 +44,7 @@ class CustomDirectoryAnnotatedClassDiscoveryTest extends DiscoveryTestBase {
         'label' => 'Banana',
         'color' => 'yellow',
         'uses' => [
-          'bread' => t('Banana bread'),
+          'bread' => new TranslatableMarkup('Banana bread'),
           'loaf' => [
             'singular' => '@count loaf',
             'plural' => '@count loaves',

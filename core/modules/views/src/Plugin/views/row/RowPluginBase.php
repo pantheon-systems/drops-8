@@ -126,6 +126,7 @@ abstract class RowPluginBase extends PluginBase {
 
   /**
    * Perform any necessary changes to the form values prior to storage.
+   *
    * There is no need for this function to actually store the data.
    */
   public function submitOptionsForm(&$form, FormStateInterface $form_state) {}
@@ -169,7 +170,7 @@ abstract class RowPluginBase extends PluginBase {
       '#view' => $this->view,
       '#options' => $this->options,
       '#row' => $row,
-      '#field_alias' => isset($this->field_alias) ? $this->field_alias : '',
+      '#field_alias' => $this->field_alias ?? '',
     ];
   }
 

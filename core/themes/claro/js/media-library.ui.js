@@ -4,30 +4,27 @@
 * https://www.drupal.org/node/2815083
 * @preserve
 **/
-
 (function ($, Drupal, window) {
   Drupal.behaviors.MediaLibraryItemSelectionClaro = {
     attach: function attach() {
-      $(window).once('media-library-selection-info-claro-event').on('dialog:aftercreate', function (event, dialog, $element, settings) {
+      if (!once('media-library-selection-info-claro-event', 'html').length) {
+        return;
+      }
+      $(window).on('dialog:aftercreate', function (event, dialog, $element, settings) {
         var moveCounter = function moveCounter($selectedCount, $buttonPane) {
           var $moveSelectedCount = $selectedCount.detach();
           $buttonPane.prepend($moveSelectedCount);
         };
-
         var $buttonPane = $element.closest('.media-library-widget-modal').find('.ui-dialog-buttonpane');
-
         if (!$buttonPane.length) {
           return;
         }
-
         var $selectedCount = $buttonPane.find('.js-media-library-selected-count');
-
         if ($selectedCount.length) {
           moveCounter($selectedCount, $buttonPane);
         } else {
           var selectedCountObserver = new MutationObserver(function () {
             var $selectedCountFind = $buttonPane.find('.js-media-library-selected-count');
-
             if ($selectedCountFind.length) {
               moveCounter($selectedCountFind, $buttonPane);
               selectedCountObserver.disconnect();

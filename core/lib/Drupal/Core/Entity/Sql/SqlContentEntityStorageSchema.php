@@ -763,12 +763,13 @@ class SqlContentEntityStorageSchema implements DynamicallyFieldableEntityStorage
         }
       }
 
-      if ($this->database->supportsTransactionalDDL()) {
-        // If the database supports transactional DDL, we can go ahead and rely
-        // on it. If not, we will have to rollback manually if something fails.
-        $transaction = $this->database->startTransaction();
-      }
       try {
+        if ($this->database->supportsTransactionalDDL()) {
+          // If the database supports transactional DDL, we can go ahead and rely
+          // on it. If not, we will have to rollback manually if something fails.
+          $transaction = $this->database->startTransaction();
+        }
+
         // Copy the data from the base table.
         $this->database->insert($dedicated_table_name)
           ->from($this->getSelectQueryForFieldStorageDeletion($field_table_name, $shared_table_field_columns, $dedicated_table_field_columns))
@@ -788,8 +789,10 @@ class SqlContentEntityStorageSchema implements DynamicallyFieldableEntityStorage
         }
       }
       catch (\Exception $e) {
-        if (isset($transaction)) {
-          $transaction->rollBack();
+        if ($this->database->supportsTransactionalDDL()) {
+          if (isset($transaction)) {
+            $transaction->rollBack();
+          }
         }
         else {
           // Delete the dedicated tables.
@@ -838,13 +841,13 @@ class SqlContentEntityStorageSchema implements DynamicallyFieldableEntityStorage
       // The bundle field is not stored in the revision table, so we need to
       // join the data (or base) table and retrieve it from there.
       if ($base_table && $base_table !== $table_name) {
-        $join_condition = "entity_table.{$this->entityType->getKey('id')} = %alias.{$this->entityType->getKey('id')}";
+        $join_condition = "[entity_table].[{$this->entityType->getKey('id')}] = [%alias].[{$this->entityType->getKey('id')}]";
 
         // If the entity type is translatable, we also need to add the langcode
         // to the join, otherwise we'll get duplicate rows for each language.
         if ($this->entityType->isTranslatable()) {
           $langcode = $this->entityType->getKey('langcode');
-          $join_condition .= " AND entity_table.{$langcode} = %alias.{$langcode}";
+          $join_condition .= " AND [entity_table].[{$langcode}] = [%alias].[{$langcode}]";
         }
 
         $select->join($base_table, 'base_table', $join_condition);
@@ -1144,7 +1147,7 @@ class SqlContentEntityStorageSchema implements DynamicallyFieldableEntityStorage
         // Allow for indexes and unique keys to specified as an array of column
         // name and length.
         if (is_array($column)) {
-          list($column_name, $length) = $column;
+          [$column_name, $length] = $column;
           $data[$real_key][] = [$column_mapping[$column_name], $length];
         }
         else {
@@ -1724,12 +1727,12 @@ class SqlContentEntityStorageSchema implements DynamicallyFieldableEntityStorage
   protected function updateDedicatedTableSchema(FieldStorageDefinitionInterface $storage_definition, FieldStorageDefinitionInterface $original) {
     if (!$this->storage->countFieldData($original, TRUE)) {
       // There is no data. Re-create the tables completely.
-      if ($this->database->supportsTransactionalDDL()) {
-        // If the database supports transactional DDL, we can go ahead and rely
-        // on it. If not, we will have to rollback manually if something fails.
-        $transaction = $this->database->startTransaction();
-      }
       try {
+        if ($this->database->supportsTransactionalDDL()) {
+          // If the database supports transactional DDL, we can go ahead and rely
+          // on it. If not, we will have to rollback manually if something fails.
+          $transaction = $this->database->startTransaction();
+        }
         // Since there is no data we may be switching from a shared table schema
         // to a dedicated table schema, hence we should use the proper API.
         $this->performFieldSchemaOperation('delete', $original);
@@ -1737,7 +1740,9 @@ class SqlContentEntityStorageSchema implements DynamicallyFieldableEntityStorage
       }
       catch (\Exception $e) {
         if ($this->database->supportsTransactionalDDL()) {
-          $transaction->rollBack();
+          if (isset($transaction)) {
+            $transaction->rollBack();
+          }
         }
         else {
           // Recreate tables.
@@ -1815,12 +1820,12 @@ class SqlContentEntityStorageSchema implements DynamicallyFieldableEntityStorage
    */
   protected function updateSharedTableSchema(FieldStorageDefinitionInterface $storage_definition, FieldStorageDefinitionInterface $original) {
     if (!$this->storage->countFieldData($original, TRUE)) {
-      if ($this->database->supportsTransactionalDDL()) {
-        // If the database supports transactional DDL, we can go ahead and rely
-        // on it. If not, we will have to rollback manually if something fails.
-        $transaction = $this->database->startTransaction();
-      }
       try {
+        if ($this->database->supportsTransactionalDDL()) {
+          // If the database supports transactional DDL, we can go ahead and rely
+          // on it. If not, we will have to rollback manually if something fails.
+          $transaction = $this->database->startTransaction();
+        }
         // Since there is no data we may be switching from a dedicated table
         // to a schema table schema, hence we should use the proper API.
         $this->performFieldSchemaOperation('delete', $original);
@@ -1828,7 +1833,9 @@ class SqlContentEntityStorageSchema implements DynamicallyFieldableEntityStorage
       }
       catch (\Exception $e) {
         if ($this->database->supportsTransactionalDDL()) {
-          $transaction->rollBack();
+          if (isset($transaction)) {
+            $transaction->rollBack();
+          }
         }
         else {
           // Recreate original schema.
@@ -2540,7 +2547,7 @@ class SqlContentEntityStorageSchema implements DynamicallyFieldableEntityStorage
   }
 
   /**
-   * Typecasts values to proper datatypes.
+   * Typecasts values to the proper data type.
    *
    * MySQL PDO silently casts, e.g. FALSE and '' to 0, when inserting the value
    * into an integer column, but PostgreSQL PDO does not. Use the schema

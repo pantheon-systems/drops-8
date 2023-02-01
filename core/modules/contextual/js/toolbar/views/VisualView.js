@@ -4,7 +4,6 @@
 * https://www.drupal.org/node/2815083
 * @preserve
 **/
-
 (function (Drupal, Backbone) {
   Drupal.contextualToolbar.VisualView = Backbone.View.extend({
     events: function events() {
@@ -12,7 +11,6 @@
         event.preventDefault();
         event.target.click();
       };
-
       return {
         click: function click() {
           this.model.set('isViewing', !this.model.get('isViewing'));

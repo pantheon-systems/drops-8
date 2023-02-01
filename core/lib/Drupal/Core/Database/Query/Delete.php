@@ -32,6 +32,8 @@ class Delete extends Query implements ConditionInterface {
    *   Array of database options.
    */
   public function __construct(Connection $connection, $table, array $options = []) {
+    // @todo Remove $options['return'] in Drupal 11.
+    // @see https://www.drupal.org/project/drupal/issues/3256524
     $options['return'] = Database::RETURN_AFFECTED;
     parent::__construct($connection, $options);
     $this->table = $table;
@@ -52,7 +54,14 @@ class Delete extends Query implements ConditionInterface {
       $values = $this->condition->arguments();
     }
 
-    return $this->connection->query((string) $this, $values, $this->queryOptions);
+    $stmt = $this->connection->prepareStatement((string) $this, $this->queryOptions, TRUE);
+    try {
+      $stmt->execute($values, $this->queryOptions);
+      return $stmt->rowCount();
+    }
+    catch (\Exception $e) {
+      $this->connection->exceptionHandler()->handleExecutionException($e, $stmt, $values, $this->queryOptions);
+    }
   }
 
   /**

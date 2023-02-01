@@ -13,8 +13,11 @@ class NodePostSettingsTest extends NodeTestBase {
   /**
    * {@inheritdoc}
    */
-  protected $defaultTheme = 'classy';
+  protected $defaultTheme = 'stark';
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp(): void {
     parent::setUp();
 
@@ -34,34 +37,36 @@ class NodePostSettingsTest extends NodeTestBase {
     // Set "Basic page" content type to display post information.
     $edit = [];
     $edit['display_submitted'] = TRUE;
-    $this->drupalPostForm('admin/structure/types/manage/page', $edit, 'Save content type');
+    $this->drupalGet('admin/structure/types/manage/page');
+    $this->submitForm($edit, 'Save content type');
 
     // Create a node.
     $edit = [];
     $edit['title[0][value]'] = $this->randomMachineName(8);
     $edit['body[0][value]'] = $this->randomMachineName(16);
-    $this->drupalPostForm('node/add/page', $edit, 'Save');
+    $this->drupalGet('node/add/page');
+    $this->submitForm($edit, 'Save');
 
     // Check that the post information is displayed.
     $node = $this->drupalGetNodeByTitle($edit['title[0][value]']);
-    $elements = $this->xpath('//div[contains(@class, :class)]', [':class' => 'node__submitted']);
-    $this->assertCount(1, $elements, 'Post information is displayed.');
+    $this->assertSession()->pageTextContainsOnce('Submitted by');
     $node->delete();
 
     // Set "Basic page" content type to display post information.
     $edit = [];
     $edit['display_submitted'] = FALSE;
-    $this->drupalPostForm('admin/structure/types/manage/page', $edit, 'Save content type');
+    $this->drupalGet('admin/structure/types/manage/page');
+    $this->submitForm($edit, 'Save content type');
 
     // Create a node.
     $edit = [];
     $edit['title[0][value]'] = $this->randomMachineName(8);
     $edit['body[0][value]'] = $this->randomMachineName(16);
-    $this->drupalPostForm('node/add/page', $edit, 'Save');
+    $this->drupalGet('node/add/page');
+    $this->submitForm($edit, 'Save');
 
-    // Check that the post information is displayed.
-    $elements = $this->xpath('//div[contains(@class, :class)]', [':class' => 'node__submitted']);
-    $this->assertCount(0, $elements, 'Post information is not displayed.');
+    // Check that the post information is not displayed.
+    $this->assertSession()->pageTextNotContains('Submitted by');
   }
 
 }

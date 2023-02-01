@@ -10,7 +10,7 @@ use Drupal\shortcut\Entity\ShortcutSet;
  *
  * @group jsonapi
  */
-class ShortcutSetTest extends ResourceTestBase {
+class ShortcutSetTest extends ConfigEntityResourceTestBase {
 
   /**
    * {@inheritdoc}
@@ -123,6 +123,7 @@ class ShortcutSetTest extends ResourceTestBase {
    */
   protected function getPostDocument() {
     // @todo Update in https://www.drupal.org/node/2300677.
+    return [];
   }
 
 }

@@ -4,14 +4,17 @@ namespace Drupal\system\Controller;
 
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Extension\ExtensionLifecycle;
+use Drupal\Core\Extension\ModuleDependencyMessageTrait;
 use Drupal\Core\Extension\ModuleExtensionList;
+use Drupal\Core\Extension\ThemeExtensionList;
 use Drupal\Core\Extension\ThemeHandlerInterface;
 use Drupal\Core\Form\FormBuilderInterface;
+use Drupal\Core\Link;
 use Drupal\Core\Menu\MenuLinkTreeInterface;
 use Drupal\Core\Menu\MenuTreeParameters;
 use Drupal\Core\Theme\ThemeAccessCheck;
 use Drupal\Core\Url;
-use Drupal\system\ModuleDependencyMessageTrait;
 use Drupal\system\SystemManager;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -118,7 +121,7 @@ class SystemController extends ControllerBase {
    */
   public function overview($link_id) {
     // Check for status report errors.
-    if ($this->systemManager->checkRequirements() && $this->currentUser()->hasPermission('administer site configuration')) {
+    if ($this->currentUser()->hasPermission('administer site configuration') && $this->systemManager->checkRequirements()) {
       $this->messenger()->addError($this->t('One or more problems were detected with your Drupal installation. Check the <a href=":status">status report</a> for more information.', [':status' => Url::fromRoute('system.status')->toString()]));
     }
     // Load all menu links below it.
@@ -192,7 +195,7 @@ class SystemController extends ControllerBase {
   }
 
   /**
-   * Returns a theme listing.
+   * Returns a theme listing which excludes obsolete themes.
    *
    * @return string
    *   An HTML string of the theme listing page.
@@ -203,7 +206,12 @@ class SystemController extends ControllerBase {
     $config = $this->config('system.theme');
     // Get all available themes.
     $themes = $this->themeHandler->rebuildThemeData();
-    uasort($themes, 'system_sort_modules_by_info_name');
+
+    // Remove obsolete themes.
+    $themes = array_filter($themes, function ($theme) {
+      return !$theme->isObsolete();
+    });
+    uasort($themes, [ThemeExtensionList::class, 'sortByName']);
 
     $theme_default = $config->get('default');
     $theme_groups = ['installed' => [], 'uninstalled' => []];
@@ -224,7 +232,6 @@ class SystemController extends ControllerBase {
       }
       $theme->is_default = ($theme->getName() == $theme_default);
       $theme->is_admin = ($theme->getName() == $admin_theme || ($theme->is_default && empty($admin_theme)));
-      $theme->is_experimental = isset($theme->info['experimental']) && $theme->info['experimental'];
 
       // Identify theme screenshot.
       $theme->screenshot = NULL;
@@ -329,7 +336,7 @@ class SystemController extends ControllerBase {
               'attributes' => ['title' => $this->t('Set @theme as default theme', ['@theme' => $theme->info['name']])],
             ];
           }
-          $admin_theme_options[$theme->getName()] = $theme->info['name'] . ($theme->is_experimental ? ' (' . t('Experimental') . ')' : '');
+          $admin_theme_options[$theme->getName()] = $theme->info['name'] . ($theme->isExperimental() ? ' (' . t('Experimental') . ')' : '');
         }
         else {
           $theme->operations[] = [
@@ -347,8 +354,7 @@ class SystemController extends ControllerBase {
         }
       }
 
-      // Add notes to default theme, administration theme and experimental
-      // themes.
+      // Add notes to default theme, administration theme and non-stable themes.
       $theme->notes = [];
       if ($theme->is_default) {
         $theme->notes[] = $this->t('default theme');
@@ -356,7 +362,22 @@ class SystemController extends ControllerBase {
       if ($theme->is_admin) {
         $theme->notes[] = $this->t('administration theme');
       }
-      if ($theme->is_experimental) {
+      $lifecycle = $theme->info[ExtensionLifecycle::LIFECYCLE_IDENTIFIER];
+      if (!empty($theme->info[ExtensionLifecycle::LIFECYCLE_LINK_IDENTIFIER])) {
+        $theme->notes[] = Link::fromTextAndUrl($this->t('@lifecycle', ['@lifecycle' => ucfirst($lifecycle)]),
+          Url::fromUri($theme->info[ExtensionLifecycle::LIFECYCLE_LINK_IDENTIFIER], [
+            'attributes' =>
+              [
+                'class' => 'theme-link--non-stable',
+                'aria-label' => $this->t('View information on the @lifecycle status of the theme @theme', [
+                  '@lifecycle' => ucfirst($lifecycle),
+                  '@theme' => $theme->info['name'],
+                ]),
+              ],
+          ])
+        )->toString();
+      }
+      if ($theme->isExperimental() && empty($theme->info[ExtensionLifecycle::LIFECYCLE_LINK_IDENTIFIER])) {
         $theme->notes[] = $this->t('experimental theme');
       }
 

@@ -107,7 +107,7 @@ interface EntityTypeInterface extends PluginDefinitionInterface {
    * @param string $key
    *   The name of the entity key to return.
    *
-   * @return string|bool
+   * @return string|false
    *   The entity key, or FALSE if it does not exist.
    *
    * @see self::getKeys()
@@ -194,9 +194,9 @@ interface EntityTypeInterface extends PluginDefinitionInterface {
    *     handler's constructor, so that one class can be used for multiple
    *     entity forms when the forms are similar. The classes must implement
    *     \Drupal\Core\Entity\EntityFormInterface.
-   *   - list: The name of the class that provides listings of the entities. The
+   *   - list_builder: The name of the class that provides listings of the entities. The
    *     class must implement \Drupal\Core\Entity\EntityListBuilderInterface.
-   *   - render: The name of the class that is used to render the entities. The
+   *   - view_builder: The name of the class that is used to render the entities. The
    *     class must implement \Drupal\Core\Entity\EntityViewBuilderInterface.
    *   - access: The name of the class that is used for access checks. The class
    *     must implement \Drupal\Core\Entity\EntityAccessControlHandlerInterface.
@@ -686,6 +686,14 @@ interface EntityTypeInterface extends PluginDefinitionInterface {
   /**
    * Gets the machine name of the entity type group.
    *
+   * The entity type group is an annotation property of the entity type.
+   *
+   * Drupal core defines two entity type groups:
+   *  - content: Entities which form the information on a site. Content entities
+   *    are typically customized with fields.
+   *  - config: Entities which define structural elements of a site, which are
+   *    managed as part of the site's configuration.
+   *
    * @return string
    */
   public function getGroup();
@@ -695,6 +703,8 @@ interface EntityTypeInterface extends PluginDefinitionInterface {
    *
    * @return string|\Drupal\Core\StringTranslation\TranslatableMarkup
    *   The group label.
+   *
+   * @see self::getGroup()
    */
   public function getGroupLabel();
 

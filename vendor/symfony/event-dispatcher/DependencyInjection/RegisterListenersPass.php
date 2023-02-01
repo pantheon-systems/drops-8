@@ -66,7 +66,7 @@ class RegisterListenersPass implements CompilerPassInterface
 
         foreach ($container->findTaggedServiceIds($this->listenerTag, true) as $id => $events) {
             foreach ($events as $event) {
-                $priority = isset($event['priority']) ? $event['priority'] : 0;
+                $priority = $event['priority'] ?? 0;
 
                 if (!isset($event['event'])) {
                     if ($container->getDefinition($id)->hasTag($this->subscriberTag)) {
@@ -81,7 +81,7 @@ class RegisterListenersPass implements CompilerPassInterface
 
                 if (!isset($event['method'])) {
                     $event['method'] = 'on'.preg_replace_callback([
-                        '/(?<=\b)[a-z]/i',
+                        '/(?<=\b|_)[a-z]/i',
                         '/[^a-z0-9]/i',
                     ], function ($matches) { return strtoupper($matches[0]); }, $event['event']);
                     $event['method'] = preg_replace('/[^a-z0-9]/i', '', $event['method']);

@@ -26,7 +26,7 @@ class SqlContentEntityStorageSchemaColumnTest extends KernelTestBase {
   /**
    * The created entity.
    *
-   * @var \Drupal\Core\Entity\Entity
+   * @var \Drupal\Core\Entity\EntityInterface
    */
   protected $entity;
 
@@ -43,6 +43,20 @@ class SqlContentEntityStorageSchemaColumnTest extends KernelTestBase {
    * @var \Drupal\field\FieldStorageConfigInterface
    */
   protected $fieldStorage;
+
+  /**
+   * The entity definition update manager.
+   *
+   * @var \Drupal\Core\Entity\EntityDefinitionUpdateManagerInterface
+   */
+  protected $entityDefinitionUpdateManager;
+
+  /**
+   * The state object.
+   *
+   * @var \Drupal\Core\State\StateInterface
+   */
+  protected $state;
 
   /**
    * {@inheritdoc}

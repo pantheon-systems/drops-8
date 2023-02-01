@@ -36,8 +36,8 @@ process:
       plugin: migration_lookup
       migration: d6_field_instance
       source:
-         - '@field_name'
-         - '@bundle'
+        - '@field_name'
+        - '@bundle'
     -
       plugin: skip_on_empty
       method: row
@@ -55,3 +55,4 @@ destination:
 migration_dependencies:
   required:
     - d6_field_instance
+    - language

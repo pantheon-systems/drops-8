@@ -2,8 +2,6 @@
 
 namespace Drupal\Tests\update\Functional;
 
-use Drupal\Core\DrupalKernel;
-use Drupal\Core\Link;
 use Drupal\Core\Url;
 use Drupal\Tests\BrowserTestBase;
 
@@ -55,29 +53,6 @@ abstract class UpdateTestBase extends BrowserTestBase {
    */
   protected $updateProject;
 
-  protected function setUp() {
-    parent::setUp();
-
-    // Change the root path which Update Manager uses to install and update
-    // projects to be inside the testing site directory. See
-    // \Drupal\update\UpdateRootFactory::get() for equivalent changes to the
-    // test child site.
-    $request = \Drupal::request();
-    $update_root = $this->container->get('update.root') . '/' . DrupalKernel::findSitePath($request);
-    $this->container->set('update.root', $update_root);
-    \Drupal::setContainer($this->container);
-
-    // Create the directories within the root path within which the Update
-    // Manager will install projects.
-    foreach (drupal_get_updaters() as $updater_info) {
-      $updater = $updater_info['class'];
-      $install_directory = $update_root . '/' . $updater::getRootDirectoryRelativePath();
-      if (!is_dir($install_directory)) {
-        mkdir($install_directory);
-      }
-    }
-  }
-
   /**
    * Refreshes the update status based on the desired available update scenario.
    *
@@ -98,7 +73,7 @@ abstract class UpdateTestBase extends BrowserTestBase {
     $this->config('update_test.settings')->set('xml_map', $xml_map)->save();
     // Manually check the update status.
     $this->drupalGet('admin/reports/updates');
-    $this->clickLink(t('Check manually'));
+    $this->clickLink('Check manually');
     $this->checkForMetaRefresh();
   }
 
@@ -106,17 +81,21 @@ abstract class UpdateTestBase extends BrowserTestBase {
    * Runs a series of assertions that are applicable to all update statuses.
    */
   protected function standardTests() {
-    $this->assertRaw('<h3>' . t('Drupal core') . '</h3>');
+    $this->assertSession()->responseContains('<h3>Drupal core</h3>');
     // Verify that the link to the Drupal project appears.
-    $this->assertRaw(Link::fromTextAndUrl(t('Drupal'), Url::fromUri('http://example.com/project/drupal'))->toString());
-    $this->assertNoText('No available releases found');
+    $this->assertSession()->linkExists('Drupal');
+    $this->assertSession()->linkByHrefExists('http://example.com/project/drupal');
+    $this->assertSession()->pageTextNotContains('No available releases found');
+    $this->assertSession()->pageTextContains('Last checked:');
+    // No download URLs should be present.
+    $this->assertSession()->responseNotContains('.tar.gz');
   }
 
   /**
    * Asserts the expected security updates are displayed correctly on the page.
    *
    * @param string $project_path_part
-   *   The project path part needed for the download and release links.
+   *   The project path part needed for the release link.
    * @param string[] $expected_security_releases
    *   The security releases, if any, that the status report should recommend.
    * @param string $expected_update_message_type
@@ -132,11 +111,7 @@ abstract class UpdateTestBase extends BrowserTestBase {
     $all_security_release_urls = array_map(function ($link) {
       return $link->getAttribute('href');
     }, $page->findAll('css', "$update_element_css_locator .version-security a[href$='-release']"));
-    $all_security_download_urls = array_map(function ($link) {
-      return $link->getAttribute('href');
-    }, $page->findAll('css', "$update_element_css_locator .version-security a[href$='.tar.gz']"));
     if ($expected_security_releases) {
-      $expected_download_urls = [];
       $expected_release_urls = [];
       if ($expected_update_message_type === static::SECURITY_UPDATE_REQUIRED) {
         $assert_session->elementTextNotContains('css', $update_element_css_locator, 'Update available');
@@ -152,23 +127,18 @@ abstract class UpdateTestBase extends BrowserTestBase {
       foreach ($expected_security_releases as $expected_security_release) {
         $expected_url_version = str_replace('.', '-', $expected_security_release);
         $release_url = "http://example.com/$project_path_part-$expected_url_version-release";
-        $download_url = "http://example.com/$project_path_part-$expected_url_version.tar.gz";
+        $assert_session->responseNotContains("http://example.com/$project_path_part-$expected_url_version.tar.gz");
         $expected_release_urls[] = $release_url;
-        $expected_download_urls[] = $download_url;
         // Ensure the expected links are security links.
         $this->assertContains($release_url, $all_security_release_urls, "Release $release_url is a security release link.");
-        $this->assertContains($download_url, $all_security_download_urls, "Release $download_url is a security download link.");
         $assert_session->linkByHrefExists($release_url);
-        $assert_session->linkByHrefExists($download_url);
       }
       // Ensure no other links are shown as security releases.
       $this->assertEquals([], array_diff($all_security_release_urls, $expected_release_urls));
-      $this->assertEquals([], array_diff($all_security_download_urls, $expected_download_urls));
     }
     else {
       // Ensure there were no security links.
       $this->assertEquals([], $all_security_release_urls);
-      $this->assertEquals([], $all_security_download_urls);
       $assert_session->pageTextNotContains('Security update required!');
       if ($expected_update_message_type === static::UPDATE_AVAILABLE) {
         $assert_session->elementTextContains('css', $update_element_css_locator, 'Update available');
@@ -191,18 +161,14 @@ abstract class UpdateTestBase extends BrowserTestBase {
    *   The label for the update.
    * @param string $version
    *   The project version.
-   * @param string|null $download_version
-   *   (optional) The version number as it appears in the download link. If
-   *   $download_version is not provided then $version will be used.
    */
-  protected function assertVersionUpdateLinks($label, $version, $download_version = NULL) {
-    $download_version = $download_version ?? $version;
+  protected function assertVersionUpdateLinks($label, $version) {
     $update_element = $this->findUpdateElementByLabel($label);
     // In the release notes URL the periods are replaced with dashes.
     $url_version = str_replace('.', '-', $version);
 
     $this->assertEquals($update_element->findLink($version)->getAttribute('href'), "http://example.com/{$this->updateProject}-$url_version-release");
-    $this->assertEquals($update_element->findLink('Download')->getAttribute('href'), "http://example.com/{$this->updateProject}-$download_version.tar.gz");
+    $this->assertStringNotContainsString("http://example.com/{$this->updateProject}-$version.tar.gz", $update_element->getOuterHtml());
     $this->assertEquals($update_element->findLink('Release notes')->getAttribute('href'), "http://example.com/{$this->updateProject}-$url_version-release");
   }
 
@@ -219,7 +185,7 @@ abstract class UpdateTestBase extends BrowserTestBase {
    */
   protected function confirmRevokedStatus($revoked_version, $newer_version, $new_version_label) {
     $this->drupalGet('admin/reports/updates');
-    $this->clickLink(t('Check manually'));
+    $this->clickLink('Check manually');
     $this->checkForMetaRefresh();
     $this->assertUpdateTableTextContains('Revoked!');
     $this->assertUpdateTableTextContains($revoked_version);
@@ -241,7 +207,7 @@ abstract class UpdateTestBase extends BrowserTestBase {
    */
   protected function confirmUnsupportedStatus($unsupported_version, $newer_version, $new_version_label) {
     $this->drupalGet('admin/reports/updates');
-    $this->clickLink(t('Check manually'));
+    $this->clickLink('Check manually');
     $this->checkForMetaRefresh();
     $this->assertUpdateTableTextContains('Not supported!');
     $this->assertUpdateTableTextContains($unsupported_version);
@@ -264,6 +230,16 @@ abstract class UpdateTestBase extends BrowserTestBase {
   }
 
   /**
+   * Asserts that the update table text does not contain the specified text.
+   *
+   * @param string $text
+   *   The expected text.
+   */
+  protected function assertUpdateTableTextNotContains($text) {
+    $this->assertSession()->elementTextNotContains('css', $this->updateTableLocator, $text);
+  }
+
+  /**
    * Asserts that the update table element HTML contains the specified text.
    *
    * @param string $text
@@ -274,6 +250,19 @@ abstract class UpdateTestBase extends BrowserTestBase {
   protected function assertUpdateTableElementContains($text) {
     $this->assertSession()
       ->elementContains('css', $this->updateTableLocator, $text);
+  }
+
+  /**
+   * Asserts that the update table element HTML contains the specified text.
+   *
+   * @param string $text
+   *   The expected text.
+   *
+   * @see \Behat\Mink\WebAssert::elementNotContains()
+   */
+  protected function assertUpdateTableElementNotContains($text) {
+    $this->assertSession()
+      ->elementNotContains('css', $this->updateTableLocator, $text);
   }
 
   /**

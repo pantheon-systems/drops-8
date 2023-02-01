@@ -2,6 +2,7 @@
 
 namespace Drupal\config\Form;
 
+use Drupal\Core\Batch\BatchBuilder;
 use Drupal\Core\Config\ConfigImporterException;
 use Drupal\Core\Config\ConfigImporter;
 use Drupal\Core\Config\Importer\ConfigImporterBatch;
@@ -10,6 +11,7 @@ use Drupal\Core\Config\TypedConfigManagerInterface;
 use Drupal\Core\Extension\ModuleExtensionList;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Extension\ModuleInstallerInterface;
+use Drupal\Core\Extension\ThemeExtensionList;
 use Drupal\Core\Extension\ThemeHandlerInterface;
 use Drupal\Core\Config\ConfigManagerInterface;
 use Drupal\Core\Form\FormBase;
@@ -19,7 +21,7 @@ use Drupal\Core\Lock\LockBackendInterface;
 use Drupal\Core\Config\StorageComparer;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\Url;
-use Symfony\Component\EventDispatcher\EventDispatcherInterface;
+use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -60,7 +62,7 @@ class ConfigSync extends FormBase {
   /**
    * Event dispatcher.
    *
-   * @var \Symfony\Component\EventDispatcher\EventDispatcherInterface
+   * @var \Symfony\Contracts\EventDispatcher\EventDispatcherInterface
    */
   protected $eventDispatcher;
 
@@ -121,6 +123,13 @@ class ConfigSync extends FormBase {
   protected $importTransformer;
 
   /**
+   * The theme extension list.
+   *
+   * @var \Drupal\Core\Extension\ThemeExtensionList
+   */
+  protected $themeExtensionList;
+
+  /**
    * Constructs the object.
    *
    * @param \Drupal\Core\Config\StorageInterface $sync_storage
@@ -131,7 +140,7 @@ class ConfigSync extends FormBase {
    *   The snapshot storage.
    * @param \Drupal\Core\Lock\LockBackendInterface $lock
    *   The lock object.
-   * @param \Symfony\Component\EventDispatcher\EventDispatcherInterface $event_dispatcher
+   * @param \Symfony\Contracts\EventDispatcher\EventDispatcherInterface $event_dispatcher
    *   Event dispatcher.
    * @param \Drupal\Core\Config\ConfigManagerInterface $config_manager
    *   Configuration manager.
@@ -149,8 +158,10 @@ class ConfigSync extends FormBase {
    *   The module extension list
    * @param \Drupal\Core\Config\ImportStorageTransformer $import_transformer
    *   The import transformer service.
+   * @param \Drupal\Core\Extension\ThemeExtensionList $extension_list_theme
+   *   The theme extension list.
    */
-  public function __construct(StorageInterface $sync_storage, StorageInterface $active_storage, StorageInterface $snapshot_storage, LockBackendInterface $lock, EventDispatcherInterface $event_dispatcher, ConfigManagerInterface $config_manager, TypedConfigManagerInterface $typed_config, ModuleHandlerInterface $module_handler, ModuleInstallerInterface $module_installer, ThemeHandlerInterface $theme_handler, RendererInterface $renderer, ModuleExtensionList $extension_list_module, ImportStorageTransformer $import_transformer) {
+  public function __construct(StorageInterface $sync_storage, StorageInterface $active_storage, StorageInterface $snapshot_storage, LockBackendInterface $lock, EventDispatcherInterface $event_dispatcher, ConfigManagerInterface $config_manager, TypedConfigManagerInterface $typed_config, ModuleHandlerInterface $module_handler, ModuleInstallerInterface $module_installer, ThemeHandlerInterface $theme_handler, RendererInterface $renderer, ModuleExtensionList $extension_list_module, ImportStorageTransformer $import_transformer, ThemeExtensionList $extension_list_theme = NULL) {
     $this->syncStorage = $sync_storage;
     $this->activeStorage = $active_storage;
     $this->snapshotStorage = $snapshot_storage;
@@ -164,6 +175,11 @@ class ConfigSync extends FormBase {
     $this->renderer = $renderer;
     $this->moduleExtensionList = $extension_list_module;
     $this->importTransformer = $import_transformer;
+    if ($extension_list_theme === NULL) {
+      @trigger_error('Calling ' . __METHOD__ . ' without the $extension_list_theme argument is deprecated in drupal:10.1.0 and will be required in drupal:11.0.0. See https://www.drupal.org/node/3284397', E_USER_DEPRECATED);
+      $extension_list_theme = \Drupal::service('extension.list.theme');
+    }
+    $this->themeExtensionList = $extension_list_theme;
   }
 
   /**
@@ -183,7 +199,8 @@ class ConfigSync extends FormBase {
       $container->get('theme_handler'),
       $container->get('renderer'),
       $container->get('extension.list.module'),
-      $container->get('config.import_transformer')
+      $container->get('config.import_transformer'),
+      $container->get('extension.list.theme')
     );
   }
 
@@ -212,7 +229,7 @@ class ConfigSync extends FormBase {
         '#type' => 'table',
         '#header' => [$this->t('Name'), $this->t('Operations')],
         '#rows' => [],
-        '#empty' => $this->t('There are no configuration changes to import.'),
+        '#empty' => empty($source_list) ? $this->t('There is no staged configuration.') : $this->t('The staged configuration is identical to the active configuration.'),
       ];
       $form['actions']['#access'] = FALSE;
       return $form;
@@ -356,7 +373,8 @@ class ConfigSync extends FormBase {
       $this->moduleInstaller,
       $this->themeHandler,
       $this->getStringTranslation(),
-      $this->moduleExtensionList
+      $this->moduleExtensionList,
+      $this->themeExtensionList
     );
     if ($config_importer->alreadyImporting()) {
       $this->messenger()->addStatus($this->t('Another request may be synchronizing configuration already.'));
@@ -364,19 +382,17 @@ class ConfigSync extends FormBase {
     else {
       try {
         $sync_steps = $config_importer->initialize();
-        $batch = [
-          'operations' => [],
-          'finished' => [ConfigImporterBatch::class, 'finish'],
-          'title' => t('Synchronizing configuration'),
-          'init_message' => t('Starting configuration synchronization.'),
-          'progress_message' => t('Completed step @current of @total.'),
-          'error_message' => t('Configuration synchronization has encountered an error.'),
-        ];
+        $batch_builder = (new BatchBuilder())
+          ->setTitle($this->t('Synchronizing configuration'))
+          ->setFinishCallback([ConfigImporterBatch::class, 'finish'])
+          ->setInitMessage($this->t('Starting configuration synchronization.'))
+          ->setProgressMessage($this->t('Completed step @current of @total.'))
+          ->setErrorMessage($this->t('Configuration synchronization has encountered an error.'));
         foreach ($sync_steps as $sync_step) {
-          $batch['operations'][] = [[ConfigImporterBatch::class, 'process'], [$config_importer, $sync_step]];
+          $batch_builder->addOperation([ConfigImporterBatch::class, 'process'], [$config_importer, $sync_step]);
         }
 
-        batch_set($batch);
+        batch_set($batch_builder->toArray());
       }
       catch (ConfigImporterException $e) {
         // There are validation errors.
