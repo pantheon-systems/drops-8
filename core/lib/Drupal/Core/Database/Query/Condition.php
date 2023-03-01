@@ -101,6 +101,7 @@ class Condition implements ConditionInterface, \Countable {
    * size of its conditional array minus one, because one element is the
    * conjunction.
    */
+  #[\ReturnTypeWillChange]
   public function count() {
     return count($this->conditions) - 1;
   }
@@ -398,7 +399,7 @@ class Condition implements ConditionInterface, \Countable {
       // do not need the more expensive mb_strtoupper() because SQL statements
       // are ASCII.
       $operator = strtoupper($operator);
-      $return = isset(static::$conditionOperatorMap[$operator]) ? static::$conditionOperatorMap[$operator] : [];
+      $return = static::$conditionOperatorMap[$operator] ?? [];
     }
 
     $return += ['operator' => $operator];

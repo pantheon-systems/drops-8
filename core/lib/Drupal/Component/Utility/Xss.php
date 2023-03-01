@@ -215,7 +215,14 @@ class Xss {
           // Attribute name, href for instance.
           if (preg_match('/^([-a-zA-Z][-a-zA-Z0-9]*)/', $attributes, $match)) {
             $attribute_name = strtolower($match[1]);
-            $skip = ($attribute_name == 'style' || substr($attribute_name, 0, 2) == 'on');
+            $skip = (
+              $attribute_name == 'style' ||
+              substr($attribute_name, 0, 2) == 'on' ||
+              substr($attribute_name, 0, 1) == '-' ||
+              // Ignore long attributes to avoid unnecessary processing
+              // overhead.
+              strlen($attribute_name) > 96
+            );
 
             // Values for attributes of type URI should be filtered for
             // potentially malicious protocols (for example, an href-attribute
@@ -230,6 +237,7 @@ class Xss {
               'alt',
               'rel',
               'property',
+              'class',
             ]);
 
             $working = $mode = 1;
@@ -240,13 +248,15 @@ class Xss {
         case 1:
           // Equals sign or valueless ("selected").
           if (preg_match('/^\s*=\s*/', $attributes)) {
-            $working = 1; $mode = 2;
+            $working = 1;
+            $mode = 2;
             $attributes = preg_replace('/^\s*=\s*/', '', $attributes);
             break;
           }
 
           if (preg_match('/^\s+/', $attributes)) {
-            $working = 1; $mode = 0;
+            $working = 1;
+            $mode = 0;
             if (!$skip) {
               $attributes_array[] = $attribute_name;
             }
@@ -274,7 +284,8 @@ class Xss {
             if (!$skip) {
               $attributes_array[] = "$attribute_name='$value'";
             }
-            $working = 1; $mode = 0;
+            $working = 1;
+            $mode = 0;
             $attributes = preg_replace("/^'[^']*'(\s+|$)/", '', $attributes);
             break;
           }
@@ -285,7 +296,8 @@ class Xss {
             if (!$skip) {
               $attributes_array[] = "$attribute_name=\"$value\"";
             }
-            $working = 1; $mode = 0;
+            $working = 1;
+            $mode = 0;
             $attributes = preg_replace("%^[^\s\"']+(\s+|$)%", '', $attributes);
           }
           break;

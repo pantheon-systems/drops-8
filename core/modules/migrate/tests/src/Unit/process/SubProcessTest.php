@@ -2,20 +2,22 @@
 
 namespace Drupal\Tests\migrate\Unit\process;
 
+use Drupal\migrate\MigrateException;
 use Drupal\migrate\MigrateExecutable;
 use Drupal\migrate\MigrateMessageInterface;
 use Drupal\migrate\Plugin\migrate\process\Get;
 use Drupal\migrate\Plugin\migrate\process\SubProcess;
 use Drupal\migrate\Row;
-use Drupal\Tests\migrate\Unit\MigrateTestCase;
-use Symfony\Component\EventDispatcher\EventDispatcherInterface;
+use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
+
+// cspell:ignore baaa
 
 /**
  * Tests the sub_process process plugin.
  *
  * @group migrate
  */
-class SubProcessTest extends MigrateTestCase {
+class SubProcessTest extends MigrateProcessTestCase {
 
   /**
    * The sub_process plugin being tested.
@@ -37,7 +39,7 @@ class SubProcessTest extends MigrateTestCase {
    * @dataProvider providerTestSubProcess
    */
   public function testSubProcess($process_configuration, $source_values = []) {
-    $migration = $this->getMigration($process_configuration);
+    $migration = $this->getMigration();
     // Set up the properties for the sub_process.
     $plugin = new SubProcess($process_configuration, 'sub_process', []);
     // Manually create the plugins. Migration::getProcessPlugins does this
@@ -45,14 +47,14 @@ class SubProcessTest extends MigrateTestCase {
     foreach ($process_configuration['process'] as $destination => $source) {
       $sub_process_plugins[$destination][] = new Get(['source' => $source], 'get', []);
     }
-    $migration->expects($this->at(1))
-      ->method('getProcessPlugins')
-      ->willReturn($sub_process_plugins);
     // Set up the key plugins.
     $key_plugin['key'][] = new Get(['source' => '@id'], 'get', []);
-    $migration->expects($this->at(2))
+    $migration->expects($this->exactly(2))
       ->method('getProcessPlugins')
-      ->will($this->returnValue($key_plugin));
+      ->willReturnOnConsecutiveCalls(
+        $sub_process_plugins,
+        $key_plugin,
+      );
     $event_dispatcher = $this->createMock(EventDispatcherInterface::class);
     $migrate_executable = new MigrateExecutable($migration, $this->createMock(MigrateMessageInterface::class), $event_dispatcher);
 
@@ -71,7 +73,7 @@ class SubProcessTest extends MigrateTestCase {
     // key (@id) is the same as the destination ID (42).
     $new_value = $plugin->transform($current_value, $migrate_executable, $row, 'test');
     $this->assertCount(1, $new_value);
-    $this->assertCount(count($process_configuration['process']), $new_value[42]);
+    $this->assertSameSize($process_configuration['process'], $new_value[42]);
     $this->assertSame('test', $new_value[42]['foo']);
     if ($source_values) {
       $this->assertSame('source_baz', $new_value[42]['baaa']);
@@ -139,16 +141,13 @@ class SubProcessTest extends MigrateTestCase {
     foreach ($process_configuration['process'] as $destination => $source) {
       $sub_process_plugins[$destination][] = new Get(['source' => $source], 'get', []);
     }
-    $migration->expects($this->at(1))
+    $key_plugin['key'][] = new Get(['source' => '@id'], 'get', []);
+    $migration->expects($this->exactly(2))
       ->method('getProcessPlugins')
-      ->willReturn($sub_process_plugins);
-    // Set up the key plugins.
-    if (array_key_exists('key', $process_configuration)) {
-      $key_plugin['key'][] = new Get(['source' => '@id'], 'get', []);
-      $migration->expects($this->at(2))
-        ->method('getProcessPlugins')
-        ->will($this->returnValue($key_plugin));
-    }
+      ->willReturnOnConsecutiveCalls(
+        $sub_process_plugins,
+        $key_plugin,
+      );
     $event_dispatcher = $this->createMock(EventDispatcherInterface::class);
     $migrate_executable = new MigrateExecutable($migration, $this->createMock(MigrateMessageInterface::class), $event_dispatcher);
 
@@ -190,6 +189,54 @@ class SubProcessTest extends MigrateTestCase {
           ],
           'key' => '@id',
         ],
+      ],
+    ];
+  }
+
+  /**
+   * Tests behavior when source children are not arrays.
+   *
+   * @dataProvider providerTestSourceNotArray
+   */
+  public function testSourceNotArray($source_values, $type) {
+    $process = new SubProcess(['process' => ['foo' => 'source_foo']], 'sub_process', []);
+    $this->expectException(MigrateException::class);
+    $this->expectExceptionMessage("Input array should hold elements of type array, instead element was of type '$type'");
+    $process->transform($source_values, $this->migrateExecutable, $this->row, 'destination_property');
+  }
+
+  /**
+   * Data provider for testSourceNotArray().
+   */
+  public function providerTestSourceNotArray() {
+    return [
+      'strings cannot be subprocess items' => [
+        ['strings', 'cannot', 'be', 'children'],
+        'string',
+      ],
+      'xml elements cannot be subprocess items' => [
+        [new \SimpleXMLElement("<element>Content</element>")],
+        'object',
+      ],
+      'integers cannot be subprocess items' => [
+        [1, 2, 3, 4],
+        'integer',
+      ],
+      'booleans cannot be subprocess items' => [
+        [TRUE, FALSE],
+        'boolean',
+      ],
+      'null cannot be subprocess items' => [
+        [NULL],
+        'NULL',
+      ],
+      'iterator cannot be subprocess items' => [
+        [new \ArrayIterator(['some', 'array'])],
+        'object',
+      ],
+      'all subprocess items must be arrays' => [
+        [['array'], 'not array'],
+        'string',
       ],
     ];
   }

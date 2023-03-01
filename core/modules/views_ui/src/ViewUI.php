@@ -23,6 +23,7 @@ use Symfony\Component\HttpFoundation\Request;
 /**
  * Stores UI related temporary settings.
  */
+#[\AllowDynamicProperties]
 class ViewUI implements ViewEntityInterface {
 
   /**
@@ -121,8 +122,9 @@ class ViewUI implements ViewEntityInterface {
   ];
 
   /**
-   * Whether the config is being created, updated or deleted through the
-   * import process.
+   * Whether the config is being synced through the import process.
+   *
+   * This is the case with create, update or delete.
    *
    * @var bool
    */
@@ -134,6 +136,11 @@ class ViewUI implements ViewEntityInterface {
    * @var bool
    */
   private $isUninstalling = FALSE;
+
+  /**
+   * The entity type.
+   */
+  protected $entityType;
 
   /**
    * Constructs a View UI object.
@@ -154,7 +161,7 @@ class ViewUI implements ViewEntityInterface {
       return $this->storage->get($property_name, $langcode);
     }
 
-    return isset($this->{$property_name}) ? $this->{$property_name} : NULL;
+    return $this->{$property_name} ?? NULL;
   }
 
   /**
@@ -215,7 +222,7 @@ class ViewUI implements ViewEntityInterface {
     // Determine whether the values the user entered are intended to apply to
     // the current display or the default display.
 
-    list($was_defaulted, $is_defaulted, $revert) = $this->getOverrideValues($form, $form_state);
+    [$was_defaulted, $is_defaulted, $revert] = $this->getOverrideValues($form, $form_state);
 
     // Based on the user's choice in the display dropdown, determine which display
     // these changes apply to.
@@ -429,7 +436,7 @@ class ViewUI implements ViewEntityInterface {
     $display_id = $form_state->get('display_id');
 
     // Handle the override select.
-    list($was_defaulted, $is_defaulted) = $this->getOverrideValues($form, $form_state);
+    [$was_defaulted, $is_defaulted] = $this->getOverrideValues($form, $form_state);
     if ($was_defaulted && !$is_defaulted) {
       // We were using the default display's values, but we're now overriding
       // the default display and saving values specific to this display.
@@ -450,7 +457,7 @@ class ViewUI implements ViewEntityInterface {
     if (!$form_state->isValueEmpty('name') && is_array($form_state->getValue('name'))) {
       // Loop through each of the items that were checked and add them to the view.
       foreach (array_keys(array_filter($form_state->getValue('name'))) as $field) {
-        list($table, $field) = explode('.', $field, 2);
+        [$table, $field] = explode('.', $field, 2);
 
         if ($cut = strpos($field, '$')) {
           $field = substr($field, 0, $cut);
@@ -536,7 +543,6 @@ class ViewUI implements ViewEntityInterface {
     $errors = $executable->validate();
     $executable->destroy();
     if (empty($errors)) {
-      $this->ajax = TRUE;
       $executable->live_preview = TRUE;
 
       // AJAX happens via HTTP POST but everything expects exposed data to
@@ -673,9 +679,9 @@ class ViewUI implements ViewEntityInterface {
                 [
                   'data' => [
                     '#prefix' => '<pre>',
-                     'queries' => $queries,
-                     '#suffix' => '</pre>',
-                    ],
+                    'queries' => $queries,
+                    '#suffix' => '</pre>',
+                  ],
                 ],
               ];
             }
@@ -830,7 +836,7 @@ class ViewUI implements ViewEntityInterface {
   /**
    * Get the user's current progress through the form stack.
    *
-   * @return
+   * @return array|bool
    *   FALSE if the user is not currently in a multiple-form stack. Otherwise,
    *   an associative array with the following keys:
    *   - current: The number of the current form on the stack.

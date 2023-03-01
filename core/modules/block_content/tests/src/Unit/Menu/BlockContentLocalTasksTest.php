@@ -12,6 +12,9 @@ use Symfony\Component\DependencyInjection\ContainerBuilder;
  */
 class BlockContentLocalTasksTest extends LocalTaskIntegrationTestBase {
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp(): void {
     $this->directoryList = [
       'block' => 'core/modules/block',
@@ -42,7 +45,7 @@ class BlockContentLocalTasksTest extends LocalTaskIntegrationTestBase {
     $theme_handler = $this->createMock('Drupal\Core\Extension\ThemeHandlerInterface');
     $theme_handler->expects($this->any())
       ->method('listInfo')
-      ->will($this->returnValue($themes));
+      ->willReturn($themes);
 
     $container = new ContainerBuilder();
     $container->set('config.factory', $config_factory);

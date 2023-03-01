@@ -386,7 +386,7 @@ class AjaxCommandsTest extends UnitTestCase {
           'width' => 500,
         ],
       ])
-      ->setMethods(['getRenderedContent'])
+      ->onlyMethods(['getRenderedContent'])
       ->getMock();
 
     // This method calls the render service, which isn't available. We want it
@@ -485,7 +485,7 @@ class AjaxCommandsTest extends UnitTestCase {
    * @covers \Drupal\Core\Ajax\UpdateBuildIdCommand
    */
   public function testUpdateBuildIdCommand() {
-    $old = 'ThisStringisOld';
+    $old = 'ThisStringIsOld';
     $new = 'ThisStringIsNew';
     $command = new UpdateBuildIdCommand($old, $new);
     $expected = [

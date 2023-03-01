@@ -74,7 +74,9 @@ interface DrupalKernelInterface extends HttpKernelInterface, ContainerAwareInter
   public function getCachedContainerDefinition();
 
   /**
-   * Set the current site path.
+   * Set the current site path directory.
+   *
+   * Format: "folder-name/child-folder" usually uses "sites/default".
    *
    * @param string $path
    *   The current site path.
@@ -85,10 +87,10 @@ interface DrupalKernelInterface extends HttpKernelInterface, ContainerAwareInter
   public function setSitePath($path);
 
   /**
-   * Get the site path.
+   * Gets the site path directory.
    *
    * @return string
-   *   The current site path.
+   *   The current site path directory.
    */
   public function getSitePath();
 
@@ -136,5 +138,15 @@ interface DrupalKernelInterface extends HttpKernelInterface, ContainerAwareInter
    * Helper method that loads legacy Drupal include files.
    */
   public function loadLegacyIncludes();
+
+  /**
+   * Get a mapping from service hashes to service IDs.
+   *
+   * @deprecated in drupal:9.5.1 and is removed from drupal:11.0.0. Use the
+   *   'Drupal\Component\DependencyInjection\ReverseContainer' service instead.
+   *
+   * @see https://www.drupal.org/node/3327942
+   */
+  public function getServiceIdMapping();
 
 }

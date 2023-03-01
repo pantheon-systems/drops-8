@@ -24,13 +24,16 @@ class PluginBaseTest extends KernelTestBase {
    */
   protected $testPluginBase;
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp(): void {
     parent::setUp();
     $this->testPluginBase = new TestPluginBase();
   }
 
   /**
-   * Test that the token replacement in views works correctly.
+   * Tests that the token replacement in views works correctly.
    */
   public function testViewsTokenReplace() {
     $text = '{{ langcode__value }} means {{ langcode }}';
@@ -40,11 +43,11 @@ class PluginBaseTest extends KernelTestBase {
       return $this->testPluginBase->viewsTokenReplace($text, $tokens);
     });
 
-    $this->assertIdentical($result, 'en means English');
+    $this->assertSame('en means English', $result);
   }
 
   /**
-   * Test that the token replacement in views works correctly with dots.
+   * Tests that the token replacement in views works correctly with dots.
    */
   public function testViewsTokenReplaceWithDots() {
     $text = '{{ argument.first }} comes before {{ argument.second }}';
@@ -54,7 +57,7 @@ class PluginBaseTest extends KernelTestBase {
       return $this->testPluginBase->viewsTokenReplace($text, $tokens);
     });
 
-    $this->assertIdentical($result, 'first comes before second');
+    $this->assertSame('first comes before second', $result);
 
     // Test tokens with numeric indexes.
     $text = '{{ argument.0.first }} comes before {{ argument.1.second }}';
@@ -64,7 +67,7 @@ class PluginBaseTest extends KernelTestBase {
       return $this->testPluginBase->viewsTokenReplace($text, $tokens);
     });
 
-    $this->assertIdentical($result, 'first comes before second');
+    $this->assertSame('first comes before second', $result);
   }
 
   /**
@@ -74,7 +77,7 @@ class PluginBaseTest extends KernelTestBase {
     $text = 'Just some text';
     $tokens = [];
     $result = $this->testPluginBase->viewsTokenReplace($text, $tokens);
-    $this->assertIdentical($result, 'Just some text');
+    $this->assertSame('Just some text', $result);
   }
 
 }

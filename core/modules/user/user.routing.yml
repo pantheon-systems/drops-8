@@ -11,7 +11,7 @@ user.logout:
   defaults:
     _controller: '\Drupal\user\Controller\UserController::logout'
   requirements:
-    _access: 'TRUE'
+    _user_is_logged_in: 'TRUE'
 
 user.admin_index:
   path: '/admin/config/people'
@@ -28,6 +28,14 @@ entity.user.admin_form:
     _title: 'Account settings'
   requirements:
     _permission: 'administer account settings'
+
+user.role.settings:
+  path: '/admin/people/role-settings'
+  defaults:
+    _form: '\Drupal\user\Form\RoleSettingsForm'
+    _title: 'Role settings'
+  requirements:
+    _permission: 'administer permissions'
 
 entity.user.collection:
   path: '/admin/people'
@@ -52,6 +60,16 @@ user.admin_permissions:
     _title: 'Permissions'
   requirements:
     _permission: 'administer permissions'
+
+user.admin_permissions.module:
+  path: '/admin/people/permissions/module/{modules}'
+  defaults:
+    _form: '\Drupal\user\Form\UserPermissionsModuleSpecificForm'
+    _title: 'Module Permissions'
+  requirements:
+    _permission: 'administer permissions'
+    modules: '[a-z][a-z0-9_,]*'
+    _custom_access: '\Drupal\user\Form\UserPermissionsModuleSpecificForm::access'
 
 entity.user_role.edit_permissions_form:
   path: '/admin/people/permissions/{user_role}'
@@ -125,6 +143,14 @@ user.page:
   defaults:
     _controller: '\Drupal\user\Controller\UserController::userPage'
     _title: 'My account'
+  requirements:
+    _user_is_logged_in: 'TRUE'
+
+user.edit:
+  path: '/user/edit'
+  defaults:
+    _controller: '\Drupal\user\Controller\UserController::userEditPage'
+    _title: 'Edit account'
   requirements:
     _user_is_logged_in: 'TRUE'
 

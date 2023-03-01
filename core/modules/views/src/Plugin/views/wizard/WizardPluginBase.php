@@ -6,6 +6,7 @@ use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Entity\EntityPublishedInterface;
 use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Menu\MenuParentFormSelectorInterface;
 use Drupal\Core\Url;
 use Drupal\views\Entity\View;
 use Drupal\views\Views;
@@ -117,6 +118,13 @@ abstract class WizardPluginBase extends PluginBase implements WizardInterface {
   protected $bundleInfoService;
 
   /**
+   * The parent form selector service.
+   *
+   * @var \Drupal\Core\Menu\MenuParentFormSelectorInterface
+   */
+  protected $parentFormSelector;
+
+  /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
@@ -124,18 +132,25 @@ abstract class WizardPluginBase extends PluginBase implements WizardInterface {
       $configuration,
       $plugin_id,
       $plugin_definition,
-      $container->get('entity_type.bundle.info')
+      $container->get('entity_type.bundle.info'),
+      $container->get('menu.parent_form_selector')
     );
   }
 
   /**
    * Constructs a WizardPluginBase object.
    */
-  public function __construct(array $configuration, $plugin_id, $plugin_definition, EntityTypeBundleInfoInterface $bundle_info_service) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, EntityTypeBundleInfoInterface $bundle_info_service, MenuParentFormSelectorInterface $parent_form_selector = NULL) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
 
     $this->bundleInfoService = $bundle_info_service;
     $this->base_table = $this->definition['base_table'];
+
+    if (!$parent_form_selector) {
+      @trigger_error('Calling ' . __METHOD__ . '() without the $parent_form_selector argument is deprecated in drupal:9.3.0 and the $parent_form_selector argument will be required in drupal:10.0.0. See https://www.drupal.org/node/3027559', E_USER_DEPRECATED);
+      $parent_form_selector = \Drupal::service('menu.parent_form_selector');
+    }
+    $this->parentFormSelector = $parent_form_selector;
 
     $entity_types = \Drupal::entityTypeManager()->getDefinitions();
     foreach ($entity_types as $entity_type_id => $entity_type) {
@@ -305,20 +320,9 @@ abstract class WizardPluginBase extends PluginBase implements WizardInterface {
       '#prefix' => '<div id="edit-page-link-properties-wrapper">',
       '#suffix' => '</div>',
     ];
-    if (\Drupal::moduleHandler()->moduleExists('menu_ui')) {
-      $menu_options = menu_ui_get_menus();
-    }
-    else {
-      // These are not yet translated.
-      $menu_options = menu_list_system_menus();
-      foreach ($menu_options as $name => $title) {
-        $menu_options[$name] = $this->t($title);
-      }
-    }
-    $form['displays']['page']['options']['link_properties']['menu_name'] = [
+    $form['displays']['page']['options']['link_properties']['parent'] = $this->parentFormSelector->parentSelectElement('admin:');
+    $form['displays']['page']['options']['link_properties']['parent'] += [
       '#title' => $this->t('Menu'),
-      '#type' => 'select',
-      '#options' => $menu_options,
     ];
     $form['displays']['page']['options']['link_properties']['title'] = [
       '#title' => $this->t('Link text'),
@@ -514,7 +518,7 @@ abstract class WizardPluginBase extends PluginBase implements WizardInterface {
    *   An array representing the current version of the #select element within
    *   the form.
    *
-   * @return
+   * @return array|string
    *   The current value of the #select element. A common use for this is to feed
    *   it back into $element['#default_value'] so that the form will be rendered
    *   with the correct value selected.
@@ -619,7 +623,7 @@ abstract class WizardPluginBase extends PluginBase implements WizardInterface {
    * available).
    */
   protected function buildFilters(&$form, FormStateInterface $form_state) {
-    module_load_include('inc', 'views_ui', 'admin');
+    \Drupal::moduleHandler()->loadInclude('views_ui', 'inc', 'admin');
 
     $bundles = $this->bundleInfoService->getBundleInfo($this->entityTypeId);
     // If the current base table support bundles and has more than one (like user).
@@ -714,7 +718,7 @@ abstract class WizardPluginBase extends PluginBase implements WizardInterface {
    *   arrays of options for that display.
    */
   protected function buildDisplayOptions($form, FormStateInterface $form_state) {
-    // Display: Master
+    // Display: Default
     $display_options['default'] = $this->defaultDisplayOptions();
     $display_options['default'] += [
       'filters' => [],
@@ -765,8 +769,8 @@ abstract class WizardPluginBase extends PluginBase implements WizardInterface {
     // instances.
     $executable = $view->getExecutable();
 
-    // Display: Master
-    $default_display = $executable->newDisplay('default', 'Master', 'default');
+    // Display: Default
+    $default_display = $executable->newDisplay('default', 'Default', 'default');
     foreach ($display_options['default'] as $option => $value) {
       $default_display->setOption($option, $value);
     }
@@ -867,8 +871,8 @@ abstract class WizardPluginBase extends PluginBase implements WizardInterface {
       'table' => $default_table,
       'field' => $default_field,
       'id' => $default_field,
-      'entity_type' => isset($data[$default_field]['entity type']) ? $data[$default_field]['entity type'] : NULL,
-      'entity_field' => isset($data[$default_field]['entity field']) ? $data[$default_field]['entity field'] : NULL,
+      'entity_type' => $data[$default_field]['entity type'] ?? NULL,
+      'entity_field' => $data[$default_field]['entity field'] ?? NULL,
       'plugin_id' => $data[$default_field]['field']['id'],
     ];
 
@@ -924,7 +928,7 @@ abstract class WizardPluginBase extends PluginBase implements WizardInterface {
       // Figure out the table where $bundle_key lives. It may not be the same as
       // the base table for the view; the taxonomy vocabulary machine_name, for
       // example, is stored in taxonomy_vocabulary, not taxonomy_term_data.
-      module_load_include('inc', 'views_ui', 'admin');
+      \Drupal::moduleHandler()->loadInclude('views_ui', 'inc', 'admin');
       $fields = Views::viewsDataHelper()->fetchFields($this->base_table, 'filter');
       $table = FALSE;
       if (isset($fields[$this->base_table . '.' . $bundle_key])) {
@@ -961,8 +965,8 @@ abstract class WizardPluginBase extends PluginBase implements WizardInterface {
           'table' => $table,
           'field' => $bundle_key,
           'value' => $value,
-          'entity_type' => isset($table_data['table']['entity type']) ? $table_data['table']['entity type'] : NULL,
-          'entity_field' => isset($table_data[$bundle_key]['entity field']) ? $table_data[$bundle_key]['entity field'] : NULL,
+          'entity_type' => $table_data['table']['entity type'] ?? NULL,
+          'entity_field' => $table_data[$bundle_key]['entity field'] ?? NULL,
           'plugin_id' => $handler,
         ];
       }
@@ -1018,7 +1022,7 @@ abstract class WizardPluginBase extends PluginBase implements WizardInterface {
     // Don't add a sort if there is no form value or the user set the sort to
     // 'none'.
     if (($sort_type = $form_state->getValue(['show', 'sort'])) && $sort_type != 'none') {
-      list($column, $sort) = explode(':', $sort_type);
+      [$column, $sort] = explode(':', $sort_type);
       // Column either be a column-name or the table-column-name.
       $column = explode('-', $column);
       if (count($column) > 1) {
@@ -1041,10 +1045,10 @@ abstract class WizardPluginBase extends PluginBase implements WizardInterface {
           'table' => $table,
           'field' => $column,
           'order' => $sort,
-          'entity_type' => isset($data['table']['entity type']) ? $data['table']['entity type'] : NULL,
-          'entity_field' => isset($data[$column]['entity field']) ? $data[$column]['entity field'] : NULL,
+          'entity_type' => $data['table']['entity type'] ?? NULL,
+          'entity_field' => $data[$column]['entity field'] ?? NULL,
           'plugin_id' => $data[$column]['sort']['id'],
-       ];
+        ];
       }
     }
 
@@ -1092,7 +1096,7 @@ abstract class WizardPluginBase extends PluginBase implements WizardInterface {
     if (!empty($page['link'])) {
       $display_options['menu']['type'] = 'normal';
       $display_options['menu']['title'] = $page['link_properties']['title'];
-      $display_options['menu']['menu_name'] = $page['link_properties']['menu_name'];
+      [$display_options['menu']['menu_name'], $display_options['menu']['parent']] = explode(':', $page['link_properties']['parent'], 2);
     }
     return $display_options;
   }
@@ -1250,7 +1254,7 @@ abstract class WizardPluginBase extends PluginBase implements WizardInterface {
     // @todo Figure out why all this hashing is done. Wouldn't it be easier to
     //   store a single entry and that's it?
     $key = hash('sha256', serialize($form_state->getValues()));
-    $view = (isset($this->validated_views[$key]) ? $this->validated_views[$key] : NULL);
+    $view = ($this->validated_views[$key] ?? NULL);
     if ($unset) {
       unset($this->validated_views[$key]);
     }

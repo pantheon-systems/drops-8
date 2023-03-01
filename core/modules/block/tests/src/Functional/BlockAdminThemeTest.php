@@ -36,21 +36,22 @@ class BlockAdminThemeTest extends BrowserTestBase {
 
     // Ensure that access to block admin page is denied when theme is not
     // installed.
-    $this->drupalGet('admin/structure/block/list/bartik');
+    $this->drupalGet('admin/structure/block/list/olivero');
     $this->assertSession()->statusCodeEquals(403);
 
     // Install admin theme and confirm that tab is accessible.
-    \Drupal::service('theme_installer')->install(['bartik']);
-    $edit['admin_theme'] = 'bartik';
-    $this->drupalPostForm('admin/appearance', $edit, 'Save configuration');
-    $this->drupalGet('admin/structure/block/list/bartik');
+    \Drupal::service('theme_installer')->install(['olivero']);
+    $edit['admin_theme'] = 'olivero';
+    $this->drupalGet('admin/appearance');
+    $this->submitForm($edit, 'Save configuration');
+    $this->drupalGet('admin/structure/block/list/olivero');
     $this->assertSession()->statusCodeEquals(200);
   }
 
   /**
-   * Ensure contextual links are disabled in Seven theme.
+   * Ensure contextual links are disabled in Claro theme.
    */
-  public function testSevenAdminTheme() {
+  public function testClaroAdminTheme() {
     // Create administrative user.
     $admin_user = $this->drupalCreateUser([
       'access administration pages',
@@ -61,13 +62,14 @@ class BlockAdminThemeTest extends BrowserTestBase {
     $this->drupalLogin($admin_user);
 
     // Install admin theme and confirm that tab is accessible.
-    \Drupal::service('theme_installer')->install(['seven']);
-    $edit['admin_theme'] = 'seven';
-    $this->drupalPostForm('admin/appearance', $edit, 'Save configuration');
+    \Drupal::service('theme_installer')->install(['claro']);
+    $edit['admin_theme'] = 'claro';
+    $this->drupalGet('admin/appearance');
+    $this->submitForm($edit, 'Save configuration');
 
     // Define our block settings.
     $settings = [
-      'theme' => 'seven',
+      'theme' => 'claro',
       'region' => 'header',
     ];
 
@@ -78,8 +80,8 @@ class BlockAdminThemeTest extends BrowserTestBase {
     $this->drupalGet('admin');
 
     // Check if contextual link classes are unavailable.
-    $this->assertNoRaw('<div data-contextual-id="block:block=' . $block->id() . ':langcode=en"></div>');
-    $this->assertNoRaw('contextual-region');
+    $this->assertSession()->responseNotContains('<div data-contextual-id="block:block=' . $block->id() . ':langcode=en"></div>');
+    $this->assertSession()->responseNotContains('contextual-region');
   }
 
 }

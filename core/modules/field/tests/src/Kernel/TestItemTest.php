@@ -30,6 +30,9 @@ class TestItemTest extends FieldKernelTestBase {
    */
   protected $fieldName = 'field_test';
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp(): void {
     parent::setUp();
 
@@ -47,7 +50,7 @@ class TestItemTest extends FieldKernelTestBase {
   }
 
   /**
-   * Tests using entity fields of the field field type.
+   * Tests using entity fields of the test field type.
    */
   public function testTestItem() {
     // Verify entity creation.
@@ -62,18 +65,18 @@ class TestItemTest extends FieldKernelTestBase {
     $entity = EntityTest::load($id);
     $this->assertInstanceOf(FieldItemListInterface::class, $entity->{$this->fieldName});
     $this->assertInstanceOf(FieldItemInterface::class, $entity->{$this->fieldName}[0]);
-    $this->assertEqual($entity->{$this->fieldName}->value, $value);
-    $this->assertEqual($entity->{$this->fieldName}[0]->value, $value);
+    $this->assertEquals($value, $entity->{$this->fieldName}->value);
+    $this->assertEquals($value, $entity->{$this->fieldName}[0]->value);
 
     // Verify changing the field value.
     $new_value = rand(1, 10);
     $entity->field_test->value = $new_value;
-    $this->assertEqual($entity->{$this->fieldName}->value, $new_value);
+    $this->assertEquals($new_value, $entity->{$this->fieldName}->value);
 
     // Read changed entity and assert changed values.
     $entity->save();
     $entity = EntityTest::load($id);
-    $this->assertEqual($entity->{$this->fieldName}->value, $new_value);
+    $this->assertEquals($new_value, $entity->{$this->fieldName}->value);
 
     // Test the schema for this field type.
     $expected_schema = [
@@ -90,7 +93,7 @@ class TestItemTest extends FieldKernelTestBase {
       'foreign keys' => [],
     ];
     $field_schema = BaseFieldDefinition::create('test_field')->getSchema();
-    $this->assertEqual($field_schema, $expected_schema);
+    $this->assertEquals($expected_schema, $field_schema);
   }
 
 }

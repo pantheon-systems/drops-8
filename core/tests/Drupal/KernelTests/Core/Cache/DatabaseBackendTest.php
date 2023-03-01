@@ -28,7 +28,7 @@ class DatabaseBackendTest extends GenericCacheBackendUnitTestBase {
   /**
    * Creates a new instance of DatabaseBackend.
    *
-   * @return
+   * @return \Drupal\Core\Cache\DatabaseBackend
    *   A new DatabaseBackend object.
    */
   protected function createCacheBackend($bin) {
@@ -99,8 +99,24 @@ class DatabaseBackendTest extends GenericCacheBackendUnitTestBase {
     $table = 'cache_' . $this->testBin;
     $connection = $this->container->get('database');
     $query = $connection->select($table);
-    $query->addExpression('COUNT(cid)', 'cid');
+    $query->addExpression('COUNT([cid])', 'cid');
     return (int) $query->execute()->fetchField();
+  }
+
+  /**
+   * Test that the service "cache_tags.invalidator.checksum" is backend overridable.
+   */
+  public function testCacheTagsInvalidatorChecksumIsBackendOverridable() {
+    $definition = $this->container->getDefinition('cache_tags.invalidator.checksum');
+    $this->assertTrue($definition->hasTag('backend_overridable'));
+  }
+
+  /**
+   * Test that the service "cache.backend.database" is backend overridable.
+   */
+  public function testCacheBackendDatabaseIsBackendOverridable() {
+    $definition = $this->container->getDefinition('cache.backend.database');
+    $this->assertTrue($definition->hasTag('backend_overridable'));
   }
 
 }

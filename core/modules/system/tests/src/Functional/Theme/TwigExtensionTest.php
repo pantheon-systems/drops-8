@@ -17,13 +17,16 @@ class TwigExtensionTest extends BrowserTestBase {
    *
    * @var array
    */
-  protected static $modules = ['theme_test', 'twig_extension_test'];
+  protected static $modules = ['theme_test', 'twig_extension_test', 'twig_theme_test'];
 
   /**
    * {@inheritdoc}
    */
   protected $defaultTheme = 'stark';
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp(): void {
     parent::setUp();
     \Drupal::service('theme_installer')->install(['test_theme']);
@@ -47,9 +50,9 @@ class TwigExtensionTest extends BrowserTestBase {
       ->save();
 
     $this->drupalGet('twig-extension-test/filter');
-    $this->assertText('Every plant is not a mineral.', 'Success: String filtered.');
+    $this->assertSession()->pageTextContains('Every plant is not a mineral.');
     // Test safe_join filter.
-    $this->assertRaw('&lt;em&gt;will be escaped&lt;/em&gt;<br/><em>will be markup</em><br/><strong>will be rendered</strong>');
+    $this->assertSession()->responseContains('&lt;em&gt;will be escaped&lt;/em&gt;<br/><em>will be markup</em><br/><strong>will be rendered</strong>');
   }
 
   /**
@@ -61,9 +64,9 @@ class TwigExtensionTest extends BrowserTestBase {
       ->save();
 
     $this->drupalGet('twig-extension-test/function');
-    $this->assertText('THE QUICK BROWN BOX JUMPS OVER THE LAZY DOG 123.', 'Success: Text converted to uppercase.');
-    $this->assertText('the quick brown box jumps over the lazy dog 123.', 'Success: Text converted to lowercase.');
-    $this->assertNoText('The Quick Brown Fox Jumps Over The Lazy Dog 123.', 'Success: No text left behind.');
+    $this->assertSession()->pageTextContains('THE QUICK BROWN BOX JUMPS OVER THE LAZY DOG 123.');
+    $this->assertSession()->pageTextContains('the quick brown box jumps over the lazy dog 123.');
+    $this->assertSession()->pageTextNotContains('The Quick Brown Fox Jumps Over The Lazy Dog 123.');
   }
 
   /**
@@ -76,8 +79,8 @@ class TwigExtensionTest extends BrowserTestBase {
     $extension = \Drupal::service('twig.extension');
     /** @var \Drupal\Core\Template\TwigEnvironment $twig */
     $twig = \Drupal::service('twig');
-    $this->assertIdentical($extension->escapeFilter($twig, 0), 0, 'TwigExtension::escapeFilter() returns zero correctly when provided as an integer.');
-    $this->assertIdentical($extension->escapeFilter($twig, 0.0), 0, 'TwigExtension::escapeFilter() returns zero correctly when provided as a double.');
+    $this->assertSame(0, $extension->escapeFilter($twig, 0), 'TwigExtension::escapeFilter() returns zero correctly when provided as an integer.');
+    $this->assertSame(0, $extension->escapeFilter($twig, 0.0), 'TwigExtension::escapeFilter() returns zero correctly when provided as a double.');
   }
 
   /**
@@ -88,8 +91,39 @@ class TwigExtensionTest extends BrowserTestBase {
   public function testsRenderZeroValue() {
     /** @var \Drupal\Core\Template\TwigExtension $extension */
     $extension = \Drupal::service('twig.extension');
-    $this->assertIdentical($extension->renderVar(0), 0, 'TwigExtension::renderVar() renders zero correctly when provided as an integer.');
-    $this->assertIdentical($extension->renderVar(0.0), 0, 'TwigExtension::renderVar() renders zero correctly when provided as a double.');
+    $this->assertSame(0, $extension->renderVar(0), 'TwigExtension::renderVar() renders zero correctly when provided as an integer.');
+    $this->assertSame(0, $extension->renderVar(0.0), 'TwigExtension::renderVar() renders zero correctly when provided as a double.');
+  }
+
+  /**
+   * Tests the dump function.
+   */
+  public function testDump() {
+    // Test Twig Debug disabled.
+    $this->drupalGet('/twig-theme-test/dump');
+    $this->assertSession()->elementsCount('css', '.sf-dump', 0);
+
+    // Test Twig Debug enabled.
+    $parameters = $this->container->getParameter('twig.config');
+    $parameters['debug'] = TRUE;
+    $this->setContainerParameter('twig.config', $parameters);
+    $this->resetAll();
+
+    $this->drupalGet('/twig-theme-test/dump');
+    $dumps = $this->getSession()->getPage()->findAll('css', '.sf-dump');
+    $this->assertEquals(4, count($dumps));
+
+    // Test dumping single variable.
+    $this->assertStringContainsString('💩', $dumps[0]->getText());
+    $this->assertStringNotContainsString('🐣', $dumps[0]->getText());
+
+    // Test dumping context.
+    $this->assertStringContainsString('"bar" => "🐣"', $dumps[1]->getText());
+
+    // Test dump as a variadic.
+    $this->assertStringContainsString('💩', $dumps[2]->getText());
+    $this->assertStringContainsString('☄️', $dumps[3]->getText());
+
   }
 
 }

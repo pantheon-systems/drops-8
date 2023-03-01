@@ -2,6 +2,7 @@
 
 namespace Drupal\node;
 
+use Drupal\Core\Entity\BundlePermissionHandlerTrait;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\node\Entity\NodeType;
 
@@ -9,7 +10,7 @@ use Drupal\node\Entity\NodeType;
  * Provides dynamic permissions for nodes of different types.
  */
 class NodePermissions {
-
+  use BundlePermissionHandlerTrait;
   use StringTranslationTrait;
 
   /**
@@ -20,13 +21,7 @@ class NodePermissions {
    *   @see \Drupal\user\PermissionHandlerInterface::getPermissions()
    */
   public function nodeTypePermissions() {
-    $perms = [];
-    // Generate node permissions for all node types.
-    foreach (NodeType::loadMultiple() as $type) {
-      $perms += $this->buildPermissions($type);
-    }
-
-    return $perms;
+    return $this->generatePermissions(NodeType::loadMultiple(), [$this, 'buildPermissions']);
   }
 
   /**
@@ -48,12 +43,14 @@ class NodePermissions {
       ],
       "edit own $type_id content" => [
         'title' => $this->t('%type_name: Edit own content', $type_params),
+        'description' => $this->t('Note that anonymous users with this permission are able to edit any content created by any anonymous user.'),
       ],
       "edit any $type_id content" => [
         'title' => $this->t('%type_name: Edit any content', $type_params),
       ],
       "delete own $type_id content" => [
         'title' => $this->t('%type_name: Delete own content', $type_params),
+        'description' => $this->t('Note that anonymous users with this permission are able to delete any content created by any anonymous user.'),
       ],
       "delete any $type_id content" => [
         'title' => $this->t('%type_name: Delete any content', $type_params),

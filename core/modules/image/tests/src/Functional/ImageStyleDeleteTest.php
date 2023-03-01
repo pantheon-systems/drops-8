@@ -35,8 +35,8 @@ class ImageStyleDeleteTest extends ImageFieldTestBase {
     // Checks that the 'replacement' select element is displayed.
     $this->assertSession()->fieldExists('replacement');
     // Checks that UI messages are correct.
-    $this->assertRaw(t('If this style is in use on the site, you may select another style to replace it. All images that have been generated for this style will be permanently deleted. If no replacement style is selected, the dependent configurations might need manual reconfiguration.'));
-    $this->assertNoRaw(t('All images that have been generated for this style will be permanently deleted. The dependent configurations might need manual reconfiguration.'));
+    $this->assertSession()->pageTextContains("If this style is in use on the site, you may select another style to replace it. All images that have been generated for this style will be permanently deleted. If no replacement style is selected, the dependent configurations might need manual reconfiguration.");
+    $this->assertSession()->pageTextNotContains("All images that have been generated for this style will be permanently deleted. The dependent configurations might need manual reconfiguration.");
 
     // Delete 'medium' image style but replace it with 'thumbnail'. This style
     // is involved in 'node.page.default' display view and form.
@@ -58,8 +58,8 @@ class ImageStyleDeleteTest extends ImageFieldTestBase {
     // Checks that the 'replacement' select element is displayed.
     $this->assertSession()->fieldExists('replacement');
     // Checks that UI messages are correct.
-    $this->assertRaw(t('If this style is in use on the site, you may select another style to replace it. All images that have been generated for this style will be permanently deleted. If no replacement style is selected, the dependent configurations might need manual reconfiguration.'));
-    $this->assertNoRaw(t('All images that have been generated for this style will be permanently deleted. The dependent configurations might need manual reconfiguration.'));
+    $this->assertSession()->pageTextContains("If this style is in use on the site, you may select another style to replace it. All images that have been generated for this style will be permanently deleted. If no replacement style is selected, the dependent configurations might need manual reconfiguration.");
+    $this->assertSession()->pageTextNotContains("All images that have been generated for this style will be permanently deleted. The dependent configurations might need manual reconfiguration.");
 
     // Delete 'thumbnail' image style. Provide no replacement.
     $this->submitForm([], 'Delete');
@@ -71,14 +71,14 @@ class ImageStyleDeleteTest extends ImageFieldTestBase {
     // Checks that widget setting is preserved with the image preview disabled.
     $form_display = EntityFormDisplay::load('node.page.default');
     $this->assertNotNull($widget = $form_display->getComponent('foo'));
-    $this->assertIdentical($widget['settings']['preview_image_style'], '');
+    $this->assertSame('', $widget['settings']['preview_image_style']);
 
     $this->drupalGet('admin/config/media/image-styles/manage/wide/delete');
     // Checks that the 'replacement' select element is displayed.
     $this->assertSession()->fieldExists('replacement');
     // Checks that UI messages are correct.
-    $this->assertRaw(t('If this style is in use on the site, you may select another style to replace it. All images that have been generated for this style will be permanently deleted. If no replacement style is selected, the dependent configurations might need manual reconfiguration.'));
-    $this->assertNoRaw(t('All images that have been generated for this style will be permanently deleted. The dependent configurations might need manual reconfiguration.'));
+    $this->assertSession()->pageTextContains("If this style is in use on the site, you may select another style to replace it. All images that have been generated for this style will be permanently deleted. If no replacement style is selected, the dependent configurations might need manual reconfiguration.");
+    $this->assertSession()->pageTextNotContains("All images that have been generated for this style will be permanently deleted. The dependent configurations might need manual reconfiguration.");
     // Delete 'wide' image style. Provide no replacement.
     $this->submitForm([], 'Delete');
 
@@ -87,8 +87,8 @@ class ImageStyleDeleteTest extends ImageFieldTestBase {
     // Checks that the 'replacement' select element is not displayed.
     $this->assertSession()->fieldNotExists('replacement');
     // Checks that UI messages are correct.
-    $this->assertNoRaw(t('If this style is in use on the site, you may select another style to replace it. All images that have been generated for this style will be permanently deleted. If no replacement style is selected, the dependent configurations might need manual reconfiguration.'));
-    $this->assertRaw(t('All images that have been generated for this style will be permanently deleted. The dependent configurations might need manual reconfiguration.'));
+    $this->assertSession()->pageTextNotContains("If this style is in use on the site, you may select another style to replace it. All images that have been generated for this style will be permanently deleted. If no replacement style is selected, the dependent configurations might need manual reconfiguration.");
+    $this->assertSession()->pageTextContains("All images that have been generated for this style will be permanently deleted. The dependent configurations might need manual reconfiguration.");
   }
 
 }

@@ -4,7 +4,6 @@
 * https://www.drupal.org/node/2815083
 * @preserve
 **/
-
 (function ($, Drupal, drupalSettings, _) {
   Drupal.behaviors.ckeditorStylesComboSettings = {
     attach: function attach(context) {
@@ -13,10 +12,8 @@
       var previousStylesSet = drupalSettings.ckeditor.hiddenCKEditorConfig.stylesSet;
       var that = this;
       $context.find('[name="editor[settings][plugins][stylescombo][styles]"]').on('blur.ckeditorStylesComboSettings', function () {
-        var styles = $.trim($(this).val());
-
+        var styles = this.value.trim();
         var stylesSet = that._generateStylesSetSetting(styles);
-
         if (!_.isEqual(previousStylesSet, stylesSet)) {
           previousStylesSet = stylesSet;
           $ckeditorActiveToolbar.trigger('CKEditorPluginSettingsChanged', [{
@@ -29,18 +26,14 @@
       var stylesSet = [];
       styles = styles.replace(/\r/g, '\n');
       var lines = styles.split('\n');
-
       for (var i = 0; i < lines.length; i++) {
-        var style = $.trim(lines[i]);
-
+        var style = lines[i].trim();
         if (style.length === 0) {
           continue;
         }
-
         if (style.match(/^ *[a-zA-Z0-9]+ *(\.[a-zA-Z0-9_-]+ *)*\| *.+ *$/) === null) {
           continue;
         }
-
         var parts = style.split('|');
         var selector = parts[0];
         var label = parts[1];
@@ -54,20 +47,18 @@
           name: label
         });
       }
-
       return stylesSet;
     }
   };
   Drupal.behaviors.ckeditorStylesComboSettingsSummary = {
     attach: function attach() {
       $('[data-ckeditor-plugin-id="stylescombo"]').drupalSetSummary(function (context) {
-        var styles = $.trim($('[data-drupal-selector="edit-editor-settings-plugins-stylescombo-styles"]').val());
-
+        var stylesElement = document.querySelector('[data-drupal-selector="edit-editor-settings-plugins-stylescombo-styles"]');
+        var styles = stylesElement ? stylesElement.value.trim() : '';
         if (styles.length === 0) {
           return Drupal.t('No styles configured');
         }
-
-        var count = $.trim(styles).split('\n').length;
+        var count = styles.split('\n').length;
         return Drupal.t('@count styles configured', {
           '@count': count
         });
