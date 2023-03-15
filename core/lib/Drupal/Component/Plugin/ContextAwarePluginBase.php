@@ -8,8 +8,15 @@ use Drupal\Component\Plugin\Exception\ContextException;
 use Drupal\Component\Plugin\Context\Context;
 use Symfony\Component\Validator\ConstraintViolationList;
 
+@trigger_error(__NAMESPACE__ . '\ContextAwarePluginBase is deprecated in drupal:9.1.0 and is removed from drupal:10.0.0 without replacement. See https://www.drupal.org/node/3120980', E_USER_DEPRECATED);
+
 /**
  * Base class for plugins that are context aware.
+ *
+ * @deprecated in drupal:9.1.0 and is removed from drupal:10.0.0 without
+ *   replacement.
+ *
+ * @see https://www.drupal.org/node/3120980
  */
 abstract class ContextAwarePluginBase extends PluginBase implements ContextAwarePluginInterface {
 
@@ -37,7 +44,7 @@ abstract class ContextAwarePluginBase extends PluginBase implements ContextAware
    *   The plugin implementation definition.
    */
   public function __construct(array $configuration, $plugin_id, $plugin_definition) {
-    $context_configuration = isset($configuration['context']) ? $configuration['context'] : [];
+    $context_configuration = $configuration['context'] ?? [];
     unset($configuration['context']);
 
     parent::__construct($configuration, $plugin_id, $plugin_definition);

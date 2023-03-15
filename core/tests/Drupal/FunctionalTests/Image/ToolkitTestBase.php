@@ -52,6 +52,9 @@ abstract class ToolkitTestBase extends BrowserTestBase {
    */
   protected $image;
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp() {
     parent::setUp();
 
@@ -83,7 +86,7 @@ abstract class ToolkitTestBase extends BrowserTestBase {
 
   /**
    * Assert that all of the specified image toolkit operations were called
-   * exactly once once, other values result in failure.
+   * exactly once, other values result in failure.
    *
    * @param $expected
    *   Array with string containing with the operation name, e.g. 'load',

@@ -33,8 +33,8 @@ abstract class UITestBase extends ViewTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp($import_test_views = TRUE) {
-    parent::setUp($import_test_views);
+  protected function setUp($import_test_views = TRUE, $modules = ['views_test_config']) {
+    parent::setUp($import_test_views, $modules);
 
     $this->enableViewsTestModule();
 
@@ -64,7 +64,8 @@ abstract class UITestBase extends ViewTestBase {
 
     $view += $default;
 
-    $this->drupalPostForm('admin/structure/views/add', $view, 'Save and edit');
+    $this->drupalGet('admin/structure/views/add');
+    $this->submitForm($view, 'Save and edit');
 
     return $default;
   }

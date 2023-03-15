@@ -4,30 +4,33 @@
 * https://www.drupal.org/node/2815083
 * @preserve
 **/
-
 (function ($, Drupal, drupalSettings) {
   Drupal.behaviors.fieldUIFieldStorageAddForm = {
     attach: function attach(context) {
-      var $form = $(context).find('[data-drupal-selector="field-ui-field-storage-add-form"]').once('field_ui_add');
-
-      if ($form.length) {
+      var form = once('field_ui_add', '[data-drupal-selector="field-ui-field-storage-add-form"]', context);
+      if (form.length) {
+        var $form = $(form);
         $form.find('.js-form-item-label label,' + '.js-form-item-field-name label,' + '.js-form-item-existing-storage-label label').addClass('js-form-required form-required');
         var $newFieldType = $form.find('select[name="new_storage_type"]');
         var $existingStorageName = $form.find('select[name="existing_storage_name"]');
         var $existingStorageLabel = $form.find('input[name="existing_storage_label"]');
         $newFieldType.on('change', function () {
-          if ($(this).val() !== '') {
-            $existingStorageName.val('').trigger('change');
+          if (this.value !== '') {
+            if ($existingStorageName.length) {
+              $existingStorageName[0].value = '';
+              $existingStorageName.trigger('change');
+            }
           }
         });
         $existingStorageName.on('change', function () {
-          var value = $(this).val();
-
+          var value = this.value;
           if (value !== '') {
-            $newFieldType.val('').trigger('change');
-
+            if ($newFieldType.length) {
+              $newFieldType[0].value = '';
+              $newFieldType.trigger('change');
+            }
             if (typeof drupalSettings.existingFieldLabels[value] !== 'undefined') {
-              $existingStorageLabel.val(drupalSettings.existingFieldLabels[value]);
+              $existingStorageLabel[0].value = drupalSettings.existingFieldLabels[value];
             }
           }
         });
@@ -36,8 +39,8 @@
   };
   Drupal.behaviors.fieldUIDisplayOverview = {
     attach: function attach(context, settings) {
-      $(context).find('table#field-display-overview').once('field-display-overview').each(function () {
-        Drupal.fieldUIOverview.attach(this, settings.fieldUIRowsData, Drupal.fieldUIDisplayOverview);
+      once('field-display-overview', 'table#field-display-overview', context).forEach(function (overview) {
+        Drupal.fieldUIOverview.attach(overview, settings.fieldUIRowsData, Drupal.fieldUIDisplayOverview);
       });
     }
   };
@@ -48,7 +51,6 @@
       tableDrag.row.prototype.onSwap = this.onSwap;
       $(table).find('tr.draggable').each(function () {
         var row = this;
-
         if (row.id in rowsData) {
           var data = rowsData[row.id];
           data.tableDrag = tableDrag;
@@ -64,13 +66,14 @@
       var refreshRows = {};
       refreshRows[rowHandler.name] = $trigger.get(0);
       var region = rowHandler.getRegion();
-
       if (region !== rowHandler.region) {
-        $row.find('select.js-field-parent').val('');
+        var $fieldParent = $row.find('select.js-field-parent');
+        if ($fieldParent.length) {
+          $fieldParent[0].value = '';
+        }
         $.extend(refreshRows, rowHandler.regionChange(region));
         rowHandler.region = region;
       }
-
       Drupal.fieldUIOverview.AJAXRefreshRows(refreshRows);
     },
     onDrop: function onDrop() {
@@ -78,11 +81,9 @@
       var row = dragObject.rowObject.element;
       var $row = $(row);
       var rowHandler = $row.data('fieldUIRowHandler');
-
       if (typeof rowHandler !== 'undefined') {
         var regionRow = $row.prevAll('tr.region-message').get(0);
         var region = regionRow.className.replace(/([^ ]+[ ]+)*region-([^ ]+)-message([ ]+[^ ]+)*/, '$2');
-
         if (region !== rowHandler.region) {
           var refreshRows = rowHandler.regionChange(region);
           rowHandler.region = region;
@@ -94,18 +95,16 @@
       var rowObject = this;
       $(rowObject.table).find('tr.region-message').each(function () {
         var $this = $(this);
-
         if ($this.prev('tr').get(0) === rowObject.group[rowObject.group.length - 1]) {
           if (rowObject.method !== 'keyboard' || rowObject.direction === 'down') {
             rowObject.swap('after', this);
           }
         }
-
         if ($this.next('tr').is(':not(.draggable)') || $this.next('tr').length === 0) {
           $this.removeClass('region-populated').addClass('region-empty');
         } else if ($this.is('.region-empty')) {
-            $this.removeClass('region-empty').addClass('region-populated');
-          }
+          $this.removeClass('region-empty').addClass('region-populated');
+        }
       });
     },
     AJAXRefreshRows: function AJAXRefreshRows(rows) {
@@ -115,17 +114,18 @@
         rowNames.push(rowName);
         ajaxElements.push(rows[rowName]);
       });
-
       if (rowNames.length) {
         $(ajaxElements).after(Drupal.theme.ajaxProgressThrobber());
-        $('input[name=refresh_rows]').val(rowNames.join(' '));
+        var $refreshRows = $('input[name=refresh_rows]');
+        if ($refreshRows.length) {
+          $refreshRows[0].value = rowNames.join(' ');
+        }
         $('input[data-drupal-selector="edit-refresh"]').trigger('mousedown');
         $(ajaxElements).prop('disabled', true);
       }
     }
   };
   Drupal.fieldUIDisplayOverview = {};
-
   Drupal.fieldUIDisplayOverview.field = function (row, data) {
     this.row = row;
     this.name = data.name;
@@ -138,23 +138,26 @@
     this.$regionSelect.on('change', Drupal.fieldUIOverview.onChange);
     return this;
   };
-
   Drupal.fieldUIDisplayOverview.field.prototype = {
     getRegion: function getRegion() {
-      return this.$regionSelect.val();
+      if (this.$regionSelect.length) {
+        return this.$regionSelect[0].value;
+      }
     },
     regionChange: function regionChange(region) {
       region = region.replace(/-/g, '_');
-      this.$regionSelect.val(region);
-
+      if (this.$regionSelect.length) {
+        this.$regionSelect[0].value = region;
+      }
       if (this.region === 'hidden') {
-        var value = typeof this.defaultPlugin !== 'undefined' ? this.defaultPlugin : this.$pluginSelect.find('option').val();
-
+        var pluginSelect = typeof this.$pluginSelect.find('option')[0] !== 'undefined' ? this.$pluginSelect.find('option')[0].value : undefined;
+        var value = typeof this.defaultPlugin !== 'undefined' ? this.defaultPlugin : pluginSelect;
         if (typeof value !== 'undefined') {
-          this.$pluginSelect.val(value);
+          if (this.$pluginSelect.length) {
+            this.$pluginSelect[0].value = value;
+          }
         }
       }
-
       var refreshRows = {};
       refreshRows[this.name] = this.$pluginSelect.get(0);
       return refreshRows;

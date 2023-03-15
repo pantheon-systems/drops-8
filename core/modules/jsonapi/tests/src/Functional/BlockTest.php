@@ -11,7 +11,7 @@ use Drupal\Core\Url;
  *
  * @group jsonapi
  */
-class BlockTest extends ResourceTestBase {
+class BlockTest extends ConfigEntityResourceTestBase {
 
   /**
    * {@inheritdoc}
@@ -38,7 +38,7 @@ class BlockTest extends ResourceTestBase {
   /**
    * {@inheritdoc}
    */
-  protected $defaultTheme = 'classy';
+  protected $defaultTheme = 'stark';
 
   /**
    * {@inheritdoc}
@@ -59,7 +59,7 @@ class BlockTest extends ResourceTestBase {
       'plugin' => 'llama_block',
       'region' => 'header',
       'id' => 'llama',
-      'theme' => 'classy',
+      'theme' => 'stark',
     ]);
     // All blocks can be viewed by the anonymous user by default. An interesting
     // side effect of this is that any anonymous user is also able to read the
@@ -111,10 +111,10 @@ class BlockTest extends ResourceTestBase {
           'status' => TRUE,
           'dependencies' => [
             'theme' => [
-              'classy',
+              'stark',
             ],
           ],
-          'theme' => 'classy',
+          'theme' => 'stark',
           'region' => 'header',
           'provider' => NULL,
           'plugin' => 'llama_block',
@@ -136,6 +136,7 @@ class BlockTest extends ResourceTestBase {
    */
   protected function getPostDocument() {
     // @todo Update once https://www.drupal.org/node/2300677 is fixed.
+    return [];
   }
 
   /**

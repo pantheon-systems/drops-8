@@ -178,7 +178,7 @@ class FieldDiscoveryTest extends UnitTestCase {
         'entity_type_id' => 'user',
         'bundle' => 'user',
         'expected_fields' => [
-            'user_field_1' => ['field_info_key' => 'user_field_1_data'],
+          'user_field_1' => ['field_info_key' => 'user_field_1_data'],
         ],
       ],
       'Comment - Content Type 1' => [
@@ -213,7 +213,7 @@ class FieldDiscoveryTest extends UnitTestCase {
   }
 
   /**
-   * Test the protected getCoreVersion method.
+   * Tests the protected getCoreVersion method.
    *
    * @param string[] $tags
    *   The migration tags.

@@ -7,6 +7,7 @@ use Drupal\Core\Entity\Entity\EntityFormDisplay;
 use Drupal\entity_test\Entity\EntityTest;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
+use Drupal\filter\Render\FilteredMarkup;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\filter\Entity\FilterFormat;
 use Drupal\Tests\user\Traits\UserCreationTrait;
@@ -29,6 +30,9 @@ class TextSummaryTest extends KernelTestBase {
     'entity_test',
   ];
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp(): void {
     parent::setUp();
 
@@ -47,7 +51,7 @@ class TextSummaryTest extends KernelTestBase {
   }
 
   /**
-   * Test summary with long example.
+   * Tests summary with long example.
    */
   public function testLongSentence() {
     // 125.
@@ -69,11 +73,12 @@ class TextSummaryTest extends KernelTestBase {
   }
 
   /**
-   * Test various summary length edge cases.
+   * Tests various summary length edge cases.
    */
   public function testLength() {
     FilterFormat::create([
       'format' => 'autop',
+      'name' => 'Autop',
       'filters' => [
         'filter_autop' => [
           'status' => 1,
@@ -82,6 +87,7 @@ class TextSummaryTest extends KernelTestBase {
     ])->save();
     FilterFormat::create([
       'format' => 'autop_correct',
+      'name' => 'Autop correct',
       'filters' => [
         'filter_autop' => [
           'status' => 1,
@@ -225,8 +231,8 @@ class TextSummaryTest extends KernelTestBase {
   }
 
   /**
-   * Test text_summary() returns an empty string without any error when called
-   * with an invalid format.
+   * Tests text_summary() returns an empty string without any error when
+   * called with an invalid format.
    */
   public function testInvalidFilterFormat() {
 
@@ -235,17 +241,16 @@ class TextSummaryTest extends KernelTestBase {
 
   /**
    * Calls text_summary() and asserts that the expected teaser is returned.
+   *
+   * @internal
    */
-  public function assertTextSummary($text, $expected, $format = NULL, $size = NULL) {
+  public function assertTextSummary(string $text, string $expected, ?string $format = NULL, int $size = NULL): void {
     $summary = text_summary($text, $format, $size);
-    $this->assertIdentical($summary, $expected, new FormattableMarkup('<pre style="white-space: pre-wrap">@actual</pre> is identical to <pre style="white-space: pre-wrap">@expected</pre>', [
-      '@actual' => $summary,
-      '@expected' => $expected,
-    ]));
+    $this->assertSame($expected, $summary, new FormattableMarkup('<pre style="white-space: pre-wrap">@actual</pre> is identical to <pre style="white-space: pre-wrap">@expected</pre>', ['@actual' => $summary, '@expected' => $expected]));
   }
 
   /**
-   * Test required summary.
+   * Tests required summary.
    */
   public function testRequiredSummary() {
     $this->installEntitySchema('entity_test');
@@ -295,8 +300,8 @@ class TextSummaryTest extends KernelTestBase {
       'test_textwithsummary' => ['value' => $this->randomMachineName()],
     ]);
     $form = \Drupal::service('entity.form_builder')->getForm($entity);
-    $this->assertTrue(!empty($form['test_textwithsummary']['widget'][0]['summary']), 'Summary field is shown');
-    $this->assertTrue(!empty($form['test_textwithsummary']['widget'][0]['summary']['#required']), 'Summary field is required');
+    $this->assertNotEmpty($form['test_textwithsummary']['widget'][0]['summary'], 'Summary field is shown');
+    $this->assertNotEmpty($form['test_textwithsummary']['widget'][0]['summary']['#required'], 'Summary field is required');
 
     // Test validation.
     /** @var \Symfony\Component\Validator\ConstraintViolation[] $violations */
@@ -304,6 +309,52 @@ class TextSummaryTest extends KernelTestBase {
     $this->assertCount(1, $violations);
     $this->assertEquals('test_textwithsummary.0.summary', $violations[0]->getPropertyPath());
     $this->assertEquals('The summary field is required for A text field', $violations[0]->getMessage());
+  }
+
+  /**
+   * Test text normalization when filter_html or filter_htmlcorrector enabled.
+   */
+  public function testNormalization() {
+    FilterFormat::create([
+      'format' => 'filter_html_enabled',
+      'name' => 'Filter HTML enabled',
+      'filters' => [
+        'filter_html' => [
+          'status' => 1,
+          'settings' => [
+            'allowed_html' => '<strong>',
+          ],
+        ],
+      ],
+    ])->save();
+    FilterFormat::create([
+      'format' => 'filter_htmlcorrector_enabled',
+      'name' => 'Filter HTML corrector enabled',
+      'filters' => [
+        'filter_htmlcorrector' => [
+          'status' => 1,
+        ],
+      ],
+    ])->save();
+    FilterFormat::create([
+      'format' => 'neither_filter_enabled',
+      'name' => 'Neither filter enabled',
+      'filters' => [],
+    ])->save();
+
+    $filtered_markup = FilteredMarkup::create('<div><strong><span>Hello World</span></strong></div>');
+    // With either HTML filter enabled, text_summary() will normalize the text
+    // using HTML::normalize().
+    $summary = text_summary($filtered_markup, 'filter_html_enabled', 30);
+    $this->assertStringContainsString('<div><strong><span>', $summary);
+    $this->assertStringContainsString('</span></strong></div>', $summary);
+    $summary = text_summary($filtered_markup, 'filter_htmlcorrector_enabled', 30);
+    $this->assertStringContainsString('<div><strong><span>', $summary);
+    $this->assertStringContainsString('</span></strong></div>', $summary);
+    // If neither filter is enabled, the text will not be normalized.
+    $summary = text_summary($filtered_markup, 'neither_filter_enabled', 30);
+    $this->assertStringContainsString('<div><strong><span>', $summary);
+    $this->assertStringNotContainsString('</span></strong></div>', $summary);
   }
 
 }

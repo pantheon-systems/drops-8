@@ -2,7 +2,11 @@
 
 namespace Drupal\Tests\node\Functional;
 
+use Drupal\Core\Field\FieldStorageDefinitionInterface;
+use Drupal\Core\Language\LanguageInterface;
 use Drupal\node\Entity\NodeType;
+use Drupal\taxonomy\Entity\Vocabulary;
+use Drupal\Tests\field\Traits\EntityReferenceTestTrait;
 
 /**
  * Tests behavior of the node access subsystem if the base table is not node.
@@ -11,26 +15,24 @@ use Drupal\node\Entity\NodeType;
  */
 class NodeAccessBaseTableTest extends NodeTestBase {
 
+  use EntityReferenceTestTrait;
+
   /**
    * Modules to enable.
    *
    * @var array
    */
-  protected static $modules = ['node_access_test', 'views'];
+  protected static $modules = [
+    'node_access_test',
+    'views',
+    'taxonomy',
+    'search',
+  ];
 
   /**
    * {@inheritdoc}
    */
   protected $defaultTheme = 'stark';
-
-  /**
-   * The installation profile to use with this test.
-   *
-   * This test class requires the "tags" taxonomy field.
-   *
-   * @var string
-   */
-  protected $profile = 'standard';
 
   /**
    * Nodes by user.
@@ -65,8 +67,38 @@ class NodeAccessBaseTableTest extends NodeTestBase {
    */
   protected $nidsVisible;
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp(): void {
     parent::setUp();
+
+    // Create the vocabulary for the tag field.
+    $vocabulary = Vocabulary::create([
+      'name' => 'Tags',
+      'vid' => 'tags',
+      'langcode' => LanguageInterface::LANGCODE_NOT_SPECIFIED,
+    ]);
+    $vocabulary->save();
+    $field_name = 'field_' . $vocabulary->id();
+
+    $handler_settings = [
+      'target_bundles' => [
+        $vocabulary->id() => $vocabulary->id(),
+      ],
+      'auto_create' => TRUE,
+    ];
+
+    $this->createEntityReferenceField('node', 'article', $field_name, 'Tags', 'taxonomy_term', 'default', $handler_settings, FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED);
+    $entity_type_manager = $this->container->get('entity_type.manager');
+    $entity_type_manager
+      ->getStorage('entity_form_display')
+      ->load('node.article.default')
+      ->setComponent($field_name, [
+        'type' => 'entity_reference_autocomplete_tags',
+        'weight' => -4,
+      ])
+      ->save();
 
     node_access_test_add_field(NodeType::load('article'));
 
@@ -108,7 +140,7 @@ class NodeAccessBaseTableTest extends NodeTestBase {
       $this->drupalLogin($this->webUser);
       foreach ([0 => 'Public', 1 => 'Private'] as $is_private => $type) {
         $edit = [
-          'title[0][value]' => t('@private_public Article created by @user', ['@private_public' => $type, '@user' => $this->webUser->getAccountName()]),
+          'title[0][value]' => "$type Article created by " . $this->webUser->getAccountName(),
         ];
         if ($is_private) {
           $edit['private[0][value]'] = TRUE;
@@ -120,9 +152,10 @@ class NodeAccessBaseTableTest extends NodeTestBase {
           $edit['field_tags[target_id]'] = 'public';
         }
 
-        $this->drupalPostForm('node/add/article', $edit, 'Save');
+        $this->drupalGet('node/add/article');
+        $this->submitForm($edit, 'Save');
         $node = $this->drupalGetNodeByTitle($edit['title[0][value]']);
-        $this->assertEqual($is_private, (int) $node->private->value, 'The private status of the node was properly set in the node_access_test table.');
+        $this->assertEquals($is_private, (int) $node->private->value, 'The private status of the node was properly set in the node_access_test table.');
         if ($is_private) {
           $private_nodes[] = $node->id();
         }
@@ -206,12 +239,14 @@ class NodeAccessBaseTableTest extends NodeTestBase {
   /**
    * Checks taxonomy/term listings to ensure only accessible nodes are listed.
    *
-   * @param $is_admin
+   * @param bool $is_admin
    *   A boolean indicating whether the current user is an administrator. If
    *   TRUE, all nodes should be listed. If FALSE, only public nodes and the
    *   user's own private nodes should be listed.
+   *
+   * @internal
    */
-  protected function assertTaxonomyPage($is_admin) {
+  protected function assertTaxonomyPage(bool $is_admin): void {
     foreach ([$this->publicTid, $this->privateTid] as $tid_is_private => $tid) {
       $this->drupalGet("taxonomy/term/$tid");
       $this->nidsVisible = [];
@@ -230,13 +265,7 @@ class NodeAccessBaseTableTest extends NodeTestBase {
           if (!$is_admin && $tid_is_private) {
             $should_be_visible = $should_be_visible && $uid == $this->webUser->id();
           }
-          $this->assertIdentical(isset($this->nidsVisible[$nid]), $should_be_visible, strtr('A %private node by user %uid is %visible for user %current_uid on the %tid_is_private page.', [
-            '%private' => $is_private ? 'private' : 'public',
-            '%uid' => $uid,
-            '%visible' => isset($this->nidsVisible[$nid]) ? 'visible' : 'not visible',
-            '%current_uid' => $this->webUser->id(),
-            '%tid_is_private' => $tid_is_private ? 'private' : 'public',
-          ]));
+          $this->assertSame($should_be_visible, isset($this->nidsVisible[$nid]), strtr('A %private node by user %uid is %visible for user %current_uid on the %tid_is_private page.', ['%private' => $is_private ? 'private' : 'public', '%uid' => $uid, '%visible' => isset($this->nidsVisible[$nid]) ? 'visible' : 'not visible', '%current_uid' => $this->webUser->id(), '%tid_is_private' => $tid_is_private ? 'private' : 'public']));
         }
       }
     }

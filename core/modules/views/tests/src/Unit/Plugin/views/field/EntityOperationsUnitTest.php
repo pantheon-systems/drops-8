@@ -101,7 +101,7 @@ class EntityOperationsUnitTest extends UnitTestCase {
       ->getMock();
     $entity->expects($this->any())
       ->method('getEntityTypeId')
-      ->will($this->returnValue($entity_type_id));
+      ->willReturn($entity_type_id);
 
     $operations = [
       'foo' => [
@@ -112,12 +112,12 @@ class EntityOperationsUnitTest extends UnitTestCase {
     $list_builder->expects($this->once())
       ->method('getOperations')
       ->with($entity)
-      ->will($this->returnValue($operations));
+      ->willReturn($operations);
 
     $this->entityTypeManager->expects($this->once())
       ->method('getListBuilder')
       ->with($entity_type_id)
-      ->will($this->returnValue($list_builder));
+      ->willReturn($list_builder);
 
     $this->plugin->options['destination'] = TRUE;
 
@@ -143,7 +143,7 @@ class EntityOperationsUnitTest extends UnitTestCase {
       ->getMock();
     $entity->expects($this->any())
       ->method('getEntityTypeId')
-      ->will($this->returnValue($entity_type_id));
+      ->willReturn($entity_type_id);
 
     $operations = [
       'foo' => [
@@ -154,12 +154,12 @@ class EntityOperationsUnitTest extends UnitTestCase {
     $list_builder->expects($this->once())
       ->method('getOperations')
       ->with($entity)
-      ->will($this->returnValue($operations));
+      ->willReturn($operations);
 
     $this->entityTypeManager->expects($this->once())
       ->method('getListBuilder')
       ->with($entity_type_id)
-      ->will($this->returnValue($list_builder));
+      ->willReturn($list_builder);
 
     $this->plugin->options['destination'] = FALSE;
 
@@ -170,6 +170,20 @@ class EntityOperationsUnitTest extends UnitTestCase {
       '#type' => 'operations',
       '#links' => $operations,
     ];
+    $build = $this->plugin->render($result);
+    $this->assertSame($expected_build, $build);
+  }
+
+  /**
+   * @covers ::render
+   */
+  public function testRenderWithoutEntity() {
+    $entity = NULL;
+
+    $result = new ResultRow();
+    $result->_entity = $entity;
+
+    $expected_build = '';
     $build = $this->plugin->render($result);
     $this->assertSame($expected_build, $build);
   }

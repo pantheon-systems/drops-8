@@ -1,11 +1,5 @@
 <?php
 
-/**
- * @see       https://github.com/laminas/laminas-diactoros for the canonical source repository
- * @copyright https://github.com/laminas/laminas-diactoros/blob/master/COPYRIGHT.md
- * @license   https://github.com/laminas/laminas-diactoros/blob/master/LICENSE.md New BSD License
- */
-
 declare(strict_types=1);
 
 namespace Laminas\Diactoros\Response;
@@ -42,8 +36,8 @@ class RedirectResponse extends Response
         if (! is_string($uri) && ! $uri instanceof UriInterface) {
             throw new Exception\InvalidArgumentException(sprintf(
                 'Uri provided to %s MUST be a string or Psr\Http\Message\UriInterface instance; received "%s"',
-                __CLASS__,
-                (is_object($uri) ? get_class($uri) : gettype($uri))
+                self::class,
+                is_object($uri) ? get_class($uri) : gettype($uri)
             ));
         }
 

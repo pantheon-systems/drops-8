@@ -25,7 +25,7 @@ class MimeTypeGuesser implements LegacyMimeTypeGuesserInterface, MimeTypeGuesser
    *
    * If this is NULL a rebuild will be triggered.
    *
-   * @var \Symfony\Component\HttpFoundation\File\MimeType\MimeTypeGuesserInterface[]
+   * @var \Symfony\Component\Mime\MimeTypeGuesserInterface[]
    *
    * @see \Drupal\Core\File\MimeType\MimeTypeGuesser::addGuesser()
    * @see \Drupal\Core\File\MimeType\MimeTypeGuesser::sortGuessers()
@@ -73,6 +73,8 @@ class MimeTypeGuesser implements LegacyMimeTypeGuesserInterface, MimeTypeGuesser
         return $mime_type;
       }
     }
+
+    return NULL;
   }
 
   /**
@@ -139,13 +141,8 @@ class MimeTypeGuesser implements LegacyMimeTypeGuesserInterface, MimeTypeGuesser
    *   A sorted array of MIME type guesser objects.
    */
   protected function sortGuessers() {
-    $sorted = [];
     krsort($this->guessers);
-
-    foreach ($this->guessers as $guesser) {
-      $sorted = array_merge($sorted, $guesser);
-    }
-    return $sorted;
+    return array_merge([], ...$this->guessers);
   }
 
   /**

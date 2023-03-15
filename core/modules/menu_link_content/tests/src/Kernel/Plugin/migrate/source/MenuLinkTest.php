@@ -212,7 +212,7 @@ class MenuLinkTest extends MigrateSqlSourceTestBase {
       ],
       [
         // D7 non-customized menu link, provided by menu module.
-        'menu_name' => 'menu-test-menu',
+        'menu_name' => 'menu-test2-menu',
         'mlid' => 300,
         'plid' => 0,
         'link_path' => 'node/142',
@@ -240,6 +240,37 @@ class MenuLinkTest extends MigrateSqlSourceTestBase {
         'language' => 'fr',
         'i18n_tsid' => '1',
         'skip_translation' => FALSE,
+      ],
+      [
+        // D7 shortcut set link.
+        'menu_name' => 'shortcut-set-1',
+        'mlid' => 301,
+        'plid' => 0,
+        'link_path' => 'node/add',
+        'router_path' => 'node/add',
+        'link_title' => 'Add Content',
+        'options' => [],
+        'module' => 'menu',
+        'hidden' => 0,
+        'external' => 0,
+        'has_children' => 0,
+        'expanded' => 0,
+        'weight' => 0,
+        'depth' => 1,
+        'customized' => 0,
+        'p1' => '301',
+        'p2' => '0',
+        'p3' => '0',
+        'p4' => '0',
+        'p5' => '0',
+        'p6' => '0',
+        'p7' => '0',
+        'p8' => '0',
+        'p9' => '0',
+        'updated' => '0',
+        'language' => 'und',
+        'i18n_tsid' => '0',
+        'skip_translation' => TRUE,
       ],
     ];
 
@@ -270,6 +301,26 @@ class MenuLinkTest extends MigrateSqlSourceTestBase {
     $tests[0]['expected_data'][] = $expected[3];
     $tests[0]['expected_data'][] = $expected[4];
 
+    // Tests retrieval of links from multiple menus.
+    $tests[1] = $tests[0];
+    $tests[1]['expected_count'] = NULL;
+    $tests[1]['configuration'] = [
+      'menu_name' => ['menu-test-menu', 'menu-test2-menu'],
+    ];
+
+    // Tests retrieval of links from a single menu.
+    $tests[2] = $tests[1];
+    $tests[2]['configuration'] = [
+      'menu_name' => 'menu-test2-menu',
+    ];
+    $tests[2]['expected_data'] = [$expected[6]];
+
+    // Tests retrieval of links from a not existing menu.
+    $tests[3] = $tests[1];
+    $tests[3]['configuration'] = [
+      'menu_name' => 'menu-not-exists',
+    ];
+    $tests[3]['expected_data'] = [];
     return $tests;
   }
 

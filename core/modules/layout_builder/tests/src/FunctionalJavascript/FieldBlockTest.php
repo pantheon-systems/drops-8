@@ -6,6 +6,8 @@ use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\FunctionalJavascriptTests\WebDriverTestBase;
 
+// cspell:ignore datefield
+
 /**
  * @coversDefaultClass \Drupal\layout_builder\Plugin\Block\FieldBlock
  *
@@ -28,7 +30,7 @@ class FieldBlockTest extends WebDriverTestBase {
   /**
    * {@inheritdoc}
    */
-  protected $defaultTheme = 'classy';
+  protected $defaultTheme = 'starterkit_theme';
 
   /**
    * {@inheritdoc}
@@ -79,7 +81,7 @@ class FieldBlockTest extends WebDriverTestBase {
     $assert_session->pageTextNotContains('Initial email');
 
     $assert_session->pageTextContains('Date field');
-    $block_url = 'admin/structure/block/add/field_block_test%3Auser%3Auser%3Afield_date/classy';
+    $block_url = 'admin/structure/block/add/field_block_test%3Auser%3Auser%3Afield_date/starterkit_theme';
     $assert_session->linkByHrefExists($block_url);
 
     $this->drupalGet($block_url);
@@ -150,7 +152,7 @@ class FieldBlockTest extends WebDriverTestBase {
     ]);
     $timestamp_field->save();
 
-    $this->drupalGet('admin/structure/block/add/field_block_test%3Auser%3Auser%3Afield_timestamp/classy');
+    $this->drupalGet('admin/structure/block/add/field_block_test%3Auser%3Auser%3Afield_timestamp/starterkit_theme');
     $this->assertFalse($page->findField('settings[formatter][settings][custom_date_format]')->isVisible(), 'Custom date format is not visible');
     $page->selectFieldOption('settings[formatter][settings][date_format]', 'custom');
     $this->assertTrue($page->findField('settings[formatter][settings][custom_date_format]')->isVisible(), 'Custom date format is visible');

@@ -4,7 +4,6 @@
 * https://www.drupal.org/node/2815083
 * @preserve
 **/
-
 (function ($, Backbone, Drupal) {
   Drupal.toolbar.MenuVisualView = Backbone.View.extend({
     initialize: function initialize() {
@@ -12,12 +11,10 @@
     },
     render: function render() {
       var _this = this;
-
       var subtrees = this.model.get('subtrees');
       Object.keys(subtrees || {}).forEach(function (id) {
-        _this.$el.find("#toolbar-link-".concat(id)).once('toolbar-subtrees').after(subtrees[id]);
+        $(once('toolbar-subtrees', _this.$el.find("#toolbar-link-".concat(id)))).after(subtrees[id]);
       });
-
       if ('drupalToolbarMenu' in $.fn) {
         this.$el.children('.toolbar-menu').drupalToolbarMenu();
       }

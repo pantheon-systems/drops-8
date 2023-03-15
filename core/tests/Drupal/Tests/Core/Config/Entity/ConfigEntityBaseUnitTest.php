@@ -15,6 +15,7 @@ use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Extension\ThemeHandlerInterface;
 use Drupal\Core\Language\Language;
 use Drupal\Core\Plugin\DefaultLazyPluginCollection;
+use Drupal\Core\Test\TestKernel;
 use Drupal\Tests\Core\Config\Entity\Fixtures\ConfigEntityBaseWithPluginCollections;
 use Drupal\Tests\Core\Plugin\Fixtures\TestConfigurablePlugin;
 use Drupal\Tests\UnitTestCase;
@@ -123,7 +124,7 @@ class ConfigEntityBaseUnitTest extends UnitTestCase {
     $this->entityType = $this->createMock('\Drupal\Core\Config\Entity\ConfigEntityTypeInterface');
     $this->entityType->expects($this->any())
       ->method('getProvider')
-      ->will($this->returnValue($this->provider));
+      ->willReturn($this->provider);
     $this->entityType->expects($this->any())
       ->method('getConfigPrefix')
       ->willReturn('test_provider.' . $this->entityTypeId);
@@ -132,7 +133,7 @@ class ConfigEntityBaseUnitTest extends UnitTestCase {
     $this->entityTypeManager->expects($this->any())
       ->method('getDefinition')
       ->with($this->entityTypeId)
-      ->will($this->returnValue($this->entityType));
+      ->willReturn($this->entityType);
 
     $this->uuid = $this->createMock('\Drupal\Component\Uuid\UuidInterface');
 
@@ -140,7 +141,7 @@ class ConfigEntityBaseUnitTest extends UnitTestCase {
     $this->languageManager->expects($this->any())
       ->method('getLanguage')
       ->with('en')
-      ->will($this->returnValue(new Language(['id' => 'en'])));
+      ->willReturn(new Language(['id' => 'en']));
 
     $this->cacheTagsInvalidator = $this->createMock('Drupal\Core\Cache\CacheTagsInvalidatorInterface');
 
@@ -190,16 +191,16 @@ class ConfigEntityBaseUnitTest extends UnitTestCase {
 
     $query->expects($this->any())
       ->method('execute')
-      ->will($this->returnValue([]));
+      ->willReturn([]);
     $query->expects($this->any())
       ->method('condition')
-      ->will($this->returnValue($query));
+      ->willReturn($query);
     $storage->expects($this->any())
       ->method('getQuery')
-      ->will($this->returnValue($query));
+      ->willReturn($query);
     $storage->expects($this->any())
       ->method('loadUnchanged')
-      ->will($this->returnValue($this->entity));
+      ->willReturn($this->entity);
 
     // Saving an entity will not reset the dependencies array during config
     // synchronization.
@@ -255,7 +256,7 @@ class ConfigEntityBaseUnitTest extends UnitTestCase {
     $values = [];
     $this->entity = $this->getMockBuilder('\Drupal\Tests\Core\Config\Entity\Fixtures\ConfigEntityBaseWithPluginCollections')
       ->setConstructorArgs([$values, $this->entityTypeId])
-      ->setMethods(['getPluginCollections'])
+      ->onlyMethods(['getPluginCollections'])
       ->getMock();
 
     // Create a configurable plugin that would add a dependency.
@@ -265,18 +266,18 @@ class ConfigEntityBaseUnitTest extends UnitTestCase {
     // Create a plugin collection to contain the instance.
     $pluginCollection = $this->getMockBuilder('\Drupal\Core\Plugin\DefaultLazyPluginCollection')
       ->disableOriginalConstructor()
-      ->setMethods(['get'])
+      ->onlyMethods(['get'])
       ->getMock();
     $pluginCollection->expects($this->atLeastOnce())
       ->method('get')
       ->with($instance_id)
-      ->will($this->returnValue($instance));
+      ->willReturn($instance);
     $pluginCollection->addInstanceId($instance_id);
 
     // Return the mocked plugin collection.
     $this->entity->expects($this->once())
       ->method('getPluginCollections')
-      ->will($this->returnValue([$pluginCollection]));
+      ->willReturn([$pluginCollection]);
 
     $this->assertEquals($expected_dependencies, $this->entity->calculateDependencies()->getDependencies());
   }
@@ -357,9 +358,8 @@ class ConfigEntityBaseUnitTest extends UnitTestCase {
 
     // Also set up a container with the plugin manager so that we can assert
     // that the plugin manager itself is also not serialized.
-    $container = new ContainerBuilder();
-    $container->set('plugin.manager.foo', $plugin_manager);
-    \Drupal::setContainer($container);
+    $container = TestKernel::setContainerWithKernel();
+    $container->set('plugin.manager.foo', $plugin_manager->reveal());
 
     $entity_values = ['the_plugin_collection_config' => [$instance_id => ['foo' => 'original_value']]];
     $entity = new TestConfigEntityWithPluginCollections($entity_values, $this->entityTypeId);
@@ -476,25 +476,22 @@ class ConfigEntityBaseUnitTest extends UnitTestCase {
    * @covers ::createDuplicate
    */
   public function testCreateDuplicate() {
-    $this->entityType->expects($this->at(0))
+    $this->entityType->expects($this->exactly(2))
       ->method('getKey')
-      ->with('id')
-      ->will($this->returnValue('id'));
+      ->willReturnMap([
+        ['id', 'id'],
+        ['uuid', 'uuid'],
+      ]);
 
-    $this->entityType->expects($this->at(1))
+    $this->entityType->expects($this->once())
       ->method('hasKey')
       ->with('uuid')
-      ->will($this->returnValue(TRUE));
-
-    $this->entityType->expects($this->at(2))
-      ->method('getKey')
-      ->with('uuid')
-      ->will($this->returnValue('uuid'));
+      ->willReturn(TRUE);
 
     $new_uuid = '8607ef21-42bc-4913-978f-8c06207b0395';
     $this->uuid->expects($this->once())
       ->method('generate')
-      ->will($this->returnValue($new_uuid));
+      ->willReturn($new_uuid);
 
     $duplicate = $this->entity->createDuplicate();
     $this->assertInstanceOf('\Drupal\Core\Entity\EntityBase', $duplicate);
@@ -514,11 +511,11 @@ class ConfigEntityBaseUnitTest extends UnitTestCase {
     $this->entityTypeManager->expects($this->any())
       ->method('getDefinition')
       ->with($this->entityTypeId)
-      ->will($this->returnValue([
+      ->willReturn([
         'entity_keys' => [
           'label' => 'label',
         ],
-      ]));
+      ]);
 
     $entity_a = $this->createMock('\Drupal\Core\Config\Entity\ConfigEntityInterface');
     $entity_a->expects($this->atLeastOnce())
@@ -635,8 +632,11 @@ class ConfigEntityBaseUnitTest extends UnitTestCase {
     $this->entityType->expects($this->any())
       ->method('getPropertiesToExport')
       ->willReturn(NULL);
+    $this->entityType->expects($this->any())
+      ->method('getClass')
+      ->willReturn("FooConfigEntity");
     $this->expectException(SchemaIncompleteException::class);
-    $this->expectExceptionMessageMatches("/Entity type 'Mock_ConfigEntityTypeInterface_[^']*' is missing 'config_export' definition in its annotation/");
+    $this->expectExceptionMessage("Entity type 'FooConfigEntity' is missing 'config_export' definition in its annotation");
     $this->entity->toArray();
   }
 

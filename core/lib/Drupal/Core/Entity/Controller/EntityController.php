@@ -63,6 +63,11 @@ class EntityController implements ContainerInjectionInterface {
   protected $renderer;
 
   /**
+   * The url generator.
+   */
+  protected $urlGenerator;
+
+  /**
    * Constructs a new EntityController.
    *
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
@@ -76,7 +81,7 @@ class EntityController implements ContainerInjectionInterface {
    * @param \Drupal\Core\StringTranslation\TranslationInterface $string_translation
    *   The string translation.
    * @param \Drupal\Core\Routing\UrlGeneratorInterface $url_generator
-   *   The url generator.
+   *   The URL generator.
    */
   public function __construct(EntityTypeManagerInterface $entity_type_manager, EntityTypeBundleInfoInterface $entity_type_bundle_info, EntityRepositoryInterface $entity_repository, RendererInterface $renderer, TranslationInterface $string_translation, UrlGeneratorInterface $url_generator) {
     $this->entityTypeManager = $entity_type_manager;
@@ -183,7 +188,7 @@ class EntityController implements ContainerInjectionInterface {
     foreach ($bundles as $bundle_name => $bundle_info) {
       $build['#bundles'][$bundle_name] = [
         'label' => $bundle_info['label'],
-        'description' => isset($bundle_info['description']) ? $bundle_info['description'] : '',
+        'description' => $bundle_info['description'] ?? '',
         'add_link' => Link::createFromRoute($bundle_info['label'], $form_route_name, [$bundle_argument => $bundle_name]),
       ];
     }

@@ -2,11 +2,13 @@
 
 namespace Drupal\Core\Block;
 
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\ContextAwarePluginAssignmentTrait;
 use Drupal\Core\Plugin\ContextAwarePluginInterface;
 use Drupal\Core\Plugin\ContextAwarePluginTrait;
 use Drupal\Core\Plugin\PluginBase;
 use Drupal\Core\Plugin\PluginWithFormsInterface;
+use Drupal\Core\Plugin\PreviewAwarePluginInterface;
 use Drupal\Core\Render\PreviewFallbackInterface;
 
 /**
@@ -18,10 +20,25 @@ use Drupal\Core\Render\PreviewFallbackInterface;
  *
  * @ingroup block_api
  */
-abstract class BlockBase extends PluginBase implements BlockPluginInterface, PluginWithFormsInterface, PreviewFallbackInterface, ContextAwarePluginInterface {
+abstract class BlockBase extends PluginBase implements BlockPluginInterface, PluginWithFormsInterface, PreviewAwarePluginInterface, PreviewFallbackInterface, ContextAwarePluginInterface {
 
-  use BlockPluginTrait;
+  use BlockPluginTrait {
+    buildConfigurationForm as traitBuildConfigurationForm;
+  }
   use ContextAwarePluginTrait;
   use ContextAwarePluginAssignmentTrait;
+
+  /**
+   * {@inheritdoc}
+   */
+  public function buildConfigurationForm(array $form, FormStateInterface $form_state) {
+    $form = $this->traitBuildConfigurationForm($form, $form_state);
+
+    // Add context mapping UI form elements.
+    $contexts = $form_state->getTemporaryValue('gathered_contexts') ?: [];
+    $form['context_mapping'] = $this->addContextAssignmentElement($this, $contexts);
+
+    return $form;
+  }
 
 }

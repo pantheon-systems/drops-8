@@ -64,11 +64,14 @@ class FieldFormatter extends Plugin {
   public $field_types = [];
 
   /**
-   * An integer to determine the weight of this formatter relative to other
-   * formatter in the Field UI when selecting a formatter for a given field
-   * instance.
+   * An integer to determine the weight of this formatter.
    *
-   * @var int optional
+   * Weight is relative to other formatter in the Field UI when selecting a
+   * formatter for a given field instance.
+   *
+   * This property is optional and it does not need to be declared.
+   *
+   * @var int
    */
   public $weight = NULL;
 
