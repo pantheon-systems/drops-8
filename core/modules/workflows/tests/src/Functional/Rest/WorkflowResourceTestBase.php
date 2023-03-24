@@ -2,13 +2,13 @@
 
 namespace Drupal\Tests\workflows\Functional\Rest;
 
-use Drupal\Tests\rest\Functional\EntityResource\EntityResourceTestBase;
+use Drupal\Tests\rest\Functional\EntityResource\ConfigEntityResourceTestBase;
 use Drupal\workflows\Entity\Workflow;
 
 /**
  * ResourceTestBase for Workflow entity.
  */
-abstract class WorkflowResourceTestBase extends EntityResourceTestBase {
+abstract class WorkflowResourceTestBase extends ConfigEntityResourceTestBase {
 
   /**
    * {@inheritdoc}
@@ -102,6 +102,7 @@ abstract class WorkflowResourceTestBase extends EntityResourceTestBase {
    */
   protected function getNormalizedPostEntity() {
     // @todo Update in https://www.drupal.org/node/2300677.
+    return [];
   }
 
 }

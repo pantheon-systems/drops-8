@@ -156,7 +156,7 @@ function form_select_options($element, $choices = NULL) {
  * @param $key
  *   The key to look for.
  *
- * @return
+ * @return array|bool
  *   An array of indexes that match the given $key. Array will be
  *   empty if no elements were found. FALSE if optgroups were found.
  */
@@ -193,10 +193,10 @@ function template_preprocess_fieldset(&$variables) {
   $element = $variables['element'];
   Element::setAttributes($element, ['id']);
   RenderElement::setAttributes($element);
-  $variables['attributes'] = isset($element['#attributes']) ? $element['#attributes'] : [];
-  $variables['prefix'] = isset($element['#field_prefix']) ? $element['#field_prefix'] : NULL;
-  $variables['suffix'] = isset($element['#field_suffix']) ? $element['#field_suffix'] : NULL;
-  $variables['title_display'] = isset($element['#title_display']) ? $element['#title_display'] : NULL;
+  $variables['attributes'] = $element['#attributes'] ?? [];
+  $variables['prefix'] = $element['#field_prefix'] ?? NULL;
+  $variables['suffix'] = $element['#field_suffix'] ?? NULL;
+  $variables['title_display'] = $element['#title_display'] ?? NULL;
   $variables['children'] = $element['#children'];
   $variables['required'] = !empty($element['#required']) ? $element['#required'] : NULL;
 
@@ -216,6 +216,10 @@ function template_preprocess_fieldset(&$variables) {
   if (!empty($element['#description'])) {
     $description_id = $element['#attributes']['id'] . '--description';
     $description_attributes['id'] = $description_id;
+    $variables['description_display'] = $element['#description_display'];
+    if ($element['#description_display'] === 'invisible') {
+      $description_attributes['class'][] = 'visually-hidden';
+    }
     $description_attributes['data-drupal-field-elements'] = 'description';
     $variables['description']['attributes'] = new Attribute($description_attributes);
     $variables['description']['content'] = $element['#description'];
@@ -393,6 +397,7 @@ function template_preprocess_textarea(&$variables) {
 
 /**
  * Returns HTML for a form element.
+ *
  * Prepares variables for form element templates.
  *
  * Default template: form-element.html.twig.
@@ -473,8 +478,8 @@ function template_preprocess_form_element(&$variables) {
 
   $variables['title_display'] = $element['#title_display'];
 
-  $variables['prefix'] = isset($element['#field_prefix']) ? $element['#field_prefix'] : NULL;
-  $variables['suffix'] = isset($element['#field_suffix']) ? $element['#field_suffix'] : NULL;
+  $variables['prefix'] = $element['#field_prefix'] ?? NULL;
+  $variables['suffix'] = $element['#field_suffix'] ?? NULL;
 
   $variables['description'] = NULL;
   if (!empty($element['#description'])) {
@@ -515,7 +520,7 @@ function template_preprocess_form_element(&$variables) {
  * this function will output no label (''). For required elements that have an
  * empty #title, this will output the required marker alone within the label.
  * The label will use the #id to associate the marker with the field that is
- * required. That is especially important for screenreader users to know
+ * required. That is especially important for screen reader users to know
  * which field is required.
  *
  * To associate the label with a different field, set the #for property to the
@@ -627,7 +632,7 @@ function template_preprocess_form_element_label(&$variables) {
  *     $context['sandbox']['progress'] = 0;
  *     $context['sandbox']['current_id'] = 0;
  *     $context['sandbox']['max'] = \Drupal::database()
- *       ->query('SELECT COUNT(DISTINCT id) FROM {example}')
+ *       ->query('SELECT COUNT(DISTINCT [id]) FROM {example}')
  *       ->fetchField();
  *   }
  *   $limit = 5;
@@ -716,7 +721,7 @@ function template_preprocess_form_element_label(&$variables) {
  *   - file: Path to the file containing the definitions of the 'operations' and
  *     'finished' functions, for instance if they don't reside in the main
  *     .module file. The path should be relative to base_path(), and thus should
- *     be built using drupal_get_path().
+ *     be built using ModuleExtensionList::getPath().
  *   - library: An array of batch-specific CSS and JS libraries.
  *   - url_options: options passed to the \Drupal\Core\Url object when
  *     constructing redirect URLs for the batch.
@@ -879,7 +884,7 @@ function batch_process($redirect = NULL, Url $url = NULL, $redirect_callback = N
     $process_info = [
       'current_set' => 0,
       'progressive' => TRUE,
-      'url' => isset($url) ? $url : Url::fromRoute('system.batch_page.html'),
+      'url' => $url ?? Url::fromRoute('system.batch_page.html'),
       'source_url' => Url::fromRouteMatch(\Drupal::routeMatch())->mergeOptions(['query' => \Drupal::request()->query->all()]),
       'batch_redirect' => $redirect,
       'theme' => \Drupal::theme()->getActiveTheme()->getName(),
@@ -1006,7 +1011,7 @@ function _batch_populate_queue(&$batch, $set_id) {
  * @param $batch_set
  *   The batch set.
  *
- * @return
+ * @return \Drupal\Core\Queue\QueueInterface|null
  *   The queue object.
  */
 function _batch_queue($batch_set) {

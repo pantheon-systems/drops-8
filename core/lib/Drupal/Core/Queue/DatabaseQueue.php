@@ -76,7 +76,7 @@ class DatabaseQueue implements ReliableQueueInterface, QueueGarbageCollectionInt
    * @param $data
    *   Arbitrary data to be associated with the new task in the queue.
    *
-   * @return
+   * @return int|string
    *   A unique ID if the item was successfully created and was (best effort)
    *   added to the queue, otherwise FALSE. We don't guarantee the item was
    *   committed to disk etc, but as far as we know, the item is now in the
@@ -162,7 +162,7 @@ class DatabaseQueue implements ReliableQueueInterface, QueueGarbageCollectionInt
           'expire' => 0,
         ])
         ->condition('item_id', $item->item_id);
-      return $update->execute();
+      return (bool) $update->execute();
     }
     catch (\Exception $e) {
       $this->catchException($e);
@@ -189,7 +189,7 @@ class DatabaseQueue implements ReliableQueueInterface, QueueGarbageCollectionInt
           'expire' => $expire,
         ])
         ->condition('item_id', $item->item_id);
-      return $update->execute();
+      return (bool) $update->execute();
     }
     catch (\Exception $e) {
       $this->catchException($e);
@@ -241,7 +241,7 @@ class DatabaseQueue implements ReliableQueueInterface, QueueGarbageCollectionInt
     try {
       // Clean up the queue for failed batches.
       $this->connection->delete(static::TABLE_NAME)
-        ->condition('created', REQUEST_TIME - 864000, '<')
+        ->condition('created', \Drupal::time()->getRequestTime() - 864000, '<')
         ->condition('name', 'drupal_batch:%', 'LIKE')
         ->execute();
 
@@ -252,7 +252,7 @@ class DatabaseQueue implements ReliableQueueInterface, QueueGarbageCollectionInt
           'expire' => 0,
         ])
         ->condition('expire', 0, '<>')
-        ->condition('expire', REQUEST_TIME, '<')
+        ->condition('expire', \Drupal::time()->getRequestTime(), '<')
         ->execute();
     }
     catch (\Exception $e) {
@@ -266,19 +266,18 @@ class DatabaseQueue implements ReliableQueueInterface, QueueGarbageCollectionInt
   protected function ensureTableExists() {
     try {
       $database_schema = $this->connection->schema();
-      if (!$database_schema->tableExists(static::TABLE_NAME)) {
-        $schema_definition = $this->schemaDefinition();
-        $database_schema->createTable(static::TABLE_NAME, $schema_definition);
-        return TRUE;
-      }
+      $schema_definition = $this->schemaDefinition();
+      $database_schema->createTable(static::TABLE_NAME, $schema_definition);
     }
     // If another process has already created the queue table, attempting to
     // recreate it will throw an exception. In this case just catch the
     // exception and do nothing.
     catch (DatabaseException $e) {
-      return TRUE;
     }
-    return FALSE;
+    catch (\Exception $e) {
+      return FALSE;
+    }
+    return TRUE;
   }
 
   /**

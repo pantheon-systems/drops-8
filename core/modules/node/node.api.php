@@ -22,11 +22,8 @@ use Drupal\Component\Utility\Xss;
  * "realms". In hook_node_access_records(), the realms and grant IDs are
  * associated with permission to view, edit, and delete individual nodes.
  *
- * The realms and grant IDs can be arbitrarily defined by your node access
- * module; it is common to use role IDs as grant IDs, but that is not required.
- * Your module could instead maintain its own list of users, where each list has
- * an ID. In that case, the return value of this hook would be an array of the
- * list IDs that this user is a member of.
+ * Grant IDs can be arbitrarily defined by a node access module using a list of
+ * integer IDs associated with users.
  *
  * A node access module may implement as many realms as necessary to properly
  * define the access privileges for the nodes. Note that the system makes no
@@ -62,8 +59,6 @@ use Drupal\Component\Utility\Xss;
  * will erase any node ID 0 entry when it is called, so you will need to make
  * sure to restore your {node_access} record after node_access_rebuild() is
  * called.
- *
- * For a detailed example, see node_access_example.module.
  *
  * @param \Drupal\Core\Session\AccountInterface $account
  *   The account object whose grants are requested.
@@ -147,7 +142,7 @@ function hook_node_grants(\Drupal\Core\Session\AccountInterface $account, $op) {
  * @param \Drupal\node\NodeInterface $node
  *   The node that has just been saved.
  *
- * @return
+ * @return array|null
  *   An array of grants as defined above.
  *
  * @see hook_node_access_records_alter()
@@ -221,7 +216,7 @@ function hook_node_access_records(\Drupal\node\NodeInterface $node) {
  * @see hook_node_grants_alter()
  * @ingroup node_access
  */
-function hook_node_access_records_alter(&$grants, Drupal\node\NodeInterface $node) {
+function hook_node_access_records_alter(&$grants, \Drupal\node\NodeInterface $node) {
   // Our module allows editors to mark specific articles with the 'is_preview'
   // field. If the node being saved has a TRUE value for that field, then only
   // our grants are retained, and other grants are removed. Doing so ensures
@@ -306,7 +301,7 @@ function hook_node_grants_alter(&$grants, \Drupal\Core\Session\AccountInterface 
  * @ingroup entity_crud
  */
 function hook_node_search_result(\Drupal\node\NodeInterface $node) {
-  $rating = \Drupal::database()->query('SELECT SUM(points) FROM {my_rating} WHERE nid = :nid', ['nid' => $node->id()])->fetchField();
+  $rating = \Drupal::database()->query('SELECT SUM([points]) FROM {my_rating} WHERE [nid] = :nid', ['nid' => $node->id()])->fetchField();
   return ['rating' => \Drupal::translation()->formatPlural($rating, '1 point', '@count points')];
 }
 
@@ -326,7 +321,7 @@ function hook_node_search_result(\Drupal\node\NodeInterface $node) {
  */
 function hook_node_update_index(\Drupal\node\NodeInterface $node) {
   $text = '';
-  $ratings = \Drupal::database()->query('SELECT title, description FROM {my_ratings} WHERE nid = :nid', [':nid' => $node->id()]);
+  $ratings = \Drupal::database()->query('SELECT [title], [description] FROM {my_ratings} WHERE [nid] = :nid', [':nid' => $node->id()]);
   foreach ($ratings as $rating) {
     $text .= '<h2>' . Html::escape($rating->title) . '</h2>' . Xss::filter($rating->description);
   }

@@ -31,6 +31,13 @@ class AccessRoleTest extends AccessTestBase {
   protected $defaultTheme = 'stark';
 
   /**
+   * {@inheritdoc}
+   */
+  protected function setUp($import_test_views = TRUE, $modules = ['user_test_views']): void {
+    parent::setUp($import_test_views, $modules);
+  }
+
+  /**
    * Tests role access plugin.
    */
   public function testAccessRole() {
@@ -46,7 +53,7 @@ class AccessRoleTest extends AccessTestBase {
       'config' => ['user.role.' . $this->normalRole],
       'module' => ['user', 'views_test_data'],
     ];
-    $this->assertIdentical($expected, $view->calculateDependencies()->getDependencies());
+    $this->assertSame($expected, $view->calculateDependencies()->getDependencies());
 
     $executable = Views::executableFactory()->get($view);
     $executable->setDisplay('page_1');
@@ -86,7 +93,7 @@ class AccessRoleTest extends AccessTestBase {
       'config' => $roles,
       'module' => ['user', 'views_test_data'],
     ];
-    $this->assertIdentical($expected, $view->calculateDependencies()->getDependencies());
+    $this->assertSame($expected, $view->calculateDependencies()->getDependencies());
     $this->drupalLogin($this->webUser);
     $this->drupalGet('test-role');
     $this->assertSession()->statusCodeEquals(403);
@@ -125,9 +132,9 @@ class AccessRoleTest extends AccessTestBase {
     $account_switcher->switchTo($this->normalUser);
     $result = $renderer->renderPlain($build);
     $this->assertContains('user.roles', $build['#cache']['contexts']);
-    $this->assertEqual(['config:views.view.test_access_role'], $build['#cache']['tags']);
-    $this->assertEqual(Cache::PERMANENT, $build['#cache']['max-age']);
-    $this->assertNotEqual($result, '');
+    $this->assertEquals(['config:views.view.test_access_role'], $build['#cache']['tags']);
+    $this->assertEquals(Cache::PERMANENT, $build['#cache']['max-age']);
+    $this->assertNotSame('', $result);
 
     // Then without access.
     $build = DisplayPluginBase::buildBasicRenderable('test_access_role', 'default');
@@ -137,9 +144,9 @@ class AccessRoleTest extends AccessTestBase {
     // DisplayPluginBase::applyDisplayCacheabilityMetadata() is not invoked when
     // using buildBasicRenderable() and a Views access plugin returns FALSE.
     // $this->assertContains('user.roles', $build['#cache']['contexts']);
-    // $this->assertEqual([], $build['#cache']['tags']);
-    $this->assertEqual(Cache::PERMANENT, $build['#cache']['max-age']);
-    $this->assertEqual($result, '');
+    // $this->assertEquals([], $build['#cache']['tags']);
+    $this->assertEquals(Cache::PERMANENT, $build['#cache']['max-age']);
+    $this->assertEquals('', $result);
   }
 
 }

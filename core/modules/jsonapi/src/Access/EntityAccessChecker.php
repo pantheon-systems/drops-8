@@ -15,10 +15,6 @@ use Drupal\jsonapi\JsonApiResource\LabelOnlyResourceObject;
 use Drupal\jsonapi\JsonApiResource\ResourceObject;
 use Drupal\jsonapi\JsonApiSpec;
 use Drupal\jsonapi\ResourceType\ResourceTypeRepositoryInterface;
-use Drupal\media\Access\MediaRevisionAccessCheck;
-use Drupal\media\MediaInterface;
-use Drupal\node\Access\NodeRevisionAccessCheck;
-use Drupal\node\NodeInterface;
 use Symfony\Component\Routing\RouterInterface;
 
 /**
@@ -65,24 +61,6 @@ class EntityAccessChecker {
   protected $entityRepository;
 
   /**
-   * The node revision access check service.
-   *
-   * This will be NULL unless the node module is installed.
-   *
-   * @var \Drupal\node\Access\NodeRevisionAccessCheck|null
-   */
-  protected $nodeRevisionAccessCheck = NULL;
-
-  /**
-   * The media revision access check service.
-   *
-   * This will be NULL unless the media module is installed.
-   *
-   * @var \Drupal\media\Access\MediaRevisionAccessCheck|null
-   */
-  protected $mediaRevisionAccessCheck = NULL;
-
-  /**
    * The latest revision check service.
    *
    * This will be NULL unless the content_moderation module is installed. This
@@ -110,30 +88,6 @@ class EntityAccessChecker {
     $this->router = $router;
     $this->currentUser = $account;
     $this->entityRepository = $entity_repository;
-  }
-
-  /**
-   * Sets the node revision access check service.
-   *
-   * This is only called when node module is installed.
-   *
-   * @param \Drupal\node\Access\NodeRevisionAccessCheck $node_revision_access_check
-   *   The node revision access check service.
-   */
-  public function setNodeRevisionAccessCheck(NodeRevisionAccessCheck $node_revision_access_check) {
-    $this->nodeRevisionAccessCheck = $node_revision_access_check;
-  }
-
-  /**
-   * Sets the media revision access check service.
-   *
-   * This is only called when media module is installed.
-   *
-   * @param \Drupal\media\Access\MediaRevisionAccessCheck $media_revision_access_check
-   *   The media revision access check service.
-   */
-  public function setMediaRevisionAccessCheck(MediaRevisionAccessCheck $media_revision_access_check) {
-    $this->mediaRevisionAccessCheck = $media_revision_access_check;
   }
 
   /**
@@ -235,32 +189,12 @@ class EntityAccessChecker {
    *
    * @return \Drupal\Core\Access\AccessResultInterface|\Drupal\Core\Access\AccessResultReasonInterface
    *   The access check result.
-   *
-   * @todo: remove when a generic revision access API exists in Drupal core, and
-   * also remove the injected "node" and "media" services.
-   * @see https://www.drupal.org/project/drupal/issues/2992833#comment-12818386
    */
   protected function checkRevisionViewAccess(EntityInterface $entity, AccountInterface $account) {
     assert($entity instanceof RevisionableInterface);
     assert(!$entity->isDefaultRevision(), 'It is not necessary to check revision access when the entity is the default revision.');
     $entity_type = $entity->getEntityType();
-    switch ($entity_type->id()) {
-      case 'node':
-        assert($entity instanceof NodeInterface);
-        $access = AccessResult::allowedIf($this->nodeRevisionAccessCheck->checkAccess($entity, $account, 'view'))->cachePerPermissions()->addCacheableDependency($entity);
-        break;
-
-      case 'media':
-        assert($entity instanceof MediaInterface);
-        $access = AccessResult::allowedIf($this->mediaRevisionAccessCheck->checkAccess($entity, $account, 'view'))->cachePerPermissions()->addCacheableDependency($entity);
-        break;
-
-      default:
-        $reason = 'Only node and media revisions are supported by JSON:API.';
-        $reason .= ' For context, see https://www.drupal.org/project/drupal/issues/2992833#comment-12818258.';
-        $reason .= ' To contribute, see https://www.drupal.org/project/drupal/issues/2350939 and https://www.drupal.org/project/drupal/issues/2809177.';
-        $access = AccessResult::neutral($reason);
-    }
+    $access = $entity->access('view all revisions', $account, TRUE);
     // Apply content_moderation's additional access logic.
     // @see \Drupal\content_moderation\Access\LatestRevisionCheck::access()
     if ($entity_type->getLinkTemplate('latest-version') && $entity->isLatestRevision() && isset($this->latestRevisionCheck)) {

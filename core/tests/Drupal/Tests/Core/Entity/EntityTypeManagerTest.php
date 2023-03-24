@@ -80,8 +80,6 @@ class EntityTypeManagerTest extends UnitTestCase {
     parent::setUp();
 
     $this->moduleHandler = $this->prophesize(ModuleHandlerInterface::class);
-    $this->moduleHandler->getImplementations('entity_type_build')->willReturn([]);
-    $this->moduleHandler->alter('entity_type', Argument::type('array'))->willReturn(NULL);
 
     $this->cacheBackend = $this->prophesize(CacheBackendInterface::class);
     $this->translationManager = $this->prophesize(TranslationInterface::class);
@@ -99,7 +97,7 @@ class EntityTypeManagerTest extends UnitTestCase {
    *   (optional) An array of entity type definitions.
    */
   protected function setUpEntityTypeDefinitions($definitions = []) {
-    $class = $this->getMockClass(EntityInterface::class);
+    $class = get_class($this->createMock(EntityInterface::class));
     foreach ($definitions as $key => $entity_type) {
       // \Drupal\Core\Entity\EntityTypeInterface::getLinkTemplates() is called
       // by \Drupal\Core\Entity\EntityTypeManager::processDefinition() so it must

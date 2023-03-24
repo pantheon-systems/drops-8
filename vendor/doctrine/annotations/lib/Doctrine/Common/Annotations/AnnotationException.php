@@ -3,6 +3,7 @@
 namespace Doctrine\Common\Annotations;
 
 use Exception;
+use Throwable;
 
 use function get_class;
 use function gettype;
@@ -47,9 +48,9 @@ class AnnotationException extends Exception
      *
      * @return AnnotationException
      */
-    public static function creationError($message)
+    public static function creationError($message, ?Throwable $previous = null)
     {
-        return new self('[Creation Error] ' . $message);
+        return new self('[Creation Error] ' . $message, 0, $previous);
     }
 
     /**
@@ -128,10 +129,10 @@ class AnnotationException extends Exception
     /**
      * Creates a new AnnotationException describing a invalid enummerator.
      *
-     * @param string              $attributeName
-     * @param string              $annotationName
-     * @param string              $context
-     * @param object|class-string $given
+     * @param string $attributeName
+     * @param string $annotationName
+     * @param string $context
+     * @param mixed  $given
      *
      * @return AnnotationException
      *

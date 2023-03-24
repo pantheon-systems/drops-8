@@ -6,7 +6,7 @@ use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\DependencyInjection\DependencySerializationTrait;
 use Drupal\Core\Site\Settings;
 use GuzzleHttp\ClientInterface;
-use GuzzleHttp\Exception\RequestException;
+use GuzzleHttp\Exception\TransferException;
 
 /**
  * Fetches project information from remote locations.
@@ -21,7 +21,7 @@ class UpdateFetcher implements UpdateFetcherInterface {
   const UPDATE_DEFAULT_URL = 'https://updates.drupal.org/release-history';
 
   /**
-   * The fetch url configured in the update settings.
+   * The fetch URL configured in the update settings.
    *
    * @var string
    */
@@ -100,7 +100,7 @@ class UpdateFetcher implements UpdateFetcherInterface {
         ->get($url, ['headers' => ['Accept' => 'text/xml']])
         ->getBody();
     }
-    catch (RequestException $exception) {
+    catch (TransferException $exception) {
       watchdog_exception('update', $exception);
       if ($with_http_fallback && strpos($url, "http://") === FALSE) {
         $url = str_replace('https://', 'http://', $url);

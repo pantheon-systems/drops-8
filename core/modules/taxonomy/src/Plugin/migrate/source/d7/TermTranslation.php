@@ -2,11 +2,16 @@
 
 namespace Drupal\taxonomy\Plugin\migrate\source\d7;
 
-use Drupal\content_translation\Plugin\migrate\source\I18nQueryTrait;
 use Drupal\migrate\Row;
 
 /**
- * Gets i18n taxonomy terms from source database.
+ * Drupal 7 i18n taxonomy terms source from database.
+ *
+ * For available configuration keys, refer to the parent classes.
+ *
+ * @see \Drupal\taxonomy\Plugin\migrate\source\d7\Term
+ * @see \Drupal\migrate\Plugin\migrate\source\SqlBase
+ * @see \Drupal\migrate\Plugin\migrate\source\SourcePluginBase
  *
  * @MigrateSource(
  *   id = "d7_taxonomy_term_translation",
@@ -14,8 +19,6 @@ use Drupal\migrate\Row;
  * )
  */
 class TermTranslation extends Term {
-
-  use I18nQueryTrait;
 
   /**
    * {@inheritdoc}
@@ -25,9 +28,17 @@ class TermTranslation extends Term {
     if ($this->database->schema()->fieldExists('taxonomy_term_data', 'language')) {
       $query->addField('td', 'language', 'td_language');
     }
+    // Get data when the i18n_mode column exists and it is not the Drupal 7
+    // value I18N_MODE_NONE or I18N_MODE_LOCALIZE. Otherwise, return no data.
+    // @see https://git.drupalcode.org/project/i18n/-/blob/7.x-1.x/i18n.module#L26
     if ($this->database->schema()->fieldExists('taxonomy_vocabulary', 'i18n_mode')) {
       $query->addField('tv', 'i18n_mode');
+      $query->condition('tv.i18n_mode', ['0', '1'], 'NOT IN');
     }
+    else {
+      $query->alwaysFalse();
+    }
+
     return $query;
   }
 
@@ -35,7 +46,9 @@ class TermTranslation extends Term {
    * {@inheritdoc}
    */
   public function prepareRow(Row $row) {
-    parent::prepareRow($row);
+    if (!parent::prepareRow($row)) {
+      return FALSE;
+    }
     $row->setSourceProperty('language', $row->getSourceProperty('td_language'));
   }
 

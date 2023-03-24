@@ -38,15 +38,17 @@ class EntityAccessControlHandlerTest extends EntityLanguageTestBase {
 
   /**
    * Asserts entity access correctly grants or denies access.
+   *
+   * @internal
    */
-  public function assertEntityAccess($ops, AccessibleInterface $object, AccountInterface $account = NULL) {
+  public function assertEntityAccess(array $ops, AccessibleInterface $object, AccountInterface $account = NULL): void {
     foreach ($ops as $op => $result) {
       $message = new FormattableMarkup("Entity access returns @result with operation '@op'.", [
         '@result' => !isset($result) ? 'null' : ($result ? 'true' : 'false'),
         '@op' => $op,
       ]);
 
-      $this->assertEqual($result, $object->access($op, $account), $message);
+      $this->assertEquals($object->access($op, $account), $result, $message);
     }
   }
 
@@ -154,16 +156,16 @@ class EntityAccessControlHandlerTest extends EntityLanguageTestBase {
     // Set up a non-admin user that is allowed to view test entities.
     \Drupal::currentUser()->setAccount($this->createUser(['uid' => 2], ['view test entity']));
     $entity = EntityTest::create([
-        'name' => 'forbid_access',
-      ]);
+      'name' => 'forbid_access',
+    ]);
 
     // The user is denied access to the entity.
     $this->assertEntityAccess([
-        'create' => FALSE,
-        'update' => FALSE,
-        'delete' => FALSE,
-        'view' => FALSE,
-      ], $entity);
+      'create' => FALSE,
+      'update' => FALSE,
+      'delete' => FALSE,
+      'view' => FALSE,
+    ], $entity);
   }
 
   /**
@@ -284,17 +286,14 @@ class EntityAccessControlHandlerTest extends EntityLanguageTestBase {
 
     // Test hook_entity_create_access() and hook_ENTITY_TYPE_create_access().
     $entity->access('create');
-    $this->assertEqual($state->get('entity_test_entity_create_access'), TRUE);
-    $this->assertIdentical($state->get('entity_test_entity_create_access_context'), [
-      'entity_type_id' => 'entity_test',
-      'langcode' => LanguageInterface::LANGCODE_DEFAULT,
-    ]);
-    $this->assertEqual($state->get('entity_test_entity_test_create_access'), TRUE);
+    $this->assertTrue($state->get('entity_test_entity_create_access'));
+    $this->assertSame(['entity_type_id' => 'entity_test', 'langcode' => LanguageInterface::LANGCODE_DEFAULT], $state->get('entity_test_entity_create_access_context'));
+    $this->assertEquals(TRUE, $state->get('entity_test_entity_test_create_access'));
 
     // Test hook_entity_access() and hook_ENTITY_TYPE_access().
     $entity->access('view');
-    $this->assertEqual($state->get('entity_test_entity_access'), TRUE);
-    $this->assertEqual($state->get('entity_test_entity_test_access'), TRUE);
+    $this->assertTrue($state->get('entity_test_entity_access'));
+    $this->assertTrue($state->get('entity_test_entity_test_access'));
   }
 
   /**

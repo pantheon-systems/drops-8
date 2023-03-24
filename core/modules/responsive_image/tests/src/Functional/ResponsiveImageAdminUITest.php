@@ -28,7 +28,7 @@ class ResponsiveImageAdminUITest extends BrowserTestBase {
   protected $defaultTheme = 'stark';
 
   /**
-   * Drupal\simpletest\WebTestBase\setUp().
+   * {@inheritdoc}
    */
   protected function setUp(): void {
     parent::setUp();
@@ -39,12 +39,12 @@ class ResponsiveImageAdminUITest extends BrowserTestBase {
   }
 
   /**
-   * Test responsive image administration functionality.
+   * Tests responsive image administration functionality.
    */
   public function testResponsiveImageAdmin() {
     // We start without any default styles.
     $this->drupalGet('admin/config/media/responsive-image-style');
-    $this->assertText('There are no responsive image styles yet.');
+    $this->assertSession()->pageTextContains('There are no responsive image styles yet.');
 
     // Add a responsive image style.
     $this->drupalGet('admin/config/media/responsive-image-style/add');
@@ -55,16 +55,26 @@ class ResponsiveImageAdminUITest extends BrowserTestBase {
     $edit = [
       'label' => 'Style One',
       'id' => 'style_one',
-      'breakpoint_group' => 'responsive_image_test_module',
+      'breakpoint_group' => 'responsive_image',
       'fallback_image_style' => 'thumbnail',
     ];
-    $this->drupalPostForm('admin/config/media/responsive-image-style/add', $edit, 'Save');
+    $this->drupalGet('admin/config/media/responsive-image-style/add');
+    $this->submitForm($edit, 'Save');
 
     // Check if the new group is created.
     $this->assertSession()->statusCodeEquals(200);
     $this->drupalGet('admin/config/media/responsive-image-style');
-    $this->assertNoText('There are no responsive image styles yet.');
-    $this->assertText('Style One');
+    $this->assertSession()->pageTextNotContains('There are no responsive image styles yet.');
+    $this->assertSession()->pageTextContains('Style One');
+
+    // Edit the breakpoint_group.
+    $this->drupalGet('admin/config/media/responsive-image-style/style_one');
+    $this->assertSession()->fieldValueEquals('label', 'Style One');
+    $this->assertSession()->fieldValueEquals('breakpoint_group', 'responsive_image');
+    $edit = [
+      'breakpoint_group' => 'responsive_image_test_module',
+    ];
+    $this->submitForm($edit, 'Save');
 
     // Edit the group.
     $this->drupalGet('admin/config/media/responsive-image-style/style_one');
@@ -94,13 +104,7 @@ class ResponsiveImageAdminUITest extends BrowserTestBase {
 
       foreach ($image_styles as $image_style_name) {
         // Check if the image styles are available in the dropdowns.
-        $this->assertNotEmpty($this->xpath(
-          '//select[@name=:name]//option[@value=:style]',
-          [
-            ':name' => 'keyed_styles[responsive_image_test_module.' . $case[0] . '][' . $case[1] . '][image_style]',
-            ':style' => $image_style_name,
-          ]
-        ));
+        $this->assertSession()->optionExists('keyed_styles[responsive_image_test_module.' . $case[0] . '][' . $case[1] . '][image_style]', $image_style_name);
         // Check if the image styles checkboxes are present.
         $this->assertSession()->fieldExists('keyed_styles[responsive_image_test_module.' . $case[0] . '][' . $case[1] . '][sizes_image_styles][' . $image_style_name . ']');
       }
@@ -121,7 +125,8 @@ class ResponsiveImageAdminUITest extends BrowserTestBase {
       'keyed_styles[responsive_image_test_module.wide][1x][image_mapping_type]' => 'image_style',
       'keyed_styles[responsive_image_test_module.wide][1x][image_style]' => 'large',
     ];
-    $this->drupalPostForm('admin/config/media/responsive-image-style/style_one', $edit, 'Save');
+    $this->drupalGet('admin/config/media/responsive-image-style/style_one');
+    $this->submitForm($edit, 'Save');
     $this->drupalGet('admin/config/media/responsive-image-style/style_one');
 
     // Check the mapping for multipliers 1x and 2x for the mobile breakpoint.
@@ -146,7 +151,7 @@ class ResponsiveImageAdminUITest extends BrowserTestBase {
     $this->drupalGet('admin/config/media/responsive-image-style/style_one/delete');
     $this->submitForm([], 'Delete');
     $this->drupalGet('admin/config/media/responsive-image-style');
-    $this->assertText('There are no responsive image styles yet.');
+    $this->assertSession()->pageTextContains('There are no responsive image styles yet.');
   }
 
 }

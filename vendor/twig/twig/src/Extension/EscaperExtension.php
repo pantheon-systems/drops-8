@@ -211,7 +211,7 @@ function twig_escape_filter(Environment $env, $string, $strategy = 'html', $char
 
     switch ($strategy) {
         case 'html':
-            // see https://secure.php.net/htmlspecialchars
+            // see https://www.php.net/htmlspecialchars
 
             // Using a static variable to avoid initializing the array
             // each time the function is called. Moving the declaration on the
@@ -234,18 +234,18 @@ function twig_escape_filter(Environment $env, $string, $strategy = 'html', $char
             ];
 
             if (isset($htmlspecialcharsCharsets[$charset])) {
-                return htmlspecialchars($string, ENT_QUOTES | ENT_SUBSTITUTE, $charset);
+                return htmlspecialchars($string, \ENT_QUOTES | \ENT_SUBSTITUTE, $charset);
             }
 
             if (isset($htmlspecialcharsCharsets[strtoupper($charset)])) {
                 // cache the lowercase variant for future iterations
                 $htmlspecialcharsCharsets[$charset] = true;
 
-                return htmlspecialchars($string, ENT_QUOTES | ENT_SUBSTITUTE, $charset);
+                return htmlspecialchars($string, \ENT_QUOTES | \ENT_SUBSTITUTE, $charset);
             }
 
             $string = twig_convert_encoding($string, 'UTF-8', $charset);
-            $string = htmlspecialchars($string, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+            $string = htmlspecialchars($string, \ENT_QUOTES | \ENT_SUBSTITUTE, 'UTF-8');
 
             return iconv('UTF-8', $charset, $string);
 
@@ -282,7 +282,7 @@ function twig_escape_filter(Environment $env, $string, $strategy = 'html', $char
                     return $shortMap[$char];
                 }
 
-                $codepoint = mb_ord($char);
+                $codepoint = mb_ord($char, 'UTF-8');
                 if (0x10000 > $codepoint) {
                     return sprintf('\u%04X', $codepoint);
                 }
@@ -392,20 +392,18 @@ function twig_escape_filter(Environment $env, $string, $strategy = 'html', $char
             return rawurlencode($string);
 
         default:
-            static $escapers;
-
-            if (null === $escapers) {
-                // merge the ones set on CoreExtension for BC (to be removed in 3.0)
-                $escapers = array_merge(
-                    $env->getExtension(CoreExtension::class)->getEscapers(false),
-                    $env->getExtension(EscaperExtension::class)->getEscapers()
-                );
+            // check the ones set on CoreExtension for BC (to be removed in 3.0)
+            $legacyEscapers = $env->getExtension(CoreExtension::class)->getEscapers(false);
+            if (array_key_exists($strategy, $legacyEscapers)) {
+                return $legacyEscapers[$strategy]($env, $string, $charset);
             }
 
-            if (isset($escapers[$strategy])) {
+            $escapers = $env->getExtension(EscaperExtension::class)->getEscapers();
+            if (array_key_exists($strategy, $escapers)) {
                 return $escapers[$strategy]($env, $string, $charset);
             }
 
+            $escapers = array_merge($legacyEscapers, $escapers);
             $validStrategies = implode(', ', array_merge(['html', 'js', 'url', 'css', 'html_attr'], array_keys($escapers)));
 
             throw new RuntimeError(sprintf('Invalid escaping strategy "%s" (valid ones: %s).', $strategy, $validStrategies));

@@ -8,7 +8,7 @@ use Drupal\user\Entity\Role;
 
 /**
  * Verify that role permissions can be added and removed via the permissions
- * page.
+ * pages.
  *
  * @group user
  */
@@ -33,6 +33,9 @@ class UserPermissionsTest extends BrowserTestBase {
    */
   protected $defaultTheme = 'stark';
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp(): void {
     parent::setUp();
 
@@ -51,7 +54,7 @@ class UserPermissionsTest extends BrowserTestBase {
   }
 
   /**
-   * Test changing user permissions through the permissions page.
+   * Tests changing user permissions through the permissions pages.
    */
   public function testUserPermissionChanges() {
     $permissions_hash_generator = $this->container->get('user_permissions_hash_generator');
@@ -66,32 +69,47 @@ class UserPermissionsTest extends BrowserTestBase {
     $rid = $this->rid;
     $account = $this->adminUser;
     $previous_permissions_hash = $permissions_hash_generator->generate($account);
-    $this->assertIdentical($previous_permissions_hash, $permissions_hash_generator->generate($this->loggedInUser));
+    $this->assertSame($previous_permissions_hash, $permissions_hash_generator->generate($this->loggedInUser));
 
     // Add a permission.
     $this->assertFalse($account->hasPermission('administer users'), 'User does not have "administer users" permission.');
     $edit = [];
     $edit[$rid . '[administer users]'] = TRUE;
-    $this->drupalPostForm('admin/people/permissions', $edit, 'Save permissions');
-    $this->assertText('The changes have been saved.', 'Successful save message displayed.');
+    $this->drupalGet('admin/people/permissions');
+    $this->submitForm($edit, 'Save permissions');
+    $this->assertSession()->pageTextContains('The changes have been saved.');
     $storage->resetCache();
     $this->assertTrue($account->hasPermission('administer users'), 'User now has "administer users" permission.');
     $current_permissions_hash = $permissions_hash_generator->generate($account);
-    $this->assertIdentical($current_permissions_hash, $permissions_hash_generator->generate($this->loggedInUser));
-    $this->assertNotEqual($previous_permissions_hash, $current_permissions_hash, 'Permissions hash has changed.');
+    $this->assertSame($current_permissions_hash, $permissions_hash_generator->generate($this->loggedInUser));
+    $this->assertNotEquals($previous_permissions_hash, $current_permissions_hash, 'Permissions hash has changed.');
     $previous_permissions_hash = $current_permissions_hash;
 
     // Remove a permission.
     $this->assertTrue($account->hasPermission('access user profiles'), 'User has "access user profiles" permission.');
     $edit = [];
     $edit[$rid . '[access user profiles]'] = FALSE;
-    $this->drupalPostForm('admin/people/permissions', $edit, 'Save permissions');
-    $this->assertText('The changes have been saved.', 'Successful save message displayed.');
+    $this->drupalGet('admin/people/permissions');
+    $this->submitForm($edit, 'Save permissions');
+    $this->assertSession()->pageTextContains('The changes have been saved.');
     $storage->resetCache();
     $this->assertFalse($account->hasPermission('access user profiles'), 'User no longer has "access user profiles" permission.');
     $current_permissions_hash = $permissions_hash_generator->generate($account);
-    $this->assertIdentical($current_permissions_hash, $permissions_hash_generator->generate($this->loggedInUser));
-    $this->assertNotEqual($previous_permissions_hash, $current_permissions_hash, 'Permissions hash has changed.');
+    $this->assertSame($current_permissions_hash, $permissions_hash_generator->generate($this->loggedInUser));
+    $this->assertNotEquals($previous_permissions_hash, $current_permissions_hash, 'Permissions hash has changed.');
+
+    // Permissions can be changed using the module-specific pages with the same
+    // result.
+    $edit = [];
+    $edit[$rid . '[access user profiles]'] = TRUE;
+    $this->drupalGet('admin/people/permissions/module/user');
+    $this->submitForm($edit, 'Save permissions');
+    $this->assertSession()->pageTextContains('The changes have been saved.');
+    $storage->resetCache();
+    $this->assertTrue($account->hasPermission('access user profiles'), 'User again has "access user profiles" permission.');
+    $current_permissions_hash = $permissions_hash_generator->generate($account);
+    $this->assertSame($current_permissions_hash, $permissions_hash_generator->generate($this->loggedInUser));
+    $this->assertEquals($previous_permissions_hash, $current_permissions_hash, 'Permissions hash has reverted.');
 
     // Ensure that the admin role doesn't have any checkboxes.
     $this->drupalGet('admin/people/permissions');
@@ -102,11 +120,11 @@ class UserPermissionsTest extends BrowserTestBase {
   }
 
   /**
-   * Test assigning of permissions for the administrator role.
+   * Tests assigning of permissions for the administrator role.
    */
   public function testAdministratorRole() {
     $this->drupalLogin($this->adminUser);
-    $this->drupalGet('admin/config/people/accounts');
+    $this->drupalGet('admin/people/role-settings');
 
     // Verify that the administration role is none by default.
     $this->assertTrue($this->assertSession()->optionExists('edit-user-admin-role', '')->isSelected());
@@ -116,21 +134,23 @@ class UserPermissionsTest extends BrowserTestBase {
     // Set the user's role to be the administrator role.
     $edit = [];
     $edit['user_admin_role'] = $this->rid;
-    $this->drupalPostForm('admin/config/people/accounts', $edit, 'Save configuration');
+    $this->drupalGet('admin/people/role-settings');
+    $this->submitForm($edit, 'Save configuration');
 
     \Drupal::entityTypeManager()->getStorage('user_role')->resetCache();
     $this->assertTrue(Role::load($this->rid)->isAdmin());
 
-    // Enable aggregator module and ensure the 'administer news feeds'
+    // Enable block module and ensure the 'administer news feeds'
     // permission is assigned by default.
-    \Drupal::service('module_installer')->install(['aggregator']);
+    \Drupal::service('module_installer')->install(['block']);
 
-    $this->assertTrue($this->adminUser->hasPermission('administer news feeds'), 'The permission was automatically assigned to the administrator role');
+    $this->assertTrue($this->adminUser->hasPermission('administer blocks'), 'The permission was automatically assigned to the administrator role');
 
     // Ensure that selecting '- None -' removes the admin role.
     $edit = [];
     $edit['user_admin_role'] = '';
-    $this->drupalPostForm('admin/config/people/accounts', $edit, 'Save configuration');
+    $this->drupalGet('admin/people/role-settings');
+    $this->submitForm($edit, 'Save configuration');
 
     \Drupal::entityTypeManager()->getStorage('user_role')->resetCache();
     \Drupal::configFactory()->reset();
@@ -140,7 +160,7 @@ class UserPermissionsTest extends BrowserTestBase {
     // hidden.
     Role::create(['id' => 'admin_role_0', 'is_admin' => TRUE, 'label' => 'Admin role 0'])->save();
     Role::create(['id' => 'admin_role_1', 'is_admin' => TRUE, 'label' => 'Admin role 1'])->save();
-    $this->drupalGet('admin/config/people/accounts');
+    $this->drupalGet('admin/people/role-settings');
     $this->assertSession()->fieldNotExists('user_admin_role');
   }
 
@@ -173,7 +193,7 @@ class UserPermissionsTest extends BrowserTestBase {
 
     // Verify the permissions hash has changed.
     $current_permissions_hash = $permissions_hash_generator->generate($account);
-    $this->assertNotEqual($previous_permissions_hash, $current_permissions_hash, 'Permissions hash has changed.');
+    $this->assertNotEquals($previous_permissions_hash, $current_permissions_hash, 'Permissions hash has changed.');
   }
 
   /**
@@ -186,14 +206,92 @@ class UserPermissionsTest extends BrowserTestBase {
     // to 'access site reports'.
     $this->drupalGet('admin/people/permissions');
     $next_row = $this->xpath('//tr[@data-drupal-selector=\'edit-permissions-access-content\']/following-sibling::tr[1]');
-    $this->assertEqual('edit-permissions-access-site-reports', $next_row[0]->getAttribute('data-drupal-selector'));
+    $this->assertEquals('edit-permissions-access-site-reports', $next_row[0]->getAttribute('data-drupal-selector'));
 
     // When Node is installed the 'access content' permission is listed next to
     // to 'view own unpublished content'.
     \Drupal::service('module_installer')->install(['node']);
     $this->drupalGet('admin/people/permissions');
     $next_row = $this->xpath('//tr[@data-drupal-selector=\'edit-permissions-access-content\']/following-sibling::tr[1]');
-    $this->assertEqual('edit-permissions-view-own-unpublished-content', $next_row[0]->getAttribute('data-drupal-selector'));
+    $this->assertEquals('edit-permissions-view-own-unpublished-content', $next_row[0]->getAttribute('data-drupal-selector'));
+  }
+
+  /**
+   * Verify that module-specific pages have correct access.
+   */
+  public function testAccessModulePermission() {
+    $this->drupalLogin($this->adminUser);
+
+    // When Node is not installed, the node-permissions page is not available.
+    $this->drupalGet('admin/people/permissions/module/node');
+    $this->assertSession()->statusCodeEquals(403);
+
+    // Modules that do not create permissions have no permissions pages.
+    \Drupal::service('module_installer')->install(['automated_cron']);
+    $this->drupalGet('admin/people/permissions/module/automated_cron');
+    $this->assertSession()->statusCodeEquals(403);
+    $this->drupalGet('admin/people/permissions/module/node,automated_cron');
+    $this->assertSession()->statusCodeEquals(403);
+
+    // When Node is installed, the node-permissions page is available.
+    \Drupal::service('module_installer')->install(['node']);
+    $this->drupalGet('admin/people/permissions/module/node');
+    $this->assertSession()->statusCodeEquals(200);
+    $this->drupalGet('admin/people/permissions/module/node,automated_cron');
+    $this->assertSession()->statusCodeEquals(200);
+
+    // Anonymous users cannot access any of these pages.
+    $this->drupalLogout();
+    $this->drupalGet('admin/people/permissions/module/node');
+    $this->assertSession()->statusCodeEquals(403);
+    $this->drupalGet('admin/people/permissions/module/automated_cron');
+    $this->assertSession()->statusCodeEquals(403);
+    $this->drupalGet('admin/people/permissions/module/node,automated_cron');
+    $this->assertSession()->statusCodeEquals(403);
+  }
+
+  /**
+   * Verify that bundle-specific pages work properly.
+   */
+  public function testAccessBundlePermission() {
+    $this->drupalLogin($this->adminUser);
+
+    \Drupal::service('module_installer')->install(['block_content', 'taxonomy']);
+    $this->grantPermissions(Role::load($this->rid), ['administer blocks', 'administer taxonomy']);
+
+    // Bundles that do not have permissions have no permissions pages.
+    $edit = [];
+    $edit['label'] = 'Test block type';
+    $edit['id'] = 'test_block_type';
+    $this->drupalGet('admin/structure/block/block-content/types/add');
+    $this->submitForm($edit, 'Save');
+    $this->drupalGet('admin/structure/block/block-content/manage/test_block_type/permissions');
+    $this->assertSession()->statusCodeEquals(403);
+
+    // Permissions can be changed using the bundle-specific pages.
+    $edit = [];
+    $edit['name'] = 'Test vocabulary';
+    $edit['vid'] = 'test_vocabulary';
+    $this->drupalGet('admin/structure/taxonomy/add');
+    $this->submitForm($edit, 'Save');
+
+    $this->drupalGet('admin/structure/taxonomy/manage/test_vocabulary/overview/permissions');
+    $this->assertSession()->checkboxNotChecked('authenticated[create terms in test_vocabulary]');
+    $this->assertSession()->fieldExists('authenticated[create terms in test_vocabulary]')->check();
+    $this->getSession()->getPage()->pressButton('Save permissions');
+    $this->assertSession()->pageTextContains('The changes have been saved.');
+    $this->assertSession()->checkboxChecked('authenticated[create terms in test_vocabulary]');
+
+    // Typos produce 404 response, not server errors.
+    $this->drupalGet('admin/structure/taxonomy/manage/test_typo/overview/permissions');
+    $this->assertSession()->statusCodeEquals(404);
+
+    // Anonymous users cannot access any of these pages.
+    $this->drupalLogout();
+    $this->drupalGet('admin/structure/taxonomy/manage/test_vocabulary/overview/permissions');
+    $this->assertSession()->statusCodeEquals(403);
+    $this->drupalGet('admin/structure/block/block-content/manage/test_block_type/permissions');
+    $this->assertSession()->statusCodeEquals(403);
   }
 
 }

@@ -1,5 +1,7 @@
 <?php
-// @codingStandardsIgnoreFile
+
+// phpcs:ignoreFile Portions of this file are a direct copy of
+// \Symfony\Component\DependencyInjection\Loader\YamlFileLoader.
 
 namespace Drupal\Core\DependencyInjection;
 
@@ -29,6 +31,11 @@ use Symfony\Component\DependencyInjection\Exception\InvalidArgumentException;
  */
 class YamlFileLoader
 {
+    private const DEFAULTS_KEYWORDS = [
+        'public' => 'public',
+        'tags' => 'tags',
+        'autowire' => 'autowire',
+    ];
 
     /**
      * @var \Drupal\Core\DependencyInjection\ContainerBuilder $container
@@ -41,7 +48,6 @@ class YamlFileLoader
      * @var \Drupal\Component\FileCache\FileCacheInterface
      */
     protected $fileCache;
-
 
     public function __construct(ContainerBuilder $container)
     {
@@ -117,12 +123,73 @@ class YamlFileLoader
         }
         else {
             $basename = basename($file);
-            list($provider, ) = explode('.', $basename, 2);
+            [$provider, ] = explode('.', $basename, 2);
         }
+        $defaults = $this->parseDefaults($content, $file);
+        $defaults['tags'][] = [
+            'name' => '_provider',
+            'provider' => $provider
+        ];
         foreach ($content['services'] as $id => $service) {
-            $service['tags'][] = ['name' => '_provider', 'provider' => $provider];
-            $this->parseDefinition($id, $service, $file);
+            $this->parseDefinition($id, $service, $file, $defaults);
         }
+    }
+
+    /**
+     * @param array  $content
+     * @param string $file
+     *
+     * @return array
+     *
+     * @throws InvalidArgumentException
+     */
+    private function parseDefaults(array &$content, string $file): array
+    {
+        if (!\array_key_exists('_defaults', $content['services'])) {
+            return [];
+        }
+        $defaults = $content['services']['_defaults'];
+        unset($content['services']['_defaults']);
+
+        if (!\is_array($defaults)) {
+            throw new InvalidArgumentException(sprintf('Service "_defaults" key must be an array, "%s" given in "%s".', \gettype($defaults), $file));
+        }
+
+        foreach ($defaults as $key => $default) {
+            if (!isset(self::DEFAULTS_KEYWORDS[$key])) {
+                throw new InvalidArgumentException(sprintf('The configuration key "%s" cannot be used to define a default value in "%s". Allowed keys are "%s".', $key, $file, implode('", "', self::DEFAULTS_KEYWORDS)));
+            }
+        }
+
+        if (isset($defaults['tags'])) {
+            if (!\is_array($tags = $defaults['tags'])) {
+                throw new InvalidArgumentException(sprintf('Parameter "tags" in "_defaults" must be an array in "%s". Check your YAML syntax.', $file));
+            }
+
+            foreach ($tags as $tag) {
+                if (!\is_array($tag)) {
+                    $tag = ['name' => $tag];
+                }
+
+                if (!isset($tag['name'])) {
+                    throw new InvalidArgumentException(sprintf('A "tags" entry in "_defaults" is missing a "name" key in "%s".', $file));
+                }
+                $name = $tag['name'];
+                unset($tag['name']);
+
+                if (!\is_string($name) || '' === $name) {
+                    throw new InvalidArgumentException(sprintf('The tag name in "_defaults" must be a non-empty string in "%s".', $file));
+                }
+
+                foreach ($tag as $attribute => $value) {
+                    if (!is_scalar($value) && null !== $value) {
+                        throw new InvalidArgumentException(sprintf('Tag "%s", attribute "%s" in "_defaults" must be of a scalar-type in "%s". Check your YAML syntax.', $name, $attribute, $file));
+                    }
+                }
+            }
+        }
+
+        return $defaults;
     }
 
     /**
@@ -131,16 +198,24 @@ class YamlFileLoader
      * @param string $id
      * @param array $service
      * @param string $file
+     * @param array $defaults
      *
      * @throws InvalidArgumentException
      *   When tags are invalid.
      */
-    private function parseDefinition($id, $service, $file)
+    private function parseDefinition(string $id, $service, string $file, array $defaults)
     {
-        if (is_string($service) && 0 === strpos($service, '@')) {
-            $this->container->setAlias($id, substr($service, 1));
+        if (\is_string($service) && 0 === strpos($service, '@')) {
+            $this->container->setAlias($id, $alias = new Alias(substr($service, 1)));
+            if (isset($defaults['public'])) {
+                $alias->setPublic($defaults['public']);
+            }
 
             return;
+        }
+
+        if (null === $service) {
+            $service = [];
         }
 
         if (!is_array($service)) {
@@ -148,11 +223,22 @@ class YamlFileLoader
         }
 
         if (isset($service['alias'])) {
-            $public = !array_key_exists('public', $service) || (bool) $service['public'];
-            $alias = $this->container->setAlias($id, new Alias($service['alias'], $public));
+            $this->container->setAlias($id, $alias = new Alias($service['alias']));
+            if (isset($service['public'])) {
+                $alias->setPublic($service['public']);
+            } elseif (isset($defaults['public'])) {
+                $alias->setPublic($defaults['public']);
+            }
 
             if (array_key_exists('deprecated', $service)) {
-                $alias->setDeprecated(true, $service['deprecated']);
+                if (method_exists($alias, 'getDeprecation')) {
+                    $deprecation = \is_array($service['deprecated']) ? $service['deprecated'] : ['message' => $service['deprecated']];
+                    $alias->setDeprecated($deprecation['package'] ?? '', $deprecation['version'] ?? '', $deprecation['message']);
+                } else {
+                    // @todo Remove when we no longer support Symfony 4 in
+                    // https://www.drupal.org/project/drupal/issues/3197729
+                    $alias->setDeprecated(true, $service['deprecated']);
+                }
             }
 
             return;
@@ -162,6 +248,17 @@ class YamlFileLoader
             $definition = new ChildDefinition($service['parent']);
         } else {
             $definition = new Definition();
+            // Drupal services are public by default.
+            $definition->setPublic(true);
+
+            if (isset($defaults['public'])) {
+                $definition->setPublic($defaults['public']);
+            }
+            if (isset($defaults['autowire'])) {
+                $definition->setAutowired($defaults['autowire']);
+            }
+
+            $definition->setChanges([]);
         }
 
         if (isset($service['class'])) {
@@ -189,7 +286,14 @@ class YamlFileLoader
         }
 
         if (array_key_exists('deprecated', $service)) {
-            $definition->setDeprecated(true, $service['deprecated']);
+            if (method_exists($definition, 'getDeprecation')) {
+                $deprecation = \is_array($service['deprecated']) ? $service['deprecated'] : ['message' => $service['deprecated']];
+                $definition->setDeprecated($deprecation['package'] ?? '', $deprecation['version'] ?? '', $deprecation['message']);
+            } else {
+                // @todo Remove when we no longer support Symfony 4 in
+                // https://www.drupal.org/project/drupal/issues/3197729
+                $definition->setDeprecated(true, $service['deprecated']);
+            }
         }
 
         if (isset($service['factory'])) {
@@ -255,36 +359,42 @@ class YamlFileLoader
             }
         }
 
-        if (isset($service['tags'])) {
-            if (!is_array($service['tags'])) {
-                throw new InvalidArgumentException(sprintf('Parameter "tags" must be an array for service "%s" in %s. Check your YAML syntax.', $id, $file));
+        $tags = $service['tags'] ?? [];
+        if (!\is_array($tags)) {
+            throw new InvalidArgumentException(sprintf('Parameter "tags" must be an array for service "%s" in "%s". Check your YAML syntax.', $id, $file));
+        }
+
+        if (isset($defaults['tags'])) {
+            $tags = array_merge($tags, $defaults['tags']);
+        }
+
+        foreach ($tags as $tag) {
+            if (!\is_array($tag)) {
+                $tag = ['name' => $tag];
             }
 
-            foreach ($service['tags'] as $tag) {
-                if (!is_array($tag)) {
-                    throw new InvalidArgumentException(sprintf('A "tags" entry must be an array for service "%s" in %s. Check your YAML syntax.', $id, $file));
-                }
-
-                if (!isset($tag['name'])) {
-                    throw new InvalidArgumentException(sprintf('A "tags" entry is missing a "name" key for service "%s" in %s.', $id, $file));
-                }
-
-                $name = $tag['name'];
-                unset($tag['name']);
-
-                foreach ($tag as $attribute => $value) {
-                    if (!is_scalar($value) && null !== $value) {
-                        throw new InvalidArgumentException(sprintf('A "tags" attribute must be of a scalar-type for service "%s", tag "%s", attribute "%s" in %s. Check your YAML syntax.', $id, $name, $attribute, $file));
-                    }
-                }
-
-                $definition->addTag($name, $tag);
+            if (!isset($tag['name'])) {
+                throw new InvalidArgumentException(sprintf('A "tags" entry is missing a "name" key for service "%s" in "%s".', $id, $file));
             }
+            $name = $tag['name'];
+            unset($tag['name']);
+
+            if (!\is_string($name) || '' === $name) {
+                throw new InvalidArgumentException(sprintf('The tag name for service "%s" in "%s" must be a non-empty string.', $id, $file));
+            }
+
+            foreach ($tag as $attribute => $value) {
+                if (!is_scalar($value) && null !== $value) {
+                    throw new InvalidArgumentException(sprintf('A "tags" attribute must be of a scalar-type for service "%s", tag "%s", attribute "%s" in "%s". Check your YAML syntax.', $id, $name, $attribute, $file));
+                }
+            }
+
+            $definition->addTag($name, $tag);
         }
 
         if (isset($service['decorates'])) {
-            $renameId = isset($service['decoration_inner_name']) ? $service['decoration_inner_name'] : null;
-            $priority = isset($service['decoration_priority']) ? $service['decoration_priority'] : 0;
+            $renameId = $service['decoration_inner_name'] ?? null;
+            $priority = $service['decoration_priority'] ?? 0;
             $definition->setDecoratedService($service['decorates'], $renameId, $priority);
         }
 

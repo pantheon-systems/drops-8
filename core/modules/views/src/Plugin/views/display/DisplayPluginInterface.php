@@ -13,9 +13,9 @@ use Drupal\Core\Session\AccountInterface;
  *
  * Display plugins are responsible for controlling where a view is rendered;
  * that is, how it is exposed to other parts of Drupal. 'Page' and 'block' are
- * the most commonly used display plugins. Each view also has a 'master' (or
- * 'default') display that includes information shared between all its
- * displays (see \Drupal\views\Plugin\views\display\DefaultDisplay).
+ * the most commonly used display plugins. Each view also has a 'default'
+ * display that includes information shared between all its displays
+ * (see \Drupal\views\Plugin\views\display\DefaultDisplay).
  *
  * Display plugins extend \Drupal\views\Plugin\views\display\DisplayPluginBase.
  * They must be annotated with \Drupal\views\Annotation\ViewsDisplay
@@ -247,7 +247,7 @@ interface DisplayPluginInterface {
   /**
    * Determines if an option is set to use the default or current display.
    *
-   * @return
+   * @return bool
    *   TRUE for the default display.
    */
   public function isDefaulted($option);
@@ -516,7 +516,7 @@ interface DisplayPluginInterface {
   /**
    * Make sure the display and all associated handlers are valid.
    *
-   * @return
+   * @return array
    *   Empty array if the display is valid; an array of error strings if it is
    *   not.
    */
@@ -566,8 +566,8 @@ interface DisplayPluginInterface {
   /**
    * Renders the exposed form as block.
    *
-   * @return string|null
-   *   The rendered exposed form as string or NULL otherwise.
+   * @return array|null
+   *   The renderable exposed form as array or NULL otherwise.
    */
   public function viewExposedFormBlocks();
 
