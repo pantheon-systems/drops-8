@@ -7,6 +7,7 @@
 
 use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Url;
+use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Exception\RequestException;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
@@ -62,7 +63,7 @@ function locale_translation_batch_status_check($project, $langcode, array $optio
       // Update the file object with the result data. In case of a redirect we
       // store the resulting uri.
       if (isset($result['last_modified'])) {
-        $remote_file->uri = isset($result['location']) ? $result['location'] : $remote_file->uri;
+        $remote_file->uri = $result['location'] ?? $remote_file->uri;
         $remote_file->timestamp = $result['last_modified'];
         locale_translation_status_save($source->name, $source->langcode, LOCALE_TRANSLATION_REMOTE, $remote_file);
       }
@@ -118,7 +119,7 @@ function locale_translation_batch_status_finished($success, $results) {
     if (!isset($results['failed_files']) && !isset($results['files'])) {
       \Drupal::messenger()->addStatus(t('Nothing to check.'));
     }
-    \Drupal::state()->set('locale.translation_last_checked', REQUEST_TIME);
+    \Drupal::state()->set('locale.translation_last_checked', \Drupal::time()->getRequestTime());
   }
   else {
     \Drupal::messenger()->addError(t('An error occurred trying to check available interface translation updates.'));
@@ -181,7 +182,7 @@ function locale_translation_batch_fetch_import($project, $langcode, $options, &$
     if (isset($source->type)) {
       if ($source->type == LOCALE_TRANSLATION_REMOTE || $source->type == LOCALE_TRANSLATION_LOCAL) {
         $file = $source->files[LOCALE_TRANSLATION_LOCAL];
-        module_load_include('bulk.inc', 'locale');
+        \Drupal::moduleHandler()->loadInclude('locale', 'inc', 'locale.bulk');
         $options += [
           'message' => t('Importing %langcode translation for %project.', ['%langcode' => $langcode, '%project' => $source->project]),
         ];
@@ -216,9 +217,9 @@ function locale_translation_batch_fetch_import($project, $langcode, $options, &$
  *   Batch results.
  */
 function locale_translation_batch_fetch_finished($success, $results) {
-  module_load_include('bulk.inc', 'locale');
+  \Drupal::moduleHandler()->loadInclude('locale', 'inc', 'locale.bulk');
   if ($success) {
-    \Drupal::state()->set('locale.translation_last_checked', REQUEST_TIME);
+    \Drupal::state()->set('locale.translation_last_checked', \Drupal::time()->getRequestTime());
   }
   return locale_translate_batch_finished($success, $results);
 }
@@ -271,6 +272,11 @@ function locale_translation_http_check($uri) {
       }
       $logger->notice('HTTP request to @url failed with error: @error.', ['@url' => $uri, '@error' => $response->getStatusCode() . ' ' . $response->getReasonPhrase()]);
     }
+  }
+  // We need to handle ConnectException separately because in Guzzle 7 it
+  // doesn't have a getResponse() method, so the above will fatal.
+  catch (ConnectException $e) {
+    $logger->notice('HTTP request to @url failed with error: @error.', ['@url' => $uri, '@error' => $e->getMessage()]);
   }
 
   return FALSE;

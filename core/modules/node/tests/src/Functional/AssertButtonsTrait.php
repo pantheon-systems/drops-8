@@ -2,6 +2,8 @@
 
 namespace Drupal\Tests\node\Functional;
 
+@trigger_error(__NAMESPACE__ . '\AssertButtonsTrait is deprecated in drupal:9.3.0 and is removed from drupal:10.0.0. There is no replacement. See https://www.drupal.org/node/3215411', E_USER_DEPRECATED);
+
 /**
  * Asserts that buttons are present on a page.
  */
@@ -16,33 +18,24 @@ trait AssertButtonsTrait {
    *   Whether to check if the buttons are in a dropbutton widget or not.
    */
   public function assertButtons(array $buttons, $dropbutton = TRUE) {
-
-    // Try to find a Save button.
-    $save_button = $this->xpath('//input[@type="submit"][@value="Save"]');
-
     // Verify that the number of buttons passed as parameters is
     // available in the dropbutton widget.
     if ($dropbutton) {
-      $i = 0;
       $count = count($buttons);
 
       // Assert there is no save button.
-      $this->assertTrue(empty($save_button));
+      $this->assertSession()->buttonNotExists('Save');
 
       // Dropbutton elements.
-      /** @var \Behat\Mink\Element\NodeElement[] $elements */
-      $elements = $this->xpath('//div[@class="dropbutton-wrapper"]//input[@type="submit"]');
-      $this->assertCount($count, $elements);
-      foreach ($elements as $element) {
-        $value = $element->getValue() ?: '';
-        $this->assertEqual($buttons[$i], $value);
-        $i++;
+      $this->assertSession()->elementsCount('xpath', '//div[@class="dropbutton-wrapper"]//input[@type="submit"]', $count);
+      for ($i = 1; $i++; $i <= $count) {
+        $this->assertSession()->elementTextEquals('xpath', "(//div[@class='dropbutton-wrapper']//input[@type='submit'])[$i]", $buttons[$i - 1]);
       }
     }
     else {
       // Assert there is a save button.
-      $this->assertTrue(!empty($save_button));
-      $this->assertNoRaw('dropbutton-wrapper');
+      $this->assertSession()->buttonExists('Save');
+      $this->assertSession()->responseNotContains('dropbutton-wrapper');
     }
   }
 

@@ -83,6 +83,20 @@ trait TestSetupTrait {
   protected $kernel;
 
   /**
+   * The database prefix of this test run.
+   *
+   * @var string
+   */
+  protected $databasePrefix;
+
+  /**
+   * The app root.
+   *
+   * @var string
+   */
+  protected $root;
+
+  /**
    * The temporary file directory for the test environment.
    *
    * This value has to match the temporary directory created in
@@ -123,15 +137,14 @@ trait TestSetupTrait {
    * order to access and read the error log.
    *
    * The generated database table prefix is used for the Drupal installation
-   * being performed for the test. It is also used as user agent HTTP header
-   * value by the cURL-based browser of WebTestBase, which is sent to the Drupal
-   * installation of the test. During early Drupal bootstrap, the user agent
-   * HTTP header is parsed, and if it matches, all database queries use the
-   * database table prefix that has been generated here.
+   * being performed for the test. It is also used as user agent HTTP header it
+   * is also used in the user agent HTTP header value by BrowserTestBase, which
+   * is sent to the Drupal installation of the test. During early Drupal all
+   * bootstrap, the user agent HTTP header is parsed, and if it matches,
+   * database queries use the database table prefix that has been generated
+   * here.
    *
    * @see \Drupal\Tests\BrowserTestBase::prepareEnvironment()
-   * @see \Drupal\simpletest\WebTestBase::curlInitialize()
-   * @see \Drupal\simpletest\TestBase::prepareEnvironment()
    * @see drupal_valid_test_ua()
    */
   protected function prepareDatabasePrefix() {
@@ -154,7 +167,7 @@ trait TestSetupTrait {
       // Ensure no existing database gets in the way. If a default database
       // exists already it must be removed.
       Database::removeConnection('default');
-      $database = Database::convertDbUrlToConnectionInfo($db_url, isset($this->root) ? $this->root : DRUPAL_ROOT);
+      $database = Database::convertDbUrlToConnectionInfo($db_url, $this->root ?? DRUPAL_ROOT, TRUE);
       Database::addConnectionInfo('default', 'default', $database);
     }
 
@@ -168,9 +181,7 @@ trait TestSetupTrait {
       foreach ($connection_info as $target => $value) {
         // Replace the full table prefix definition to ensure that no table
         // prefixes of the test runner leak into the test.
-        $connection_info[$target]['prefix'] = [
-          'default' => $value['prefix']['default'] . $this->databasePrefix,
-        ];
+        $connection_info[$target]['prefix'] = $value['prefix'] . $this->databasePrefix;
       }
       Database::addConnectionInfo('default', 'default', $connection_info['default']);
     }

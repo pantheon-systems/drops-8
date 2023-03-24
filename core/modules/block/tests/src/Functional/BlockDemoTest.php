@@ -21,7 +21,7 @@ class BlockDemoTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  protected $defaultTheme = 'classy';
+  protected $defaultTheme = 'stark';
 
   /**
    * Check for the accessibility of the admin block demo page.
@@ -44,9 +44,8 @@ class BlockDemoTest extends BrowserTestBase {
 
     // All available themes in core.
     $available_themes = [
-      'bartik',
-      'classy',
-      'seven',
+      'olivero',
+      'claro',
       'stark',
     ];
 

@@ -9,11 +9,13 @@ use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Entity\Plugin\DataType\EntityAdapter;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\TypedData\TypedDataManagerInterface;
 use Drupal\Tests\UnitTestCase;
 use Drupal\Core\Language\Language;
+use Symfony\Component\Validator\ConstraintViolationList;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 /**
@@ -137,16 +139,16 @@ class ContentEntityBaseUnitTest extends UnitTestCase {
     $this->entityType = $this->createMock('\Drupal\Core\Entity\EntityTypeInterface');
     $this->entityType->expects($this->any())
       ->method('getKeys')
-      ->will($this->returnValue([
+      ->willReturn([
         'id' => 'id',
         'uuid' => 'uuid',
-    ]));
+      ]);
 
     $this->entityTypeManager = $this->createMock(EntityTypeManagerInterface::class);
     $this->entityTypeManager->expects($this->any())
       ->method('getDefinition')
       ->with($this->entityTypeId)
-      ->will($this->returnValue($this->entityType));
+      ->willReturn($this->entityType);
 
     $this->entityFieldManager = $this->createMock(EntityFieldManagerInterface::class);
 
@@ -157,36 +159,38 @@ class ContentEntityBaseUnitTest extends UnitTestCase {
     $this->typedDataManager = $this->createMock(TypedDataManagerInterface::class);
     $this->typedDataManager->expects($this->any())
       ->method('getDefinition')
-      ->with('entity')
-      ->will($this->returnValue(['class' => '\Drupal\Core\Entity\Plugin\DataType\EntityAdapter']));
+      ->willReturn(['class' => '\Drupal\Core\Entity\Plugin\DataType\EntityAdapter']);
 
     $english = new Language(['id' => 'en']);
     $not_specified = new Language(['id' => LanguageInterface::LANGCODE_NOT_SPECIFIED, 'locked' => TRUE]);
     $this->languageManager = $this->createMock('\Drupal\Core\Language\LanguageManagerInterface');
     $this->languageManager->expects($this->any())
       ->method('getLanguages')
-      ->will($this->returnValue(['en' => $english, LanguageInterface::LANGCODE_NOT_SPECIFIED => $not_specified]));
+      ->willReturn([
+        'en' => $english,
+        LanguageInterface::LANGCODE_NOT_SPECIFIED => $not_specified,
+      ]);
     $this->languageManager->expects($this->any())
       ->method('getLanguage')
       ->with('en')
-      ->will($this->returnValue($english));
+      ->willReturn($english);
     $this->languageManager->expects($this->any())
       ->method('getLanguage')
       ->with(LanguageInterface::LANGCODE_NOT_SPECIFIED)
-      ->will($this->returnValue($not_specified));
+      ->willReturn($not_specified);
 
     $this->fieldTypePluginManager = $this->getMockBuilder('\Drupal\Core\Field\FieldTypePluginManager')
       ->disableOriginalConstructor()
       ->getMock();
     $this->fieldTypePluginManager->expects($this->any())
       ->method('getDefaultStorageSettings')
-      ->will($this->returnValue([]));
+      ->willReturn([]);
     $this->fieldTypePluginManager->expects($this->any())
       ->method('getDefaultFieldSettings')
-      ->will($this->returnValue([]));
+      ->willReturn([]);
     $this->fieldTypePluginManager->expects($this->any())
       ->method('createFieldItemList')
-      ->will($this->returnValue($this->createMock('Drupal\Core\Field\FieldItemListInterface')));
+      ->willReturn($this->createMock('Drupal\Core\Field\FieldItemListInterface'));
 
     $container = new ContainerBuilder();
     $container->set('entity_field.manager', $this->entityFieldManager);
@@ -206,7 +210,7 @@ class ContentEntityBaseUnitTest extends UnitTestCase {
     $this->entityFieldManager->expects($this->any())
       ->method('getFieldDefinitions')
       ->with($this->entityTypeId, $this->bundle)
-      ->will($this->returnValue($this->fieldDefinitions));
+      ->willReturn($this->fieldDefinitions);
 
     $this->entity = $this->getMockForAbstractClass(ContentEntityBase::class, [$values, $this->entityTypeId, $this->bundle], '', TRUE, TRUE, TRUE, ['isNew']);
     $values['defaultLangcode'] = [LanguageInterface::LANGCODE_DEFAULT => LanguageInterface::LANGCODE_NOT_SPECIFIED];
@@ -220,30 +224,14 @@ class ContentEntityBaseUnitTest extends UnitTestCase {
   public function testIsNewRevision() {
     // Set up the entity type so that on the first call there is no revision key
     // and on the second call there is one.
-    $this->entityType->expects($this->at(0))
+    $this->entityType->expects($this->exactly(4))
       ->method('hasKey')
       ->with('revision')
-      ->will($this->returnValue(FALSE));
-    $this->entityType->expects($this->at(1))
-      ->method('hasKey')
-      ->with('revision')
-      ->will($this->returnValue(TRUE));
-    $this->entityType->expects($this->at(2))
-      ->method('hasKey')
-      ->with('revision')
-      ->will($this->returnValue(TRUE));
-    $this->entityType->expects($this->at(3))
+      ->willReturnOnConsecutiveCalls(FALSE, TRUE, TRUE, TRUE);
+    $this->entityType->expects($this->exactly(2))
       ->method('getKey')
       ->with('revision')
-      ->will($this->returnValue('revision_id'));
-    $this->entityType->expects($this->at(4))
-      ->method('hasKey')
-      ->with('revision')
-      ->will($this->returnValue(TRUE));
-    $this->entityType->expects($this->at(5))
-      ->method('getKey')
-      ->with('revision')
-      ->will($this->returnValue('revision_id'));
+      ->willReturn('revision_id');
 
     $field_item_list = $this->getMockBuilder('\Drupal\Core\Field\FieldItemList')
       ->disableOriginalConstructor()
@@ -255,7 +243,7 @@ class ContentEntityBaseUnitTest extends UnitTestCase {
     $this->fieldTypePluginManager->expects($this->any())
       ->method('createFieldItemList')
       ->with($this->entity, 'revision_id', NULL)
-      ->will($this->returnValue($field_item_list));
+      ->willReturn($field_item_list);
 
     $this->fieldDefinitions['revision_id']->getItemDefinition()->setClass(get_class($field_item));
 
@@ -272,7 +260,7 @@ class ContentEntityBaseUnitTest extends UnitTestCase {
     $this->entityType->expects($this->once())
       ->method('hasKey')
       ->with('revision')
-      ->will($this->returnValue(FALSE));
+      ->willReturn(FALSE);
     $this->expectException('LogicException');
     $this->expectExceptionMessage('Entity type ' . $this->entityTypeId . ' does not support revisions.');
     $this->entity->setNewRevision();
@@ -291,7 +279,7 @@ class ContentEntityBaseUnitTest extends UnitTestCase {
     // The revision for a new entity should always be the default revision.
     $this->entity->expects($this->any())
       ->method('isNew')
-      ->will($this->returnValue(TRUE));
+      ->willReturn(TRUE);
     $this->entity->isDefaultRevision(FALSE);
     $this->assertTrue($this->entity->isDefaultRevision());
   }
@@ -311,19 +299,19 @@ class ContentEntityBaseUnitTest extends UnitTestCase {
     $this->entityTypeBundleInfo->expects($this->any())
       ->method('getBundleInfo')
       ->with($this->entityTypeId)
-      ->will($this->returnValue([
+      ->willReturn([
         $this->bundle => [
           'translatable' => TRUE,
         ],
-      ]));
+      ]);
     $this->languageManager->expects($this->any())
       ->method('isMultilingual')
-      ->will($this->returnValue(TRUE));
-    $this->assertTrue($this->entity->language()->getId() == 'en');
+      ->willReturn(TRUE);
+    $this->assertSame('en', $this->entity->language()->getId());
     $this->assertFalse($this->entity->language()->isLocked());
     $this->assertTrue($this->entity->isTranslatable());
 
-    $this->assertTrue($this->entityUnd->language()->getId() == LanguageInterface::LANGCODE_NOT_SPECIFIED);
+    $this->assertSame(LanguageInterface::LANGCODE_NOT_SPECIFIED, $this->entityUnd->language()->getId());
     $this->assertTrue($this->entityUnd->language()->isLocked());
     $this->assertFalse($this->entityUnd->isTranslatable());
   }
@@ -334,7 +322,7 @@ class ContentEntityBaseUnitTest extends UnitTestCase {
   public function testIsTranslatableForMonolingual() {
     $this->languageManager->expects($this->any())
       ->method('isMultilingual')
-      ->will($this->returnValue(FALSE));
+      ->willReturn(FALSE);
     $this->assertFalse($this->entity->isTranslatable());
   }
 
@@ -350,28 +338,101 @@ class ContentEntityBaseUnitTest extends UnitTestCase {
   }
 
   /**
+   * Data provider for the ::getTypedData() test.
+   *
+   * The following entity data definitions, the first two being derivatives of
+   * the last definition, will be tested in order:
+   *
+   * 1. entity:$entity_type:$bundle
+   * 2. entity:$entity_type
+   * 3. entity
+   *
+   * @see \Drupal\Core\Entity\EntityBase::getTypedData()
+   * @see \Drupal\Core\Entity\EntityBase::getTypedDataClass()
+   * @see \Drupal\Core\Entity\Plugin\DataType\Deriver\EntityDeriver
+   *
+   * @return array
+   *   Array of arrays with the following elements:
+   *   - A bool whether to provide a bundle-specific definition.
+   *   - A bool whether to provide an entity type-specific definition.
+   */
+  public function providerTestTypedData(): array {
+    return [
+      'Entity data definition derivative with entity type and bundle' => [
+        TRUE,
+        TRUE,
+      ],
+      'Entity data definition derivative with entity type' => [
+        FALSE,
+        TRUE,
+      ],
+      'Entity data definition' => [
+        FALSE,
+        FALSE,
+      ],
+    ];
+  }
+
+  /**
+   * Tests each condition in EntityBase::getTypedData().
+   *
+   * @covers ::getTypedData
+   * @dataProvider providerTestTypedData
+   */
+  public function testTypedData(bool $bundle_typed_data_definition, bool $entity_type_typed_data_definition): void {
+    $expected = EntityAdapter::class;
+
+    $typedDataManager = $this->createMock(TypedDataManagerInterface::class);
+    $typedDataManager->expects($this->once())
+      ->method('getDefinition')
+      ->willReturnMap([
+        [
+          "entity:{$this->entityTypeId}:{$this->bundle}", FALSE,
+          $bundle_typed_data_definition ? ['class' => $expected] : NULL,
+        ],
+        [
+          "entity:{$this->entityTypeId}", FALSE,
+          $entity_type_typed_data_definition ? ['class' => $expected] : NULL,
+        ],
+        [
+          'entity', TRUE,
+          ['class' => $expected],
+        ],
+      ]);
+
+    // Temporarily replace the appropriate services in the container.
+    $container = \Drupal::getContainer();
+    $container->set('typed_data_manager', $typedDataManager);
+    \Drupal::setContainer($container);
+
+    // Create a mock entity used to retrieve typed data.
+    $entity = $this->getMockForAbstractClass(ContentEntityBase::class, [
+      [],
+      $this->entityTypeId,
+      $this->bundle,
+    ], '', TRUE, TRUE, TRUE, ['isNew']);
+
+    // Assert that the returned data type is an instance of EntityAdapter.
+    $this->assertInstanceOf($expected, $entity->getTypedData());
+  }
+
+  /**
    * @covers ::validate
    */
   public function testValidate() {
     $validator = $this->createMock(ValidatorInterface::class);
-    /** @var \Symfony\Component\Validator\ConstraintViolationList|\PHPUnit\Framework\MockObject\MockObject $empty_violation_list */
-    $empty_violation_list = $this->getMockBuilder('\Symfony\Component\Validator\ConstraintViolationList')
-      ->setMethods(NULL)
-      ->getMock();
+    /** @var \Symfony\Component\Validator\ConstraintViolationList $empty_violation_list */
+    $empty_violation_list = new ConstraintViolationList();
     $non_empty_violation_list = clone $empty_violation_list;
     $violation = $this->createMock('\Symfony\Component\Validator\ConstraintViolationInterface');
     $non_empty_violation_list->add($violation);
-    $validator->expects($this->at(0))
+    $validator->expects($this->exactly(2))
       ->method('validate')
       ->with($this->entity->getTypedData())
-      ->will($this->returnValue($empty_violation_list));
-    $validator->expects($this->at(1))
-      ->method('validate')
-      ->with($this->entity->getTypedData())
-      ->will($this->returnValue($non_empty_violation_list));
+      ->willReturnOnConsecutiveCalls($empty_violation_list, $non_empty_violation_list);
     $this->typedDataManager->expects($this->exactly(2))
       ->method('getValidator')
-      ->will($this->returnValue($validator));
+      ->willReturn($validator);
     $this->assertCount(0, $this->entity->validate());
     $this->assertCount(1, $this->entity->validate());
   }
@@ -387,17 +448,15 @@ class ContentEntityBaseUnitTest extends UnitTestCase {
    */
   public function testRequiredValidation() {
     $validator = $this->createMock(ValidatorInterface::class);
-    /** @var \Symfony\Component\Validator\ConstraintViolationList|\PHPUnit\Framework\MockObject\MockObject $empty_violation_list */
-    $empty_violation_list = $this->getMockBuilder('\Symfony\Component\Validator\ConstraintViolationList')
-      ->setMethods(NULL)
-      ->getMock();
-    $validator->expects($this->at(0))
+    /** @var \Symfony\Component\Validator\ConstraintViolationList $empty_violation_list */
+    $empty_violation_list = new ConstraintViolationList();
+    $validator->expects($this->once())
       ->method('validate')
       ->with($this->entity->getTypedData())
-      ->will($this->returnValue($empty_violation_list));
+      ->willReturn($empty_violation_list);
     $this->typedDataManager->expects($this->any())
       ->method('getValidator')
-      ->will($this->returnValue($validator));
+      ->willReturn($validator);
 
     /** @var \Drupal\Core\Entity\EntityStorageInterface|\PHPUnit\Framework\MockObject\MockObject $storage */
     $storage = $this->createMock('\Drupal\Core\Entity\EntityStorageInterface');
@@ -410,7 +469,7 @@ class ContentEntityBaseUnitTest extends UnitTestCase {
     $this->entityTypeManager->expects($this->any())
       ->method('getStorage')
       ->with($this->entityTypeId)
-      ->will($this->returnValue($storage));
+      ->willReturn($storage);
 
     // Check that entities can be saved normally when validation is not
     // required.
@@ -446,23 +505,16 @@ class ContentEntityBaseUnitTest extends UnitTestCase {
   public function testAccess() {
     $access = $this->createMock('\Drupal\Core\Entity\EntityAccessControlHandlerInterface');
     $operation = $this->randomMachineName();
-    $access->expects($this->at(0))
+    $access->expects($this->exactly(2))
       ->method('access')
       ->with($this->entity, $operation)
-      ->will($this->returnValue(TRUE));
-    $access->expects($this->at(1))
-      ->method('access')
-      ->with($this->entity, $operation)
-      ->will($this->returnValue(AccessResult::allowed()));
-    $access->expects($this->at(2))
+      ->willReturnOnConsecutiveCalls(TRUE, AccessResult::allowed());
+    $access->expects($this->exactly(2))
       ->method('createAccess')
-      ->will($this->returnValue(TRUE));
-    $access->expects($this->at(3))
-      ->method('createAccess')
-      ->will($this->returnValue(AccessResult::allowed()));
+      ->willReturnOnConsecutiveCalls(TRUE, AccessResult::allowed());
     $this->entityTypeManager->expects($this->exactly(4))
       ->method('getAccessControlHandler')
-      ->will($this->returnValue($access));
+      ->willReturn($access);
     $this->assertTrue($this->entity->access($operation));
     $this->assertEquals(AccessResult::allowed(), $this->entity->access($operation, NULL, TRUE));
     $this->assertTrue($this->entity->access('create'));
@@ -497,7 +549,7 @@ class ContentEntityBaseUnitTest extends UnitTestCase {
     // Mock ContentEntityBase.
     $mock_base = $this->getMockBuilder('Drupal\Core\Entity\ContentEntityBase')
       ->disableOriginalConstructor()
-      ->setMethods(['getTranslatedField'])
+      ->onlyMethods(['getTranslatedField'])
       ->getMockForAbstractClass();
 
     // Set up expectations for getTranslatedField() method. In get(),
@@ -559,14 +611,14 @@ class ContentEntityBaseUnitTest extends UnitTestCase {
     // Mock ContentEntityBase.
     $mock_base = $this->getMockBuilder('Drupal\Core\Entity\ContentEntityBase')
       ->disableOriginalConstructor()
-      ->setMethods(['getFieldDefinitions', 'get'])
+      ->onlyMethods(['getFieldDefinitions', 'get'])
       ->getMockForAbstractClass();
 
     // Mock field definition objects for each element of $field_definitions.
     $mocked_field_definitions = [];
     foreach ($field_definitions as $name) {
       $mock_definition = $this->getMockBuilder('Drupal\Core\Field\FieldDefinitionInterface')
-        ->setMethods(['isComputed'])
+        ->onlyMethods(['isComputed'])
         ->getMockForAbstractClass();
       // Set expectations for isComputed(). isComputed() gets called whenever
       // $include_computed is FALSE, but not otherwise. It returns the value of

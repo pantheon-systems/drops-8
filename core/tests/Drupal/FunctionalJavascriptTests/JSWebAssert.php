@@ -2,11 +2,18 @@
 
 namespace Drupal\FunctionalJavascriptTests;
 
+use Behat\Mink\Element\Element;
 use Behat\Mink\Element\NodeElement;
 use Behat\Mink\Exception\ElementHtmlException;
 use Behat\Mink\Exception\ElementNotFoundException;
 use Behat\Mink\Exception\UnsupportedDriverActionException;
 use Drupal\Tests\WebAssert;
+use PHPUnit\Framework\Assert;
+use PHPUnit\Framework\Constraint\IsNull;
+use PHPUnit\Framework\Constraint\LogicalNot;
+use WebDriver\Exception;
+
+// cspell:ignore interactable
 
 /**
  * Defines a class with methods for asserting presence of elements during tests.
@@ -39,7 +46,7 @@ class JSWebAssert extends WebAssert {
           (typeof jQuery === 'undefined' || (jQuery.active === 0 && jQuery(':animated').length === 0)) &&
           (typeof Drupal === 'undefined' || typeof Drupal.ajax === 'undefined' || !Drupal.ajax.instances.some(isAjaxing))
         );
-      }());
+      }())
 JS;
     $result = $this->session->wait($timeout, $condition);
     if (!$result) {
@@ -64,13 +71,9 @@ JS;
    * @see \Behat\Mink\Element\ElementInterface::findAll()
    */
   public function waitForElement($selector, $locator, $timeout = 10000) {
-    $page = $this->session->getPage();
-
-    $result = $page->waitFor($timeout / 1000, function () use ($page, $selector, $locator) {
+    return $this->waitForHelper($timeout, function (Element $page) use ($selector, $locator) {
       return $page->find($selector, $locator);
     });
-
-    return $result;
   }
 
   /**
@@ -90,13 +93,9 @@ JS;
    * @see \Behat\Mink\Element\ElementInterface::findAll()
    */
   public function waitForElementRemoved($selector, $locator, $timeout = 10000) {
-    $page = $this->session->getPage();
-
-    $result = $page->waitFor($timeout / 1000, function () use ($page, $selector, $locator) {
+    return (bool) $this->waitForHelper($timeout, function (Element $page) use ($selector, $locator) {
       return !$page->find($selector, $locator);
     });
-
-    return $result;
   }
 
   /**
@@ -116,37 +115,47 @@ JS;
    * @see \Behat\Mink\Element\ElementInterface::findAll()
    */
   public function waitForElementVisible($selector, $locator, $timeout = 10000) {
-    $page = $this->session->getPage();
-
-    $result = $page->waitFor($timeout / 1000, function () use ($page, $selector, $locator) {
+    return $this->waitForHelper($timeout, function (Element $page) use ($selector, $locator) {
       $element = $page->find($selector, $locator);
       if (!empty($element) && $element->isVisible()) {
         return $element;
       }
       return NULL;
     });
-
-    return $result;
   }
 
   /**
-   * Waits for the specified text and returns its element when available.
+   * Waits for the specified text and returns TRUE when it is available.
    *
    * @param string $text
    *   The text to wait for.
    * @param int $timeout
    *   (Optional) Timeout in milliseconds, defaults to 10000.
    *
-   * @return \Behat\Mink\Element\NodeElement|null
-   *   The page element node if found and visible, NULL if not.
+   * @return bool
+   *   TRUE if found, FALSE if not found.
    */
   public function waitForText($text, $timeout = 10000) {
-    $page = $this->session->getPage();
-    return $page->waitFor($timeout / 1000, function () use ($page, $text) {
+    return (bool) $this->waitForHelper($timeout, function (Element $page) use ($text) {
       $actual = preg_replace('/\s+/u', ' ', $page->getText());
       $regex = '/' . preg_quote($text, '/') . '/ui';
       return (bool) preg_match($regex, $actual);
     });
+  }
+
+  /**
+   * Wraps waits in a function to catch curl exceptions to continue waiting.
+   *
+   * @param int $timeout
+   *   Timeout in milliseconds.
+   * @param callable $callback
+   *   Callback, which result is both used as waiting condition and returned.
+   *
+   * @return mixed
+   *   The result of $callback.
+   */
+  private function waitForHelper(int $timeout, callable $callback) {
+    return $this->session->getPage()->waitFor($timeout / 1000, $callback);
   }
 
   /**
@@ -221,14 +230,14 @@ JS;
   }
 
   /**
-   * Test that a node, or its specific corner, is visible in the viewport.
+   * Tests that a node, or its specific corner, is visible in the viewport.
    *
    * Note: Always set the viewport size. This can be done in your test with
    * \Behat\Mink\Session->resizeWindow(). Drupal CI JavaScript tests by default
    * use a viewport of 1024x768px.
    *
    * @param string $selector_type
-   *   The element selector type (CSS, XPath).
+   *   The element selector type (css, xpath).
    * @param string|array $selector
    *   The element selector. Note: the first found element is used.
    * @param bool|string $corner
@@ -266,12 +275,12 @@ JS;
   }
 
   /**
-   * Test that a node, or its specific corner, is not visible in the viewport.
+   * Tests that a node, or its specific corner, is not visible in the viewport.
    *
    * Note: the node should exist in the page, otherwise this assertion fails.
    *
    * @param string $selector_type
-   *   The element selector type (CSS, XPath).
+   *   The element selector type (css, xpath).
    * @param string|array $selector
    *   The element selector. Note: the first found element is used.
    * @param bool|string $corner
@@ -489,6 +498,161 @@ JS;
     } while (microtime(TRUE) < $end);
 
     throw new ElementHtmlException($message, $this->session->getDriver(), $node);
+  }
+
+  /**
+   * Determines if an exception is due to an element not being clickable.
+   *
+   * @param \WebDriver\Exception $exception
+   *   The exception to check.
+   *
+   * @return bool
+   *   TRUE if the exception is due to an element not being clickable,
+   *   interactable or visible.
+   */
+  public static function isExceptionNotClickable(Exception $exception): bool {
+    return (bool) preg_match('/not (clickable|interactable|visible)/', $exception->getMessage());
+  }
+
+  /**
+   * Asserts that a status message exists after wait.
+   *
+   * @param string|null $type
+   *   The optional message type: status, error, or warning.
+   * @param int $timeout
+   *   Optional timeout in milliseconds, defaults to 10000.
+   */
+  public function statusMessageExistsAfterWait(string $type = NULL, int $timeout = 10000): void {
+    $selector = $this->buildJavascriptStatusMessageSelector(NULL, $type);
+    $status_message_element = $this->waitForElement('xpath', $selector, $timeout);
+    if ($type) {
+      $failure_message = sprintf('A status message of type "%s" does not appear on this page, but it should.', $type);
+    }
+    else {
+      $failure_message = 'A status message does not appear on this page, but it should.';
+    }
+    // There is no Assert::isNotNull() method, so we make our own constraint.
+    $constraint = new LogicalNot(new IsNull());
+    Assert::assertThat($status_message_element, $constraint, $failure_message);
+  }
+
+  /**
+   * Asserts that a status message does not exist after wait.
+   *
+   * @param string|null $type
+   *   The optional message type: status, error, or warning.
+   * @param int $timeout
+   *   Optional timeout in milliseconds, defaults to 10000.
+   */
+  public function statusMessageNotExistsAfterWait(string $type = NULL, int $timeout = 10000): void {
+    $selector = $this->buildJavascriptStatusMessageSelector(NULL, $type);
+    $status_message_element = $this->waitForElement('xpath', $selector, $timeout);
+    if ($type) {
+      $failure_message = sprintf('A status message of type "%s" appears on this page, but it should not.', $type);
+    }
+    else {
+      $failure_message = 'A status message appears on this page, but it should not.';
+    }
+    Assert::assertThat($status_message_element, Assert::isNull(), $failure_message);
+  }
+
+  /**
+   * Asserts that a status message containing given string exists after wait.
+   *
+   * @param string $message
+   *   The partial message to assert.
+   * @param string|null $type
+   *   The optional message type: status, error, or warning.
+   * @param int $timeout
+   *   Optional timeout in milliseconds, defaults to 10000.
+   */
+  public function statusMessageContainsAfterWait(string $message, string $type = NULL, int $timeout = 10000): void {
+    $selector = $this->buildJavascriptStatusMessageSelector($message, $type);
+    $status_message_element = $this->waitForElement('xpath', $selector, $timeout);
+    if ($type) {
+      $failure_message = sprintf('A status message of type "%s" containing "%s" does not appear on this page, but it should.', $type, $message);
+    }
+    else {
+      $failure_message = sprintf('A status message containing "%s" does not appear on this page, but it should.', $type);
+    }
+    // There is no Assert::isNotNull() method, so we make our own constraint.
+    $constraint = new LogicalNot(new IsNull());
+    Assert::assertThat($status_message_element, $constraint, $failure_message);
+  }
+
+  /**
+   * Asserts that no status message containing given string exists after wait.
+   *
+   * @param string $message
+   *   The partial message to assert.
+   * @param string|null $type
+   *   The optional message type: status, error, or warning.
+   * @param int $timeout
+   *   Optional timeout in milliseconds, defaults to 10000.
+   */
+  public function statusMessageNotContainsAfterWait(string $message, string $type = NULL, int $timeout = 10000): void {
+    $selector = $this->buildJavascriptStatusMessageSelector($message, $type);
+    $status_message_element = $this->waitForElement('xpath', $selector, $timeout);
+    if ($type) {
+      $failure_message = sprintf('A status message of type "%s" containing "%s" appears on this page, but it should not.', $type, $message);
+    }
+    else {
+      $failure_message = sprintf('A status message containing "%s" appears on this page, but it should not.', $message);
+    }
+    Assert::assertThat($status_message_element, Assert::isNull(), $failure_message);
+  }
+
+  /**
+   * Builds a xpath selector for a message with given type and text.
+   *
+   * The selector is designed to work with the Drupal.theme.message
+   * template defined in message.js in addition to status-messages.html.twig
+   * in the system module.
+   *
+   * @param string|null $message
+   *   The optional message or partial message to assert.
+   * @param string|null $type
+   *   The optional message type: status, error, or warning.
+   *
+   * @return string
+   *   The xpath selector for the message.
+   *
+   * @throws \InvalidArgumentException
+   *   Thrown when $type is not an allowed type.
+   */
+  private function buildJavascriptStatusMessageSelector(string $message = NULL, string $type = NULL): string {
+    $allowed_types = [
+      'status',
+      'error',
+      'warning',
+      NULL,
+    ];
+    if (!in_array($type, $allowed_types, TRUE)) {
+      throw new \InvalidArgumentException(sprintf("If a status message type is specified, the allowed values are 'status', 'error', 'warning'. The value provided was '%s'.", $type));
+    }
+
+    if ($type) {
+      $class = 'messages--' . $type;
+    }
+    else {
+      $class = 'messages__wrapper';
+    }
+
+    if ($message) {
+      $js_selector = $this->buildXPathQuery('//div[contains(@class, :class) and contains(., :message)]', [
+        ':class' => $class,
+        ':message' => $message,
+      ]);
+    }
+    else {
+      $js_selector = $this->buildXPathQuery('//div[contains(@class, :class)]', [
+        ':class' => $class,
+      ]);
+    }
+
+    // We select based on WebAssert::buildStatusMessageSelector() or the
+    // js_selector we have just built.
+    return $this->buildStatusMessageSelector($message, $type) . ' | ' . $js_selector;
   }
 
 }

@@ -50,7 +50,7 @@ class TermParentsTest extends BrowserTestBase {
   protected function setUp(): void {
     parent::setUp();
 
-    /* @var \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager */
+    /** @var \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager */
     $entity_type_manager = $this->container->get('entity_type.manager');
     $this->termStorage = $entity_type_manager->getStorage('taxonomy_term');
     $this->state = $this->container->get('state');
@@ -121,9 +121,10 @@ class TermParentsTest extends BrowserTestBase {
 
     $result = $this->termStorage
       ->getQuery()
+      ->accessCheck(FALSE)
       ->condition('name', $name)
       ->execute();
-    /* @var \Drupal\taxonomy\TermInterface $term_1 */
+    /** @var \Drupal\taxonomy\TermInterface $term_1 */
     $term_1 = $this->termStorage->load(reset($result));
     $this->assertInstanceOf(TermInterface::class, $term_1);
     return $term_1;
@@ -259,7 +260,7 @@ class TermParentsTest extends BrowserTestBase {
    *   The created term.
    */
   protected function createTerm($name, array $parent_ids = []) {
-    /* @var \Drupal\taxonomy\TermInterface $term */
+    /** @var \Drupal\taxonomy\TermInterface $term */
     $term = $this->termStorage->create([
       'name' => $name,
       'vid' => $this->vocabularyId,
@@ -281,8 +282,10 @@ class TermParentsTest extends BrowserTestBase {
    * @param bool $selected
    *   (optional) Whether or not the option should be selected. Defaults to
    *   FALSE.
+   *
+   * @internal
    */
-  protected function assertParentOption($option, $selected = FALSE) {
+  protected function assertParentOption(string $option, bool $selected = FALSE): void {
     $option = $this->assertSession()->optionExists('Parent terms', $option);
     if ($selected) {
       $this->assertTrue($option->hasAttribute('selected'));
@@ -297,8 +300,10 @@ class TermParentsTest extends BrowserTestBase {
    *
    * @param \Drupal\taxonomy\TermInterface $term
    *   The term to check.
+   *
+   * @internal
    */
-  protected function assertParentsUnchanged(TermInterface $term) {
+  protected function assertParentsUnchanged(TermInterface $term): void {
     $saved_term = $this->termStorage->load($term->id());
 
     $expected = $term->get('parent')->getValue();

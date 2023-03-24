@@ -6,6 +6,7 @@ use Drupal\Core\Config\Importer\MissingContentEvent;
 use Drupal\Core\Extension\ModuleExtensionList;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Extension\ModuleInstallerInterface;
+use Drupal\Core\Extension\ThemeExtensionList;
 use Drupal\Core\Extension\ThemeHandlerInterface;
 use Drupal\Core\Config\Entity\ImportableEntityStorageInterface;
 use Drupal\Core\DependencyInjection\DependencySerializationTrait;
@@ -13,7 +14,7 @@ use Drupal\Core\Entity\EntityStorageException;
 use Drupal\Core\Lock\LockBackendInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslationInterface;
-use Symfony\Component\EventDispatcher\EventDispatcherInterface;
+use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 /**
  * Defines a configuration importer.
@@ -53,7 +54,7 @@ class ConfigImporter {
   /**
    * The event dispatcher used to notify subscribers.
    *
-   * @var \Symfony\Component\EventDispatcher\EventDispatcherInterface
+   * @var \Symfony\Contracts\EventDispatcher\EventDispatcherInterface
    */
   protected $eventDispatcher;
 
@@ -167,12 +168,19 @@ class ConfigImporter {
   protected $moduleExtensionList;
 
   /**
+   * The theme extension list.
+   *
+   * @var \Drupal\Core\Extension\ThemeExtensionList
+   */
+  protected $themeExtensionList;
+
+  /**
    * Constructs a configuration import object.
    *
    * @param \Drupal\Core\Config\StorageComparerInterface $storage_comparer
    *   A storage comparer object used to determine configuration changes and
    *   access the source and target storage objects.
-   * @param \Symfony\Component\EventDispatcher\EventDispatcherInterface $event_dispatcher
+   * @param \Symfony\Contracts\EventDispatcher\EventDispatcherInterface $event_dispatcher
    *   The event dispatcher used to notify subscribers of config import events.
    * @param \Drupal\Core\Config\ConfigManagerInterface $config_manager
    *   The configuration manager.
@@ -190,8 +198,10 @@ class ConfigImporter {
    *   The string translation service.
    * @param \Drupal\Core\Extension\ModuleExtensionList $extension_list_module
    *   The module extension list.
+   * @param \Drupal\Core\Extension\ThemeExtensionList $extension_list_theme
+   *   The theme extension list.
    */
-  public function __construct(StorageComparerInterface $storage_comparer, EventDispatcherInterface $event_dispatcher, ConfigManagerInterface $config_manager, LockBackendInterface $lock, TypedConfigManagerInterface $typed_config, ModuleHandlerInterface $module_handler, ModuleInstallerInterface $module_installer, ThemeHandlerInterface $theme_handler, TranslationInterface $string_translation, ModuleExtensionList $extension_list_module) {
+  public function __construct(StorageComparerInterface $storage_comparer, EventDispatcherInterface $event_dispatcher, ConfigManagerInterface $config_manager, LockBackendInterface $lock, TypedConfigManagerInterface $typed_config, ModuleHandlerInterface $module_handler, ModuleInstallerInterface $module_installer, ThemeHandlerInterface $theme_handler, TranslationInterface $string_translation, ModuleExtensionList $extension_list_module, ThemeExtensionList $extension_list_theme = NULL) {
     $this->moduleExtensionList = $extension_list_module;
     $this->storageComparer = $storage_comparer;
     $this->eventDispatcher = $event_dispatcher;
@@ -202,6 +212,10 @@ class ConfigImporter {
     $this->moduleInstaller = $module_installer;
     $this->themeHandler = $theme_handler;
     $this->stringTranslation = $string_translation;
+    if ($extension_list_theme === NULL) {
+      $extension_list_theme = \Drupal::service('extension.list.theme');
+    }
+    $this->themeExtensionList = $extension_list_theme;
     foreach ($this->storageComparer->getAllCollectionNames() as $collection) {
       $this->processedConfiguration[$collection] = $this->storageComparer->getEmptyChangelist();
     }
@@ -379,9 +393,12 @@ class ConfigImporter {
       return;
     }
 
+    // Reset the module list in case a stale cache item has been set by another
+    // process during deployment.
+    $this->moduleExtensionList->reset();
     // Get a list of modules with dependency weights as values.
     $module_data = $this->moduleExtensionList->getList();
-    // Set the actual module weights.
+    // Use the actual module weights.
     $module_list = array_combine(array_keys($module_data), array_keys($module_data));
     $module_list = array_map(function ($module) use ($module_data) {
       return $module_data[$module]->sort;
@@ -393,17 +410,19 @@ class ConfigImporter {
     // dependencies are uninstalled last. Extensions of the same weight are
     // sorted in reverse alphabetical order, to ensure the order is exactly
     // opposite from installation. For example, this module list:
+    // @code
     // array(
     //   'actions' => 0,
     //   'ban' => 0,
     //   'options' => -2,
     //   'text' => -1,
     // );
+    // @endcode
     // will result in the following sort order:
-    // -2   options
-    // -1   text
-    //  0 0 ban
-    //  0 1 actions
+    // 1. -2   options
+    // 2. -1   text
+    // 3.  0 0 ban
+    // 4.  0 1 actions
     // @todo Move this sorting functionality to the extension system.
     array_multisort(array_values($module_list), SORT_ASC, array_keys($module_list), SORT_DESC, $module_list);
     $this->extensionChangelist['module']['uninstall'] = array_intersect(array_keys($module_list), $uninstall);
@@ -424,9 +443,24 @@ class ConfigImporter {
       $this->extensionChangelist['module']['install'][] = $new_extensions['profile'];
     }
 
+    // Get a list of themes with dependency weights as values.
+    $theme_data = $this->themeExtensionList->getList();
+    // Use the actual theme weights.
+    $theme_list = array_combine(array_keys($theme_data), array_keys($theme_data));
+    $theme_list = array_map(function ($theme) use ($theme_data) {
+      return $theme_data[$theme]->sort;
+    }, $theme_list);
+    array_multisort(array_values($theme_list), SORT_ASC, array_keys($theme_list), SORT_DESC, $theme_list);
+
     // Work out what themes to install and to uninstall.
-    $this->extensionChangelist['theme']['install'] = array_keys(array_diff_key($new_extensions['theme'], $current_extensions['theme']));
-    $this->extensionChangelist['theme']['uninstall'] = array_keys(array_diff_key($current_extensions['theme'], $new_extensions['theme']));
+    $uninstall = array_keys(array_diff_key($current_extensions['theme'], $new_extensions['theme']));
+    $this->extensionChangelist['theme']['uninstall'] = array_intersect(array_keys($theme_list), $uninstall);
+    // Ensure that installed themes are sorted in exactly the reverse order
+    // (with dependencies installed first, and themes of the same weight sorted
+    // in alphabetical order).
+    $install = array_keys(array_diff_key($new_extensions['theme'], $current_extensions['theme']));
+    $theme_list = array_reverse($theme_list);
+    $this->extensionChangelist['theme']['install'] = array_intersect(array_keys($theme_list), $install);
   }
 
   /**
@@ -502,7 +536,7 @@ class ConfigImporter {
    *   Exception thrown if the $sync_step can not be called.
    */
   public function doSyncStep($sync_step, &$context) {
-    if (!is_array($sync_step) && method_exists($this, $sync_step)) {
+    if (is_string($sync_step) && method_exists($this, $sync_step)) {
       \Drupal::service('config.installer')->setSyncing(TRUE);
       $this->$sync_step($context);
     }
@@ -671,13 +705,18 @@ class ConfigImporter {
   /**
    * Gets the next extension operation to perform.
    *
+   * Uninstalls are processed first with themes coming before modules. Then
+   * installs are processed with modules coming before themes. This order is
+   * necessary because themes can depend on modules.
+   *
    * @return array|bool
    *   An array containing the next operation and extension name to perform it
    *   on. If there is nothing left to do returns FALSE;
    */
   protected function getNextExtensionOperation() {
-    foreach (['module', 'theme'] as $type) {
-      foreach (['install', 'uninstall'] as $op) {
+    foreach (['uninstall', 'install'] as $op) {
+      $types = $op === 'uninstall' ? ['theme', 'module'] : ['module', 'theme'];
+      foreach ($types as $type) {
         $unprocessed = $this->getUnprocessedExtensions($type);
         if (!empty($unprocessed[$op])) {
           return [
@@ -727,6 +766,7 @@ class ConfigImporter {
    */
   public function validate() {
     if (!$this->validated) {
+      $this->errors = [];
       // Create the list of installs and uninstalls.
       $this->createExtensionChangelist();
       // Validate renames.
@@ -1056,13 +1096,13 @@ class ConfigImporter {
    * keep the services used by the importer in sync.
    */
   protected function reInjectMe() {
-    $this->_serviceIds = [];
-    $vars = get_object_vars($this);
-    foreach ($vars as $key => $value) {
-      if (is_object($value) && isset($value->_serviceId)) {
-        $this->$key = \Drupal::service($value->_serviceId);
-      }
-    }
+    // When rebuilding the container,
+    // \Drupal\Core\DrupalKernel::initializeContainer() saves the hashes of the
+    // old container and passes them to the new one. So __sleep() will
+    // recognize the old services and then __wakeup() will restore them from
+    // the new container.
+    $this->__sleep();
+    $this->__wakeup();
   }
 
 }

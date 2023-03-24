@@ -21,6 +21,9 @@ class NodeSyndicateBlockTest extends NodeTestBase {
    */
   protected $defaultTheme = 'stark';
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp(): void {
     parent::setUp();
 
@@ -34,9 +37,16 @@ class NodeSyndicateBlockTest extends NodeTestBase {
    */
   public function testSyndicateBlock() {
     // Place the "Syndicate" block and confirm that it is rendered.
-    $this->drupalPlaceBlock('node_syndicate_block', ['id' => 'test_syndicate_block']);
+    $this->drupalPlaceBlock('node_syndicate_block', ['id' => 'test_syndicate_block', 'label' => 'Subscribe to RSS Feed']);
     $this->drupalGet('');
     $this->assertSession()->elementExists('xpath', '//div[@id="block-test-syndicate-block"]/*');
+
+    // Verify syndicate block title.
+    $this->assertSession()->pageTextContains('Subscribe to RSS Feed');
+    // Tests the syndicate block RSS link rendered at non-front pages.
+    $this->drupalGet('user');
+    $this->clickLink('Subscribe to');
+    $this->assertSession()->addressEquals('rss.xml');
   }
 
 }

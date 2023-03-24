@@ -36,7 +36,7 @@ class SqlBaseTest extends MigrateTestBase {
     parent::setUp();
 
     $this->migration = $this->createMock(MigrationInterface::class);
-    $this->migration->method('id')->willReturn('fubar');
+    $this->migration->method('id')->willReturn('foo');
   }
 
   /**
@@ -147,7 +147,7 @@ class SqlBaseTest extends MigrateTestBase {
     $source = new TestSqlBase($configuration, $this->migration);
 
     if ($high_water) {
-      $source->getHighWaterStorage()->set($this->migration->id(), $high_water);
+      \Drupal::keyValue('migrate:high_water')->set($this->migration->id(), $high_water);
     }
 
     $statement = $this->createMock(StatementInterface::class);
@@ -225,12 +225,16 @@ class TestSqlBase extends SqlBase {
   /**
    * {@inheritdoc}
    */
-  public function getIds() {}
+  public function getIds() {
+    return [];
+  }
 
   /**
    * {@inheritdoc}
    */
-  public function fields() {}
+  public function fields() {
+    throw new \RuntimeException(__METHOD__ . " not implemented for " . __CLASS__);
+  }
 
   /**
    * {@inheritdoc}
@@ -247,13 +251,6 @@ class TestSqlBase extends SqlBase {
    */
   public function setQuery(SelectInterface $query) {
     $this->query = $query;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getHighWaterStorage() {
-    return parent::getHighWaterStorage();
   }
 
 }

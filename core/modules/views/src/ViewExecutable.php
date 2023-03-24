@@ -24,6 +24,7 @@ use Symfony\Component\Routing\Exception\RouteNotFoundException;
  * @see https://www.drupal.org/node/2849674
  * @see https://bugs.php.net/bug.php?id=66052
  */
+#[\AllowDynamicProperties]
 class ViewExecutable {
 
   /**
@@ -236,7 +237,7 @@ class ViewExecutable {
   public $row_index;
 
   /**
-   * Allow to override the url of the current view.
+   * Allow to override the \Drupal\Core\Url of the current view.
    *
    * @var \Drupal\Core\Url
    */
@@ -340,9 +341,12 @@ class ViewExecutable {
   public $inited;
 
   /**
-   * The rendered output of the exposed form.
+   * The render array for the exposed form.
    *
-   * @var string
+   * In cases that the exposed form is rendered as a block this will be an
+   * empty array.
+   *
+   * @var array
    */
   public $exposed_widgets;
 
@@ -698,15 +702,16 @@ class ViewExecutable {
       }
 
       // If we have no input at all, check for remembered input via session.
-
-      // If filters are not overridden, store the 'remember' settings on the
-      // default display. If they are, store them on this display. This way,
-      // multiple displays in the same view can share the same filters and
-      // remember settings.
-      $display_id = ($this->display_handler->isDefaulted('filters')) ? 'default' : $this->current_display;
-
-      if (empty($this->exposed_input) && !empty($_SESSION['views'][$this->storage->id()][$display_id])) {
-        $this->exposed_input = $_SESSION['views'][$this->storage->id()][$display_id];
+      if (empty($this->exposed_input) && $this->request->hasSession()) {
+        $session = \Drupal::request()->getSession();
+        // If filters are not overridden, store the 'remember' settings on the
+        // default display. If they are, store them on this display. This way,
+        // multiple displays in the same view can share the same filters and
+        // remember settings.
+        $display_id = ($this->display_handler->isDefaulted('filters')) ? 'default' : $this->current_display;
+        if (!empty($session->get('views')[$this->storage->id()][$display_id])) {
+          $this->exposed_input = $session->get('views')[$this->storage->id()][$display_id];
+        }
       }
     }
 
@@ -1082,7 +1087,7 @@ class ViewExecutable {
 
       $argument->setRelationship();
 
-      $arg = isset($this->args[$position]) ? $this->args[$position] : NULL;
+      $arg = $this->args[$position] ?? NULL;
       $argument->position = $position;
 
       if (isset($arg) || $argument->hasDefaultArgument()) {
@@ -1467,7 +1472,7 @@ class ViewExecutable {
 
     $module_handler = \Drupal::moduleHandler();
 
-    // @TODO In the longrun, it would be great to execute a view without
+    // @todo In the long run, it would be great to execute a view without
     //   the theme system at all. See https://www.drupal.org/node/2322623.
     $active_theme = \Drupal::theme()->getActiveTheme();
     $themes = array_keys($active_theme->getBaseThemeExtensions());
@@ -1703,7 +1708,7 @@ class ViewExecutable {
       $old_view = array_pop($this->old_view);
     }
 
-    views_set_current_view(isset($old_view) ? $old_view : FALSE);
+    views_set_current_view($old_view ?? FALSE);
   }
 
   /**
@@ -1722,8 +1727,8 @@ class ViewExecutable {
     // Find out which other displays attach to the current one.
     foreach ($this->display_handler->getAttachedDisplays() as $id) {
       $display_handler = $this->displayHandlers->get($id);
-      // Only attach enabled attachments.
-      if ($display_handler->isEnabled()) {
+      // Only attach enabled attachments that the user has access to.
+      if ($display_handler->isEnabled() && $display_handler->access()) {
         $cloned_view = Views::executableFactory()->get($this->storage);
         $display_handler->attachTo($cloned_view, $this->current_display, $this->element);
       }
@@ -2291,7 +2296,7 @@ class ViewExecutable {
     // Get the existing configuration
     $fields = $this->displayHandlers->get($display_id)->getOption($types[$type]['plural']);
 
-    return isset($fields[$id]) ? $fields[$id] : NULL;
+    return $fields[$id] ?? NULL;
   }
 
   /**
@@ -2450,9 +2455,11 @@ class ViewExecutable {
    *   FALSE otherwise.
    */
   public function hasFormElements() {
-    foreach ($this->field as $field) {
-      if (property_exists($field, 'views_form_callback') || method_exists($field, 'viewsForm')) {
-        return TRUE;
+    if ($this->getDisplay()->usesFields()) {
+      foreach ($this->field as $field) {
+        if (method_exists($field, 'viewsForm')) {
+          return TRUE;
+        }
       }
     }
     $area_handlers = array_merge(array_values($this->header), array_values($this->footer));
@@ -2490,8 +2497,6 @@ class ViewExecutable {
     // state during unserialization.
     $this->serializationData = [
       'storage' => $this->storage->id(),
-      'views_data' => $this->viewsData->_serviceId,
-      'route_provider' => $this->routeProvider->_serviceId,
       'current_display' => $this->current_display,
       'args' => $this->args,
       'current_page' => $this->current_page,
@@ -2518,8 +2523,8 @@ class ViewExecutable {
 
       // Attach all necessary services.
       $this->user = \Drupal::currentUser();
-      $this->viewsData = \Drupal::service($this->serializationData['views_data']);
-      $this->routeProvider = \Drupal::service($this->serializationData['route_provider']);
+      $this->viewsData = \Drupal::service('views.views_data');
+      $this->routeProvider = \Drupal::service('router.route_provider');
 
       // Restore the state of this executable.
       if ($request = \Drupal::request()) {

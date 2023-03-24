@@ -17,6 +17,9 @@ class LoadMultipleTest extends TaxonomyTestBase {
    */
   protected $defaultTheme = 'stark';
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp(): void {
     parent::setUp();
     $this->drupalLogin($this->drupalCreateUser(['administer taxonomy']));
@@ -40,7 +43,7 @@ class LoadMultipleTest extends TaxonomyTestBase {
     $term_storage = \Drupal::entityTypeManager()->getStorage('taxonomy_term');
     $terms = $term_storage->loadByProperties(['vid' => $vocabulary->id()]);
     $count = count($terms);
-    $this->assertEqual($count, 5, new FormattableMarkup('Correct number of terms were loaded. @count terms.', ['@count' => $count]));
+    $this->assertEquals(5, $count, new FormattableMarkup('Correct number of terms were loaded. @count terms.', ['@count' => $count]));
 
     // Load the same terms again by tid.
     $terms2 = Term::loadMultiple(array_keys($terms));
@@ -62,7 +65,7 @@ class LoadMultipleTest extends TaxonomyTestBase {
     $loaded_terms = $term_storage->loadByProperties(['name' => $term->getName()]);
     $this->assertCount(1, $loaded_terms, 'One term was loaded.');
     $loaded_term = reset($loaded_terms);
-    $this->assertEqual($term->id(), $loaded_term->id(), 'Term loaded by name successfully.');
+    $this->assertEquals($term->id(), $loaded_term->id(), 'Term loaded by name successfully.');
   }
 
 }

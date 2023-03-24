@@ -1,4 +1,4 @@
-# cspell:ignore imagefield optionwidgets userreference
+# cspell:ignore filefield imagefield optionwidgets
 id: d6_field
 label: Field configuration
 migration_tags:
@@ -11,8 +11,6 @@ source:
   constants:
     entity_type: node
     langcode: en
-  # Phone is here since it does not use a migrate field plugin.
-  source_module: phone
 process:
   entity_type: 'constants/entity_type'
   status: active

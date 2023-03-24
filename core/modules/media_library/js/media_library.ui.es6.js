@@ -1,7 +1,7 @@
 /**
  * @file media_library.ui.es6.js
  */
-(($, Drupal, window) => {
+(($, Drupal, window, { tabbable }) => {
   /**
    * Wrapper object for the current state of the media library.
    */
@@ -55,9 +55,7 @@
   Drupal.behaviors.MediaLibraryTabs = {
     attach(context) {
       const $menu = $('.js-media-library-menu');
-      $menu
-        .find('a', context)
-        .once('media-library-menu-item')
+      $(once('media-library-menu-item', $menu.find('a')))
         .on('keypress', (e) => {
           // The AJAX link has the button role, so we need to make sure the link
           // is also triggered when pressing the spacebar.
@@ -85,29 +83,21 @@
           // Override the AJAX success callback to shift focus to the media
           // library content.
           ajaxObject.success = function (response, status) {
-            // Remove the progress element.
-            if (this.progress.element) {
-              $(this.progress.element).remove();
-            }
-            if (this.progress.object) {
-              this.progress.object.stopMonitoring();
-            }
-            $(this.element).prop('disabled', false);
-
-            // Execute the AJAX commands.
-            Object.keys(response || {}).forEach((i) => {
-              if (response[i].command && this.commands[response[i].command]) {
-                this.commands[response[i].command](this, response[i], status);
+            return Promise.resolve(
+              Drupal.Ajax.prototype.success.call(ajaxObject, response, status),
+            ).then(() => {
+              // Set focus to the first tabbable element in the media library
+              // content.
+              const mediaLibraryContent = document.getElementById(
+                'media-library-content',
+              );
+              if (mediaLibraryContent) {
+                const tabbableContent = tabbable(mediaLibraryContent);
+                if (tabbableContent.length) {
+                  tabbableContent[0].focus();
+                }
               }
             });
-
-            // Set focus to the first tabbable element in the media library
-            // content.
-            $('#media-library-content :tabbable:first').focus();
-
-            // Remove any response-specific settings so they don't get used on
-            // the next call by mistake.
-            this.settings = null;
           };
           ajaxObject.execute();
 
@@ -170,67 +160,71 @@
       // @todo Add media library specific classes and data attributes to the
       //    media library display links when we can alter display links.
       //    https://www.drupal.org/project/drupal/issues/3036694
-      $('.views-display-link-widget, .views-display-link-widget_table', context)
-        .once('media-library-views-display-link')
-        .on('click', (e) => {
-          e.preventDefault();
-          e.stopPropagation();
+      $(
+        once(
+          'media-library-views-display-link',
+          '.views-display-link-widget, .views-display-link-widget_table',
+          context,
+        ),
+      ).on('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
 
-          const $link = $(e.currentTarget);
+        const $link = $(e.currentTarget);
 
-          // Add a loading and display announcement for screen reader users.
-          let loadingAnnouncement = '';
-          let displayAnnouncement = '';
-          let focusSelector = '';
-          if ($link.hasClass('views-display-link-widget')) {
-            loadingAnnouncement = Drupal.t('Loading grid view.');
-            displayAnnouncement = Drupal.t('Changed to grid view.');
-            focusSelector = '.views-display-link-widget';
-          } else if ($link.hasClass('views-display-link-widget_table')) {
-            loadingAnnouncement = Drupal.t('Loading table view.');
-            displayAnnouncement = Drupal.t('Changed to table view.');
-            focusSelector = '.views-display-link-widget_table';
-          }
+        // Add a loading and display announcement for screen reader users.
+        let loadingAnnouncement = '';
+        let displayAnnouncement = '';
+        let focusSelector = '';
+        if ($link.hasClass('views-display-link-widget')) {
+          loadingAnnouncement = Drupal.t('Loading grid view.');
+          displayAnnouncement = Drupal.t('Changed to grid view.');
+          focusSelector = '.views-display-link-widget';
+        } else if ($link.hasClass('views-display-link-widget_table')) {
+          loadingAnnouncement = Drupal.t('Loading table view.');
+          displayAnnouncement = Drupal.t('Changed to table view.');
+          focusSelector = '.views-display-link-widget_table';
+        }
 
-          // Replace the library view.
-          const ajaxObject = Drupal.ajax({
-            wrapper: 'media-library-view',
-            url: e.currentTarget.href,
-            dialogType: 'ajax',
-            progress: {
-              type: 'fullscreen',
-              message: loadingAnnouncement || Drupal.t('Please wait...'),
-            },
-          });
-
-          // Override the AJAX success callback to announce the updated content
-          // to screen readers.
-          if (displayAnnouncement || focusSelector) {
-            const success = ajaxObject.success;
-            ajaxObject.success = function (response, status) {
-              success.bind(this)(response, status);
-              // The AJAX link replaces the whole view, including the clicked
-              // link. Move the focus back to the clicked link when the view is
-              // replaced.
-              if (focusSelector) {
-                $(focusSelector).focus();
-              }
-              // Announce the new view is loaded to screen readers.
-              if (displayAnnouncement) {
-                Drupal.announce(displayAnnouncement);
-              }
-            };
-          }
-
-          ajaxObject.execute();
-
-          // Announce the new view is being loaded to screen readers.
-          // @todo Replace custom announcement when
-          //   https://www.drupal.org/project/drupal/issues/2973140 is in.
-          if (loadingAnnouncement) {
-            Drupal.announce(loadingAnnouncement);
-          }
+        // Replace the library view.
+        const ajaxObject = Drupal.ajax({
+          wrapper: 'media-library-view',
+          url: e.currentTarget.href,
+          dialogType: 'ajax',
+          progress: {
+            type: 'fullscreen',
+            message: loadingAnnouncement || Drupal.t('Please wait...'),
+          },
         });
+
+        // Override the AJAX success callback to announce the updated content
+        // to screen readers.
+        if (displayAnnouncement || focusSelector) {
+          const success = ajaxObject.success;
+          ajaxObject.success = function (response, status) {
+            success.bind(this)(response, status);
+            // The AJAX link replaces the whole view, including the clicked
+            // link. Move the focus back to the clicked link when the view is
+            // replaced.
+            if (focusSelector) {
+              $(focusSelector).focus();
+            }
+            // Announce the new view is loaded to screen readers.
+            if (displayAnnouncement) {
+              Drupal.announce(displayAnnouncement);
+            }
+          };
+        }
+
+        ajaxObject.execute();
+
+        // Announce the new view is being loaded to screen readers.
+        // @todo Replace custom announcement when
+        //   https://www.drupal.org/project/drupal/issues/2973140 is in.
+        if (loadingAnnouncement) {
+          Drupal.announce(loadingAnnouncement);
+        }
+      });
     },
   };
 
@@ -317,7 +311,7 @@
 
       // Update the selection array and the hidden form field when a media item
       // is selected.
-      $mediaItems.once('media-item-change').on('change', (e) => {
+      $(once('media-item-change', $mediaItems)).on('change', (e) => {
         const id = e.currentTarget.value;
 
         // Update the selection.
@@ -332,37 +326,45 @@
           currentSelection.splice(position, 1);
         }
 
-        // Set the selection in the hidden form element.
-        $form
-          .find('#media-library-modal-selection')
-          .val(currentSelection.join())
-          .trigger('change');
+        const mediaLibraryModalSelection = document.querySelector(
+          '#media-library-modal-selection',
+        );
+
+        if (mediaLibraryModalSelection) {
+          // Set the selection in the hidden form element.
+          mediaLibraryModalSelection.value = currentSelection.join();
+          $(mediaLibraryModalSelection).trigger('change');
+        }
 
         // Set the selection in the media library add form. Since the form is
         // not necessarily loaded within the same context, we can't use the
         // context here.
-        $('.js-media-library-add-form-current-selection').val(
-          currentSelection.join(),
-        );
+        document
+          .querySelectorAll('.js-media-library-add-form-current-selection')
+          .forEach((item) => {
+            item.value = currentSelection.join();
+          });
       });
 
       // The hidden selection form field changes when the selection is updated.
-      $('#media-library-modal-selection', $form)
-        .once('media-library-selection-change')
-        .on('change', (e) => {
-          updateSelectionCount(settings.media_library.selection_remaining);
+      $(
+        once(
+          'media-library-selection-change',
+          $form.find('#media-library-modal-selection'),
+        ),
+      ).on('change', (e) => {
+        updateSelectionCount(settings.media_library.selection_remaining);
 
-          // Prevent users from selecting more items than allowed.
-          if (
-            currentSelection.length ===
-            settings.media_library.selection_remaining
-          ) {
-            disableItems($mediaItems.not(':checked'));
-            enableItems($mediaItems.filter(':checked'));
-          } else {
-            enableItems($mediaItems);
-          }
-        });
+        // Prevent users from selecting more items than allowed.
+        if (
+          currentSelection.length === settings.media_library.selection_remaining
+        ) {
+          disableItems($mediaItems.not(':checked'));
+          enableItems($mediaItems.filter(':checked'));
+        } else {
+          enableItems($mediaItems);
+        }
+      });
 
       // Apply the current selection to the media library view. Changing the
       // checkbox values triggers the change event for the media items. The
@@ -376,20 +378,21 @@
 
       // Add the selection count to the button pane when a media library dialog
       // is created.
-      $(window)
-        .once('media-library-selection-info')
-        .on('dialog:aftercreate', () => {
-          // Since the dialog HTML is not part of the context, we can't use
-          // context here.
-          const $buttonPane = $(
-            '.media-library-widget-modal .ui-dialog-buttonpane',
-          );
-          if (!$buttonPane.length) {
-            return;
-          }
-          $buttonPane.append(Drupal.theme('mediaLibrarySelectionCount'));
-          updateSelectionCount(settings.media_library.selection_remaining);
-        });
+      if (!once('media-library-selection-info', 'html').length) {
+        return;
+      }
+      $(window).on('dialog:aftercreate', () => {
+        // Since the dialog HTML is not part of the context, we can't use
+        // context here.
+        const $buttonPane = $(
+          '.media-library-widget-modal .ui-dialog-buttonpane',
+        );
+        if (!$buttonPane.length) {
+          return;
+        }
+        $buttonPane.append(Drupal.theme('mediaLibrarySelectionCount'));
+        updateSelectionCount(settings.media_library.selection_remaining);
+      });
     },
   };
 
@@ -403,11 +406,12 @@
    */
   Drupal.behaviors.MediaLibraryModalClearSelection = {
     attach() {
-      $(window)
-        .once('media-library-clear-selection')
-        .on('dialog:afterclose', () => {
-          Drupal.MediaLibrary.currentSelection = [];
-        });
+      if (!once('media-library-clear-selection', 'html').length) {
+        return;
+      }
+      $(window).on('dialog:afterclose', () => {
+        Drupal.MediaLibrary.currentSelection = [];
+      });
     },
   };
 
@@ -420,4 +424,4 @@
   Drupal.theme.mediaLibrarySelectionCount = function () {
     return `<div class="media-library-selected-count js-media-library-selected-count" role="status" aria-live="polite" aria-atomic="true"></div>`;
   };
-})(jQuery, Drupal, window);
+})(jQuery, Drupal, window, window.tabbable);

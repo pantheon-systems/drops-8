@@ -2,6 +2,7 @@
 
 namespace Drupal\Tests\Core\Theme;
 
+use Drupal\Core\Extension\ModuleExtensionList;
 use Drupal\Core\Theme\ActiveTheme;
 use Drupal\Core\Theme\Registry;
 use Drupal\Tests\UnitTestCase;
@@ -15,7 +16,7 @@ class RegistryTest extends UnitTestCase {
   /**
    * The mocked theme registry.
    *
-   * @var \Drupal\Core\Theme\Registry|PHPUnit\Framework\MockObject\MockObject
+   * @var \Drupal\Core\Theme\Registry|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $registry;
 
@@ -55,11 +56,26 @@ class RegistryTest extends UnitTestCase {
   protected $themeInitialization;
 
   /**
+   * The mocked cache backend.
+   *
+   * @var \Drupal\Core\Cache\CacheBackendInterface|\PHPUnit\Framework\MockObject\MockObject
+   */
+  protected $runtimeCache;
+
+
+  /**
    * The theme manager.
    *
    * @var \Drupal\Core\Theme\ThemeManagerInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $themeManager;
+
+  /**
+   * The module list.
+   *
+   * @var \Drupal\Core\Extension\ModuleExtensionList|\PHPUnit\Framework\MockObject\MockObject
+   */
+  protected $moduleList;
 
   /**
    * The list of functions that get_defined_functions() should provide.
@@ -79,8 +95,9 @@ class RegistryTest extends UnitTestCase {
     $this->moduleHandler = $this->createMock('Drupal\Core\Extension\ModuleHandlerInterface');
     $this->themeHandler = $this->createMock('Drupal\Core\Extension\ThemeHandlerInterface');
     $this->themeInitialization = $this->createMock('Drupal\Core\Theme\ThemeInitializationInterface');
+    $this->runtimeCache = $this->createMock('Drupal\Core\Cache\CacheBackendInterface');
     $this->themeManager = $this->createMock('Drupal\Core\Theme\ThemeManagerInterface');
-
+    $this->moduleList = $this->createMock(ModuleExtensionList::class);
     $this->setupTheme();
   }
 
@@ -129,13 +146,19 @@ class RegistryTest extends UnitTestCase {
     // Include the module and theme files so that hook_theme can be called.
     include_once $this->root . '/core/modules/system/tests/modules/theme_test/theme_test.module';
     include_once $this->root . '/core/tests/fixtures/test_stable/test_stable.theme';
-    $this->moduleHandler->expects($this->exactly(2))
-      ->method('getImplementations')
+    $this->moduleHandler->expects($this->atLeastOnce())
+      ->method('invokeAllWith')
       ->with('theme')
-      ->will($this->returnValue(['theme_test']));
+      ->willReturnCallback(function (string $hook, callable $callback) {
+        $callback(function () {}, 'theme_test');
+      });
     $this->moduleHandler->expects($this->atLeastOnce())
       ->method('getModuleList')
       ->willReturn([]);
+    $this->moduleList->expects($this->exactly(2))
+      ->method('getPath')
+      ->with('theme_test')
+      ->willReturn('core/modules/system/tests/modules/theme_test');
 
     $registry = $this->registry->get();
 
@@ -210,7 +233,7 @@ class RegistryTest extends UnitTestCase {
 
     // Test the discovery of suggestions via the presence of preprocess
     // functions that follow the "__" naming pattern.
-    $data['base_hook_with_autodiscovered_suggestions'] = [
+    $data['base_hook_with_auto-discovered_suggestions'] = [
       'defined_functions' => [
         'test_preprocess_test_hook__suggestion',
         'test_preprocess_test_hook__suggestion__another',
@@ -472,8 +495,8 @@ class RegistryTest extends UnitTestCase {
 
   protected function setupTheme() {
     $this->registry = $this->getMockBuilder(Registry::class)
-      ->setMethods(['getPath'])
-      ->setConstructorArgs([$this->root, $this->cache, $this->lock, $this->moduleHandler, $this->themeHandler, $this->themeInitialization])
+      ->onlyMethods(['getPath'])
+      ->setConstructorArgs([$this->root, $this->cache, $this->lock, $this->moduleHandler, $this->themeHandler, $this->themeInitialization, $this->runtimeCache, $this->moduleList])
       ->getMock();
     $this->registry->expects($this->any())
       ->method('getPath')

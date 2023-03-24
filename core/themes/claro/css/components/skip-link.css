@@ -15,12 +15,18 @@
 .skip-link {
   z-index: 50;
   left: 50%;
-  padding: 1px 10px 2px;
+  padding: 1px 0.625rem 2px;
   transform: translateX(-50%);
   color: #fff;
-  border-radius: 0 0 10px 10px;
-  background: #444;
+  border-radius: 0 0 0.625rem 0.625rem;
+  background: #55565b;
   font-size: 0.94em;
+}
+
+.skip-link:hover,
+.skip-link:active {
+  color: #fff;
+  background-color: #232429;
 }
 
 .skip-link:focus {

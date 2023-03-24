@@ -17,7 +17,7 @@ class MimeTypeTest extends FileTestBase {
   protected static $modules = ['file_test'];
 
   /**
-   * Test mapping of mimetypes from filenames.
+   * Tests mapping of mimetypes from filenames.
    */
   public function testFileMimeTypeDetection() {
     $prefixes = ['public://', 'private://', 'temporary://', 'dummy-remote://'];
@@ -60,8 +60,8 @@ class MimeTypeTest extends FileTestBase {
         1 => 'image/jpeg',
       ],
       'extensions' => [
-         'jar' => 0,
-         'jpg' => 1,
+        'jar' => 0,
+        'jpg' => 1,
       ],
     ];
 

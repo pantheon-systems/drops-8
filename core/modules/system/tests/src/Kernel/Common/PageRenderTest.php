@@ -3,6 +3,8 @@
 namespace Drupal\Tests\system\Kernel\Common;
 
 use Drupal\KernelTests\KernelTestBase;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Test page rendering hooks.
@@ -36,8 +38,10 @@ class PageRenderTest extends KernelTestBase {
    *   The module whose invalid logic in its hooks to enable.
    * @param string $hook
    *   The page render hook to assert expected exceptions for.
+   *
+   * @internal
    */
-  public function assertPageRenderHookExceptions($module, $hook) {
+  public function assertPageRenderHookExceptions(string $module, string $hook): void {
     $html_renderer = \Drupal::getContainer()->get('main_content_renderer.html');
 
     // Assert a valid hook implementation doesn't trigger an exception.
@@ -45,8 +49,8 @@ class PageRenderTest extends KernelTestBase {
     $html_renderer->invokePageAttachmentHooks($page);
 
     // Assert that hooks can set cache tags.
-    $this->assertEqual($page['#cache']['tags'], ['example']);
-    $this->assertEqual($page['#cache']['contexts'], ['user.permissions']);
+    $this->assertEquals(['example'], $page['#cache']['tags']);
+    $this->assertEquals(['user.permissions'], $page['#cache']['contexts']);
 
     // Assert an invalid hook implementation doesn't trigger an exception.
     \Drupal::state()->set($module . '.' . $hook . '.descendant_attached', TRUE);
@@ -57,7 +61,7 @@ class PageRenderTest extends KernelTestBase {
       $this->error($assertion);
     }
     catch (\LogicException $e) {
-      $this->assertEqual($e->getMessage(), 'Only #attached and #cache may be set in ' . $hook . '().');
+      $this->assertEquals('Only #attached and #cache may be set in ' . $hook . '().', $e->getMessage());
     }
     \Drupal::state()->set('bc_test.' . $hook . '.descendant_attached', FALSE);
 
@@ -70,9 +74,23 @@ class PageRenderTest extends KernelTestBase {
       $this->error($assertion);
     }
     catch (\LogicException $e) {
-      $this->assertEqual($e->getMessage(), 'Only #attached and #cache may be set in ' . $hook . '().');
+      $this->assertEquals('Only #attached and #cache may be set in ' . $hook . '().', $e->getMessage());
     }
     \Drupal::state()->set($module . '.' . $hook . '.render_array', FALSE);
+  }
+
+  /**
+   * Assert that HtmlRenderer::invokePageAttachmentHooks is called in a render
+   * context.
+   */
+  public function testHtmlRendererAttachmentsRenderContext(): void {
+    $this->enableModules(['common_test', 'system']);
+    \Drupal::state()->set('common_test.hook_page_attachments.render_url', TRUE);
+    $uri = '/common/attachments-test';
+    $request = new Request([], [], [], [], [], ['REQUEST_URI' => $uri, 'SCRIPT_NAME' => $uri]);
+    $response = \Drupal::service('http_kernel')->handle($request);
+
+    $this->assertEquals(Response::HTTP_OK, $response->getStatusCode());
   }
 
 }

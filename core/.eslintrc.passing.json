@@ -1,5 +1,8 @@
 {
-  "extends": "./.eslintrc.json",
+  "extends": [
+    "./.eslintrc.json",
+    "./.eslintrc.jquery.json"
+  ],
   "rules": {
     "no-shadow": "off",
     "no-new": "off",
@@ -7,9 +10,10 @@
     "new-cap": "off",
     "max-len": "off",
     "default-case": "off",
+    "default-param-last": "off",
     "prefer-destructuring": "off",
-    "react/no-this-in-sfc": "off",
-    "react/destructuring-assignment": "off",
-    "import/named": "off"
+    "prefer-regex-literals": "off",
+    "import/named": "off",
+    "import/no-import-module-exports": "off"
   }
 }

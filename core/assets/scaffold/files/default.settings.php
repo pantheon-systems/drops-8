@@ -1,6 +1,6 @@
 <?php
 
-// @codingStandardsIgnoreFile
+// phpcs:ignoreFile
 
 /**
  * @file
@@ -138,49 +138,31 @@ $databases = [];
  * request as needed.  The fourth line creates a new database with a name of
  * "extra".
  *
- * You can optionally set prefixes for some or all database table names
- * by using the 'prefix' setting. If a prefix is specified, the table
- * name will be prepended with its value. Be sure to use valid database
- * characters only, usually alphanumeric and underscore. If no prefixes
- * are desired, leave it as an empty string ''.
+ * For MySQL, MariaDB or equivalent databases the 'isolation_level' option can
+ * be set. The recommended transaction isolation level for Drupal sites is
+ * 'READ COMMITTED'. The 'REPEATABLE READ' option is supported but can result
+ * in deadlocks, the other two options are 'READ UNCOMMITTED' and 'SERIALIZABLE'.
+ * They are available but not supported; use them at your own risk. For more
+ * info:
+ * https://dev.mysql.com/doc/refman/5.7/en/innodb-transaction-isolation-levels.html
  *
- * To have all database names prefixed, set 'prefix' as a string:
+ * On your settings.php, change the isolation level:
+ * @code
+ * $databases['default']['default']['init_commands'] = [
+ *   'isolation_level' => 'SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED',
+ * ];
+ * @endcode
+ *
+ * You can optionally set a prefix for all database table names by using the
+ * 'prefix' setting. If a prefix is specified, the table name will be prepended
+ * with its value. Be sure to use valid database characters only, usually
+ * alphanumeric and underscore. If no prefix is desired, do not set the 'prefix'
+ * key or set its value to an empty string ''.
+ *
+ * For example, to have all database table prefixed with 'main_', set:
  * @code
  *   'prefix' => 'main_',
  * @endcode
- *
- * Per-table prefixes are deprecated as of Drupal 8.2, and will be removed in
- * Drupal 9.0. After that, only a single prefix for all tables will be
- * supported.
- *
- * To provide prefixes for specific tables, set 'prefix' as an array.
- * The array's keys are the table names and the values are the prefixes.
- * The 'default' element is mandatory and holds the prefix for any tables
- * not specified elsewhere in the array. Example:
- * @code
- *   'prefix' => [
- *     'default'   => 'main_',
- *     'users'     => 'shared_',
- *     'sessions'  => 'shared_',
- *     'role'      => 'shared_',
- *     'authmap'   => 'shared_',
- *   ],
- * @endcode
- * You can also use a reference to a schema/database as a prefix. This may be
- * useful if your Drupal installation exists in a schema that is not the default
- * or you want to access several databases from the same code base at the same
- * time.
- * Example:
- * @code
- *   'prefix' => [
- *     'default'   => 'main.',
- *     'users'     => 'shared.',
- *     'sessions'  => 'shared.',
- *     'role'      => 'shared.',
- *     'authmap'   => 'shared.',
- *   ];
- * @endcode
- * NOTE: MySQL and SQLite's definition of a schema is a database.
  *
  * Advanced users can add or override initial commands to execute when
  * connecting to the database server, as well as PDO connection settings. For
@@ -203,9 +185,9 @@ $databases = [];
  * information on these defaults and the potential issues.
  *
  * More details can be found in the constructor methods for each driver:
- * - \Drupal\Core\Database\Driver\mysql\Connection::__construct()
- * - \Drupal\Core\Database\Driver\pgsql\Connection::__construct()
- * - \Drupal\Core\Database\Driver\sqlite\Connection::__construct()
+ * - \Drupal\mysql\Driver\Database\mysql\Connection::__construct()
+ * - \Drupal\pgsql\Driver\Database\pgsql\Connection::__construct()
+ * - \Drupal\sqlite\Driver\Database\sqlite\Connection::__construct()
  *
  * Sample Database configuration format for PostgreSQL (pgsql):
  * @code
@@ -308,16 +290,18 @@ $settings['hash_salt'] = '';
 $settings['update_free_access'] = FALSE;
 
 /**
- * Fallback to HTTP for Update Manager.
+ * Fallback to HTTP for Update Manager and for fetching security advisories.
  *
- * If your Drupal site fails to connect to updates.drupal.org using HTTPS to
- * fetch Drupal core, module and theme update status, you may uncomment this
- * setting and set it to TRUE to allow an insecure fallback to HTTP. Note that
- * doing so will open your site up to a potential man-in-the-middle attack. You
- * should instead attempt to resolve the issues before enabling this option.
+ * If your site fails to connect to updates.drupal.org over HTTPS (either when
+ * fetching data on available updates, or when fetching the feed of critical
+ * security announcements), you may uncomment this setting and set it to TRUE to
+ * allow an insecure fallback to HTTP. Note that doing so will open your site up
+ * to a potential man-in-the-middle attack. You should instead attempt to
+ * resolve the issues before enabling this option.
  * @see https://www.drupal.org/docs/system-requirements/php-requirements#openssl
  * @see https://en.wikipedia.org/wiki/Man-in-the-middle_attack
  * @see \Drupal\update\UpdateFetcher
+ * @see \Drupal\system\SecurityAdvisories\SecurityAdvisoriesFetcher
  */
 # $settings['update_fetch_with_http_fallback'] = TRUE;
 
@@ -374,10 +358,13 @@ $settings['update_free_access'] = FALSE;
 # $settings['reverse_proxy'] = TRUE;
 
 /**
- * Specify every reverse proxy IP address in your environment.
- * This setting is required if $settings['reverse_proxy'] is TRUE.
+ * Reverse proxy addresses.
+ *
+ * Specify every reverse proxy IP address in your environment, as an array of
+ * IPv4/IPv6 addresses or subnets in CIDR notation. This setting is required if
+ * $settings['reverse_proxy'] is TRUE.
  */
-# $settings['reverse_proxy_addresses'] = ['a.b.c.d', ...];
+# $settings['reverse_proxy_addresses'] = ['a.b.c.d', 'e.f.g.h/24', ...];
 
 /**
  * Reverse proxy trusted headers.
@@ -385,17 +372,20 @@ $settings['update_free_access'] = FALSE;
  * Sets which headers to trust from your reverse proxy.
  *
  * Common values are:
- * - \Symfony\Component\HttpFoundation\Request::HEADER_X_FORWARDED_ALL
+ * - \Symfony\Component\HttpFoundation\Request::HEADER_X_FORWARDED_FOR
+ * - \Symfony\Component\HttpFoundation\Request::HEADER_X_FORWARDED_HOST
+ * - \Symfony\Component\HttpFoundation\Request::HEADER_X_FORWARDED_PORT
+ * - \Symfony\Component\HttpFoundation\Request::HEADER_X_FORWARDED_PROTO
  * - \Symfony\Component\HttpFoundation\Request::HEADER_FORWARDED
  *
  * Note the default value of
  * @code
- * \Symfony\Component\HttpFoundation\Request::HEADER_X_FORWARDED_ALL | \Symfony\Component\HttpFoundation\Request::HEADER_FORWARDED
+ * \Symfony\Component\HttpFoundation\Request::HEADER_X_FORWARDED_FOR | \Symfony\Component\HttpFoundation\Request::HEADER_X_FORWARDED_HOST | \Symfony\Component\HttpFoundation\Request::HEADER_X_FORWARDED_PORT | \Symfony\Component\HttpFoundation\Request::HEADER_X_FORWARDED_PROTO | \Symfony\Component\HttpFoundation\Request::HEADER_FORWARDED
  * @endcode
  * is not secure by default. The value should be set to only the specific
  * headers the reverse proxy uses. For example:
  * @code
- * \Symfony\Component\HttpFoundation\Request::HEADER_X_FORWARDED_ALL
+ * \Symfony\Component\HttpFoundation\Request::HEADER_X_FORWARDED_FOR | \Symfony\Component\HttpFoundation\Request::HEADER_X_FORWARDED_HOST | \Symfony\Component\HttpFoundation\Request::HEADER_X_FORWARDED_PORT | \Symfony\Component\HttpFoundation\Request::HEADER_X_FORWARDED_PROTO
  * @endcode
  * This would trust the following headers:
  * - X_FORWARDED_FOR
@@ -403,11 +393,14 @@ $settings['update_free_access'] = FALSE;
  * - X_FORWARDED_PROTO
  * - X_FORWARDED_PORT
  *
- * @see \Symfony\Component\HttpFoundation\Request::HEADER_X_FORWARDED_ALL
+ * @see \Symfony\Component\HttpFoundation\Request::HEADER_X_FORWARDED_FOR
+ * @see \Symfony\Component\HttpFoundation\Request::HEADER_X_FORWARDED_HOST
+ * @see \Symfony\Component\HttpFoundation\Request::HEADER_X_FORWARDED_PORT
+ * @see \Symfony\Component\HttpFoundation\Request::HEADER_X_FORWARDED_PROTO
  * @see \Symfony\Component\HttpFoundation\Request::HEADER_FORWARDED
  * @see \Symfony\Component\HttpFoundation\Request::setTrustedProxies
  */
-# $settings['reverse_proxy_trusted_headers'] = \Symfony\Component\HttpFoundation\Request::HEADER_X_FORWARDED_ALL | \Symfony\Component\HttpFoundation\Request::HEADER_FORWARDED;
+# $settings['reverse_proxy_trusted_headers'] = \Symfony\Component\HttpFoundation\Request::HEADER_X_FORWARDED_FOR | \Symfony\Component\HttpFoundation\Request::HEADER_X_FORWARDED_HOST | \Symfony\Component\HttpFoundation\Request::HEADER_X_FORWARDED_PORT | \Symfony\Component\HttpFoundation\Request::HEADER_X_FORWARDED_PROTO | \Symfony\Component\HttpFoundation\Request::HEADER_FORWARDED;
 
 
 /**
@@ -516,6 +509,29 @@ $settings['update_free_access'] = FALSE;
 # $settings['file_public_path'] = 'sites/default/files';
 
 /**
+ * Additional public file schemes:
+ *
+ * Public schemes are URI schemes that allow download access to all users for
+ * all files within that scheme.
+ *
+ * The "public" scheme is always public, and the "private" scheme is always
+ * private, but other schemes, such as "https", "s3", "example", or others,
+ * can be either public or private depending on the site. By default, they're
+ * private, and access to individual files is controlled via
+ * hook_file_download().
+ *
+ * Typically, if a scheme should be public, a module makes it public by
+ * implementing hook_file_download(), and granting access to all users for all
+ * files. This could be either the same module that provides the stream wrapper
+ * for the scheme, or a different module that decides to make the scheme
+ * public. However, in cases where a site needs to make a scheme public, but
+ * is unable to add code in a module to do so, the scheme may be added to this
+ * variable, the result of which is that system_file_download() grants public
+ * access to all files within that scheme.
+ */
+# $settings['file_additional_public_schemes'] = ['example'];
+
+/**
  * Private file path:
  *
  * A local file system path where private files will be stored. This directory
@@ -578,7 +594,7 @@ $settings['update_free_access'] = FALSE;
  *
  * Note: This setting does not apply to installation and update pages.
  */
-# $settings['maintenance_theme'] = 'bartik';
+# $settings['maintenance_theme'] = 'claro';
 
 /**
  * PHP settings:
@@ -627,33 +643,6 @@ $settings['update_free_access'] = FALSE;
  */
 # $config['system.site']['name'] = 'My Drupal site';
 # $config['user.settings']['anonymous'] = 'Visitor';
-
-/**
- * Fast 404 pages:
- *
- * Drupal can generate fully themed 404 pages. However, some of these responses
- * are for images or other resource files that are not displayed to the user.
- * This can waste bandwidth, and also generate server load.
- *
- * The options below return a simple, fast 404 page for URLs matching a
- * specific pattern:
- * - $config['system.performance']['fast_404']['exclude_paths']: A regular
- *   expression to match paths to exclude, such as images generated by image
- *   styles, or dynamically-resized images. The default pattern provided below
- *   also excludes the private file system. If you need to add more paths, you
- *   can add '|path' to the expression.
- * - $config['system.performance']['fast_404']['paths']: A regular expression to
- *   match paths that should return a simple 404 page, rather than the fully
- *   themed 404 page. If you don't have any aliases ending in htm or html you
- *   can add '|s?html?' to the expression.
- * - $config['system.performance']['fast_404']['html']: The html to return for
- *   simple 404 pages.
- *
- * Remove the leading hash signs if you would like to alter this functionality.
- */
-# $config['system.performance']['fast_404']['exclude_paths'] = '/\/(?:styles)|(?:system\/files)\//';
-# $config['system.performance']['fast_404']['paths'] = '/\.(?:txt|png|gif|jpe?g|css|js|ico|swf|flv|cgi|bat|pl|dll|exe|asp)$/i';
-# $config['system.performance']['fast_404']['html'] = '<!DOCTYPE html><html><head><title>404 Not Found</title></head><body><h1>Not Found</h1><p>The requested URL "@path" was not found on this server.</p></body></html>';
 
 /**
  * Load services definition file.
@@ -713,6 +702,8 @@ $settings['container_yamls'][] = $app_root . '/' . $site_path . '/services.yml';
  * @endcode
  * will allow the site to run off of all variants of example.com and
  * example.org, with all subdomains included.
+ *
+ * @see https://www.drupal.org/docs/installing-drupal/trusted-host-settings
  */
 
 /**
@@ -761,6 +752,49 @@ $settings['entity_update_backup'] = TRUE;
  * node migrations.
  */
 $settings['migrate_node_migrate_type_classic'] = FALSE;
+
+/**
+ * The default settings for migration sources.
+ *
+ * These settings are used as the default settings on the Credential form at
+ * /upgrade/credentials.
+ *
+ * - migrate_source_version - The version of the source database. This can be
+ *   '6' or '7'. Defaults to '7'.
+ * - migrate_source_connection - The key in the $databases array for the source
+ *   site.
+ * - migrate_file_public_path - The location of the source Drupal 6 or Drupal 7
+ *   public files. This can be a local file directory containing the source
+ *   Drupal 6 or Drupal 7 site (e.g /var/www/docroot), or the site address
+ *   (e.g http://example.com).
+ * - migrate_file_private_path - The location of the source Drupal 7 private
+ *   files. This can be a local file directory containing the source Drupal 7
+ *   site (e.g /var/www/docroot), or empty to use the same value as Public
+ *   files directory.
+ *
+ * Sample configuration for a drupal 6 source site with the source files in a
+ * local directory.
+ *
+ * @code
+ * $settings['migrate_source_version'] = '6';
+ * $settings['migrate_source_connection'] = 'migrate';
+ * $settings['migrate_file_public_path'] = '/var/www/drupal6';
+ * @endcode
+ *
+ * Sample configuration for a drupal 7 source site with public source files on
+ * the source site and the private files in a local directory.
+ *
+ * @code
+ * $settings['migrate_source_version'] = '7';
+ * $settings['migrate_source_connection'] = 'migrate';
+ * $settings['migrate_file_public_path'] = 'https://drupal7.com';
+ * $settings['migrate_file_private_path'] = '/var/www/drupal7';
+ * @endcode
+ */
+# $settings['migrate_source_connection'] = '';
+# $settings['migrate_source_version'] = '';
+# $settings['migrate_file_public_path'] = '';
+# $settings['migrate_file_private_path'] = '';
 
 /**
  * Load local development override configuration, if available.

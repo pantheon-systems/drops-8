@@ -11,13 +11,91 @@ use Drupal\migrate\MigrateSkipRowException;
 use Drupal\Component\Utility\NestedArray;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
+// cspell:ignore idmap
 /**
  * Defines the Migration plugin.
  *
- * The migration process plugin represents one single migration and acts like a
- * container for the information about a single migration such as the source,
- * process and destination plugins.
+ * A migration plugin instance that represents one single migration and acts
+ * like a container for the information about a single migration such as the
+ * source, process and destination plugins.
+ *
+ * The configuration of a migration is defined using YAML format and placed in
+ * the directory MODULENAME/migrations.
+ *
+ * Available definition keys:
+ * - id: The migration ID.
+ * - label: The human-readable label for the migration.
+ * - source: The definition for a migrate source plugin.
+ * - process: The definition for the migrate process pipelines for the
+ *   destination properties.
+ * - destination: The definition a migrate destination plugin.
+ * - audit: (optional) Audit the migration for conflicts with existing content.
+ * - deriver: (optional) The fully qualified path to a deriver class.
+ * - idMap: (optional) The definition for a migrate idMap plugin.
+ * - migration_dependencies: (optional) An array with two keys 'required' and
+ *   'optional' listing the migrations that this migration depends on. The
+ *   required migrations must be run first and completed successfully. The
+ *   optional migrations will be executed if they are present.
+ * - migration_tags: (optional) An array of tags for this migration.
+ * - provider: (optional) The name of the module that provides the plugin.
+ *
+ * Example with all keys:
+ *
+ * @code
+ * id: d7_taxonomy_term_example
+ * label: Taxonomy terms
+ * audit: true
+ * migration_tags:
+ *   - Drupal 7
+ *   - Content
+ *   - Term example
+ * deriver: Drupal\taxonomy\Plugin\migrate\D7TaxonomyTermDeriver
+ * provider: custom_module
+ * source:
+ *   plugin: d7_taxonomy_term
+ * process:
+ *   tid: tid
+ *   vid:
+ *     plugin: migration_lookup
+ *     migration: d7_taxonomy_vocabulary
+ *     source: vid
+ *   name: name
+ *   'description/value': description
+ *   'description/format': format
+ *   weight: weight
+ *   parent_id:
+ *   -
+ *     plugin: skip_on_empty
+ *     method: process
+ *     source: parent
+ *   -
+ *     plugin: migration_lookup
+ *     migration: d7_taxonomy_term
+ *   parent:
+ *    plugin: default_value
+ *    default_value: 0
+ *    source: '@parent_id'
+ * destination:
+ *   plugin: entity:taxonomy_term
+ * migration_dependencies:
+ *   required:
+ *     - d7_taxonomy_vocabulary
+ *   optional:
+ *     - d7_field_instance
+ * @endcode
+ *
+ * For additional configuration keys, refer to these Migrate classes.
+ *
+ * @see \Drupal\migrate\Plugin\migrate\source\SourcePluginBase
+ * @see \Drupal\migrate\Plugin\migrate\source\SqlBase
+ * @see \Drupal\migrate\Plugin\migrate\destination\Config
+ * @see \Drupal\migrate\Plugin\migrate\destination\EntityConfigBase
+ * @see \Drupal\migrate\Plugin\migrate\destination\EntityContentBase
+ * @see \Drupal\Core\Plugin\PluginBase
+ *
+ * @link https://www.drupal.org/docs/8/api/migrate-api Migrate API handbook. @endlink
  */
+#[\AllowDynamicProperties]
 class Migration extends PluginBase implements MigrationInterface, RequirementsInterface, ContainerFactoryPluginInterface {
 
   /**
@@ -95,7 +173,7 @@ class Migration extends PluginBase implements MigrationInterface, RequirementsIn
    *
    * Used to initialize $idMapPlugin.
    *
-   * @var string
+   * @var array
    */
   protected $idMap = [];
 
@@ -267,16 +345,16 @@ class Migration extends PluginBase implements MigrationInterface, RequirementsIn
    *   The process migration plugin manager.
    * @param \Drupal\migrate\Plugin\MigrateDestinationPluginManager $destination_plugin_manager
    *   The destination migration plugin manager.
-   * @param \Drupal\migrate\Plugin\MigratePluginManagerInterface $idmap_plugin_manager
+   * @param \Drupal\migrate\Plugin\MigratePluginManagerInterface $id_map_plugin_manager
    *   The ID map migration plugin manager.
    */
-  public function __construct(array $configuration, $plugin_id, $plugin_definition, MigrationPluginManagerInterface $migration_plugin_manager, MigratePluginManagerInterface $source_plugin_manager, MigratePluginManagerInterface $process_plugin_manager, MigrateDestinationPluginManager $destination_plugin_manager, MigratePluginManagerInterface $idmap_plugin_manager) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, MigrationPluginManagerInterface $migration_plugin_manager, MigratePluginManagerInterface $source_plugin_manager, MigratePluginManagerInterface $process_plugin_manager, MigrateDestinationPluginManager $destination_plugin_manager, MigratePluginManagerInterface $id_map_plugin_manager) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
     $this->migrationPluginManager = $migration_plugin_manager;
     $this->sourcePluginManager = $source_plugin_manager;
     $this->processPluginManager = $process_plugin_manager;
     $this->destinationPluginManager = $destination_plugin_manager;
-    $this->idMapPluginManager = $idmap_plugin_manager;
+    $this->idMapPluginManager = $id_map_plugin_manager;
 
     foreach (NestedArray::mergeDeepArray([$plugin_definition, $configuration], TRUE) as $key => $value) {
       $this->$key = $value;
@@ -411,14 +489,14 @@ class Migration extends PluginBase implements MigrationInterface, RequirementsIn
   public function getIdMap() {
     if (!isset($this->idMapPlugin)) {
       $configuration = $this->idMap;
-      $plugin = isset($configuration['plugin']) ? $configuration['plugin'] : 'sql';
+      $plugin = $configuration['plugin'] ?? 'sql';
       $this->idMapPlugin = $this->idMapPluginManager->createInstance($plugin, $configuration, $this);
     }
     return $this->idMapPlugin;
   }
 
   /**
-   * {@inheritDoc}
+   * {@inheritdoc}
    */
   public function getRequirements(): array {
     return $this->requirements;
@@ -459,8 +537,8 @@ class Migration extends PluginBase implements MigrationInterface, RequirementsIn
   /**
    * Gets the migration plugin manager.
    *
-   * @return \Drupal\migrate\Plugin\MigratePluginManager
-   *   The plugin manager.
+   * @return \Drupal\migrate\Plugin\MigrationPluginManagerInterface
+   *   The migration plugin manager.
    */
   protected function getMigrationPluginManager() {
     return $this->migrationPluginManager;
@@ -628,6 +706,15 @@ class Migration extends PluginBase implements MigrationInterface, RequirementsIn
     $return = [];
     foreach ($this->getProcessNormalized($process) as $process_pipeline) {
       foreach ($process_pipeline as $plugin_configuration) {
+        // If the migration uses a deriver and has a migration_lookup with
+        // itself as the source migration, then skip adding dependencies.
+        // Otherwise the migration will depend on all the variations of itself.
+        // See d7_taxonomy_term for an example.
+        if (isset($this->deriver)
+            && $plugin_configuration['plugin'] === 'migration_lookup'
+            && $plugin_configuration['migration'] == $this->getBaseId()) {
+          continue;
+        }
         if (in_array($plugin_configuration['plugin'], ['migration', 'migration_lookup'], TRUE)) {
           $return = array_merge($return, (array) $plugin_configuration['migration']);
         }
@@ -647,7 +734,7 @@ class Migration extends PluginBase implements MigrationInterface, RequirementsIn
     // While normal plugins do not change their definitions on the fly, this
     // one does so accommodate for that.
     foreach (parent::getPluginDefinition() as $key => $value) {
-      $definition[$key] = isset($this->$key) ? $this->$key : $value;
+      $definition[$key] = $this->$key ?? $value;
     }
     return $definition;
   }
