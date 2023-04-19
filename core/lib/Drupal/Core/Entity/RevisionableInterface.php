@@ -19,6 +19,8 @@ namespace Drupal\Core\Entity;
  * @see \Drupal\Core\Entity\EntityTypeInterface::isRevisionable()
  * @see https://www.drupal.org/docs/8/api/entity-api/structure-of-an-entity-annotation
  * @see https://www.drupal.org/docs/8/api/entity-api/making-an-entity-revisionable
+ *
+ * @ingroup entity_type_characteristics
  */
 interface RevisionableInterface extends EntityInterface {
 
@@ -48,7 +50,7 @@ interface RevisionableInterface extends EntityInterface {
   /**
    * Gets the revision identifier of the entity.
    *
-   * @return
+   * @return int|null|string
    *   The revision identifier of the entity, or NULL if the entity does not
    *   have a revision identifier.
    */

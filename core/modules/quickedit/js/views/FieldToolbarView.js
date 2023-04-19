@@ -4,7 +4,6 @@
 * https://www.drupal.org/node/2815083
 * @preserve
 **/
-
 (function ($, _, Backbone, Drupal) {
   Drupal.quickedit.FieldToolbarView = Backbone.View.extend({
     $editedElement: null,
@@ -27,47 +26,34 @@
     stateChange: function stateChange(model, state) {
       var from = model.previous('state');
       var to = state;
-
       switch (to) {
         case 'inactive':
           break;
-
         case 'candidate':
           if (from !== 'inactive' && from !== 'highlighted') {
             this.$el.remove();
             this.setElement();
           }
-
           break;
-
         case 'highlighted':
           break;
-
         case 'activating':
           this.render();
-
           if (this.editorView.getQuickEditUISettings().fullWidthToolbar) {
             this.$el.addClass('quickedit-toolbar-fullwidth');
           }
-
           if (this.editorView.getQuickEditUISettings().unifiedToolbar) {
             this.insertWYSIWYGToolGroups();
           }
-
           break;
-
         case 'active':
           break;
-
         case 'changed':
           break;
-
         case 'saving':
           break;
-
         case 'saved':
           break;
-
         case 'invalid':
           break;
       }
@@ -99,7 +85,6 @@
     },
     show: function show(toolgroup) {
       var $group = this._find(toolgroup);
-
       $group.on(Drupal.quickedit.util.constants.transitionEnd, function (event) {
         $group.off(Drupal.quickedit.util.constants.transitionEnd);
       });

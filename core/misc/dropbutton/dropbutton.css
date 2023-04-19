@@ -1,4 +1,3 @@
-
 /**
  * @file
  * Base styles for dropbuttons.
@@ -35,7 +34,7 @@
 .js .form-actions .dropbutton-widget {
   position: static;
 }
-.js td .dropbutton-widget {
+.js td .dropbutton-multiple .dropbutton-widget {
   position: absolute;
 }
 .js td .dropbutton-wrapper {

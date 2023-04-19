@@ -4,13 +4,26 @@ namespace Drupal\Core\Layout;
 
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Plugin\ContextAwarePluginAssignmentTrait;
+use Drupal\Core\Plugin\ContextAwarePluginTrait;
 use Drupal\Core\Plugin\PluginBase;
 use Drupal\Core\Plugin\PluginFormInterface;
+use Drupal\Core\Plugin\PreviewAwarePluginInterface;
 
 /**
  * Provides a default class for Layout plugins.
  */
-class LayoutDefault extends PluginBase implements LayoutInterface, PluginFormInterface {
+class LayoutDefault extends PluginBase implements LayoutInterface, PluginFormInterface, PreviewAwarePluginInterface {
+
+  use ContextAwarePluginAssignmentTrait;
+  use ContextAwarePluginTrait;
+
+  /**
+   * Whether the plugin is being rendered in preview mode.
+   *
+   * @var bool
+   */
+  protected $inPreview = FALSE;
 
   /**
    * The layout definition.
@@ -38,6 +51,7 @@ class LayoutDefault extends PluginBase implements LayoutInterface, PluginFormInt
         $build[$region_name] = $regions[$region_name];
       }
     }
+    $build['#in_preview'] = $this->inPreview;
     $build['#settings'] = $this->getConfiguration();
     $build['#layout'] = $this->pluginDefinition;
     $build['#theme'] = $this->pluginDefinition->getThemeHook();
@@ -95,6 +109,8 @@ class LayoutDefault extends PluginBase implements LayoutInterface, PluginFormInt
       '#title' => $this->t('Administrative label'),
       '#default_value' => $this->configuration['label'],
     ];
+    $contexts = $form_state->getTemporaryValue('gathered_contexts') ?: [];
+    $form['context_mapping'] = $this->addContextAssignmentElement($this, $contexts);
     return $form;
   }
 
@@ -109,6 +125,13 @@ class LayoutDefault extends PluginBase implements LayoutInterface, PluginFormInt
    */
   public function submitConfigurationForm(array &$form, FormStateInterface $form_state) {
     $this->configuration['label'] = $form_state->getValue('label');
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setInPreview(bool $in_preview): void {
+    $this->inPreview = $in_preview;
   }
 
 }

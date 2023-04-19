@@ -35,7 +35,7 @@ class RelationshipNodeTermDataTest extends TaxonomyTestBase {
         'user',
       ],
     ];
-    $this->assertIdentical($expected, $view->getDependencies());
+    $this->assertSame($expected, $view->getDependencies());
     $this->executeView($view, [$this->term1->id(), $this->term2->id()]);
     $expected_result = [
       [
@@ -56,7 +56,7 @@ class RelationshipNodeTermDataTest extends TaxonomyTestBase {
     $view = Views::getView('test_taxonomy_node_term_data');
     // Tests \Drupal\taxonomy\Plugin\views\relationship\NodeTermData::calculateDependencies().
     $expected['config'][] = 'taxonomy.vocabulary.views_testing_tags';
-    $this->assertIdentical($expected, $view->getDependencies());
+    $this->assertSame($expected, $view->getDependencies());
     $this->executeView($view, [$this->term1->id(), $this->term2->id()]);
     $this->assertIdenticalResultset($view, $expected_result, $column_map);
   }
@@ -94,8 +94,10 @@ class RelationshipNodeTermDataTest extends TaxonomyTestBase {
    *   The View to check for the term access tag.
    * @param bool $hasTag
    *   The expected existence of taxonomy_term_access tag.
+   *
+   * @internal
    */
-  protected function assertQueriesTermAccessTag(ViewExecutable $view, $hasTag) {
+  protected function assertQueriesTermAccessTag(ViewExecutable $view, bool $hasTag): void {
     $main_query = $view->build_info['query'];
     $count_query = $view->build_info['count_query'];
 

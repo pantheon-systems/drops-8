@@ -20,7 +20,7 @@ use Drupal\Component\Utility\UrlHelper;
  * non-English-only sites) in addition to formatting it. Variables concatenated
  * without the insertion of language-specific words or punctuation are some
  * examples where translation is not applicable and using this class directly
- * directly is appropriate.
+ * is appropriate.
  *
  * This class is designed for formatting messages that are mostly text, not as
  * an HTML template language. As such:
@@ -105,6 +105,7 @@ class FormattableMarkup implements MarkupInterface, \Countable {
    * @return int
    *   The length of the string.
    */
+  #[\ReturnTypeWillChange]
   public function count() {
     return mb_strlen($this->string);
   }
@@ -115,6 +116,7 @@ class FormattableMarkup implements MarkupInterface, \Countable {
    * @return string
    *   The safe string content.
    */
+  #[\ReturnTypeWillChange]
   public function jsonSerialize() {
     return $this->__toString();
   }
@@ -129,11 +131,11 @@ class FormattableMarkup implements MarkupInterface, \Countable {
    * @param array $args
    *   An associative array of replacements. Each array key should be the same
    *   as a placeholder in $string. The corresponding value should be a string
-   *   or an object that implements
-   *   \Drupal\Component\Render\MarkupInterface. The value replaces the
-   *   placeholder in $string. Sanitization and formatting will be done before
-   *   replacement. The type of sanitization and formatting depends on the first
-   *   character of the key:
+   *   or an object that implements \Drupal\Component\Render\MarkupInterface.
+   *   Null args[] values are deprecated in Drupal 9.5 and will fail in
+   *   Drupal 11.0. The value replaces the placeholder in $string. Sanitization
+   *   and formatting will be done before replacement. The type of sanitization
+   *   and formatting depends on the first character of the key:
    *   - @variable: When the placeholder replacement value is:
    *     - A string, the replaced value in the returned string will be sanitized
    *       using \Drupal\Component\Utility\Html::escape().
@@ -194,6 +196,14 @@ class FormattableMarkup implements MarkupInterface, \Countable {
   protected static function placeholderFormat($string, array $args) {
     // Transform arguments before inserting them.
     foreach ($args as $key => $value) {
+      if (is_null($value)) {
+        // It's probably a bug to provide a null value for the placeholder arg,
+        // and in D11 this will no longer be allowed. When this trigger_error
+        // is removed, also remove isset $value checks inside the switch{}
+        // below.
+        @trigger_error(sprintf('Deprecated NULL placeholder value for key (%s) in: "%s". This will throw a PHP error in drupal:11.0.0. See https://www.drupal.org/node/3318826', (string) $key, (string) $string), E_USER_DEPRECATED);
+        $value = '';
+      }
       switch ($key[0]) {
         case '@':
           // Escape if the value is not an object from a class that implements

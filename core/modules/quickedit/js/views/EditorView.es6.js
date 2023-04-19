@@ -198,6 +198,7 @@
           const $form = $(`#${backstageId}`).find('form');
           // Fill in the value in any <input> that isn't hidden or a submit
           // button.
+          // eslint-disable-next-line jquery/no-val
           $form
             .find(':input[type!="hidden"][type!="submit"]:not(select)')
             // Don't mess with the node summary.
@@ -269,15 +270,12 @@
           };
 
           // Unsuccessfully saved; validation errors.
-          self.formSaveAjax.commands.quickeditFieldFormValidationErrors = function (
-            ajax,
-            response,
-            status,
-          ) {
-            removeHiddenForm();
-            editorModel.set('validationErrors', response.data);
-            fieldModel.set('state', 'invalid');
-          };
+          self.formSaveAjax.commands.quickeditFieldFormValidationErrors =
+            function (ajax, response, status) {
+              removeHiddenForm();
+              editorModel.set('validationErrors', response.data);
+              fieldModel.set('state', 'invalid');
+            };
 
           // The quickeditFieldForm AJAX command is only called upon loading the
           // form for the first time, and when there are validation errors in the

@@ -42,7 +42,7 @@ class ContextualLinks extends RenderElement {
    *   render (based on the 'group' key in the *.links.contextual.yml files for
    *   all enabled modules). The value contains an associative array containing
    *   the following keys:
-   *   - route_parameters: The route parameters passed to the url generator.
+   *   - route_parameters: The route parameters passed to the URL generator.
    *   - metadata: Any additional data needed in order to alter the link.
    *   @code
    *     array('#contextual_links' => array(
@@ -78,7 +78,7 @@ class ContextualLinks extends RenderElement {
       $class = Html::getClass($class);
       $links[$class] = [
         'title' => $item['title'],
-        'url' => Url::fromRoute(isset($item['route_name']) ? $item['route_name'] : '', isset($item['route_parameters']) ? $item['route_parameters'] : [], $item['localized_options']),
+        'url' => Url::fromRoute($item['route_name'] ?? '', $item['route_parameters'] ?? [], $item['localized_options']),
       ];
     }
     $element['#links'] = $links;
@@ -86,7 +86,8 @@ class ContextualLinks extends RenderElement {
     // Allow modules to alter the renderable contextual links element.
     static::moduleHandler()->alter('contextual_links_view', $element, $items);
 
-    // If there are no links, tell drupal_render() to abort rendering.
+    // If there are no links, tell \Drupal::service('renderer')->render() to
+    // abort rendering.
     if (empty($element['#links'])) {
       $element['#printed'] = TRUE;
     }

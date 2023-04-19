@@ -45,7 +45,7 @@ class EntityViewBuilderTest extends EntityKernelTestBase {
     $cache_contexts_manager = \Drupal::service("cache_contexts_manager");
     $cache = \Drupal::cache();
 
-    // Force a request via GET so we can get drupal_render() cache working.
+    // Force a request via GET so cache is rendered.
     $request = \Drupal::request();
     $request_method = $request->server->get('REQUEST_METHOD');
     $request->setMethod('GET');
@@ -99,7 +99,8 @@ class EntityViewBuilderTest extends EntityKernelTestBase {
     $renderer = $this->container->get('renderer');
     $cache_contexts_manager = \Drupal::service("cache_contexts_manager");
 
-    // Force a request via GET so we can get drupal_render() cache working.
+    // Force a request via GET so we can get
+    // \Drupal::service('renderer')->render() cache working.
     $request = \Drupal::request();
     $request_method = $request->server->get('REQUEST_METHOD');
     $request->setMethod('GET');
@@ -203,7 +204,7 @@ class EntityViewBuilderTest extends EntityKernelTestBase {
     $renderer->renderRoot($view);
 
     // Check that the weight is respected.
-    $this->assertEqual($view['label']['#weight'], 20, 'The weight of a display component is respected.');
+    $this->assertEquals(20, $view['label']['#weight'], 'The weight of a display component is respected.');
   }
 
   /**
@@ -341,6 +342,20 @@ class EntityViewBuilderTest extends EntityKernelTestBase {
     $build = $entity_type_manager->getViewBuilder('entity_test')->view($entity);
     $this->assertEquals($entity, $build['#entity_test']);
     $this->assertArrayNotHasKey('#theme', $build);
+  }
+
+  /**
+   * Tests an entity type with an external canonical rel.
+   */
+  public function testExternalEntity() {
+    $this->installEntitySchema('entity_test_external');
+    /** @var \Drupal\Core\Render\RendererInterface $renderer */
+    $renderer = $this->container->get('renderer');
+    $entity_test = $this->createTestEntity('entity_test_external');
+    $entity_test->save();
+    $view = $this->container->get('entity_type.manager')->getViewBuilder('entity_test_external')->view($entity_test);
+    $renderer->renderRoot($view);
+    $this->assertArrayNotHasKey('#contextual_links', $view);
   }
 
 }

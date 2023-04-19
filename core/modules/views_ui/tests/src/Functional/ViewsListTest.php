@@ -34,8 +34,8 @@ class ViewsListTest extends UITestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp($import_test_views = TRUE): void {
-    parent::setUp($import_test_views);
+  protected function setUp($import_test_views = TRUE, $modules = []): void {
+    parent::setUp($import_test_views, $modules);
 
     $this->drupalPlaceBlock('local_tasks_block');
     $this->drupalPlaceBlock('local_actions_block');
@@ -74,7 +74,7 @@ class ViewsListTest extends UITestBase {
     $this->drupalGet('admin/structure/views');
 
     // Check that all the rows are listed.
-    $this->assertCount($limit, $this->xpath('//tbody/tr[contains(@class,"views-ui-list-enabled")]'));
+    $this->assertSession()->elementsCount('xpath', '//tbody/tr[contains(@class,"views-ui-list-enabled")]', $limit);
   }
 
 }

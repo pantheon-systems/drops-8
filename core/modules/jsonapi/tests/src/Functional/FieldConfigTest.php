@@ -14,12 +14,12 @@ use Drupal\node\Entity\NodeType;
  *
  * @group jsonapi
  */
-class FieldConfigTest extends ResourceTestBase {
+class FieldConfigTest extends ConfigEntityResourceTestBase {
 
   /**
    * {@inheritdoc}
    */
-  protected static $modules = ['field', 'node'];
+  protected static $modules = ['field', 'node', 'field_ui'];
 
   /**
    * {@inheritdoc}
@@ -133,6 +133,7 @@ class FieldConfigTest extends ResourceTestBase {
    */
   protected function getPostDocument() {
     // @todo Update in https://www.drupal.org/node/2300677.
+    return [];
   }
 
   /**

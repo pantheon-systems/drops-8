@@ -90,7 +90,7 @@ class DisplayLink extends AreaPluginBase {
 
     // Do not add errors for the default display if it is not displayed in the
     // UI.
-    if ($this->displayHandler->isDefaultDisplay() && !\Drupal::config('views.settings')->get('ui.show.master_display')) {
+    if ($this->displayHandler->isDefaultDisplay() && !\Drupal::config('views.settings')->get('ui.show.default_display')) {
       return $errors;
     }
 
@@ -129,10 +129,10 @@ class DisplayLink extends AreaPluginBase {
     // recommend keeping the display options equal, we do not want to enforce
     // this.
     $unequal_options = [
-      'filters' => t('Filter criteria'),
-      'sorts' => t('Sort criteria'),
-      'pager' => t('Pager'),
-      'arguments' => t('Contextual filters'),
+      'filters' => $this->t('Filter criteria'),
+      'sorts' => $this->t('Sort criteria'),
+      'pager' => $this->t('Pager'),
+      'arguments' => $this->t('Contextual filters'),
     ];
     foreach (array_keys($unequal_options) as $option) {
       if ($this->hasEqualOptions($linked_display_id, $option)) {

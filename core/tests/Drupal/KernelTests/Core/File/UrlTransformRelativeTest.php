@@ -6,7 +6,7 @@ use Drupal\KernelTests\KernelTestBase;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
- * Tests url transform to relative.
+ * Tests URL transform to relative.
  *
  * @group Utility
  */
@@ -15,7 +15,7 @@ class UrlTransformRelativeTest extends KernelTestBase {
   protected static $modules = ['file_test'];
 
   /**
-   * Tests file_url_transform_relative function.
+   * Tests transformRelative() function.
    *
    * @dataProvider providerFileUrlTransformRelative
    */
@@ -37,45 +37,60 @@ class UrlTransformRelativeTest extends KernelTestBase {
     $request = Request::createFromGlobals();
     \Drupal::requestStack()->push($request);
 
-    $this->assertSame($expected, file_url_transform_relative($url));
+    $this->assertSame($expected, \Drupal::service('file_url_generator')->transformRelative($url));
   }
 
   public function providerFileUrlTransformRelative() {
-    $data = [];
-    $data[] = [
-      'example.com',
-      80,
-      '',
-      'http://example.com/page',
-      '/page',
-    ];
-    $data[] = [
-      'example.com',
-      443,
-      'on',
-      'https://example.com/page',
-      '/page',
-    ];
-    $data[] = [
-      'example.com',
-      8080,
-      '',
-      'https://example.com:8080/page',
-      '/page',
-    ];
-    $data[] = [
-      'example.com',
-      8443,
-      'on',
-      'https://example.com:8443/page',
-      '/page',
-    ];
-    $data[] = [
-      'example.com',
-      80,
-      '',
-      'http://exampleXcom/page',
-      'http://exampleXcom/page',
+    $data = [
+      'http' => [
+        'example.com',
+        80,
+        '',
+        'http://example.com/page',
+        '/page',
+      ],
+      'https' => [
+        'example.com',
+        443,
+        'on',
+        'https://example.com/page',
+        '/page',
+      ],
+      'http 8080' => [
+        'example.com',
+        8080,
+        '',
+        'https://example.com:8080/page',
+        '/page',
+      ],
+      'https 8443' => [
+        'example.com',
+        8443,
+        'on',
+        'https://example.com:8443/page',
+        '/page',
+      ],
+      'http no dot' => [
+        'example.com',
+        80,
+        '',
+        'http://exampleXcom/page',
+        'http://exampleXcom/page',
+      ],
+      'http files on different port than the web request' => [
+        'example.com',
+        80,
+        '',
+        'http://example.com:9000/page',
+        'http://example.com:9000/page',
+      ],
+      'https files on different port than the web request' => [
+        'example.com',
+        443,
+        'on',
+        'https://example.com:8443/page',
+        'https://example.com:8443/page',
+      ],
     ];
     return $data;
   }

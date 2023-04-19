@@ -47,7 +47,7 @@ class BlockContentIntegrationTest extends BlockContentTestBase {
     $this->drupalGet('test-block_content-view/all');
     $this->assertSession()->statusCodeEquals(200);
     $this->assertIds($all_ids);
-    /* @var \Drupal\block_content\Entity\BlockContentType[] $types*/
+    /** @var \Drupal\block_content\Entity\BlockContentType[] $types*/
     foreach ($types as $type) {
       $this->drupalGet("test-block_content-view/{$type->id()}");
       $this->assertIds(array_keys($block_contents[$type->id()]));
@@ -59,14 +59,16 @@ class BlockContentIntegrationTest extends BlockContentTestBase {
    *
    * @param array $expected_ids
    *   An array of block_content IDs.
+   *
+   * @internal
    */
-  protected function assertIds(array $expected_ids = []) {
+  protected function assertIds(array $expected_ids = []): void {
     $result = $this->xpath('//span[@class="field-content"]');
     $ids = [];
     foreach ($result as $element) {
       $ids[] = $element->getText();
     }
-    $this->assertEqual($ids, $expected_ids);
+    $this->assertEquals($expected_ids, $ids);
   }
 
 }
