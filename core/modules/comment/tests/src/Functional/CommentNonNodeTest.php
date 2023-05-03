@@ -2,7 +2,6 @@
 
 namespace Drupal\Tests\comment\Functional;
 
-use Drupal\Component\Render\FormattableMarkup;
 use Drupal\comment\CommentInterface;
 use Drupal\comment\Entity\Comment;
 use Drupal\comment\Entity\CommentType;
@@ -37,7 +36,7 @@ class CommentNonNodeTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  protected $defaultTheme = 'classy';
+  protected $defaultTheme = 'stark';
 
   /**
    * An administrative user with permission to configure comment settings.
@@ -74,7 +73,7 @@ class CommentNonNodeTest extends BrowserTestBase {
 
     // Verify that bundles are defined correctly.
     $bundles = \Drupal::service('entity_type.bundle.info')->getBundleInfo('comment');
-    $this->assertEqual($bundles['comment']['label'], 'Comment settings');
+    $this->assertEquals('Comment settings', $bundles['comment']['label']);
 
     // Create test user.
     $this->adminUser = $this->drupalCreateUser([
@@ -121,7 +120,7 @@ class CommentNonNodeTest extends BrowserTestBase {
    * @return \Drupal\comment\CommentInterface
    *   The new comment entity.
    */
-  public function postComment(EntityInterface $entity, $comment, $subject = '', $contact = NULL) {
+  public function postComment(?EntityInterface $entity, $comment, $subject = '', $contact = NULL) {
     $edit = [];
     $edit['comment_body[0][value]'] = $comment;
 
@@ -149,19 +148,19 @@ class CommentNonNodeTest extends BrowserTestBase {
     switch ($preview_mode) {
       case DRUPAL_REQUIRED:
         // Preview required so no save button should be found.
-        $this->assertSession()->buttonNotExists(t('Save'));
+        $this->assertSession()->buttonNotExists('Save');
         $this->submitForm($edit, 'Preview');
         // Don't break here so that we can test post-preview field presence and
         // function below.
       case DRUPAL_OPTIONAL:
-        $this->assertSession()->buttonExists(t('Preview'));
-        $this->assertSession()->buttonExists(t('Save'));
+        $this->assertSession()->buttonExists('Preview');
+        $this->assertSession()->buttonExists('Save');
         $this->submitForm($edit, 'Save');
         break;
 
       case DRUPAL_DISABLED:
-        $this->assertSession()->buttonNotExists(t('Preview'));
-        $this->assertSession()->buttonExists(t('Save'));
+        $this->assertSession()->buttonNotExists('Preview');
+        $this->assertSession()->buttonExists('Save');
         $this->submitForm($edit, 'Save');
         break;
     }
@@ -173,16 +172,14 @@ class CommentNonNodeTest extends BrowserTestBase {
     if ($contact !== TRUE) {
       // If true then attempting to find error message.
       if ($subject) {
-        $this->assertText($subject, 'Comment subject posted.');
+        $this->assertSession()->pageTextContains($subject);
       }
-      $this->assertText($comment, 'Comment body posted.');
+      $this->assertSession()->pageTextContains($comment);
       // Check the comment ID was extracted.
       $this->assertArrayHasKey(1, $match);
     }
 
-    if (isset($match[1])) {
-      return Comment::load($match[1]);
-    }
+    return Comment::load($match[1]);
   }
 
   /**
@@ -235,14 +232,15 @@ class CommentNonNodeTest extends BrowserTestBase {
     $edit = [];
     $edit['operation'] = $operation;
     $edit['comments[' . $comment->id() . ']'] = TRUE;
-    $this->drupalPostForm('admin/content/comment' . ($approval ? '/approval' : ''), $edit, 'Update');
+    $this->drupalGet('admin/content/comment' . ($approval ? '/approval' : ''));
+    $this->submitForm($edit, 'Update');
 
     if ($operation == 'delete') {
       $this->submitForm([], 'Delete');
-      $this->assertRaw(\Drupal::translation()->formatPlural(1, 'Deleted 1 comment.', 'Deleted @count comments.'));
+      $this->assertSession()->pageTextContains('Deleted 1 comment.');
     }
     else {
-      $this->assertText('The update has been performed.', new FormattableMarkup('Operation "@operation" was performed on comment.', ['@operation' => $operation]));
+      $this->assertSession()->pageTextContains('The update has been performed.');
     }
   }
 
@@ -272,7 +270,7 @@ class CommentNonNodeTest extends BrowserTestBase {
     $this->drupalLogin($limited_user);
     // Test that default field exists.
     $this->drupalGet('entity_test/structure/entity_test/fields');
-    $this->assertText('Comments');
+    $this->assertSession()->pageTextContains('Comments');
     $this->assertSession()->linkByHrefExists('entity_test/structure/entity_test/fields/entity_test.entity_test.comment');
     // Test widget hidden option is not visible when there's no comments.
     $this->drupalGet('entity_test/structure/entity_test/fields/entity_test.entity_test.comment');
@@ -288,8 +286,7 @@ class CommentNonNodeTest extends BrowserTestBase {
 
     // Test breadcrumb on comment add page.
     $this->drupalGet('comment/reply/entity_test/' . $this->entity->id() . '/comment');
-    $xpath = '//nav[@class="breadcrumb"]/ol/li[last()]/a';
-    $this->assertEqual(current($this->xpath($xpath))->getText(), $this->entity->label(), 'Last breadcrumb item is equal to node title on comment reply page.');
+    $this->assertSession()->elementTextEquals('xpath', '//nav[@aria-labelledby="system-breadcrumb"]/ol/li[last()]/a', $this->entity->label());
 
     // Post a comment.
     /** @var \Drupal\comment\CommentInterface $comment1 */
@@ -298,33 +295,42 @@ class CommentNonNodeTest extends BrowserTestBase {
 
     // Test breadcrumb on comment reply page.
     $this->drupalGet('comment/reply/entity_test/' . $this->entity->id() . '/comment/' . $comment1->id());
-    $xpath = '//nav[@class="breadcrumb"]/ol/li[last()]/a';
-    $this->assertEqual(current($this->xpath($xpath))->getText(), $comment1->getSubject(), 'Last breadcrumb item is equal to comment title on comment reply page.');
+    $this->assertSession()->elementTextEquals('xpath', '//nav[@aria-labelledby="system-breadcrumb"]/ol/li[last()]/a', $comment1->getSubject());
 
     // Test breadcrumb on comment edit page.
     $this->drupalGet('comment/' . $comment1->id() . '/edit');
-    $xpath = '//nav[@class="breadcrumb"]/ol/li[last()]/a';
-    $this->assertEqual(current($this->xpath($xpath))->getText(), $comment1->getSubject(), 'Last breadcrumb item is equal to comment subject on edit page.');
+    $this->assertSession()->elementTextEquals('xpath', '//nav[@aria-labelledby="system-breadcrumb"]/ol/li[last()]/a', $comment1->getSubject());
 
     // Test breadcrumb on comment delete page.
     $this->drupalGet('comment/' . $comment1->id() . '/delete');
-    $xpath = '//nav[@class="breadcrumb"]/ol/li[last()]/a';
-    $this->assertEqual(current($this->xpath($xpath))->getText(), $comment1->getSubject(), 'Last breadcrumb item is equal to comment subject on delete confirm page.');
+    $this->assertSession()->elementTextEquals('xpath', '//nav[@aria-labelledby="system-breadcrumb"]/ol/li[last()]/a', $comment1->getSubject());
+
+    // Test threading replying to comment #1 creating comment #1_2.
+    $this->drupalGet('comment/reply/entity_test/' . $this->entity->id() . '/comment/' . $comment1->id());
+    $comment1_2 = $this->postComment(NULL, $this->randomMachineName(), $this->randomMachineName());
+    $this->assertTrue($this->commentExists($comment1_2, TRUE), 'Comment #1_2. Reply found.');
+    $this->assertEquals('01.00/', $comment1_2->getThread());
+
+    // Test nested threading replying to comment #1_2 creating comment #1_2_3.
+    $this->drupalGet('comment/reply/entity_test/' . $this->entity->id() . '/comment/' . $comment1_2->id());
+    $comment1_2_3 = $this->postComment(NULL, $this->randomMachineName(), $this->randomMachineName());
+    $this->assertTrue($this->commentExists($comment1_2_3, TRUE), 'Comment #1_2_3. Reply found.');
+    $this->assertEquals('01.00.00/', $comment1_2_3->getThread());
 
     // Unpublish the comment.
     $this->performCommentOperation($comment1, 'unpublish');
     $this->drupalGet('admin/content/comment/approval');
-    $this->assertRaw('comments[' . $comment1->id() . ']');
+    $this->assertSession()->responseContains('comments[' . $comment1->id() . ']');
 
     // Publish the comment.
     $this->performCommentOperation($comment1, 'publish', TRUE);
     $this->drupalGet('admin/content/comment');
-    $this->assertRaw('comments[' . $comment1->id() . ']');
+    $this->assertSession()->responseContains('comments[' . $comment1->id() . ']');
 
     // Delete the comment.
     $this->performCommentOperation($comment1, 'delete');
     $this->drupalGet('admin/content/comment');
-    $this->assertNoRaw('comments[' . $comment1->id() . ']');
+    $this->assertSession()->responseNotContains('comments[' . $comment1->id() . ']');
 
     // Post another comment.
     $comment1 = $this->postComment($this->entity, $this->randomMachineName(), $this->randomMachineName());
@@ -332,16 +338,16 @@ class CommentNonNodeTest extends BrowserTestBase {
 
     // Check that the comment was found.
     $this->drupalGet('admin/content/comment');
-    $this->assertRaw('comments[' . $comment1->id() . ']');
+    $this->assertSession()->responseContains('comments[' . $comment1->id() . ']');
 
     // Check that entity access applies to administrative page.
-    $this->assertText($this->entity->label(), 'Name of commented account found.');
+    $this->assertSession()->pageTextContains($this->entity->label());
     $limited_user = $this->drupalCreateUser([
       'administer comments',
     ]);
     $this->drupalLogin($limited_user);
     $this->drupalGet('admin/content/comment');
-    $this->assertNoText($this->entity->label(), 'No commented account name found.');
+    $this->assertSession()->pageTextNotContains($this->entity->label());
 
     $this->drupalLogout();
 
@@ -396,7 +402,7 @@ class CommentNonNodeTest extends BrowserTestBase {
 
     $this->drupalGet('comment/reply/entity_test/' . $this->entity->id() . '/comment/' . $comment1->id());
     $this->assertSession()->statusCodeEquals(403);
-    $this->assertNoText($comment1->getSubject(), 'Comment not displayed.');
+    $this->assertSession()->pageTextNotContains($comment1->getSubject());
 
     // Test comment field widget changes.
     $limited_user = $this->drupalCreateUser([
@@ -443,8 +449,8 @@ class CommentNonNodeTest extends BrowserTestBase {
     // Check the field contains the correct comment type.
     $field_storage = FieldStorageConfig::load('entity_test.field_barfoo');
     $this->assertInstanceOf(FieldStorageConfig::class, $field_storage);
-    $this->assertEqual($field_storage->getSetting('comment_type'), 'foobar');
-    $this->assertEqual($field_storage->getCardinality(), 1);
+    $this->assertEquals('foobar', $field_storage->getSetting('comment_type'));
+    $this->assertEquals(1, $field_storage->getCardinality());
 
     // Test the new entity commenting inherits default.
     $random_label = $this->randomMachineName();
@@ -456,7 +462,7 @@ class CommentNonNodeTest extends BrowserTestBase {
     $this->assertSession()->checkboxChecked('edit-field-foobar-0-status-2');
     $this->assertSession()->fieldNotExists('edit-field-foobar-0-status-0');
 
-    // @todo Check proper url and form https://www.drupal.org/node/2458323
+    // @todo Check proper URL and form https://www.drupal.org/node/2458323
     $this->drupalGet('comment/reply/entity_test/comment/' . $new_entity->id());
     $this->assertSession()->fieldNotExists('subject[0][value]');
     $this->assertSession()->fieldNotExists('comment_body[0][value]');
@@ -489,6 +495,7 @@ class CommentNonNodeTest extends BrowserTestBase {
     entity_test_create_bundle('entity_test', 'Entity Test', 'entity_test_string_id');
     $limited_user = $this->drupalCreateUser([
       'administer entity_test_string_id fields',
+      'administer comment types',
     ]);
     $this->drupalLogin($limited_user);
     // Visit the Field UI field add page.
@@ -497,6 +504,11 @@ class CommentNonNodeTest extends BrowserTestBase {
     $this->assertSession()->optionNotExists('edit-new-storage-type', 'comment');
     // Ensure a core field type shown.
     $this->assertSession()->optionExists('edit-new-storage-type', 'boolean');
+
+    // Attempt to add a comment-type referencing this entity-type.
+    $this->drupalGet('admin/structure/comment/types/add');
+    $this->assertSession()->optionNotExists('edit-target-entity-type-id', 'entity_test_string_id');
+    $this->assertSession()->responseNotContains('Test entity with string_id');
 
     // Create a bundle for entity_test_no_id.
     entity_test_create_bundle('entity_test', 'Entity Test', 'entity_test_no_id');

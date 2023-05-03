@@ -145,6 +145,9 @@ class ViewsExposedForm extends FormBase {
     $form['#action'] = $form_action;
     $form['#theme'] = $view->buildThemeFunctions('views_exposed_form');
     $form['#id'] = Html::cleanCssIdentifier('views_exposed_form-' . $view->storage->id() . '-' . $display['id']);
+    // Labels are built too late for inline form errors to work, resulting
+    // in duplicated messages.
+    $form['#disable_inline_form_errors'] = TRUE;
 
     /** @var \Drupal\views\Plugin\views\exposed_form\ExposedFormPluginInterface $exposed_form_plugin */
     $exposed_form_plugin = $view->display_handler->getPlugin('exposed_form');
@@ -208,7 +211,7 @@ class ViewsExposedForm extends FormBase {
       if (!empty($key) && !in_array($key, $exclude)) {
         if (is_array($value)) {
           // Handle checkboxes, we only want to include the checked options.
-          // @todo: revisit the need for this when
+          // @todo revisit the need for this when
           //   https://www.drupal.org/node/342316 is resolved.
           $checked = Checkboxes::getCheckedCheckboxes($value);
           foreach ($checked as $option_id) {

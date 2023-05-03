@@ -9,6 +9,7 @@ use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\Core\Field\EntityReferenceFieldItemList;
 
 /**
  * The media library opener for field widgets.
@@ -41,17 +42,10 @@ class MediaLibraryFieldWidgetOpener implements MediaLibraryOpenerInterface {
   public function checkAccess(MediaLibraryState $state, AccountInterface $account) {
     $parameters = $state->getOpenerParameters() + ['entity_id' => NULL];
 
-    $process_result = function ($result) {
-      if ($result instanceof RefinableCacheableDependencyInterface) {
-        $result->addCacheContexts(['url.query_args']);
-      }
-      return $result;
-    };
-
     // Forbid access if any of the required parameters are missing.
     foreach (['entity_type_id', 'bundle', 'field_name'] as $key) {
       if (empty($parameters[$key])) {
-        return $process_result(AccessResult::forbidden("$key parameter is missing."));
+        return AccessResult::forbidden("$key parameter is missing.")->addCacheableDependency($state);
       }
     }
 
@@ -83,7 +77,10 @@ class MediaLibraryFieldWidgetOpener implements MediaLibraryOpenerInterface {
 
     // If entity-level access is denied, there's no point in continuing.
     if (!$entity_access->isAllowed()) {
-      return $process_result($entity_access);
+      if ($entity_access instanceof RefinableCacheableDependencyInterface) {
+        $entity_access->addCacheableDependency($state);
+      }
+      return $entity_access;
     }
 
     // If the entity has not been loaded, create it in memory now.
@@ -99,7 +96,9 @@ class MediaLibraryFieldWidgetOpener implements MediaLibraryOpenerInterface {
     $items = $entity->get($field_name);
     $field_definition = $items->getFieldDefinition();
 
-    if ($field_definition->getType() !== 'entity_reference') {
+    // Check that the field is an entity reference, or subclass of it, since we
+    // need to check the target_type setting.
+    if (!$items instanceof EntityReferenceFieldItemList) {
       throw new \LogicException('Expected the media library to be opened by an entity reference field.');
     }
     if ($field_definition->getFieldStorageDefinition()->getSetting('target_type') !== 'media') {
@@ -107,7 +106,11 @@ class MediaLibraryFieldWidgetOpener implements MediaLibraryOpenerInterface {
     }
 
     $field_access = $access_handler->fieldAccess('edit', $field_definition, $account, $items, TRUE);
-    return $process_result($entity_access->andIf($field_access));
+    $access = $entity_access->andIf($field_access);
+    if ($access instanceof RefinableCacheableDependencyInterface) {
+      $access->addCacheableDependency($state);
+    }
+    return $access;
   }
 
   /**

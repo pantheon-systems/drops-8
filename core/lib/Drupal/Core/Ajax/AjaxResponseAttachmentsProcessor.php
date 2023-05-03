@@ -138,11 +138,11 @@ class AjaxResponseAttachmentsProcessor implements AttachmentsResponseProcessorIn
 
     // Resolve the attached libraries into asset collections.
     $assets = new AttachedAssets();
-    $assets->setLibraries(isset($attachments['library']) ? $attachments['library'] : [])
+    $assets->setLibraries($attachments['library'] ?? [])
       ->setAlreadyLoadedLibraries(isset($ajax_page_state['libraries']) ? explode(',', $ajax_page_state['libraries']) : [])
-      ->setSettings(isset($attachments['drupalSettings']) ? $attachments['drupalSettings'] : []);
+      ->setSettings($attachments['drupalSettings'] ?? []);
     $css_assets = $this->assetResolver->getCssAssets($assets, $optimize_css);
-    list($js_assets_header, $js_assets_footer) = $this->assetResolver->getJsAssets($assets, $optimize_js);
+    [$js_assets_header, $js_assets_footer] = $this->assetResolver->getJsAssets($assets, $optimize_js);
 
     // First, AttachedAssets::setLibraries() ensures duplicate libraries are
     // removed: it converts it to a set of libraries if necessary. Second,
@@ -174,11 +174,11 @@ class AjaxResponseAttachmentsProcessor implements AttachmentsResponseProcessorIn
     }
     if ($js_assets_header) {
       $js_header_render_array = $this->jsCollectionRenderer->render($js_assets_header);
-      $resource_commands[] = new PrependCommand('head', $this->renderer->renderPlain($js_header_render_array));
+      $resource_commands[] = new AddJsCommand(array_column($js_header_render_array, '#attributes'), 'head');
     }
     if ($js_assets_footer) {
       $js_footer_render_array = $this->jsCollectionRenderer->render($js_assets_footer);
-      $resource_commands[] = new AppendCommand('body', $this->renderer->renderPlain($js_footer_render_array));
+      $resource_commands[] = new AddJsCommand(array_column($js_footer_render_array, '#attributes'));
     }
     foreach (array_reverse($resource_commands) as $resource_command) {
       $response->addCommand($resource_command, TRUE);

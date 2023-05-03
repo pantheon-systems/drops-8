@@ -30,6 +30,9 @@ class BlockStorageUnitTest extends KernelTestBase {
    */
   protected $controller;
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp(): void {
     parent::setUp();
 
@@ -61,7 +64,7 @@ class BlockStorageUnitTest extends KernelTestBase {
       $this->fail('A block without a plugin was created with no exception thrown.');
     }
     catch (PluginException $e) {
-      $this->assertEqual('The block \'\' did not specify a plugin.', $e->getMessage(), 'An exception was thrown when a block was created without a plugin.');
+      $this->assertEquals('The block \'\' did not specify a plugin.', $e->getMessage(), 'An exception was thrown when a block was created without a plugin.');
     }
 
     // Create a block with only required values.
@@ -77,7 +80,7 @@ class BlockStorageUnitTest extends KernelTestBase {
 
     // Verify all of the block properties.
     $actual_properties = $this->config('block.block.test_block')->get();
-    $this->assertTrue(!empty($actual_properties['uuid']), 'The block UUID is set.');
+    $this->assertNotEmpty($actual_properties['uuid'], 'The block UUID is set.');
     unset($actual_properties['uuid']);
 
     // Ensure that default values are filled in.
@@ -94,13 +97,13 @@ class BlockStorageUnitTest extends KernelTestBase {
       'settings' => [
         'id' => 'test_html',
         'label' => '',
-        'provider' => 'block_test',
         'label_display' => BlockPluginInterface::BLOCK_LABEL_VISIBLE,
+        'provider' => 'block_test',
       ],
       'visibility' => [],
     ];
 
-    $this->assertIdentical($actual_properties, $expected_properties);
+    $this->assertSame($expected_properties, $actual_properties);
 
     $this->assertInstanceOf(TestHtmlBlock::class, $entity->getPlugin());
   }
@@ -116,7 +119,7 @@ class BlockStorageUnitTest extends KernelTestBase {
     // Verify several properties of the block.
     $this->assertSame('content', $entity->getRegion());
     $this->assertTrue($entity->status());
-    $this->assertEqual($entity->getTheme(), 'stark');
+    $this->assertEquals('stark', $entity->getTheme());
     $this->assertNotEmpty($entity->uuid());
   }
 
@@ -129,30 +132,30 @@ class BlockStorageUnitTest extends KernelTestBase {
     // Ensure that the storage isn't currently empty.
     $config_storage = $this->container->get('config.storage');
     $config = $config_storage->listAll('block.block.');
-    $this->assertFalse(empty($config), 'There are blocks in config storage.');
+    $this->assertNotEmpty($config, 'There are blocks in config storage.');
 
     // Delete the block.
     $entity->delete();
 
     // Ensure that the storage is now empty.
     $config = $config_storage->listAll('block.block.');
-    $this->assertTrue(empty($config), 'There are no blocks in config storage.');
+    $this->assertEmpty($config, 'There are no blocks in config storage.');
   }
 
   /**
    * Tests the installation of default blocks.
    */
   public function testDefaultBlocks() {
-    \Drupal::service('theme_installer')->install(['classy']);
+    \Drupal::service('theme_installer')->install(['stark']);
     $entities = $this->controller->loadMultiple();
-    $this->assertTrue(empty($entities), 'There are no blocks initially.');
+    $this->assertEmpty($entities, 'There are no blocks initially.');
 
     // Install the block_test.module, so that its default config is installed.
     $this->installConfig(['block_test']);
 
     $entities = $this->controller->loadMultiple();
     $entity = reset($entities);
-    $this->assertEqual($entity->id(), 'test_block', 'The default test block was loaded.');
+    $this->assertEquals('test_block', $entity->id(), 'The default test block was loaded.');
   }
 
 }

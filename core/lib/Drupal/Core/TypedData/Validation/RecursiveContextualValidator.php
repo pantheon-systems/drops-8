@@ -52,6 +52,11 @@ class RecursiveContextualValidator implements ContextualValidatorInterface {
   protected $constraintValidatorFactory;
 
   /**
+   * The typed data manager.
+   */
+  protected $typedDataManager;
+
+  /**
    * Creates a validator for the given context.
    *
    * @param \Symfony\Component\Validator\Context\ExecutionContextInterface $context
@@ -154,7 +159,7 @@ class RecursiveContextualValidator implements ContextualValidatorInterface {
     // entity, since we should determine whether the entity matches the
     // constraints and not whether the entity validates.
     if (($data instanceof ListInterface || $data instanceof ComplexDataInterface) && !$data->isEmpty() && !($data instanceof EntityAdapter && $constraints_given)) {
-      foreach ($data as $name => $property) {
+      foreach ($data as $property) {
         $this->validateNode($property);
       }
     }

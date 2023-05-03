@@ -4,9 +4,9 @@ namespace Drupal\Tests\language\Functional\Rest;
 
 use Drupal\language\Entity\ContentLanguageSettings;
 use Drupal\node\Entity\NodeType;
-use Drupal\Tests\rest\Functional\EntityResource\EntityResourceTestBase;
+use Drupal\Tests\rest\Functional\EntityResource\ConfigEntityResourceTestBase;
 
-abstract class ContentLanguageSettingsResourceTestBase extends EntityResourceTestBase {
+abstract class ContentLanguageSettingsResourceTestBase extends ConfigEntityResourceTestBase {
 
   /**
    * {@inheritdoc}
@@ -77,6 +77,7 @@ abstract class ContentLanguageSettingsResourceTestBase extends EntityResourceTes
    */
   protected function getNormalizedPostEntity() {
     // @todo Update in https://www.drupal.org/node/2300677.
+    return [];
   }
 
   /**

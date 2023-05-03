@@ -422,7 +422,7 @@ EOF;
 
     $test_discovery = $this->getMockBuilder(TestDiscovery::class)
       ->setConstructorArgs([$app_root, $class_loader->reveal(), $module_handler->reveal()])
-      ->setMethods(['getExtensions'])
+      ->onlyMethods(['getExtensions'])
       ->getMock();
 
     $test_discovery->expects($this->any())
@@ -483,14 +483,13 @@ EOF;
   public function testGetTestsInProfiles() {
     $this->setupVfsWithTestClasses();
     $class_loader = $this->prophesize(ClassLoader::class);
-    $module_handler = $this->prophesize(ModuleHandlerInterface::class);
 
     $container = new Container();
     $container->set('kernel', new DrupalKernel('prod', new ClassLoader()));
     $container->setParameter('site.path', 'sites/default');
     \Drupal::setContainer($container);
 
-    $test_discovery = new TestDiscovery('vfs://drupal', $class_loader->reveal(), $module_handler->reveal());
+    $test_discovery = new TestDiscovery('vfs://drupal', $class_loader->reveal());
 
     $result = $test_discovery->getTestClasses('test_profile_module', ['PHPUnit-Kernel']);
     $expected = [
@@ -518,7 +517,6 @@ EOF;
   public function providerTestGetPhpunitTestSuite() {
     $data = [];
     $data['simpletest-webtest'] = ['\Drupal\rest\Tests\NodeTest', FALSE];
-    $data['simpletest-kerneltest'] = ['\Drupal\hal\Tests\FileNormalizeTest', FALSE];
     $data['module-unittest'] = [static::class, 'Unit'];
     $data['module-kerneltest'] = ['\Drupal\KernelTests\Core\Theme\TwigMarkupInterfaceTest', 'Kernel'];
     $data['module-functionaltest'] = ['\Drupal\FunctionalTests\BrowserTestBaseTest', 'Functional'];

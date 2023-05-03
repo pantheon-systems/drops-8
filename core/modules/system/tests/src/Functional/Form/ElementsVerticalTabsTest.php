@@ -39,6 +39,9 @@ class ElementsVerticalTabsTest extends BrowserTestBase {
    */
   protected $webUser;
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp(): void {
     parent::setUp();
 
@@ -70,14 +73,12 @@ class ElementsVerticalTabsTest extends BrowserTestBase {
   public function testWrapperNotShownWhenEmpty() {
     // Test admin user can see vertical tabs and wrapper.
     $this->drupalGet('form_test/vertical-tabs');
-    $wrapper = $this->xpath("//div[@data-vertical-tabs-panes]");
-    $this->assertTrue(isset($wrapper[0]), 'Vertical tab panes found.');
+    $this->assertSession()->elementExists('xpath', "//div[@data-vertical-tabs-panes]");
 
     // Test wrapper markup not present for non-privileged web user.
     $this->drupalLogin($this->webUser);
     $this->drupalGet('form_test/vertical-tabs');
-    $wrapper = $this->xpath("//div[@data-vertical-tabs-panes]");
-    $this->assertFalse(isset($wrapper[0]), 'Vertical tab wrappers are not displayed to unprivileged users.');
+    $this->assertSession()->elementNotExists('xpath', "//div[@data-vertical-tabs-panes]");
   }
 
   /**
@@ -85,12 +86,7 @@ class ElementsVerticalTabsTest extends BrowserTestBase {
    */
   public function testDefaultTab() {
     $this->drupalGet('form_test/vertical-tabs');
-
-    $value = $this->assertSession()
-      ->elementExists('css', 'input[name="vertical_tabs__active_tab"]')
-      ->getValue();
-
-    $this->assertSame('edit-tab3', $value, t('The default vertical tab is correctly selected.'));
+    $this->assertSession()->elementAttributeContains('css', 'input[name="vertical_tabs__active_tab"]', 'value', 'edit-tab3');
   }
 
   /**

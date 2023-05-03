@@ -6,7 +6,7 @@ use Drupal\migrate\MigrateExecutableInterface;
 use Drupal\migrate\ProcessPluginBase;
 use Drupal\migrate\Row;
 
-// cspell:ignore imagefield
+// cspell:ignore filefield imagefield
 
 /**
  * @MigrateProcessPlugin(
@@ -21,7 +21,7 @@ class FieldInstanceSettings extends ProcessPluginBase {
    * Set the field instance defaults.
    */
   public function transform($value, MigrateExecutableInterface $migrate_executable, Row $row, $destination_property) {
-    list($widget_type, $widget_settings, $field_settings) = $value;
+    [$widget_type, $widget_settings, $field_settings] = $value;
     $settings = [];
     switch ($widget_type) {
       case 'number':
@@ -49,7 +49,7 @@ class FieldInstanceSettings extends ProcessPluginBase {
       case 'imagefield_widget':
         $settings['file_extensions'] = $widget_settings['file_extensions'];
         $settings['file_directory'] = $widget_settings['file_path'];
-        $settings['max_filesize'] = $this->convertSizeUnit($widget_settings['max_filesize_per_file']);
+        $settings['max_filesize'] = $this->convertSizeUnit($widget_settings['max_filesize_per_file'] ?? '');
         $settings['alt_field'] = $widget_settings['alt'];
         $settings['alt_field_required'] = $widget_settings['custom_alt'];
         $settings['title_field'] = $widget_settings['title'];

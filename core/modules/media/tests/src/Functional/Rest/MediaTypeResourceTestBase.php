@@ -3,9 +3,9 @@
 namespace Drupal\Tests\media\Functional\Rest;
 
 use Drupal\media\Entity\MediaType;
-use Drupal\Tests\rest\Functional\EntityResource\EntityResourceTestBase;
+use Drupal\Tests\rest\Functional\EntityResource\ConfigEntityResourceTestBase;
 
-abstract class MediaTypeResourceTestBase extends EntityResourceTestBase {
+abstract class MediaTypeResourceTestBase extends ConfigEntityResourceTestBase {
 
   /**
    * {@inheritdoc}
@@ -57,9 +57,9 @@ abstract class MediaTypeResourceTestBase extends EntityResourceTestBase {
       'id' => 'camelids',
       'label' => NULL,
       'langcode' => 'en',
-      'new_revision' => FALSE,
-      'queue_thumbnail_downloads' => FALSE,
       'source' => 'file',
+      'queue_thumbnail_downloads' => FALSE,
+      'new_revision' => FALSE,
       'source_configuration' => [
         'source_field' => '',
       ],
@@ -73,6 +73,7 @@ abstract class MediaTypeResourceTestBase extends EntityResourceTestBase {
    */
   protected function getNormalizedPostEntity() {
     // @todo Update in https://www.drupal.org/node/2300677.
+    return [];
   }
 
 }

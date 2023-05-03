@@ -54,6 +54,9 @@ class TranslationWebTest extends FieldTestBase {
    */
   protected $field;
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp(): void {
     parent::setUp();
 
@@ -120,7 +123,8 @@ class TranslationWebTest extends FieldTestBase {
       "{$field_name}[0][value]" => $entity->{$field_name}->value,
       'revision' => TRUE,
     ];
-    $this->drupalPostForm($this->entityTypeId . '/manage/' . $entity->id() . '/edit', $edit, 'Save');
+    $this->drupalGet($this->entityTypeId . '/manage/' . $entity->id() . '/edit');
+    $this->submitForm($edit, 'Save');
 
     // Check translation revisions.
     $this->checkTranslationRevisions($entity->id(), $entity->getRevisionId(), $available_langcodes);
@@ -128,6 +132,8 @@ class TranslationWebTest extends FieldTestBase {
   }
 
   /**
+   * Tests translation revisions.
+   *
    * Check if the field translation attached to the entity revision identified
    * by the passed arguments were correctly stored.
    */

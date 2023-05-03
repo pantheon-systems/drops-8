@@ -8,6 +8,7 @@ use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Form\ConfirmFormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
+use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -95,7 +96,7 @@ class NodeRevisionDeleteForm extends ConfirmFormBase {
    * {@inheritdoc}
    */
   public function getQuestion() {
-    return t('Are you sure you want to delete the revision from %revision-date?', [
+    return $this->t('Are you sure you want to delete the revision from %revision-date?', [
       '%revision-date' => $this->dateFormatter->format($this->revision->getRevisionCreationTime()),
     ]);
   }
@@ -111,14 +112,14 @@ class NodeRevisionDeleteForm extends ConfirmFormBase {
    * {@inheritdoc}
    */
   public function getConfirmText() {
-    return t('Delete');
+    return $this->t('Delete');
   }
 
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, FormStateInterface $form_state, $node_revision = NULL) {
-    $this->revision = $this->nodeStorage->loadRevision($node_revision);
+  public function buildForm(array $form, FormStateInterface $form_state, NodeInterface $node_revision = NULL) {
+    $this->revision = $node_revision;
     $form = parent::buildForm($form, $form_state);
 
     return $form;
@@ -142,7 +143,7 @@ class NodeRevisionDeleteForm extends ConfirmFormBase {
       'entity.node.canonical',
       ['node' => $this->revision->id()]
     );
-    if ($this->connection->query('SELECT COUNT(DISTINCT vid) FROM {node_field_revision} WHERE nid = :nid', [':nid' => $this->revision->id()])->fetchField() > 1) {
+    if ($this->connection->query('SELECT COUNT(DISTINCT [vid]) FROM {node_field_revision} WHERE [nid] = :nid', [':nid' => $this->revision->id()])->fetchField() > 1) {
       $form_state->setRedirect(
         'entity.node.version_history',
         ['node' => $this->revision->id()]

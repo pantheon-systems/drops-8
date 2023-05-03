@@ -38,7 +38,7 @@ class TextareaWithSummaryWidget extends TextareaWidget {
     $element = parent::settingsForm($form, $form_state);
     $element['summary_rows'] = [
       '#type' => 'number',
-      '#title' => t('Summary rows'),
+      '#title' => $this->t('Summary rows'),
       '#default_value' => $this->getSetting('summary_rows'),
       '#description' => $element['rows']['#description'],
       '#required' => TRUE,
@@ -46,7 +46,7 @@ class TextareaWithSummaryWidget extends TextareaWidget {
     ];
     $element['show_summary'] = [
       '#type' => 'checkbox',
-      '#title' => t('Always show the summary field'),
+      '#title' => $this->t('Always show the summary field'),
       '#default_value' => $this->getSetting('show_summary'),
     ];
     return $element;
@@ -58,9 +58,9 @@ class TextareaWithSummaryWidget extends TextareaWidget {
   public function settingsSummary() {
     $summary = parent::settingsSummary();
 
-    $summary[] = t('Number of summary rows: @rows', ['@rows' => $this->getSetting('summary_rows')]);
+    $summary[] = $this->t('Number of summary rows: @rows', ['@rows' => $this->getSetting('summary_rows')]);
     if ($this->getSetting('show_summary')) {
-      $summary[] = t('Summary field will always be visible');
+      $summary[] = $this->t('Summary field will always be visible');
     }
 
     return $summary;
@@ -78,10 +78,10 @@ class TextareaWithSummaryWidget extends TextareaWidget {
     $element['summary'] = [
       '#type' => $display_summary ? 'textarea' : 'value',
       '#default_value' => $items[$delta]->summary,
-      '#title' => t('Summary'),
+      '#title' => $this->t('Summary'),
       '#rows' => $this->getSetting('summary_rows'),
       '#description' => !$required ? $this->t('Leave blank to use trimmed value of full text as the summary.') : '',
-      '#attributes' => ['class' => ['js-text-summary', 'text-summary']],
+      '#attributes' => ['class' => ['text-summary']],
       '#prefix' => '<div class="js-text-summary-wrapper text-summary-wrapper">',
       '#suffix' => '</div>',
       '#weight' => -10,
@@ -89,6 +89,7 @@ class TextareaWithSummaryWidget extends TextareaWidget {
     ];
 
     if (!$this->getSetting('show_summary') && !$required) {
+      $element['summary']['#attributes']['class'][] = 'js-text-summary';
       $element['summary']['#attached']['library'][] = 'text/drupal.text';
     }
 
@@ -100,7 +101,8 @@ class TextareaWithSummaryWidget extends TextareaWidget {
    */
   public function errorElement(array $element, ConstraintViolationInterface $violation, array $form, FormStateInterface $form_state) {
     $element = parent::errorElement($element, $violation, $form, $form_state);
-    return ($element === FALSE) ? FALSE : $element[$violation->arrayPropertyPath[0]];
+    $property_path_array = explode('.', $violation->getPropertyPath());
+    return ($element === FALSE) ? FALSE : $element[$property_path_array[1]];
   }
 
 }

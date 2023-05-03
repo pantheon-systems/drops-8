@@ -40,7 +40,6 @@ use Drupal\user\StatusItem;
  *   data_table = "taxonomy_term_field_data",
  *   revision_table = "taxonomy_term_revision",
  *   revision_data_table = "taxonomy_term_field_revision",
- *   uri_callback = "taxonomy_term_uri",
  *   translatable = TRUE,
  *   entity_keys = {
  *     "id" = "tid",
@@ -268,7 +267,7 @@ class Term extends EditorialContentEntityBase implements TermInterface {
    * {@inheritdoc}
    */
   public function getWeight() {
-    return $this->get('weight')->value;
+    return (int) $this->get('weight')->value;
   }
 
   /**

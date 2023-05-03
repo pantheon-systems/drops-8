@@ -136,8 +136,7 @@ interface FieldHandlerInterface extends ViewsHandlerInterface {
   public function getValue(ResultRow $values, $field = NULL);
 
   /**
-   * Determines if this field will be available as an option to group the result
-   * by in the style settings.
+   * Determines if this field can be grouped in the results.
    *
    * @return bool
    *   TRUE if this field handler is groupable, otherwise FALSE.
@@ -255,7 +254,7 @@ interface FieldHandlerInterface extends ViewsHandlerInterface {
   public function getRenderTokens($item);
 
   /**
-   * Passes values to drupal_render() using $this->themeFunctions() as #theme.
+   * Renders row values using $this->themeFunctions() as #theme.
    *
    * @param \Drupal\views\ResultRow $values
    *   Holds single row of a view's result set.

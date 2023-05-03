@@ -230,7 +230,7 @@ abstract class StylePluginBase extends PluginBase {
   public function tokenizeValue($value, $row_index) {
     if (strpos($value, '{{') !== FALSE) {
       // Row tokens might be empty, for example for node row style.
-      $tokens = isset($this->rowTokens[$row_index]) ? $this->rowTokens[$row_index] : [];
+      $tokens = $this->rowTokens[$row_index] ?? [];
       if (!empty($this->view->build_info['substitutions'])) {
         $tokens += $this->view->build_info['substitutions'];
       }
@@ -246,8 +246,7 @@ abstract class StylePluginBase extends PluginBase {
   }
 
   /**
-   * Should the output of the style plugin be rendered even if it's an empty
-   * view.
+   * Determines if the style plugin is rendered even if the view is empty.
    */
   public function evenEmpty() {
     return !empty($this->definition['even empty']);
@@ -387,8 +386,14 @@ abstract class StylePluginBase extends PluginBase {
    *   The current state of the form.
    * @param string $type
    *   The display type, either block or page.
+   *
+   * @deprecated in drupal:9.2.0 and is removed from drupal:10.0.0. No direct
+   *   replacement is provided.
+   *
+   * @see https://www.drupal.org/node/3186502
    */
   public function wizardForm(&$form, FormStateInterface $form_state, $type) {
+    @trigger_error(__METHOD__ . '() is deprecated in drupal:9.2.0 and is removed from drupal:10.0.0. No direct replacement is provided. See https://www.drupal.org/node/3186502', E_USER_DEPRECATED);
   }
 
   /**
@@ -410,6 +415,8 @@ abstract class StylePluginBase extends PluginBase {
   }
 
   /**
+   * Determines if the style handler should interfere with sorts.
+   *
    * Called by the view builder to see if this style handler wants to
    * interfere with the sorts. If so it should build; if it returns
    * any non-TRUE value, normal sorting will NOT be added to the query.
@@ -419,6 +426,8 @@ abstract class StylePluginBase extends PluginBase {
   }
 
   /**
+   * Allows the view builder to build a second set of sorts.
+   *
    * Called by the view builder to let the style build a second set of
    * sorts that will come after any other sorts in the view.
    */
@@ -457,11 +466,6 @@ abstract class StylePluginBase extends PluginBase {
    * Render the display in this style.
    */
   public function render() {
-    if ($this->usesRowPlugin() && empty($this->view->rowPlugin)) {
-      trigger_error('Drupal\views\Plugin\views\style\StylePluginBase: Missing row plugin', E_WARNING);
-      return [];
-    }
-
     // Group the rows according to the grouping instructions, if specified.
     $sets = $this->renderGrouping(
       $this->view->result,
@@ -492,7 +496,7 @@ abstract class StylePluginBase extends PluginBase {
     $output = [];
     $theme_functions = $this->view->buildThemeFunctions($this->groupingTheme);
     foreach ($sets as $set) {
-      $level = isset($set['level']) ? $set['level'] : 0;
+      $level = $set['level'] ?? 0;
 
       $row = reset($set['rows']);
       // Render as a grouping set.
@@ -539,7 +543,7 @@ abstract class StylePluginBase extends PluginBase {
    *   $groupings is an old-style string or if the rendered option is missing
    *   for a grouping instruction.
    *
-   * @return
+   * @return array
    *   The grouped record set.
    *   A nested set structure is generated if multiple grouping fields are used.
    *
@@ -585,8 +589,8 @@ abstract class StylePluginBase extends PluginBase {
         $set = &$sets;
         foreach ($groupings as $level => $info) {
           $field = $info['field'];
-          $rendered = isset($info['rendered']) ? $info['rendered'] : $group_rendered;
-          $rendered_strip = isset($info['rendered_strip']) ? $info['rendered_strip'] : FALSE;
+          $rendered = $info['rendered'] ?? $group_rendered;
+          $rendered_strip = $info['rendered_strip'] ?? FALSE;
           $grouping = '';
           $group_content = '';
           // Group on the rendered version of the field, not the raw.  That way,
@@ -595,7 +599,8 @@ abstract class StylePluginBase extends PluginBase {
           if (isset($this->view->field[$field])) {
             $group_content = $this->getField($index, $field);
             if ($this->view->field[$field]->options['label']) {
-              $group_content = $this->view->field[$field]->options['label'] . ': ' . $group_content;
+              $delimiter = $this->view->field[$field]->options['element_label_colon'] ? ': ' : ' ';
+              $group_content = $this->view->field[$field]->options['label'] . $delimiter . $group_content;
             }
             if ($rendered) {
               $grouping = (string) $group_content;

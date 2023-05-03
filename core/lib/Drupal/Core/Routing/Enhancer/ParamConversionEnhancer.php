@@ -56,7 +56,7 @@ class ParamConversionEnhancer implements EnhancerInterface, EventSubscriberInter
    * @return \Symfony\Component\HttpFoundation\ParameterBag
    */
   protected function copyRawVariables(array $defaults) {
-    /** @var $route \Symfony\Component\Routing\Route */
+    /** @var \Symfony\Component\Routing\Route $route */
     $route = $defaults[RouteObjectInterface::ROUTE_OBJECT];
     $variables = array_flip($route->compile()->getVariables());
     // Foreach will copy the values from the array it iterates. Even if they
@@ -66,6 +66,13 @@ class ParamConversionEnhancer implements EnhancerInterface, EventSubscriberInter
     foreach (array_intersect_key($defaults, $variables) as $key => $value) {
       $raw_variables[$key] = $value;
     }
+    // Route defaults that do not start with a leading "_" are also
+    // parameters, even if they are not included in path or host patterns.
+    foreach ($route->getDefaults() as $name => $value) {
+      if (!isset($raw_variables[$name]) && substr($name, 0, 1) !== '_') {
+        $raw_variables[$name] = $value;
+      }
+    }
     return new ParameterBag($raw_variables);
   }
 
@@ -73,6 +80,7 @@ class ParamConversionEnhancer implements EnhancerInterface, EventSubscriberInter
    * Catches failed parameter conversions and throw a 404 instead.
    *
    * @param \Symfony\Component\HttpKernel\Event\ExceptionEvent $event
+   *   The event.
    */
   public function onException(ExceptionEvent $event) {
     $exception = $event->getThrowable();
