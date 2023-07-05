@@ -5,6 +5,9 @@ namespace Drupal\Core\Entity;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Cache\MemoryCache\MemoryCacheInterface;
+use Drupal\Core\Entity\Exception\AmbiguousBundleClassException;
+use Drupal\Core\Entity\Exception\BundleClassInheritanceException;
+use Drupal\Core\Entity\Exception\MissingBundleClassException;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Language\LanguageInterface;
@@ -14,7 +17,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 /**
  * Base class for content entity storage handlers.
  */
-abstract class ContentEntityStorageBase extends EntityStorageBase implements ContentEntityStorageInterface, DynamicallyFieldableEntityStorageInterface {
+abstract class ContentEntityStorageBase extends EntityStorageBase implements ContentEntityStorageInterface, DynamicallyFieldableEntityStorageInterface, BundleEntityStorageInterface {
 
   /**
    * The entity bundle key.
@@ -76,6 +79,33 @@ abstract class ContentEntityStorageBase extends EntityStorageBase implements Con
   /**
    * {@inheritdoc}
    */
+  public function create(array $values = []) {
+    $bundle = $this->getBundleFromValues($values);
+    $entity_class = $this->getEntityClass($bundle);
+    // @todo Decide what to do if preCreate() tries to change the bundle.
+    // @see https://www.drupal.org/project/drupal/issues/3230792
+    $entity_class::preCreate($this, $values);
+
+    // Assign a new UUID if there is none yet.
+    if ($this->uuidKey && $this->uuidService && !isset($values[$this->uuidKey])) {
+      $values[$this->uuidKey] = $this->uuidService->generate();
+    }
+
+    $entity = $this->doCreate($values);
+    $entity->enforceIsNew();
+
+    $entity->postCreate($this);
+
+    // Modules might need to add or change the data initially held by the new
+    // entity object, for instance to fill-in default values.
+    $this->invokeHook('create', $entity);
+
+    return $entity;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public static function createInstance(ContainerInterface $container, EntityTypeInterface $entity_type) {
     return new static(
       $entity_type,
@@ -90,34 +120,98 @@ abstract class ContentEntityStorageBase extends EntityStorageBase implements Con
    * {@inheritdoc}
    */
   protected function doCreate(array $values) {
-    // We have to determine the bundle first.
-    $bundle = FALSE;
-    if ($this->bundleKey) {
-      if (!isset($values[$this->bundleKey])) {
-        throw new EntityStorageException('Missing bundle for entity type ' . $this->entityTypeId);
-      }
-
-      // Normalize the bundle value. This is an optimized version of
-      // \Drupal\Core\Field\FieldInputValueNormalizerTrait::normalizeValue()
-      // because we just need the scalar value.
-      $bundle_value = $values[$this->bundleKey];
-      if (!is_array($bundle_value)) {
-        // The bundle value is a scalar, use it as-is.
-        $bundle = $bundle_value;
-      }
-      elseif (is_numeric(array_keys($bundle_value)[0])) {
-        // The bundle value is a field item list array, keyed by delta.
-        $bundle = reset($bundle_value[0]);
-      }
-      else {
-        // The bundle value is a field item array, keyed by the field's main
-        // property name.
-        $bundle = reset($bundle_value);
-      }
+    $bundle = $this->getBundleFromValues($values);
+    if ($this->bundleKey && !$bundle) {
+      throw new EntityStorageException('Missing bundle for entity type ' . $this->entityTypeId);
     }
-    $entity = new $this->entityClass([], $this->entityTypeId, $bundle);
+    $entity_class = $this->getEntityClass($bundle);
+    $entity = new $entity_class([], $this->entityTypeId, $bundle);
     $this->initFieldValues($entity, $values);
     return $entity;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getBundleFromClass(string $class_name): ?string {
+    $bundle_for_class = NULL;
+
+    foreach ($this->entityTypeBundleInfo->getBundleInfo($this->entityTypeId) as $bundle => $bundle_info) {
+      if (!empty($bundle_info['class']) && $bundle_info['class'] === $class_name) {
+        if ($bundle_for_class) {
+          throw new AmbiguousBundleClassException($class_name);
+        }
+        else {
+          $bundle_for_class = $bundle;
+        }
+      }
+    }
+
+    return $bundle_for_class;
+  }
+
+  /**
+   * Retrieves the bundle from an array of values.
+   *
+   * @param array $values
+   *   An array of values to set, keyed by field name.
+   *
+   * @return string|null
+   *   The bundle or NULL if not set.
+   */
+  protected function getBundleFromValues(array $values): ?string {
+    $bundle = NULL;
+
+    // Make sure we have a reasonable bundle key. If not, bail early.
+    if (!$this->bundleKey || !isset($values[$this->bundleKey])) {
+      return NULL;
+    }
+
+    // Normalize the bundle value. This is an optimized version of
+    // \Drupal\Core\Field\FieldInputValueNormalizerTrait::normalizeValue()
+    // because we just need the scalar value.
+    $bundle_value = $values[$this->bundleKey];
+    if (!is_array($bundle_value)) {
+      // The bundle value is a scalar, use it as-is.
+      $bundle = $bundle_value;
+    }
+    elseif (is_numeric(array_keys($bundle_value)[0])) {
+      // The bundle value is a field item list array, keyed by delta.
+      $bundle = reset($bundle_value[0]);
+    }
+    else {
+      // The bundle value is a field item array, keyed by the field's main
+      // property name.
+      $bundle = reset($bundle_value);
+    }
+    return $bundle;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getEntityClass(?string $bundle = NULL): string {
+    $entity_class = parent::getEntityClass();
+
+    // If no bundle is set, use the entity type ID as the bundle ID.
+    $bundle = $bundle ?? $this->getEntityTypeId();
+
+    // Return the bundle class if it has been defined for this bundle.
+    $bundle_info = $this->entityTypeBundleInfo->getBundleInfo($this->entityTypeId);
+    $bundle_class = $bundle_info[$bundle]['class'] ?? NULL;
+
+    // Bundle classes should exist and extend the main entity class.
+    if ($bundle_class) {
+      if (!class_exists($bundle_class)) {
+        throw new MissingBundleClassException($bundle_class);
+      }
+      elseif (!is_subclass_of($bundle_class, $entity_class)) {
+        throw new BundleClassInheritanceException($bundle_class, $entity_class);
+      }
+      return $bundle_class;
+    }
+
+    return $entity_class;
   }
 
   /**
@@ -539,7 +633,7 @@ abstract class ContentEntityStorageBase extends EntityStorageBase implements Con
   public function loadRevision($revision_id) {
     $revisions = $this->loadMultipleRevisions([$revision_id]);
 
-    return isset($revisions[$revision_id]) ? $revisions[$revision_id] : NULL;
+    return $revisions[$revision_id] ?? NULL;
   }
 
   /**
@@ -611,10 +705,12 @@ abstract class ContentEntityStorageBase extends EntityStorageBase implements Con
 
     $this->populateAffectedRevisionTranslations($entity);
 
-    // Populate the "revision_default" flag. We skip this when we are resaving
-    // the revision because this is only allowed for default revisions, and
-    // these cannot be made non-default.
-    if ($this->entityType->isRevisionable() && $entity->isNewRevision()) {
+    // Populate the "revision_default" flag. Skip this when we are resaving
+    // the revision, and the flag is set to FALSE, since it is not possible to
+    // set a previously default revision to non-default. However, setting a
+    // previously non-default revision to default is allowed for advanced
+    // use-cases.
+    if ($this->entityType->isRevisionable() && ($entity->isNewRevision() || $entity->isDefaultRevision())) {
       $revision_default_key = $this->entityType->getRevisionMetadataKey('revision_default');
       $entity->set($revision_default_key, $entity->isDefaultRevision());
     }
@@ -765,15 +861,19 @@ abstract class ContentEntityStorageBase extends EntityStorageBase implements Con
   protected function invokeStorageLoadHook(array &$entities) {
     if (!empty($entities)) {
       // Call hook_entity_storage_load().
-      foreach ($this->moduleHandler()->getImplementations('entity_storage_load') as $module) {
-        $function = $module . '_entity_storage_load';
-        $function($entities, $this->entityTypeId);
-      }
+      $this->moduleHandler()->invokeAllWith(
+        'entity_storage_load',
+        function (callable $hook, string $module) use (&$entities) {
+          $hook($entities, $this->entityTypeId);
+        }
+      );
       // Call hook_TYPE_storage_load().
-      foreach ($this->moduleHandler()->getImplementations($this->entityTypeId . '_storage_load') as $module) {
-        $function = $module . '_' . $this->entityTypeId . '_storage_load';
-        $function($entities);
-      }
+      $this->moduleHandler()->invokeAllWith(
+        $this->entityTypeId . '_storage_load',
+        function (callable $hook, string $module) use (&$entities) {
+          $hook($entities);
+        }
+      );
     }
   }
 
@@ -1010,9 +1110,14 @@ abstract class ContentEntityStorageBase extends EntityStorageBase implements Con
       $this->entityTypeId . '_values',
       'entity_field_info',
     ];
+    $items = [];
     foreach ($entities as $id => $entity) {
-      $this->cacheBackend->set($this->buildCacheId($id), $entity, CacheBackendInterface::CACHE_PERMANENT, $cache_tags);
+      $items[$this->buildCacheId($id)] = [
+        'data' => $entity,
+        'tags' => $cache_tags,
+      ];
     }
+    $this->cacheBackend->setMultiple($items);
   }
 
   /**
@@ -1063,7 +1168,15 @@ abstract class ContentEntityStorageBase extends EntityStorageBase implements Con
   }
 
   /**
-   * {@inheritdoc}
+   * Resets the entity cache.
+   *
+   * Content entities have both an in-memory static cache and a persistent
+   * cache. Use this method to clear all caches. To clear just the in-memory
+   * cache, use the 'entity.memory_cache' service.
+   *
+   * @param array $ids
+   *   (optional) If specified, the cache is reset for the entities with the
+   *   given ids only.
    */
   public function resetCache(array $ids = NULL) {
     if ($ids) {

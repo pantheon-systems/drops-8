@@ -66,7 +66,7 @@ abstract class Extension implements ExtensionInterface, ConfigurationExtensionIn
     public function getAlias()
     {
         $className = static::class;
-        if ('Extension' != substr($className, -9)) {
+        if (!str_ends_with($className, 'Extension')) {
             throw new BadMethodCallException('This extension does not follow the naming convention; you must overwrite the getAlias() method.');
         }
         $classBaseName = substr(strrchr($className, '\\'), 1, -9);
@@ -81,7 +81,7 @@ abstract class Extension implements ExtensionInterface, ConfigurationExtensionIn
     {
         $class = static::class;
 
-        if (false !== strpos($class, "\0")) {
+        if (str_contains($class, "\0")) {
             return null; // ignore anonymous classes
         }
 
@@ -94,7 +94,7 @@ abstract class Extension implements ExtensionInterface, ConfigurationExtensionIn
 
         if (!$class->implementsInterface(ConfigurationInterface::class)) {
             @trigger_error(sprintf('Not implementing "%s" in the extension configuration class "%s" is deprecated since Symfony 4.1.', ConfigurationInterface::class, $class->getName()), \E_USER_DEPRECATED);
-            //throw new LogicException(sprintf('The extension configuration class "%s" must implement "%s".', $class->getName(), ConfigurationInterface::class));
+            // throw new LogicException(sprintf('The extension configuration class "%s" must implement "%s".', $class->getName(), ConfigurationInterface::class));
 
             return null;
         }

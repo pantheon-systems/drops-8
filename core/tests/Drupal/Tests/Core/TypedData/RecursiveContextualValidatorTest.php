@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\Tests\Core\TypedData\RecursiveContextualValidatorTest.
- */
-
 namespace Drupal\Tests\Core\TypedData;
 
 use Drupal\Core\Cache\NullBackend;
@@ -188,6 +183,8 @@ class RecursiveContextualValidatorTest extends UnitTestCase {
    *
    * @param array $tree
    *   An array of value, constraints and properties.
+   * @param string $name
+   *   The name to use for the object.
    *
    * @return \Drupal\Core\TypedData\TypedDataInterface|\PHPUnit\Framework\MockObject\MockObject
    */
@@ -256,7 +253,7 @@ class RecursiveContextualValidatorTest extends UnitTestCase {
   public function providerTestValidatePropertyWithInvalidObjects() {
     $data = [];
     $data[] = [new \stdClass()];
-    $data[] = [new TestClass()];
+    $data[] = [new class() {}];
 
     $data[] = [$this->createMock('Drupal\Core\TypedData\TypedDataInterface')];
 
@@ -332,16 +329,12 @@ class RecursiveContextualValidatorTest extends UnitTestCase {
       ],
       'key_with_properties' => [
         'value' => $subkey_value ?: ['subkey1' => 'subvalue1', 'subkey2' => 'subvalue2'],
-        ],
+      ],
     ];
     $tree['properties']['key_with_properties']['properties']['subkey1'] = ['value' => $tree['properties']['key_with_properties']['value']['subkey1']];
     $tree['properties']['key_with_properties']['properties']['subkey2'] = ['value' => $tree['properties']['key_with_properties']['value']['subkey2']];
 
     return $this->setupTypedData($tree, 'test_name');
   }
-
-}
-
-class TestClass {
 
 }

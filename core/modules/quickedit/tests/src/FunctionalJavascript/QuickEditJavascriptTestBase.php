@@ -78,7 +78,7 @@ class QuickEditJavascriptTestBase extends WebDriverTestBase {
     }
     $this->assertTrue(TRUE, 'All contextual links triggers are visible.');
 
-    // @todo Press tab key to verify that tabbing is now contrained to only
+    // @todo Press tab key to verify that tabbing is now constrained to only
     // contextual links triggers: https://www.drupal.org/node/2834776
 
     // Assert that the contextual links associated with the entity's contextual
@@ -101,7 +101,7 @@ class QuickEditJavascriptTestBase extends WebDriverTestBase {
 
     // Assert the Quick Edit internal state is correct.
     $js_condition = <<<JS
-Drupal.quickedit.collections.entities.where({isActive: true}).length === 1 && Drupal.quickedit.collections.entities.where({isActive: true})[0].get('entityID') === '$entity_type_id/$entity_id';
+Drupal.quickedit.collections.entities.where({isActive: true}).length === 1 && Drupal.quickedit.collections.entities.where({isActive: true})[0].get('entityID') === '$entity_type_id/$entity_id'
 JS;
     $this->assertJsCondition($js_condition);
   }
@@ -149,14 +149,17 @@ JS;
   protected function awaitEntityInstanceFieldState($entity_type_id, $entity_id, $entity_instance_id, $field_name, $langcode, $awaited_state) {
     $entity_page_id = $entity_type_id . '/' . $entity_id . '[' . $entity_instance_id . ']';
     $logical_field_id = $entity_type_id . '/' . $entity_id . '/' . $field_name . '/' . $langcode;
-    $this->assertJsCondition("Drupal.quickedit.collections.entities.get('$entity_page_id').get('fields').findWhere({logicalFieldID: '$logical_field_id'}).get('state') === '$awaited_state';");
+    $this->assertJsCondition("Drupal.quickedit.collections.entities.get('$entity_page_id').get('fields').findWhere({logicalFieldID: '$logical_field_id'}).get('state') === '$awaited_state'");
   }
 
   /**
    * Asserts the state of the Quick Edit entity toolbar.
    *
    * @param string $expected_entity_label
-   *   The expected label in the Quick Edit Entity Toolbar.
+   *   The expected entity label in the Quick Edit Entity Toolbar.
+   * @param string|null $expected_field_label
+   *   The expected field label in the Quick Edit Entity Toolbar, or NULL
+   *   if no field label is expected.
    */
   protected function assertQuickEditEntityToolbar($expected_entity_label, $expected_field_label) {
     $quickedit_entity_toolbar = $this->getSession()->getPage()->findById('quickedit-entity-toolbar');
@@ -279,6 +282,7 @@ JS;
   protected function typeInPlainTextEditor($css_selector, $text) {
     $field = $this->getSession()->getPage()->find('css', $css_selector);
     $field->setValue(Key::END . $text);
+    $this->getSession()->evaluateScript("document.querySelector('$css_selector').dispatchEvent(new Event('blur', {bubbles:true}))");
   }
 
   /**

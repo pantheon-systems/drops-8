@@ -4,6 +4,7 @@ namespace Drupal\error_service_test;
 
 use Drupal\Core\Site\Settings;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
 
 /**
@@ -21,10 +22,17 @@ class MonkeysInTheControlRoom implements HttpKernelInterface {
   protected $app;
 
   /**
+   * The settings.
+   */
+  protected $settings;
+
+  /**
    * MonkeysInTheControlRoom constructor.
    *
    * @param \Symfony\Component\HttpKernel\HttpKernelInterface $app
    *   The wrapper HTTP kernel.
+   * @param \Drupal\Core\Site\Settings $settings
+   *   The settings object.
    */
   public function __construct(HttpKernelInterface $app, Settings $settings) {
     $this->app = $app;
@@ -34,7 +42,7 @@ class MonkeysInTheControlRoom implements HttpKernelInterface {
   /**
    * {@inheritdoc}
    */
-  public function handle(Request $request, $type = self::MASTER_REQUEST, $catch = TRUE) {
+  public function handle(Request $request, $type = self::MASTER_REQUEST, $catch = TRUE): Response {
     if (\Drupal::state()->get('error_service_test.break_bare_html_renderer')) {
       // Let the bedlam begin.
       // 1) Force a container rebuild.

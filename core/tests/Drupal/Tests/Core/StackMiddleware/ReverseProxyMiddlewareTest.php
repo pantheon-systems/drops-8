@@ -6,6 +6,8 @@ use Drupal\Core\Site\Settings;
 use Drupal\Core\StackMiddleware\ReverseProxyMiddleware;
 use Drupal\Tests\UnitTestCase;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\HttpKernelInterface;
 
 /**
  * Unit test the reverse proxy stack middleware.
@@ -23,7 +25,7 @@ class ReverseProxyMiddlewareTest extends UnitTestCase {
    * {@inheritdoc}
    */
   protected function setUp(): void {
-    $this->mockHttpKernel = $this->createMock('Symfony\Component\HttpKernel\HttpKernelInterface');
+    $this->mockHttpKernel = $this->createMock(MockHttpKernelInterface::class);
   }
 
   /**
@@ -36,7 +38,7 @@ class ReverseProxyMiddlewareTest extends UnitTestCase {
     $middleware = new ReverseProxyMiddleware($this->mockHttpKernel, $settings);
     // Mock a request object.
     $request = $this->getMockBuilder('Symfony\Component\HttpFoundation\Request')
-      ->setMethods(['setTrustedProxies'])
+      ->onlyMethods(['setTrustedProxies'])
       ->getMock();
     // setTrustedProxies() should never fire.
     $request->expects($this->never())
@@ -63,7 +65,7 @@ class ReverseProxyMiddlewareTest extends UnitTestCase {
     return [
       'Proxy with default trusted headers' => [
         ['reverse_proxy_addresses' => ['127.0.0.2', '127.0.0.3']],
-        Request::HEADER_FORWARDED | Request::HEADER_X_FORWARDED_ALL,
+        Request::HEADER_FORWARDED | Request::HEADER_X_FORWARDED_FOR | Request::HEADER_X_FORWARDED_HOST | Request::HEADER_X_FORWARDED_PORT | Request::HEADER_X_FORWARDED_PROTO,
       ],
       'Proxy with AWS trusted headers' => [
         [
@@ -102,5 +104,16 @@ class ReverseProxyMiddlewareTest extends UnitTestCase {
     $this->assertSame($settings->get('reverse_proxy_addresses'), $request->getTrustedProxies());
     $this->assertSame($expected_trusted_header_set, $request->getTrustedHeaderSet());
   }
+
+}
+
+/**
+ * Helper interface for the Symfony 6 version of the HttpKernelInterface.
+ *
+ * @todo Remove this interface when the Symfony 6 is in core.
+ */
+interface MockHttpKernelInterface extends HttpKernelInterface {
+
+  public function handle(Request $request, $type = HttpKernelInterface::MASTER_REQUEST, $catch = TRUE): Response;
 
 }

@@ -14,6 +14,7 @@ use Drupal\views\Render\ViewsRenderPipelineMarkup;
 use Drupal\views\ResultRow;
 use Drupal\views\ViewExecutable;
 use Twig\Environment;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
 
 /**
  * @defgroup views_field_handlers Views field handler plugins
@@ -53,12 +54,14 @@ abstract class FieldPluginBase extends HandlerBase implements FieldHandlerInterf
 
   /**
    * Indicator of the renderText() method for rendering a single item.
+   *
    * (If no render_item() is present).
    */
   const RENDER_TEXT_PHASE_SINGLE_ITEM = 0;
 
   /**
    * Indicator of the renderText() method for rendering the whole element.
+   *
    * (if no render_item() method is available).
    */
   const RENDER_TEXT_PHASE_COMPLETELY = 1;
@@ -187,7 +190,7 @@ abstract class FieldPluginBase extends HandlerBase implements FieldHandlerInterf
 
           if (empty($table_alias)) {
             trigger_error(sprintf(
-              "Handler % tried to add additional_field %s but % could not be added!",
+              "Handler %s tried to add additional_field %s but %s could not be added!",
               $this->definition['id'],
               $identifier,
               $info['table']
@@ -228,7 +231,7 @@ abstract class FieldPluginBase extends HandlerBase implements FieldHandlerInterf
    * {@inheritdoc}
    */
   public function clickSortable() {
-    return isset($this->definition['click sortable']) ? $this->definition['click sortable'] : TRUE;
+    return $this->definition['click sortable'] ?? TRUE;
   }
 
   /**
@@ -515,8 +518,7 @@ abstract class FieldPluginBase extends HandlerBase implements FieldHandlerInterf
   }
 
   /**
-   * Default options form that provides the label widget that all fields
-   * should have.
+   * Default option form that provides label widget that all fields should have.
    */
   public function buildOptionsForm(&$form, FormStateInterface $form_state) {
     parent::buildOptionsForm($form, $form_state);
@@ -587,7 +589,7 @@ abstract class FieldPluginBase extends HandlerBase implements FieldHandlerInterf
 
     $form['element_class_enable'] = [
       '#type' => 'checkbox',
-      '#title' => $this->t('Create a CSS class'),
+      '#title' => $this->t('Add HTML class'),
       '#states' => [
         'visible' => [
           ':input[name="options[element_type_enable]"]' => ['checked' => TRUE],
@@ -631,7 +633,7 @@ abstract class FieldPluginBase extends HandlerBase implements FieldHandlerInterf
     ];
     $form['element_label_class_enable'] = [
       '#type' => 'checkbox',
-      '#title' => $this->t('Create a CSS class'),
+      '#title' => $this->t('Add HTML class'),
       '#states' => [
         'visible' => [
           ':input[name="options[element_label_type_enable]"]' => ['checked' => TRUE],
@@ -676,7 +678,7 @@ abstract class FieldPluginBase extends HandlerBase implements FieldHandlerInterf
 
     $form['element_wrapper_class_enable'] = [
       '#type' => 'checkbox',
-      '#title' => $this->t('Create a CSS class'),
+      '#title' => $this->t('Add HTML class'),
       '#states' => [
         'visible' => [
           ':input[name="options[element_wrapper_type_enable]"]' => ['checked' => TRUE],
@@ -874,8 +876,8 @@ abstract class FieldPluginBase extends HandlerBase implements FieldHandlerInterf
 
       // Setup the tokens for fields.
       $previous = $this->getPreviousFieldLabels();
-      $optgroup_arguments = (string) t('Arguments');
-      $optgroup_fields = (string) t('Fields');
+      $optgroup_arguments = (string) $this->t('Arguments');
+      $optgroup_fields = (string) $this->t('Fields');
       foreach ($previous as $id => $label) {
         $options[$optgroup_fields]["{{ $id }}"] = substr(strrchr($label, ":"), 2);
       }
@@ -1365,7 +1367,6 @@ abstract class FieldPluginBase extends HandlerBase implements FieldHandlerInterf
    *     - word_boundary: Trim only on a word boundary.
    *     - ellipsis: Show an ellipsis (…) at the end of the trimmed string.
    *     - html: Make sure that the html is correct.
-   *
    * @param string $value
    *   The string which should be trimmed.
    *
@@ -1382,8 +1383,7 @@ abstract class FieldPluginBase extends HandlerBase implements FieldHandlerInterf
   }
 
   /**
-   * Render this field as a link, with the info from a fieldset set by
-   * the user.
+   * Render this field as a link, with the info from a fieldset set by the user.
    */
   protected function renderAsLink($alter, $text, $tokens) {
     $options = [
@@ -1428,7 +1428,7 @@ abstract class FieldPluginBase extends HandlerBase implements FieldHandlerInterf
       }
 
       // If no scheme is provided in the $path, assign the default 'http://'.
-      // This allows a url of 'www.example.com' to be converted to
+      // This allows a URL of 'www.example.com' to be converted to
       // 'http://www.example.com'.
       // Only do this when flag for external has been set, $path doesn't contain
       // a scheme and $path doesn't have a leading /.
@@ -1476,7 +1476,7 @@ abstract class FieldPluginBase extends HandlerBase implements FieldHandlerInterf
       return $text;
     }
 
-    // If we get to here we have a path from the url parsing. So assign that to
+    // If we get to here we have a path from the URL parsing. So assign that to
     // $path now so we don't get query strings or fragments in the path.
     $path = $url['path'];
 
@@ -1560,7 +1560,7 @@ abstract class FieldPluginBase extends HandlerBase implements FieldHandlerInterf
       $options['language'] = $alter['language'];
     }
 
-    // If the url came from entity_uri(), pass along the required options.
+    // If the URL came from entity_uri(), pass along the required options.
     if (isset($alter['entity'])) {
       $options['entity'] = $alter['entity'];
     }
@@ -1681,11 +1681,10 @@ abstract class FieldPluginBase extends HandlerBase implements FieldHandlerInterf
    *
    * @param $array
    *   An array of values.
-   *
    * @param $parent_keys
    *   An array of parent keys. This will represent the array depth.
    *
-   * @return
+   * @return array
    *   An array of available tokens, with nested keys representative of the array structure.
    */
   protected function getTokenValuesRecursive(array $array, array $parent_keys = []) {
@@ -1793,7 +1792,6 @@ abstract class FieldPluginBase extends HandlerBase implements FieldHandlerInterf
    *     - word_boundary: Trim only on a word boundary.
    *     - ellipsis: Show an ellipsis (…) at the end of the trimmed string.
    *     - html: Make sure that the html is correct.
-   *
    * @param string $value
    *   The string which should be trimmed.
    *
@@ -1820,7 +1818,7 @@ abstract class FieldPluginBase extends HandlerBase implements FieldHandlerInterf
       $value = rtrim(preg_replace('/(?:<(?!.+>)|&(?!.+;)).*$/us', '', $value));
 
       if (!empty($alter['ellipsis'])) {
-        $value .= t('…');
+        $value .= new TranslatableMarkup('…');
       }
     }
     if (!empty($alter['html'])) {

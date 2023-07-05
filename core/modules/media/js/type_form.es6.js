@@ -17,39 +17,39 @@
       const $context = $(context);
       // Provide the vertical tab summaries.
       $context.find('#edit-workflow').drupalSetSummary((context) => {
-        const vals = [];
+        const values = [];
         $(context)
           .find('input[name^="options"]:checked')
           .parent()
           .each(function () {
-            vals.push(Drupal.checkPlain($(this).find('label').text()));
+            values.push(
+              Drupal.checkPlain($(this).find('label')[0].textContent),
+            );
           });
         if (!$(context).find('#edit-options-status').is(':checked')) {
-          vals.unshift(Drupal.t('Not published'));
+          values.unshift(Drupal.t('Not published'));
         }
-        return vals.join(', ');
+        return values.join(', ');
       });
       $(context)
         .find('#edit-language')
         .drupalSetSummary((context) => {
-          const vals = [];
+          const values = [];
 
-          vals.push(
-            $(context)
-              .find(
-                '.js-form-item-language-configuration-langcode select option:selected',
-              )
-              .text(),
+          values.push(
+            $(context).find(
+              '.js-form-item-language-configuration-langcode select option:selected',
+            )[0].textContent,
           );
 
           $(context)
             .find('input:checked')
             .next('label')
             .each(function () {
-              vals.push(Drupal.checkPlain($(this).text()));
+              values.push(Drupal.checkPlain(this.textContent));
             });
 
-          return vals.join(', ');
+          return values.join(', ');
         });
     },
   };

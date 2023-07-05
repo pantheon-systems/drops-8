@@ -58,7 +58,7 @@ function drupal_error_levels() {
 function _drupal_error_handler_real($error_level, $message, $filename, $line) {
   if ($error_level & error_reporting()) {
     $types = drupal_error_levels();
-    list($severity_msg, $severity_level) = $types[$error_level];
+    [$severity_msg, $severity_level] = $types[$error_level];
     $backtrace = debug_backtrace();
     $caller = Error::getLastCaller($backtrace);
 
@@ -79,6 +79,7 @@ function _drupal_error_handler_real($error_level, $message, $filename, $line) {
       'severity_level' => $severity_level,
       'backtrace' => $backtrace,
       '@backtrace_string' => (new \Exception())->getTraceAsString(),
+      'exception' => NULL,
     ], $recoverable || $to_string);
   }
   // If the site is a test site then fail for user deprecations so they can be
@@ -112,7 +113,7 @@ function _drupal_error_handler_real($error_level, $message, $filename, $line) {
  * @param $error
  *   Optional error to examine for ERROR_REPORTING_DISPLAY_SOME.
  *
- * @return
+ * @return bool
  *   TRUE if an error should be displayed.
  */
 function error_displayable($error = NULL) {
@@ -133,10 +134,12 @@ function error_displayable($error = NULL) {
  * Logs a PHP error or exception and displays an error page in fatal cases.
  *
  * @param $error
- *   An array with the following keys: %type, @message, %function, %file,
- *   %line, @backtrace_string, severity_level, and backtrace. All the parameters
- *   are plain-text, with the exception of @message, which needs to be an HTML
- *   string, and backtrace, which is a standard PHP backtrace.
+ *   An array with the following keys: %type, @message, %function, %file, %line,
+ *   @backtrace_string, severity_level, backtrace, and exception. All the
+ *   parameters are plain-text, with the exception of @message, which needs to
+ *   be an HTML string, backtrace, which is a standard PHP backtrace, and
+ *   exception, which is the exception object (or NULL if the error is not an
+ *   exception).
  * @param bool $fatal
  *   TRUE for:
  *   - An exception is thrown and not caught by something else.
@@ -146,13 +149,12 @@ function error_displayable($error = NULL) {
 function _drupal_log_error($error, $fatal = FALSE) {
   $is_installer = InstallerKernel::installationAttempted();
 
-  // Remove 'severity_level' as is not a valid replacement for t().
-  $severity = $error['severity_level'];
-  unset($error['severity_level']);
-
-  // Backtrace array is not a valid replacement value for t().
+  // Backtrace, exception and 'severity_level' are not valid replacement values
+  // for t().
   $backtrace = $error['backtrace'];
-  unset($error['backtrace']);
+  $exception = $error['exception'];
+  $severity = $error['severity_level'];
+  unset($error['backtrace'], $error['exception'], $error['severity_level']);
 
   // When running inside the testing framework, we relay the errors
   // to the tested site by the way of HTTP headers.
@@ -167,15 +169,15 @@ function _drupal_log_error($error, $fatal = FALSE) {
   // installer.
   if (\Drupal::hasService('logger.factory')) {
     try {
-      // Provide the PHP backtrace to logger implementations. Add
+      // Provide the PHP backtrace and exception to logger implementations. Add
       // 'severity_level' to the context to maintain BC and allow logging
       // implementations to use it.
-      \Drupal::logger('php')->log($severity, '%type: @message in %function (line %line of %file) @backtrace_string.', $error + ['backtrace' => $backtrace, 'severity_level' => $severity]);
+      \Drupal::logger('php')->log($severity, '%type: @message in %function (line %line of %file) @backtrace_string.', $error + ['backtrace' => $backtrace, 'exception' => $exception, 'severity_level' => $severity]);
     }
     catch (\Exception $e) {
       // We can't log, for example because the database connection is not
       // available. At least try to log to PHP error log.
-      error_log(strtr('Failed to log error: %type: @message in %function (line %line of %file). @backtrace_string', $error));
+      error_log(strtr('Failed to log error: ' . Error::DEFAULT_ERROR_MESSAGE . ' @backtrace_string', $error));
     }
   }
 
@@ -188,7 +190,7 @@ function _drupal_log_error($error, $fatal = FALSE) {
     if ($fatal) {
       // When called from CLI, simply output a plain text message.
       // Should not translate the string to avoid errors producing more errors.
-      $response->setContent(html_entity_decode(strip_tags(new FormattableMarkup('%type: @message in %function (line %line of %file).', $error))) . "\n");
+      $response->setContent(html_entity_decode(strip_tags(new FormattableMarkup(Error::DEFAULT_ERROR_MESSAGE, $error))) . "\n");
       $response->send();
       exit(1);
     }
@@ -199,7 +201,7 @@ function _drupal_log_error($error, $fatal = FALSE) {
       if (error_displayable($error)) {
         // When called from JavaScript, simply output the error message.
         // Should not translate the string to avoid errors producing more errors.
-        $response->setContent(new FormattableMarkup('%type: @message in %function (line %line of %file).', $error));
+        $response->setContent(new FormattableMarkup(Error::DEFAULT_ERROR_MESSAGE, $error));
         $response->send();
       }
       exit;
@@ -215,7 +217,6 @@ function _drupal_log_error($error, $fatal = FALSE) {
 
       // If error type is 'User notice' then treat it as debug information
       // instead of an error message.
-      // @see debug()
       if ($error['%type'] == 'User notice') {
         $error['%type'] = 'Debug';
         $class = 'status';
@@ -239,7 +240,7 @@ function _drupal_log_error($error, $fatal = FALSE) {
         // We use \Drupal\Component\Render\FormattableMarkup directly here,
         // rather than use t() since we are in the middle of error handling, and
         // we don't want t() to cause further errors.
-        $message = new FormattableMarkup('%type: @message in %function (line %line of %file).', $error);
+        $message = new FormattableMarkup(Error::DEFAULT_ERROR_MESSAGE, $error);
       }
       else {
         // With verbose logging, we will also include a backtrace.
@@ -251,7 +252,7 @@ function _drupal_log_error($error, $fatal = FALSE) {
         array_shift($backtrace);
         // Generate a backtrace containing only scalar argument values.
         $error['@backtrace'] = Error::formatBacktrace($backtrace);
-        $message = new FormattableMarkup('%type: @message in %function (line %line of %file). <pre class="backtrace">@backtrace</pre>', $error);
+        $message = new FormattableMarkup(Error::DEFAULT_ERROR_MESSAGE . ' <pre class="backtrace">@backtrace</pre>', $error);
       }
     }
 
@@ -267,7 +268,7 @@ function _drupal_log_error($error, $fatal = FALSE) {
           '#title' => 'Error',
           '#markup' => $message,
         ];
-        install_display_output($output, $GLOBALS['install_state'], $response->headers->all());
+        install_display_output($output, $GLOBALS['install_state']);
         exit;
       }
 
@@ -322,7 +323,7 @@ function _drupal_get_error_level() {
     $error_level = \Drupal::config('system.logging')->get('error_level');
   }
   catch (\Exception $e) {
-    $error_level = isset($GLOBALS['config']['system.logging']['error_level']) ? $GLOBALS['config']['system.logging']['error_level'] : ERROR_REPORTING_HIDE;
+    $error_level = $GLOBALS['config']['system.logging']['error_level'] ?? ERROR_REPORTING_HIDE;
   }
 
   // If there is no container or if it has no config.factory service, we are

@@ -6,10 +6,13 @@ use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Entity\EntityRepositoryInterface;
 use Drupal\Core\Form\FormState;
 use Drupal\Core\Render\RendererInterface;
+use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\TempStore\PrivateTempStoreFactory;
+use Drupal\filter\Plugin\FilterInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Drupal\Core\Ajax\AjaxResponse;
 use Drupal\Core\Entity\EntityInterface;
@@ -18,6 +21,7 @@ use Drupal\quickedit\Ajax\FieldFormCommand;
 use Drupal\quickedit\Ajax\FieldFormSavedCommand;
 use Drupal\quickedit\Ajax\FieldFormValidationErrorsCommand;
 use Drupal\quickedit\Ajax\EntitySavedCommand;
+use Drupal\quickedit\Ajax\GetUntransformedTextCommand;
 
 /**
  * Returns responses for Quick Edit module routes.
@@ -124,7 +128,7 @@ class QuickEditController extends ControllerBase {
 
     $metadata = [];
     foreach ($fields as $field) {
-      list($entity_type, $entity_id, $field_name, $langcode, $view_mode) = explode('/', $field);
+      [$entity_type, $entity_id, $field_name, $langcode, $view_mode] = explode('/', $field);
 
       // Load the entity.
       if (!$entity_type || !$this->entityTypeManager()->getDefinition($entity_type)) {
@@ -155,6 +159,32 @@ class QuickEditController extends ControllerBase {
     }
 
     return new JsonResponse($metadata);
+  }
+
+  /**
+   * Throws an AccessDeniedHttpException if the request fails CSRF validation.
+   *
+   * This is used instead of \Drupal\Core\Access\CsrfAccessCheck, in order to
+   * allow access for anonymous users.
+   *
+   * @todo Refactor this to an access checker.
+   */
+  private static function checkCsrf(Request $request, AccountInterface $account) {
+    $header = 'X-Drupal-Quickedit-CSRF-Token';
+
+    if (!$request->headers->has($header)) {
+      throw new AccessDeniedHttpException();
+    }
+    if ($account->isAnonymous()) {
+      // For anonymous users, just the presence of the custom header is
+      // sufficient protection.
+      return;
+    }
+    // For authenticated users, validate the token value.
+    $token = $request->headers->get($header);
+    if (!\Drupal::csrfToken()->validate($token, $header)) {
+      throw new AccessDeniedHttpException();
+    }
   }
 
   /**
@@ -307,6 +337,8 @@ class QuickEditController extends ControllerBase {
    *   The Ajax response.
    */
   public function entitySave(EntityInterface $entity) {
+    self::checkCsrf(\Drupal::request(), \Drupal::currentUser());
+
     // Take the entity from PrivateTempStore and save in entity storage.
     // fieldForm() ensures that the PrivateTempStore copy exists ahead.
     $tempstore = $this->tempStoreFactory->get('quickedit');
@@ -323,6 +355,36 @@ class QuickEditController extends ControllerBase {
     // Respond to client that the entity was saved properly.
     $response = new AjaxResponse();
     $response->addCommand(new EntitySavedCommand($output));
+    return $response;
+  }
+
+  /**
+   * Returns Ajax response to render text field without transformation filters.
+   *
+   * @param \Drupal\Core\Entity\EntityInterface $entity
+   *   The entity of which a formatted text field is being rerendered.
+   * @param string $field_name
+   *   The name of the (formatted text) field that is being rerendered.
+   * @param string $langcode
+   *   The name of the language for which the formatted text field is being
+   *   rerendered.
+   * @param string $view_mode_id
+   *   The view mode the formatted text field should be rerendered in.
+   *
+   * @return \Drupal\Core\Ajax\AjaxResponse
+   *   The Ajax response.
+   */
+  public function getUntransformedText(EntityInterface $entity, $field_name, $langcode, $view_mode_id) {
+    $response = new AjaxResponse();
+
+    // Direct text editing is only supported for single-valued fields.
+    $field = $entity->getTranslation($langcode)->$field_name;
+    $editable_text = check_markup($field->value, $field->format, $langcode, [
+      FilterInterface::TYPE_TRANSFORM_REVERSIBLE,
+      FilterInterface::TYPE_TRANSFORM_IRREVERSIBLE,
+    ]);
+    $response->addCommand(new GetUntransformedTextCommand($editable_text));
+
     return $response;
   }
 

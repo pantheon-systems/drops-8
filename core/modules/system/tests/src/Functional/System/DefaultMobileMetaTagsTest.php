@@ -23,6 +23,9 @@ class DefaultMobileMetaTagsTest extends BrowserTestBase {
    */
   protected $defaultTheme = 'stark';
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp(): void {
     parent::setUp();
     $this->defaultMetaTags = [
@@ -36,7 +39,7 @@ class DefaultMobileMetaTagsTest extends BrowserTestBase {
   public function testDefaultMetaTagsExist() {
     $this->drupalGet('');
     foreach ($this->defaultMetaTags as $name => $metatag) {
-      $this->assertRaw($metatag);
+      $this->assertSession()->responseContains($metatag);
     }
   }
 
@@ -47,7 +50,7 @@ class DefaultMobileMetaTagsTest extends BrowserTestBase {
     \Drupal::service('module_installer')->install(['system_module_test']);
     $this->drupalGet('');
     foreach ($this->defaultMetaTags as $name => $metatag) {
-      $this->assertNoRaw($metatag);
+      $this->assertSession()->responseNotContains($metatag);
     }
   }
 

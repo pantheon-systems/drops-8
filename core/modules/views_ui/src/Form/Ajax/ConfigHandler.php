@@ -78,6 +78,7 @@ class ConfigHandler extends ViewsFormBase {
       }
       else {
         $types = ViewExecutable::getHandlerTypes();
+        $form['#title'] = $this->t('Configure @type: @item', ['@type' => $types[$type]['lstitle'], '@item' => $handler->adminLabel()]);
 
         // If this item can come from the default display, show a dropdown
         // that lets the user choose which display the changes should apply to.
@@ -149,8 +150,6 @@ class ConfigHandler extends ViewsFormBase {
             '#value' => 'none',
           ];
         }
-
-        $form['#title'] = $this->t('Configure @type: @item', ['@type' => $types[$type]['lstitle'], '@item' => $handler->adminLabel()]);
 
         if (!empty($handler->definition['help'])) {
           $form['options']['form_description'] = [
@@ -266,7 +265,7 @@ class ConfigHandler extends ViewsFormBase {
     $type = $form_state->get('type');
     $id = $form_state->get('id');
     // Store the item back on the view
-    list($was_defaulted, $is_defaulted) = $view->getOverrideValues($form, $form_state);
+    [$was_defaulted, $is_defaulted] = $view->getOverrideValues($form, $form_state);
     $executable = $view->getExecutable();
     // If the display selection was changed toggle the override value.
     if ($was_defaulted != $is_defaulted) {

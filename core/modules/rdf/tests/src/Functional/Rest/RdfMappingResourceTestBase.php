@@ -4,9 +4,9 @@ namespace Drupal\Tests\rdf\Functional\Rest;
 
 use Drupal\node\Entity\NodeType;
 use Drupal\rdf\Entity\RdfMapping;
-use Drupal\Tests\rest\Functional\EntityResource\EntityResourceTestBase;
+use Drupal\Tests\rest\Functional\EntityResource\ConfigEntityResourceTestBase;
 
-abstract class RdfMappingResourceTestBase extends EntityResourceTestBase {
+abstract class RdfMappingResourceTestBase extends ConfigEntityResourceTestBase {
 
   /**
    * {@inheritdoc}
@@ -111,6 +111,7 @@ abstract class RdfMappingResourceTestBase extends EntityResourceTestBase {
    */
   protected function getNormalizedPostEntity() {
     // @todo Update in https://www.drupal.org/node/2300677.
+    return [];
   }
 
   /**

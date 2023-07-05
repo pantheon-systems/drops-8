@@ -91,7 +91,7 @@ class BooleanFormatterSettingsTest extends BrowserTestBase {
   public function testBooleanFormatterSettings() {
     // List the options we expect to see on the settings form. Omit the one
     // with the Unicode check/x characters, which does not appear to work
-    // well in WebTestBase.
+    // well in BrowserTestBase.
     $options = [
       'Yes / No',
       'True / False',
@@ -126,15 +126,12 @@ class BooleanFormatterSettingsTest extends BrowserTestBase {
       foreach ($options as $string) {
         $assert_session->pageTextContains($string);
       }
-      $assert_session->pageTextContains(t('Field settings (@on_label / @off_label)', ['@on_label' => $values[0], '@off_label' => $values[1]]));
+      $assert_session->pageTextContains("Field settings ({$values[0]} / {$values[1]})");
 
       // Test that the settings summary are present in the correct format.
       $this->drupalGet('admin/structure/types/manage/' . $this->bundle . '/display');
-      $result = $this->xpath('//div[contains(@class, :class) and contains(text(), :text)]', [
-        ':class' => 'field-plugin-summary',
-        ':text' => (string) t('Display: @true_label / @false_label', ['@true_label' => $values[0], '@false_label' => $values[1]]),
-      ]);
-      $this->assertCount(1, $result, "Boolean formatter settings summary exist.");
+      $this->assertSession()->elementExists('xpath', "//div[contains(@class, 'field-plugin-summary')]");
+      $this->assertSession()->elementTextEquals('xpath', "//div[contains(@class, 'field-plugin-summary')]", "Display: {$values[0]} / {$values[1]}");
     }
   }
 

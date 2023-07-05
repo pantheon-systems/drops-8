@@ -16,6 +16,8 @@ use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
 use Drupal\Core\Entity\RevisionableInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\quickedit\Entity\QuickEditLayoutBuilderEntityViewDisplay;
+use Drupal\quickedit\LayoutBuilderIntegration;
 
 /**
  * Implements hook_help().
@@ -24,7 +26,7 @@ function quickedit_help($route_name, RouteMatchInterface $route_match) {
   switch ($route_name) {
     case 'help.page.quickedit':
       $output = '<h3>' . t('About') . '</h3>';
-      $output .= '<p>' . t('The Quick Edit module allows users with the <a href=":quickedit_permission">Access in-place editing</a> and <a href=":contextual_permission">Use contextual links</a> permissions to edit field content without visiting a separate page. For more information, see the <a href=":handbook_url">online documentation for the Quick Edit module</a>.', [':handbook_url' => 'https://www.drupal.org/documentation/modules/edit', ':quickedit_permission' => Url::fromRoute('user.admin_permissions', [], ['fragment' => 'module-quickedit'])->toString(), ':contextual_permission' => Url::fromRoute('user.admin_permissions', [], ['fragment' => 'module-contextual'])->toString()]) . '</p>';
+      $output .= '<p>' . t('The Quick Edit module allows users with the <a href=":quickedit_permission">Access in-place editing</a> and <a href=":contextual_permission">Use contextual links</a> permissions to edit field content without visiting a separate page. For more information, see the <a href=":handbook_url">online documentation for the Quick Edit module</a>.', [':handbook_url' => 'https://www.drupal.org/documentation/modules/edit', ':quickedit_permission' => Url::fromRoute('user.admin_permissions.module', ['modules' => 'quickedit'])->toString(), ':contextual_permission' => Url::fromRoute('user.admin_permissions.module', ['modules' => 'contextual'])->toString()]) . '</p>';
       $output .= '<h3>' . t('Uses') . '</h3>';
       $output .= '<dl>';
       $output .= '<dt>' . t('Editing content in-place') . '</dt>';
@@ -53,6 +55,7 @@ function quickedit_page_attachments(array &$page) {
     return;
   }
 
+  $page['#attached']['drupalSettings']['quickedit']['csrf_token'] = \Drupal::csrfToken()->get('X-Drupal-Quickedit-CSRF-Token');
   $page['#attached']['library'][] = 'quickedit/quickedit';
 }
 
@@ -79,8 +82,10 @@ function quickedit_library_info_alter(&$libraries, $extension) {
 
     // First let the base theme modify the library, then the actual theme.
     $alter_library = function (&$library, $theme) use (&$alter_library) {
-      if (!empty($theme) && $theme_path = drupal_get_path('theme', $theme)) {
-        $info = \Drupal::service('extension.list.theme')->getExtensionInfo($theme);
+      /** @var \Drupal\Core\Extension\ThemeExtensionList $theme_list */
+      $theme_list = \Drupal::service('extension.list.theme');
+      if (!empty($theme) && $theme_path = $theme_list->getPath($theme)) {
+        $info = $theme_list->getExtensionInfo($theme);
         // Recurse to process base theme(s) first.
         if (isset($info['base theme'])) {
           $alter_library($library, $info['base theme']);
@@ -94,6 +99,11 @@ function quickedit_library_info_alter(&$libraries, $extension) {
     };
 
     $alter_library($libraries['quickedit'], $theme);
+  }
+
+  $moduleHandler = \Drupal::moduleHandler();
+  if ($moduleHandler->moduleExists('ckeditor5')) {
+    $libraries['internal.drupal.ckeditor5']['dependencies'][] = 'quickedit/quickedit.ckeditor5-temporary-work-around';
   }
 }
 
@@ -113,6 +123,16 @@ function quickedit_field_formatter_info_alter(&$info) {
       $info[$key]['quickedit'] = ['editor' => 'form'];
     }
   }
+
+  $info['basic_string']['quickedit'] = ['editor' => 'plain_text'];
+  $info['string']['quickedit'] = ['editor' => 'plain_text'];
+
+  // Update \Drupal\text\Plugin\Field\FieldFormatter\TextDefaultFormatter's
+  // annotation to indicate that it supports the 'editor' in-place editor
+  // provided by this module, if enabled.
+  if (\Drupal::moduleHandler()->moduleExists('editor')) {
+    $info['text_default']['quickedit'] = ['editor' => 'editor'];
+  }
 }
 
 /**
@@ -123,6 +143,23 @@ function quickedit_preprocess_page_title(&$variables) {
   if (\Drupal::currentUser()->hasPermission('access in-place editing')) {
     $variables['title_attributes']['class'][] = 'js-quickedit-page-title';
   }
+}
+
+/**
+ * Implements hook_preprocess_entity_page_title().
+ */
+function quickedit_preprocess_entity_page_title(&$variables) {
+  $variables['#cache']['contexts'][] = 'user.permissions';
+  $entity = $variables['entity'];
+  if (!\Drupal::currentUser()->hasPermission('access in-place editing')) {
+    return;
+  }
+  if (($entity instanceof RevisionableInterface) && !$entity->isLatestRevision()) {
+    return;
+  }
+
+  $label_field = $entity->getEntityType()->getKey('label');
+  $variables['attributes']['data-quickedit-field-id'] = $entity->getEntityTypeId() . '/' . $entity->id() . '/' . $label_field . '/' . $entity->language()->getId() . '/' . $variables['view_mode'];
 }
 
 /**
@@ -155,9 +192,27 @@ function quickedit_preprocess_field(&$variables) {
 }
 
 /**
+ * Implements hook_entity_type_alter().
+ */
+function quickedit_entity_type_alter(array &$entity_types) {
+  if (\Drupal::moduleHandler()->moduleExists('layout_builder')) {
+    /** @var \Drupal\Core\Entity\EntityTypeInterface[] $entity_types */
+    if ($entity_types['entity_view_display']->getClass() === 'Drupal\layout_builder\Entity\LayoutBuilderEntityViewDisplay\LayoutBuilderEntityViewDisplay') {
+      $entity_types['entity_view_display']->setClass(QuickEditLayoutBuilderEntityViewDisplay::class);
+    }
+  }
+}
+
+/**
  * Implements hook_entity_view_alter().
  */
 function quickedit_entity_view_alter(&$build, EntityInterface $entity, EntityViewDisplayInterface $display) {
+  if (\Drupal::moduleHandler()->moduleExists('layout_builder')) {
+    /** @var \Drupal\quickedit\LayoutBuilderIntegration $layout_builder_integration */
+    $layout_builder_integration = \Drupal::classResolver(LayoutBuilderIntegration::class);
+    $layout_builder_integration->entityViewAlter($build, $entity, $display);
+  }
+
   if (isset($build['#embed'])) {
     return;
   }
@@ -168,4 +223,13 @@ function quickedit_entity_view_alter(&$build, EntityInterface $entity, EntityVie
   }
 
   $build['#attributes']['data-quickedit-entity-id'] = $entity->getEntityTypeId() . '/' . $entity->id();
+}
+
+/**
+ * Implements hook_quickedit_render_field().
+ */
+function layout_builder_quickedit_render_field(EntityInterface $entity, $field_name, $view_mode_id, $langcode) {
+  /** @var \Drupal\quickedit\LayoutBuilderIntegration $layout_builder_integration */
+  $layout_builder_integration = \Drupal::classResolver(LayoutBuilderIntegration::class);
+  return $layout_builder_integration->quickEditRenderField($entity, $field_name, $view_mode_id, $langcode);
 }

@@ -7,6 +7,14 @@ migration_tags:
 source:
   plugin: menu_link
 process:
+  skip_localized:
+    -
+      plugin: callback
+      callable: is_null
+      source: is_localized
+    -
+      plugin: skip_on_empty
+      method: row
   id: mlid
   title: link_title
   description: description
@@ -27,7 +35,9 @@ process:
   'link/uri':
     plugin: link_uri
     source: link_path
-  'link/options': options
+  'link/options':
+    plugin: link_options
+    source: options
   route:
     plugin: route
     source:

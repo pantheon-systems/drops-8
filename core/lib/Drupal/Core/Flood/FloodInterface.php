@@ -54,15 +54,16 @@ interface FloodInterface {
    *   (optional) Unique identifier of the current user. Defaults to the current
    *   user's IP address).
    *
-   * @return
+   * @return bool
    *   TRUE if the user is allowed to proceed. FALSE if they have exceeded the
    *   threshold and should not be allowed to proceed.
    */
   public function isAllowed($name, $threshold, $window = 3600, $identifier = NULL);
 
   /**
-   * Cleans up expired flood events. This method is called automatically on
-   * cron run.
+   * Cleans up expired flood events.
+   *
+   * This method is called automatically on cron run.
    *
    * @see system_cron()
    */

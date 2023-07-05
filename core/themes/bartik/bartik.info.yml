@@ -13,6 +13,8 @@
 # changes.
 name: Bartik
 type: theme
+lifecycle: deprecated
+lifecycle_link: https://www.drupal.org/node/3223395#s-bartik
 base theme: false
 description: 'A flexible, recolorable theme with many regions and a responsive, mobile-first layout.'
 package: Core
@@ -42,6 +44,8 @@ libraries-extend:
     - bartik/classy.media_library
   media_library/widget:
     - bartik/classy.media_library
+  tour/tour:
+    - bartik/tour
   user/drupal.user:
     - bartik/user
 

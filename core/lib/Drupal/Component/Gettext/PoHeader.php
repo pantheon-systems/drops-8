@@ -183,10 +183,11 @@ class PoHeader {
    * @param string $pluralforms
    *   The Plural-Forms entry value.
    *
-   * @return
+   * @return array|bool
    *   An indexed array of parsed plural formula data. Containing:
    *   - 'nplurals': The number of plural forms defined by the plural formula.
    *   - 'plurals': Array of plural positions keyed by plural value.
+   *   False when there is no plural string.
    *
    * @throws \Exception
    */
@@ -254,7 +255,7 @@ class PoHeader {
     $lines = array_map('trim', explode("\n", $header));
     foreach ($lines as $line) {
       if ($line) {
-        list($tag, $contents) = explode(":", $line, 2);
+        [$tag, $contents] = explode(":", $line, 2);
         $header_parsed[trim($tag)] = trim($contents);
       }
     }
@@ -270,8 +271,9 @@ class PoHeader {
    * @param string $string
    *   A string containing the arithmetic formula.
    *
-   * @return
-   *   A stack of values and operations to be evaluated.
+   * @return array|bool
+   *   A stack of values and operations to be evaluated. False if the formula
+   *   could not be parsed.
    */
   private function parseArithmetic($string) {
     // Operator precedence table.
@@ -475,6 +477,7 @@ class PoHeader {
    *   Number of the plural string to be used for the given plural value.
    *
    * @see parseArithmetic()
+   *
    * @throws \Exception
    */
   protected function evaluatePlural($element_stack, $n) {

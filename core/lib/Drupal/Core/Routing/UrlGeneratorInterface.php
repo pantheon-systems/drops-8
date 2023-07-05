@@ -5,7 +5,7 @@ namespace Drupal\Core\Routing;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface as SymfonyUrlGeneratorInterface;
 
 /**
- * Defines an interface for generating a url from a route or system path.
+ * Defines an interface for generating a URL from a route or system path.
  *
  * Provides additional methods and options not present in the base interface.
  */
@@ -53,6 +53,8 @@ interface UrlGeneratorInterface extends SymfonyUrlGeneratorInterface {
    *   - 'https': Whether this URL should point to a secure location. If not
    *     defined, the current scheme is used, so the user stays on HTTP or HTTPS
    *     respectively. TRUE enforces HTTPS and FALSE enforces HTTP.
+   *   - 'path_processing': Defaults to TRUE. Whether to pass the path to a
+   *     processor manager to allow alterations.
    *   - 'base_url': Only used internally by a path processor, for example, to
    *     modify the base URL when a language dependent URL requires so.
    *   - 'prefix': Only used internally, to modify the path when a language

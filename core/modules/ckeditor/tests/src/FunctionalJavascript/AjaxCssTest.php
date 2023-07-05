@@ -10,6 +10,7 @@ use Drupal\FunctionalJavascriptTests\WebDriverTestBase;
  * Tests delivery of CSS to CKEditor via AJAX.
  *
  * @group ckeditor
+ * @group legacy
  */
 class AjaxCssTest extends WebDriverTestBase {
 
@@ -119,7 +120,7 @@ class AjaxCssTest extends WebDriverTestBase {
           && typeof CKEDITOR.instances["$instance_id"] !== 'undefined'
           && CKEDITOR.instances["$instance_id"].instanceReady
         );
-      }());
+      }())
 JS;
 
     $this->getSession()->wait($timeout, $condition);

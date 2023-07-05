@@ -3,6 +3,7 @@
 namespace Drupal\Tests\Core\Render;
 
 use Drupal\Component\Utility\Html;
+use Drupal\Core\Cache\Cache;
 
 /**
  * @coversDefaultClass \Drupal\Core\Render\PlaceholderGenerator
@@ -34,6 +35,49 @@ class PlaceholderGeneratorTest extends RendererTestBase {
     $processed_placeholder_markup = Html::serialize(Html::load($build['#markup']));
 
     $this->assertEquals($original_placeholder_markup, $processed_placeholder_markup);
+  }
+
+  /**
+   * Tests the creation of an element with a #lazy_builder callback.
+   *
+   * Between two renders neither the cache contexts nor tags sort should change.
+   * A placeholder should generate the same hash, so it is not rendered twice.
+   *
+   * @covers ::createPlaceholder
+   */
+  public function testRenderPlaceholdersDifferentSortedContextsTags() {
+    $contexts_1 = ['user', 'foo'];
+    $contexts_2 = ['foo', 'user'];
+    $tags_1 = ['current-temperature', 'foo'];
+    $tags_2 = ['foo', 'current-temperature'];
+    $test_element = [
+      '#cache' => [
+        'max-age' => Cache::PERMANENT,
+      ],
+      '#lazy_builder' => [
+        'Drupal\Tests\Core\Render\PlaceholdersTest::callback',
+        ['foo' => TRUE],
+      ],
+    ];
+
+    $test_element['#cache']['contexts'] = $contexts_1;
+    $test_element['#cache']['tags'] = $tags_1;
+    $placeholder_element1 = $this->placeholderGenerator->createPlaceholder($test_element);
+
+    $test_element['#cache']['contexts'] = $contexts_2;
+    $test_element['#cache']['tags'] = $tags_1;
+    $placeholder_element2 = $this->placeholderGenerator->createPlaceholder($test_element);
+
+    $test_element['#cache']['contexts'] = $contexts_1;
+    $test_element['#cache']['tags'] = $tags_2;
+    $placeholder_element3 = $this->placeholderGenerator->createPlaceholder($test_element);
+
+    // Verify placeholder and specially hash are same with different contexts
+    // order.
+    $this->assertSame((string) $placeholder_element1['#markup'], (string) $placeholder_element2['#markup']);
+
+    // Verify placeholder and specially hash are same with different tags order.
+    $this->assertSame((string) $placeholder_element1['#markup'], (string) $placeholder_element3['#markup']);
   }
 
   /**

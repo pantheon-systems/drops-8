@@ -51,12 +51,12 @@ class EntityResourceValidationTraitTest extends UnitTestCase {
 
     $violations = $this->getMockBuilder(EntityConstraintViolationList::class)
       ->setConstructorArgs([$entity->reveal(), [$violation1->reveal(), $violation2->reveal()]])
-      ->setMethods(['filterByFieldAccess'])
+      ->onlyMethods(['filterByFieldAccess'])
       ->getMock();
 
     $violations->expects($this->once())
       ->method('filterByFieldAccess')
-      ->will($this->returnValue([]));
+      ->willReturn([]);
 
     $entity->validate()->willReturn($violations);
 

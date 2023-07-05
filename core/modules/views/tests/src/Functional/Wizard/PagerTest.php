@@ -32,15 +32,13 @@ class PagerTest extends WizardTestBase {
 
     // This technique for finding the existence of a pager
     // matches that used in Drupal\views_ui\Tests\PreviewTest.php.
-    $elements = $this->xpath('//ul[contains(@class, :class)]/li', [':class' => 'pager__items']);
-    $this->assertTrue(!empty($elements), 'Full pager found.');
+    $this->assertSession()->elementExists('xpath', '//ul[contains(@class, "pager__items")]/li');
 
     // Make a View that does not have a pager.
     $path_with_no_pager = 'test-view-without-pager';
     $this->createViewAtPath($path_with_no_pager, FALSE);
     $this->drupalGet($path_with_no_pager);
-    $elements = $this->xpath('//ul[contains(@class, :class)]/li', [':class' => 'pager__items']);
-    $this->assertTrue(empty($elements), 'Full pager not found.');
+    $this->assertSession()->elementNotExists('xpath', '//ul[contains(@class, "pager__items")]/li');
   }
 
   /**
@@ -60,7 +58,8 @@ class PagerTest extends WizardTestBase {
     $view['page[title]'] = $this->randomMachineName(16);
     $view['page[path]'] = $path;
     $view['page[pager]'] = $pager;
-    $this->drupalPostForm('admin/structure/views/add', $view, 'Save and edit');
+    $this->drupalGet('admin/structure/views/add');
+    $this->submitForm($view, 'Save and edit');
   }
 
 }

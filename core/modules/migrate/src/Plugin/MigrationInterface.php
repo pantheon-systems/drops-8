@@ -195,8 +195,7 @@ interface MigrationInterface extends PluginInspectionInterface, DerivativeInspec
   public function clearInterruptionResult();
 
   /**
-   * Signal that the migration should be interrupted with the specified result
-   * code.
+   * Sets the migration status as interrupted with a given result code.
    *
    * @param int $result
    *   One of the MigrationInterface::RESULT_* constants.
@@ -204,8 +203,7 @@ interface MigrationInterface extends PluginInspectionInterface, DerivativeInspec
   public function interruptMigration($result);
 
   /**
-   * Get the normalized process pipeline configuration describing the process
-   * plugins.
+   * Gets the normalized process plugin configuration.
    *
    * The process configuration is always normalized. All shorthand processing
    * will be expanded into their full representations.
@@ -255,8 +253,6 @@ interface MigrationInterface extends PluginInspectionInterface, DerivativeInspec
    *
    * @return $this
    *   The migration entity.
-   *
-   * @see Drupal\migrate_drupal\Plugin\migrate\load\LoadEntity::processLinkField()
    */
   public function mergeProcessOfProperty($property, array $process_of_property);
 

@@ -47,10 +47,11 @@ class VersionParser
      * @param string $version
      *
      * @return string
+     * @phpstan-return 'stable'|'RC'|'beta'|'alpha'|'dev'
      */
     public static function parseStability($version)
     {
-        $version = preg_replace('{#.+$}', '', $version);
+        $version = (string) preg_replace('{#.+$}', '', (string) $version);
 
         if (strpos($version, 'dev-') === 0 || '-dev' === substr($version, -4)) {
             return 'dev';
@@ -84,7 +85,7 @@ class VersionParser
      */
     public static function normalizeStability($stability)
     {
-        $stability = strtolower($stability);
+        $stability = strtolower((string) $stability);
 
         return $stability === 'rc' ? 'RC' : $stability;
     }
@@ -93,7 +94,7 @@ class VersionParser
      * Normalizes a version string to be able to perform comparisons on it.
      *
      * @param string $version
-     * @param string $fullVersion optional complete version string to give more context
+     * @param ?string $fullVersion optional complete version string to give more context
      *
      * @throws \UnexpectedValueException
      *
@@ -101,7 +102,7 @@ class VersionParser
      */
     public function normalize($version, $fullVersion = null)
     {
-        $version = trim($version);
+        $version = trim((string) $version);
         $origVersion = $version;
         if (null === $fullVersion) {
             $fullVersion = $version;
@@ -194,7 +195,7 @@ class VersionParser
      */
     public function parseNumericAliasPrefix($branch)
     {
-        if (preg_match('{^(?P<version>(\d++\\.)*\d++)(?:\.x)?-dev$}i', $branch, $matches)) {
+        if (preg_match('{^(?P<version>(\d++\\.)*\d++)(?:\.x)?-dev$}i', (string) $branch, $matches)) {
             return $matches['version'] . '.';
         }
 
@@ -210,7 +211,7 @@ class VersionParser
      */
     public function normalizeBranch($name)
     {
-        $name = trim($name);
+        $name = trim((string) $name);
 
         if (preg_match('{^v?(\d++)(\.(?:\d++|[xX*]))?(\.(?:\d++|[xX*]))?(\.(?:\d++|[xX*]))?$}i', $name, $matches)) {
             $version = '';
@@ -230,6 +231,8 @@ class VersionParser
      * @param string $name
      *
      * @return string
+     *
+     * @deprecated No need to use this anymore in theory, Composer 2 does not normalize any branch names to 9999999-dev anymore
      */
     public function normalizeDefaultBranch($name)
     {
@@ -237,7 +240,7 @@ class VersionParser
             return '9999999-dev';
         }
 
-        return $name;
+        return (string) $name;
     }
 
     /**
@@ -249,13 +252,19 @@ class VersionParser
      */
     public function parseConstraints($constraints)
     {
-        $prettyConstraint = $constraints;
+        $prettyConstraint = (string) $constraints;
 
-        $orConstraints = preg_split('{\s*\|\|?\s*}', trim($constraints));
+        $orConstraints = preg_split('{\s*\|\|?\s*}', trim((string) $constraints));
+        if (false === $orConstraints) {
+            throw new \RuntimeException('Failed to preg_split string: '.$constraints);
+        }
         $orGroups = array();
 
         foreach ($orConstraints as $constraints) {
             $andConstraints = preg_split('{(?<!^|as|[=>< ,]) *(?<!-)[, ](?!-) *(?!,|as|$)}', $constraints);
+            if (false === $andConstraints) {
+                throw new \RuntimeException('Failed to preg_split string: '.$constraints);
+            }
             if (\count($andConstraints) > 1) {
                 $constraintObjects = array();
                 foreach ($andConstraints as $constraint) {
@@ -289,6 +298,8 @@ class VersionParser
      * @throws \UnexpectedValueException
      *
      * @return array
+     *
+     * @phpstan-return non-empty-array<ConstraintInterface>
      */
     private function parseConstraint($constraint)
     {
@@ -521,8 +532,10 @@ class VersionParser
      * @param string $pad       The string to pad version parts after $position
      *
      * @return string|null The new version
+     *
+     * @phpstan-param string[] $matches
      */
-    private function manipulateVersionString($matches, $position, $increment = 0, $pad = '0')
+    private function manipulateVersionString(array $matches, $position, $increment = 0, $pad = '0')
     {
         for ($i = 4; $i > 0; --$i) {
             if ($i > $position) {
