@@ -26,7 +26,7 @@ interface EntityStorageInterface {
   const FIELD_LOAD_REVISION = 'FIELD_LOAD_REVISION';
 
   /**
-   * Resets the internal, static entity cache.
+   * Resets the internal entity cache.
    *
    * @param $ids
    *   (optional) If specified, the cache is reset for the entities with the
@@ -105,7 +105,7 @@ interface EntityStorageInterface {
   public function deleteRevision($revision_id);
 
   /**
-   * Load entities by their property values.
+   * Load entities by their property values without any access checks.
    *
    * @param array $values
    *   An associative array where the keys are the property names and the
@@ -145,7 +145,7 @@ interface EntityStorageInterface {
    * @param \Drupal\Core\Entity\EntityInterface $entity
    *   The entity to save.
    *
-   * @return
+   * @return int|null
    *   SAVED_NEW or SAVED_UPDATED is returned depending on the operation
    *   performed.
    *
@@ -229,5 +229,17 @@ interface EntityStorageInterface {
    *   Entity type definition.
    */
   public function getEntityType();
+
+  /**
+   * Retrieves the class name used to create the entity.
+   *
+   * @param string|null $bundle
+   *   (optional) A specific entity type bundle identifier. Can be omitted in
+   *   the case of entity types without bundles, like User.
+   *
+   * @return string
+   *   The entity class name.
+   */
+  public function getEntityClass(?string $bundle = NULL): string;
 
 }

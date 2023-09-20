@@ -956,7 +956,7 @@ function template_preprocess_views_view_opml(&$variables) {
   }
   $variables['title'] = $title;
   $variables['items'] = $items;
-  $variables['updated'] = gmdate(DATE_RFC2822, REQUEST_TIME);
+  $variables['updated'] = gmdate(DATE_RFC2822, \Drupal::time()->getRequestTime());
 
   // During live preview we don't want to output the header since the contents
   // of the feed are being displayed inside a normal HTML page.
@@ -1019,7 +1019,7 @@ function template_preprocess_views_exposed_form(&$variables) {
  *     exposed input.
  */
 function template_preprocess_views_mini_pager(&$variables) {
-  /* @var $pager_manager \Drupal\Core\Pager\PagerManagerInterface */
+  /** @var \Drupal\Core\Pager\PagerManagerInterface $pager_manager */
   $pager_manager = \Drupal::service('pager.manager');
 
   $tags = &$variables['tags'];

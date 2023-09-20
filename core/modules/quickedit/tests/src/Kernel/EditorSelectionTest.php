@@ -9,6 +9,7 @@ use Drupal\quickedit\EditorSelector;
  * Tests in-place field editor selection.
  *
  * @group quickedit
+ * @group legacy
  */
 class EditorSelectionTest extends QuickEditTestBase {
 
@@ -26,6 +27,9 @@ class EditorSelectionTest extends QuickEditTestBase {
    */
   protected $editorSelector;
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp(): void {
     parent::setUp();
 
@@ -70,16 +74,18 @@ class EditorSelectionTest extends QuickEditTestBase {
     $entity->save();
 
     // With cardinality 1.
-    $this->assertEqual('plain_text', $this->getSelectedEditor($entity->id(), $field_name), "With cardinality 1, the 'plain_text' editor is selected.");
+    $this->assertEquals('plain_text', $this->getSelectedEditor($entity->id(), $field_name), "With cardinality 1, the 'plain_text' editor is selected.");
 
     // With cardinality >1
     $this->fields->field_text_field_storage->setCardinality(2);
     $this->fields->field_text_field_storage->save();
-    $this->assertEqual('form', $this->getSelectedEditor($entity->id(), $field_name), "With cardinality >1, the 'form' editor is selected.");
+    $this->assertEquals('form', $this->getSelectedEditor($entity->id(), $field_name), "With cardinality >1, the 'form' editor is selected.");
 
   }
 
   /**
+   * Tests a textual field with varying text format compatibility.
+   *
    * Tests a textual field, with text filtering, with cardinality 1 and >1,
    * always with an Editor plugin present that supports textual fields with text
    * filtering, but with varying text format compatibility.
@@ -110,17 +116,17 @@ class EditorSelectionTest extends QuickEditTestBase {
     $entity->save();
 
     // Editor selection w/ cardinality 1, text format w/o associated text editor.
-    $this->assertEqual('form', $this->getSelectedEditor($entity->id(), $field_name), "With cardinality 1, and the filtered_html text format, the 'form' editor is selected.");
+    $this->assertEquals('form', $this->getSelectedEditor($entity->id(), $field_name), "With cardinality 1, and the filtered_html text format, the 'form' editor is selected.");
 
     // Editor selection w/ cardinality 1, text format w/ associated text editor.
     $entity->{$field_name}->format = 'full_html';
     $entity->save();
-    $this->assertEqual('wysiwyg', $this->getSelectedEditor($entity->id(), $field_name), "With cardinality 1, and the full_html text format, the 'wysiwyg' editor is selected.");
+    $this->assertEquals('wysiwyg', $this->getSelectedEditor($entity->id(), $field_name), "With cardinality 1, and the full_html text format, the 'wysiwyg' editor is selected.");
 
     // Editor selection with text field, cardinality >1.
     $this->fields->field_textarea_field_storage->setCardinality(2);
     $this->fields->field_textarea_field_storage->save();
-    $this->assertEqual('form', $this->getSelectedEditor($entity->id(), $field_name), "With cardinality >1, and both items using the full_html text format, the 'form' editor is selected.");
+    $this->assertEquals('form', $this->getSelectedEditor($entity->id(), $field_name), "With cardinality >1, and both items using the full_html text format, the 'form' editor is selected.");
   }
 
   /**
@@ -146,12 +152,12 @@ class EditorSelectionTest extends QuickEditTestBase {
     $entity->save();
 
     // Editor selection with cardinality 1.
-    $this->assertEqual('form', $this->getSelectedEditor($entity->id(), $field_name), "With cardinality 1, the 'form' editor is selected.");
+    $this->assertEquals('form', $this->getSelectedEditor($entity->id(), $field_name), "With cardinality 1, the 'form' editor is selected.");
 
     // Editor selection with cardinality >1.
     $this->fields->field_nr_field_storage->setCardinality(2);
     $this->fields->field_nr_field_storage->save();
-    $this->assertEqual('form', $this->getSelectedEditor($entity->id(), $field_name), "With cardinality >1, the 'form' editor is selected.");
+    $this->assertEquals('form', $this->getSelectedEditor($entity->id(), $field_name), "With cardinality >1, the 'form' editor is selected.");
   }
 
 }

@@ -2,8 +2,10 @@
 
 namespace Drupal\language;
 
+use Drupal\Component\Plugin\Exception\PluginNotFoundException;
 use Drupal\Component\Plugin\PluginManagerInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Logger\LoggerChannelTrait;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Site\Settings;
 use Drupal\language\Plugin\LanguageNegotiation\LanguageNegotiationUI;
@@ -13,6 +15,7 @@ use Symfony\Component\HttpFoundation\RequestStack;
  * Class responsible for performing language negotiation.
  */
 class LanguageNegotiator implements LanguageNegotiatorInterface {
+  use LoggerChannelTrait;
 
   /**
    * The language negotiation method plugin manager.
@@ -76,11 +79,13 @@ class LanguageNegotiator implements LanguageNegotiatorInterface {
    * @param \Drupal\language\ConfigurableLanguageManagerInterface $language_manager
    *   The language manager.
    * @param \Drupal\Component\Plugin\PluginManagerInterface $negotiator_manager
-   *   The language negotiation methods plugin manager
+   *   The language negotiation methods plugin manager.
    * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
    *   The configuration factory.
    * @param \Drupal\Core\Site\Settings $settings
    *   The settings instance.
+   * @param \Symfony\Component\HttpFoundation\RequestStack $requestStack
+   *   The request stack service.
    */
   public function __construct(ConfigurableLanguageManagerInterface $language_manager, PluginManagerInterface $negotiator_manager, ConfigFactoryInterface $config_factory, Settings $settings, RequestStack $requestStack) {
     $this->languageManager = $language_manager;
@@ -128,7 +133,13 @@ class LanguageNegotiator implements LanguageNegotiatorInterface {
       // and return the first valid language found.
       foreach ($this->getEnabledNegotiators($type) as $method_id => $info) {
         if (!isset($this->negotiatedLanguages[$method_id])) {
-          $this->negotiatedLanguages[$method_id] = $this->negotiateLanguage($type, $method_id);
+          try {
+            $this->negotiatedLanguages[$method_id] = $this->negotiateLanguage($type, $method_id);
+          }
+          catch (PluginNotFoundException $e) {
+            // If a plugin is not found, log the error so user can handle it.
+            $this->getLogger('language')->error($e->getMessage());
+          }
         }
 
         // Since objects are references, we need to return a clone to prevent
@@ -187,7 +198,7 @@ class LanguageNegotiator implements LanguageNegotiatorInterface {
     }
 
     $languages = $this->languageManager->getLanguages();
-    return isset($languages[$langcode]) ? $languages[$langcode] : NULL;
+    return $languages[$langcode] ?? NULL;
   }
 
   /**

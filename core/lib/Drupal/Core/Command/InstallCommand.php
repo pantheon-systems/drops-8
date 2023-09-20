@@ -158,8 +158,9 @@ class InstallCommand extends Command {
             ],
           ],
           'enable_update_status_module' => TRUE,
-          // form_type_checkboxes_value() requires NULL instead of FALSE values
-          // for programmatic form submissions to disable a checkbox.
+          // \Drupal\Core\Render\Element\Checkboxes::valueCallback() requires
+          // NULL instead of FALSE values for programmatic form submissions to
+          // disable a checkbox.
           'enable_update_status_emails' => NULL,
         ],
       ],
@@ -328,8 +329,8 @@ class InstallCommand extends Command {
       }
       // Determine the name of the profile; default to the internal name if none
       // is specified.
-      $name = isset($details['name']) ? $details['name'] : $profile->getName();
-      $description = isset($details['description']) ? $details['description'] : $name;
+      $name = $details['name'] ?? $profile->getName();
+      $description = $details['description'] ?? $name;
       $profiles[$profile->getName()] = $description;
 
       if ($auto_select_distributions && !empty($details['distribution'])) {

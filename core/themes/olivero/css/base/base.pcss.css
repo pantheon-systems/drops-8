@@ -11,11 +11,6 @@
   box-sizing: border-box;
 }
 
-::selection {
-  color: white;
-  background-color: var(--color--blue-20);
-}
-
 html {
   font-family: var(--font-sans);
   font-size: 100%;
@@ -31,7 +26,7 @@ body {
   background-image: url("../../images/background.svg");
   background-position: top left; /* LTR */
 
-  &.js-fixed {
+  &.is-fixed {
     position: fixed;
     overflow: hidden;
     width: 100%;
@@ -48,6 +43,15 @@ a {
   &:hover {
     color: var(--color--blue-50);
   }
+
+  &:focus {
+    outline: solid 2px currentColor;
+    outline-offset: 2px;
+  }
+}
+
+button {
+  font-family: inherit;
 }
 
 img,
@@ -63,33 +67,50 @@ audio {
 }
 
 h1 {
-  margin-block: var(--sp);
   letter-spacing: -0.01em;
-  color: var(--color--gray-0);
-  font-size: 24px;
-  font-weight: bold;
-  line-height: var(--sp1-5);
+  font-size: 28px;
+  line-height: var(--sp2);
 
   @media (--md) {
-    margin-block: var(--sp2);
     font-size: 60px;
     line-height: var(--sp4);
   }
 }
 
 h2 {
-  margin-block: var(--sp);
   letter-spacing: -0.01em;
-  color: var(--color--gray-0);
   font-size: 24px;
-  font-weight: bold;
-  line-height: var(--sp1-5);
+  line-height: var(--sp2);
 
   @media (--md) {
-    margin-block: var(--sp2);
     font-size: 36px;
     line-height: var(--sp3);
   }
+}
+
+h3 {
+  font-size: 20px;
+  line-height: var(--sp1-5);
+
+  @media (--md) {
+    font-size: 24px;
+    line-height: var(--sp2);
+  }
+}
+
+h4 {
+  font-size: 18px;
+  line-height: var(--sp1-5);
+}
+
+h5 {
+  font-size: 16px;
+  line-height: var(--sp1-5);
+}
+
+h6 {
+  font-size: 14px;
+  line-height: var(--sp);
 }
 
 h1,
@@ -98,7 +119,14 @@ h3,
 h4,
 h5,
 h6 {
+  margin-block: var(--sp);
+  color: var(--color--gray-0);
   font-family: var(--font-sans);
+  font-weight: bold;
+
+  @media (--md) {
+    margin-block: var(--sp2);
+  }
 }
 
 ul {
@@ -109,19 +137,4 @@ ul {
   padding-inline-start: 0;
   list-style-type: disc;
   list-style-image: none;
-}
-
-.overlay {
-  position: fixed;
-  inset-block-start: 0;
-  inset-inline-start: 0;
-  display: none;
-  width: 100%;
-  height: 100vh;
-  opacity: 0.2;
-  background: var(--color--blue-20);
-}
-
-.js-overlay-active .overlay {
-  display: block;
 }

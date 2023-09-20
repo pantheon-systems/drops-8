@@ -5,7 +5,6 @@ namespace Drupal\Core\Mail;
 use Drupal\Component\Render\MarkupInterface;
 use Drupal\Component\Render\PlainTextOutput;
 use Drupal\Component\Utility\Html;
-use Drupal\Component\Utility\Mail as MailHelper;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\Messenger\MessengerTrait;
 use Drupal\Core\Plugin\DefaultPluginManager;
@@ -17,6 +16,8 @@ use Drupal\Core\Render\RenderContext;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslationInterface;
+use Symfony\Component\Mime\Address;
+use Symfony\Component\Mime\Header\MailboxHeader;
 
 /**
  * Provides a Mail plugin manager.
@@ -100,7 +101,7 @@ class MailManager extends DefaultPluginManager implements MailManagerInterface {
    * by one module, set the plugin ID as the value for the key corresponding to
    * the module name. To specify a plugin for a particular message sent by one
    * module, set the plugin ID as the value for the array key that is the
-   * message ID, which is "${module}_${key}".
+   * message ID, which is "{$module}_{$key}".
    *
    * For example to debug all mail sent by the user module by logging it to a
    * file, you might set the variable as something like:
@@ -255,21 +256,20 @@ class MailManager extends DefaultPluginManager implements MailManagerInterface {
     // To prevent email from looking like spam, the addresses in the Sender and
     // Return-Path headers should have a domain authorized to use the
     // originating SMTP server.
-    $headers['Sender'] = $headers['Return-Path'] = $site_mail;
+    $headers['From'] = $headers['Sender'] = $headers['Return-Path'] = $site_mail;
     // Make sure the site-name is a RFC-2822 compliant 'display-name'.
-    $headers['From'] = MailHelper::formatDisplayName($site_config->get('name')) . ' <' . $site_mail . '>';
+    if ($site_mail) {
+      $mailbox = new MailboxHeader('From', new Address($site_mail, $site_config->get('name') ?: ''));
+      $headers['From'] = $mailbox->getBodyAsString();
+    }
     if ($reply) {
       $headers['Reply-to'] = $reply;
     }
     $message['headers'] = $headers;
 
     // Build the email (get subject and body, allow additional headers) by
-    // invoking hook_mail() on this module. We cannot use
-    // moduleHandler()->invoke() as we need to have $message by reference in
-    // hook_mail().
-    if (function_exists($function = $module . '_mail')) {
-      $function($key, $message, $params);
-    }
+    // invoking hook_mail() on this module.
+    $this->moduleHandler->invoke($module, 'mail', [$key, &$message, $params]);
 
     // Invoke hook_mail_alter() to allow all modules to alter the resulting
     // email.
@@ -309,10 +309,10 @@ class MailManager extends DefaultPluginManager implements MailManagerInterface {
         if (!$message['result']) {
           $this->loggerFactory->get('mail')
             ->error('Error sending email (from %from to %to with reply-to %reply).', [
-            '%from' => $message['from'],
-            '%to' => $message['to'],
-            '%reply' => $message['reply-to'] ? $message['reply-to'] : $this->t('not set'),
-          ]);
+              '%from' => $message['from'],
+              '%to' => $message['to'],
+              '%reply' => $message['reply-to'] ? $message['reply-to'] : $this->t('not set'),
+            ]);
           $error_message = $params['_error_message'] ?? $this->t('Unable to send email. Contact the site administrator if the problem persists.');
           if ($error_message) {
             $this->messenger()->addError($error_message);

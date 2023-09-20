@@ -21,7 +21,7 @@ use Drupal\Core\Url;
 class LinkGenerator implements LinkGeneratorInterface {
 
   /**
-   * The url generator.
+   * The URL generator.
    *
    * @var \Drupal\Core\Routing\UrlGeneratorInterface
    */
@@ -106,7 +106,7 @@ class LinkGenerator implements LinkGeneratorInterface {
       'absolute' => FALSE,
     ];
 
-    // Add a hreflang attribute if we know the language of this link's url and
+    // Add a hreflang attribute if we know the language of this link's URL and
     // hreflang has not already been set.
     if (!empty($variables['options']['language']) && !isset($variables['options']['attributes']['hreflang'])) {
       $variables['options']['attributes']['hreflang'] = $variables['options']['language']->getId();
@@ -170,13 +170,13 @@ class LinkGenerator implements LinkGeneratorInterface {
     }
     if ($url->isRouted() && $url->getRouteName() === '<nolink>') {
       $generated_link = new GeneratedNoLink();
-      unset($attributes['href']);
+      unset($attributes['href'], $attributes['hreflang']);
       return $this->doGenerate($generated_link, $attributes, $variables);
     }
     if ($url->isRouted() && $url->getRouteName() === '<button>') {
       $generated_link = new GeneratedButton();
       $attributes['type'] = 'button';
-      unset($attributes['href']);
+      unset($attributes['href'], $attributes['hreflang']);
       return $this->doGenerate($generated_link, $attributes, $variables);
     }
     $generated_url = $url->toString(TRUE);

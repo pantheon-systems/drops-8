@@ -8,6 +8,8 @@ use Drupal\views\Plugin\views\display\DisplayPluginBase;
 use Drupal\views\ManyToOneHelper;
 
 /**
+ * Argument handler for many to one relationships.
+ *
  * An argument handler for use in fields that have a many to one relationship
  * with the table(s) to the left. This adds a bunch of options that are
  * reasonably common with this type of relationship.
@@ -40,9 +42,7 @@ class ManyToOne extends ArgumentPluginBase {
   protected function defineOptions() {
     $options = parent::defineOptions();
 
-    if (!empty($this->definition['numeric'])) {
-      $options['break_phrase'] = ['default' => FALSE];
-    }
+    $options['break_phrase'] = ['default' => FALSE];
 
     $options['add_table'] = ['default' => FALSE];
     $options['require_value'] = ['default' => FALSE];
@@ -89,8 +89,7 @@ class ManyToOne extends ArgumentPluginBase {
   }
 
   /**
-   * Override ensureMyTable so we can control how this joins in.
-   * The operator actually has influence over joining.
+   * {@inheritdoc}
    */
   public function ensureMyTable() {
     $this->helper->ensureMyTable();

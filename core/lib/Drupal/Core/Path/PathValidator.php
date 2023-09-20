@@ -143,7 +143,7 @@ class PathValidator implements PathValidatorInterface {
    *   valid.
    *
    * @return array|bool
-   *   An array of request attributes of FALSE if an exception was thrown.
+   *   An array of request attributes or FALSE if an exception was thrown.
    */
   protected function getPathAttributes($path, Request $request, $access_check) {
     if (!$access_check || $this->account->hasPermission('link to any page')) {
@@ -157,9 +157,7 @@ class PathValidator implements PathValidatorInterface {
     $path = $this->pathProcessor->processInbound('/' . $path, $request);
 
     try {
-      $request_context = new RequestContext();
-      $request_context->fromRequest($request);
-      $router->setContext($request_context);
+      $router->setContext((new RequestContext())->fromRequest($request));
       $result = $router->match($path);
     }
     catch (ResourceNotFoundException $e) {

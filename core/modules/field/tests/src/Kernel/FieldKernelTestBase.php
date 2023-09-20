@@ -45,6 +45,11 @@ abstract class FieldKernelTestBase extends KernelTestBase {
   protected $fieldTestData;
 
   /**
+   * @var string
+   */
+  protected $entityId;
+
+  /**
    * Set the default field storage backend for fields created during tests.
    */
   protected function setUp() {
@@ -164,7 +169,7 @@ abstract class FieldKernelTestBase extends KernelTestBase {
    * @param $cardinality
    *   Number of values to generate.
    *
-   * @return
+   * @return array
    *   An array of random values, in the format expected for field values.
    */
   protected function _generateTestFieldValues($cardinality) {
@@ -208,7 +213,7 @@ abstract class FieldKernelTestBase extends KernelTestBase {
     $values = $field->getValue();
     $this->assertCount($expected_values_count, $values, 'Expected number of values were saved.');
     foreach ($expected_values as $key => $value) {
-      $this->assertEqual($values[$key][$column], $value, new FormattableMarkup('Value @value was saved correctly.', ['@value' => $value]));
+      $this->assertEquals($value, $values[$key][$column], new FormattableMarkup('Value @value was saved correctly.', ['@value' => $value]));
     }
   }
 

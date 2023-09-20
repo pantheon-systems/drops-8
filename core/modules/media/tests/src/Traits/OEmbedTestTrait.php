@@ -17,7 +17,7 @@ trait OEmbedTestTrait {
    * @return string
    */
   protected function getFixturesDirectory() {
-    return drupal_get_path('module', 'media') . '/tests/fixtures/oembed';
+    return \Drupal::service('extension.list.module')->getPath('media') . '/tests/fixtures/oembed';
   }
 
   /**
@@ -39,10 +39,11 @@ trait OEmbedTestTrait {
   }
 
   /**
-   * Configures the http_client service so that all requests are carried out
-   * relative to the URL of the fixtures directory. For example, after calling
-   * this method, a request for foobar.html will actually request
-   * http://test-site/path/to/fuxtures/foobar.html.
+   * Configures the HTTP client to always use the fixtures directory.
+   *
+   * All requests are carried out relative to the URL of the fixtures directory.
+   * For example, after calling this method, a request for foobar.html will
+   * actually request http://test-site/path/to/fixtures/foobar.html.
    */
   protected function lockHttpClientToFixtures() {
     $this->writeSettings([
@@ -55,12 +56,17 @@ trait OEmbedTestTrait {
         ],
       ],
     ]);
+    // Rebuild the container in case there is already an instantiated service
+    // that has a dependency on the http_client service.
+    $this->container->get('kernel')->rebuildContainer();
+    $this->container = $this->container->get('kernel')->getContainer();
   }
 
   /**
-   * Ensures that all oEmbed provider endpoints defined in the fixture
-   * providers.json will use the media_test_oembed.resource.get route as their
-   * URL.
+   * Ensures that oEmbed provider endpoints use the test resource route.
+   *
+   * All oEmbed provider endpoints defined in the fixture providers.json will
+   * use the media_test_oembed.resource.get route as their URL.
    *
    * This requires the media_test_oembed module in order to work.
    */

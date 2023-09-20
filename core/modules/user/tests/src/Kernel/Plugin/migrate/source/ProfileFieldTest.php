@@ -25,7 +25,7 @@ class ProfileFieldTest extends MigrateSqlSourceTestBase {
       [
         'source_data' => [],
         'expected_data' => [],
-       ],
+      ],
     ];
 
     $profile_fields = [
@@ -103,8 +103,8 @@ class ProfileFieldTest extends MigrateSqlSourceTestBase {
     ];
 
     // Expected options are:
-    //  for "checkbox" fields - array with NULL options
-    //  for "selection" fields - options in both keys and values
+    // - for "checkbox" fields - array with NULL options.
+    // - for "selection" fields - options in both keys and values.
     $expected_field_options = [
       '',
       '',

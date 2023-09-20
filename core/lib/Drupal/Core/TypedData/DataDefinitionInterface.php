@@ -57,9 +57,10 @@ interface DataDefinitionInterface {
   /**
    * Returns a human readable label.
    *
-   * @return string|\Drupal\Core\StringTranslation\TranslatableMarkup
+   * @return string|\Drupal\Core\StringTranslation\TranslatableMarkup|null
    *   The label. A string or an instance of TranslatableMarkup will be returned
-   *   based on the way the label translation is handled.
+   *   based on the way the label translation is handled. NULL if no label is
+   *   available.
    */
   public function getLabel();
 
@@ -69,8 +70,10 @@ interface DataDefinitionInterface {
    * Descriptions are usually used on user interfaces where the data is edited
    * or displayed.
    *
-   * @return string|null
-   *   The description, or NULL if no description is available.
+   * @return string|\Drupal\Core\StringTranslation\TranslatableMarkup|null
+   *   The description. A string or an instance of TranslatableMarkup will be
+   *   returned based on the way the description translation is handled. NULL if
+   *   no description is available.
    */
   public function getDescription();
 
@@ -223,6 +226,11 @@ interface DataDefinitionInterface {
    *
    * This can be used in a scenario when it is not desirable to expose this data
    * value to an external system.
+   *
+   * The implications of this method are left to the discretion of the caller.
+   * For example, a module providing an HTTP API may not expose entities of
+   * this type, or a custom entity reference field settings form may
+   * deprioritize entities of this type in a select list.
    *
    * @return bool
    *   Whether the data value is internal.

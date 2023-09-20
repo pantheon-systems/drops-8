@@ -22,6 +22,9 @@ class AreaTextTest extends ViewsKernelTestBase {
    */
   public static $testViews = ['test_view'];
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp($import_test_views = TRUE): void {
     parent::setUp();
 
@@ -53,18 +56,18 @@ class AreaTextTest extends ViewsKernelTestBase {
 
     $view->display_handler->handlers['header']['area']->options['content']['format'] = $this->randomString();
     $build = $view->display_handler->handlers['header']['area']->render();
-    $this->assertEqual('', $renderer->renderRoot($build), 'Nonexistent format should return empty markup.');
+    $this->assertEquals('', $renderer->renderRoot($build), 'Nonexistent format should return empty markup.');
 
     $view->display_handler->handlers['header']['area']->options['content']['format'] = filter_default_format();
     $build = $view->display_handler->handlers['header']['area']->render();
-    $this->assertEqual(check_markup($string), $renderer->renderRoot($build), 'Existent format should return something');
+    $this->assertEquals(check_markup($string), $renderer->renderRoot($build), 'Existent format should return something');
 
     // Empty results, and it shouldn't be displayed .
-    $this->assertEqual([], $view->display_handler->handlers['header']['area']->render(TRUE), 'No result should lead to no header');
+    $this->assertEquals([], $view->display_handler->handlers['header']['area']->render(TRUE), 'No result should lead to no header');
     // Empty results, and it should be displayed.
     $view->display_handler->handlers['header']['area']->options['empty'] = TRUE;
     $build = $view->display_handler->handlers['header']['area']->render(TRUE);
-    $this->assertEqual(check_markup($string), $renderer->renderRoot($build), 'No result, but empty enabled lead to a full header');
+    $this->assertEquals(check_markup($string), $renderer->renderRoot($build), 'No result, but empty enabled lead to a full header');
   }
 
 }

@@ -8,8 +8,7 @@ use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\FunctionalJavascriptTests\WebDriverTestBase;
 
 /**
- * Tests that AJAX-enabled forms work when multiple instances of the same form
- * are on a page.
+ * Tests AJAX-enabled forms when multiple instances of the form are on a page.
  *
  * @group Ajax
  */
@@ -66,7 +65,6 @@ class MultiFormTest extends WebDriverTestBase {
     $form_xpath = '//form[starts-with(@id, "node-page-form")]';
     $field_xpath = '//div[contains(@class, "field--name-field-ajax-test")]';
     $button_name = $field_name . '_add_more';
-    $button_value = t('Add another item');
     $button_xpath_suffix = '//input[@name="' . $button_name . '"]';
     $field_items_xpath_suffix = '//input[@type="text"]';
 
@@ -84,7 +82,7 @@ class MultiFormTest extends WebDriverTestBase {
     $this->assertCount(2, $fields);
     foreach ($fields as $field) {
       $this->assertCount(1, $field->findAll('xpath', '.' . $field_items_xpath_suffix), 'Found the correct number of field items on the initial page.');
-      $this->assertFieldsByValue($field->find('xpath', '.' . $button_xpath_suffix), NULL, 'Found the "add more" button on the initial page.');
+      $this->assertNotNull($field->find('xpath', '.' . $button_xpath_suffix), 'Found the "add more" button on the initial page.');
     }
 
     $this->assertSession()->pageContainsNoDuplicateId();
@@ -93,20 +91,21 @@ class MultiFormTest extends WebDriverTestBase {
     // page update, ensure the same as above.
 
     for ($i = 0; $i < 2; $i++) {
-      $forms = $page->find('xpath', $form_xpath);
+      $forms = $page->findAll('xpath', $form_xpath);
       foreach ($forms as $offset => $form) {
-        $button = $form->findButton($button_value);
+        $button = $form->findButton('Add another item');
         $this->assertNotNull($button, 'Add Another Item button exists');
         $button->press();
 
-        // Wait for page update.
-        $this->assertSession()->assertWaitOnAjaxRequest();
+        // Wait for field to be added with ajax.
+        $this->assertNotEmpty($page->waitFor(10, function () use ($form, $i) {
+          return $form->findField('field_ajax_test[' . ($i + 1) . '][value]');
+        }));
 
-        // After AJAX request and response page will update.
-        $page_updated = $session->getPage();
-        $field = $page_updated->findAll('xpath', '.' . $field_xpath);
-        $this->assertCount($i + 2, $field[0]->find('xpath', '.' . $field_items_xpath_suffix), 'Found the correct number of field items after an AJAX submission.');
-        $this->assertFieldsByValue($field[0]->find('xpath', '.' . $button_xpath_suffix), NULL, 'Found the "add more" button after an AJAX submission.');
+        // After AJAX request and response verify the correct number of text
+        // fields (including title), as well as the "Add another item" button.
+        $this->assertCount($i + 3, $form->findAll('css', 'input[type="text"]'), 'Found the correct number of field items after an AJAX submission.');
+        $this->assertNotEmpty($form->findButton('Add another item'), 'Found the "add more" button after an AJAX submission.');
         $this->assertSession()->pageContainsNoDuplicateId();
       }
     }

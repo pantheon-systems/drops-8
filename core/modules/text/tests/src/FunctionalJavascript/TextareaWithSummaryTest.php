@@ -3,6 +3,7 @@
 namespace Drupal\Tests\text\FunctionalJavascript;
 
 use Drupal\field\Entity\FieldConfig;
+use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\FunctionalJavascriptTests\WebDriverTestBase;
 
 /**
@@ -39,8 +40,10 @@ class TextareaWithSummaryTest extends WebDriverTestBase {
 
   /**
    * Helper to test toggling the summary area.
+   *
+   * @internal
    */
-  protected function assertSummaryToggle() {
+  protected function assertSummaryToggle(): void {
     $this->drupalGet('node/add/page');
     $widget = $this->getSession()->getPage()->findById('edit-body-wrapper');
     $summary_field = $widget->findField('edit-body-0-summary');
@@ -72,6 +75,13 @@ class TextareaWithSummaryTest extends WebDriverTestBase {
 
     $this->assertSummaryToggle();
 
+    // Repeat test with unlimited cardinality field.
+    $body_field_storage = FieldStorageConfig::loadByName('node', 'body');
+    $body_field_storage->setCardinality(-1);
+    $body_field_storage->save();
+
+    $this->assertSummaryToggle();
+
     // Test summary is shown when non-empty.
     $node = $this->createNode([
       'body' => [
@@ -84,10 +94,50 @@ class TextareaWithSummaryTest extends WebDriverTestBase {
     ]);
 
     $this->drupalGet('node/' . $node->id() . '/edit');
-    $page = $this->getSession()->getPage();
-    $summary_field = $page->findField('edit-body-0-summary');
+    $summary_field = $this->getSession()->getPage()->findField('edit-body-0-summary');
 
-    $this->assertEquals(TRUE, $summary_field->isVisible(), 'Non-empty summary field is shown by default.');
+    $this->assertEquals(TRUE, $summary_field->isVisible());
+  }
+
+  /**
+   * Tests that the textSummary behavior is not run for required summary fields.
+   */
+  public function testTextSummaryRequiredBehavior() {
+    // Test with field defaults.
+    $this->assertSummaryToggle();
+
+    // Create a second field with a required summary.
+    $field_name = mb_strtolower($this->randomMachineName());
+    $field_storage = FieldStorageConfig::create([
+      'field_name' => $field_name,
+      'entity_type' => 'node',
+      'type' => 'text_with_summary',
+    ]);
+    $field_storage->save();
+    FieldConfig::create([
+      'field_storage' => $field_storage,
+      'bundle' => 'page',
+      'label' => $this->randomMachineName() . '_label',
+      'settings' => [
+        'display_summary' => TRUE,
+        'required_summary' => TRUE,
+      ],
+    ])->save();
+
+    /** @var \Drupal\Core\Entity\EntityDisplayRepositoryInterface $display_repository */
+    $display_repository = \Drupal::service('entity_display.repository');
+
+    $display_repository->getFormDisplay('node', 'page')
+      ->setComponent($field_name, [
+        'type' => 'text_textarea_with_summary',
+      ])
+      ->save();
+
+    $this->drupalGet('node/add/page');
+    $page = $this->getSession()->getPage();
+    $summary_field = $page->findField('edit-' . $field_name . '-0-summary');
+
+    $this->assertEquals(TRUE, $summary_field->isVisible());
   }
 
 }

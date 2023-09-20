@@ -25,6 +25,9 @@ class CommentItemTest extends FieldKernelTestBase {
    */
   protected static $modules = ['comment', 'entity_test', 'user'];
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp(): void {
     parent::setUp();
     $this->installEntitySchema('comment');
@@ -63,7 +66,7 @@ class CommentItemTest extends FieldKernelTestBase {
     ], 'Comment status value in defined range');
 
     $mainProperty = $entity->comment[0]->mainPropertyName();
-    $this->assertEqual('status', $mainProperty);
+    $this->assertEquals('status', $mainProperty);
   }
 
   /**

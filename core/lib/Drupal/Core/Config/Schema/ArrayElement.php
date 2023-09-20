@@ -33,7 +33,7 @@ abstract class ArrayElement extends Element implements \IteratorAggregate, Typed
   protected function parse() {
     $elements = [];
     foreach ($this->getAllKeys() as $key) {
-      $value = isset($this->value[$key]) ? $this->value[$key] : NULL;
+      $value = $this->value[$key] ?? NULL;
       $definition = $this->getElementDefinition($key);
       $elements[$key] = $this->createElement($definition, $value, $key);
     }
@@ -98,7 +98,7 @@ abstract class ArrayElement extends Element implements \IteratorAggregate, Typed
    * {@inheritdoc}
    */
   public function toArray() {
-    return isset($this->value) ? $this->value : [];
+    return $this->value ?? [];
   }
 
   /**
@@ -114,6 +114,7 @@ abstract class ArrayElement extends Element implements \IteratorAggregate, Typed
   /**
    * {@inheritdoc}
    */
+  #[\ReturnTypeWillChange]
   public function getIterator() {
     return new \ArrayIterator($this->getElements());
   }
@@ -136,8 +137,7 @@ abstract class ArrayElement extends Element implements \IteratorAggregate, Typed
   }
 
   /**
-   * Creates a new data definition object from a type definition array and
-   * actual configuration data.
+   * Creates a new data definition object from an array and configuration.
    *
    * @param array $definition
    *   The base type definition array, for which a data definition should be

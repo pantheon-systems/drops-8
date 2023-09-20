@@ -17,12 +17,15 @@ abstract class StatisticsTestBase extends BrowserTestBase {
   protected static $modules = ['node', 'block', 'ban', 'statistics'];
 
   /**
-   * User with permissions to ban IP's.
+   * User with permissions to ban IPs.
    *
    * @var \Drupal\user\UserInterface
    */
   protected $blockingUser;
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp() {
     parent::setUp();
 

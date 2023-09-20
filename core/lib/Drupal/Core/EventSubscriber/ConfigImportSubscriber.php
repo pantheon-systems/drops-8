@@ -7,7 +7,9 @@ use Drupal\Core\Config\ConfigImporter;
 use Drupal\Core\Config\ConfigImporterEvent;
 use Drupal\Core\Config\ConfigImportValidateEventSubscriberBase;
 use Drupal\Core\Config\ConfigNameException;
+use Drupal\Core\Extension\ConfigImportModuleUninstallValidatorInterface;
 use Drupal\Core\Extension\ModuleExtensionList;
+use Drupal\Core\Extension\ModuleUninstallValidatorInterface;
 use Drupal\Core\Extension\ThemeHandlerInterface;
 use Drupal\Core\Installer\InstallerKernel;
 
@@ -38,6 +40,13 @@ class ConfigImportSubscriber extends ConfigImportValidateEventSubscriberBase {
   protected $themeHandler;
 
   /**
+   * The uninstall validators.
+   *
+   * @var \Drupal\Core\Extension\ModuleUninstallValidatorInterface[]
+   */
+  protected $uninstallValidators = [];
+
+  /**
    * Constructs the ConfigImportSubscriber.
    *
    * @param \Drupal\Core\Extension\ThemeHandlerInterface $theme_handler
@@ -48,6 +57,16 @@ class ConfigImportSubscriber extends ConfigImportValidateEventSubscriberBase {
   public function __construct(ThemeHandlerInterface $theme_handler, ModuleExtensionList $extension_list_module) {
     $this->themeHandler = $theme_handler;
     $this->moduleExtensionList = $extension_list_module;
+  }
+
+  /**
+   * Adds a module uninstall validator.
+   *
+   * @param \Drupal\Core\Extension\ModuleUninstallValidatorInterface $uninstall_validator
+   *   The uninstall validator to add.
+   */
+  public function addUninstallValidator(ModuleUninstallValidatorInterface $uninstall_validator): void {
+    $this->uninstallValidators[] = $uninstall_validator;
   }
 
   /**
@@ -92,7 +111,7 @@ class ConfigImportSubscriber extends ConfigImportValidateEventSubscriberBase {
 
     // Get the install profile from the site's configuration.
     $current_core_extension = $config_importer->getStorageComparer()->getTargetStorage()->read('core.extension');
-    $install_profile = isset($current_core_extension['profile']) ? $current_core_extension['profile'] : NULL;
+    $install_profile = $current_core_extension['profile'] ?? NULL;
 
     // Ensure the profile is not changing.
     if ($install_profile !== $core_extension['profile']) {
@@ -150,6 +169,16 @@ class ConfigImportSubscriber extends ConfigImportValidateEventSubscriberBase {
           $config_importer->logError($this->t('Unable to uninstall the %module module since the %dependent_module module is installed.', ['%module' => $module_name, '%dependent_module' => $dependent_module_name]));
         }
       }
+      // Ensure that modules can be uninstalled.
+      foreach ($this->uninstallValidators as $validator) {
+        $reasons = $validator instanceof ConfigImportModuleUninstallValidatorInterface ?
+          $validator->validateConfigImport($module, $config_importer->getStorageComparer()->getSourceStorage()) :
+          $validator->validate($module);
+        foreach ($reasons as $reason) {
+          $config_importer->logError($this->t('Unable to uninstall the %module module because: @reason.',
+            ['%module' => $module_data[$module]->info['name'], '@reason' => $reason]));
+        }
+      }
     }
 
     // Ensure that the install profile is not being uninstalled.
@@ -169,23 +198,35 @@ class ConfigImportSubscriber extends ConfigImportValidateEventSubscriberBase {
     $core_extension = $config_importer->getStorageComparer()->getSourceStorage()->read('core.extension');
     // Get all themes including those that are not installed.
     $theme_data = $this->getThemeData();
-    $installs = $config_importer->getExtensionChangelist('theme', 'install');
-    foreach ($installs as $key => $theme) {
-      if (!isset($theme_data[$theme])) {
-        $config_importer->logError($this->t('Unable to install the %theme theme since it does not exist.', ['%theme' => $theme]));
-        // Remove non-existing installs from the list so we can validate theme
-        // dependencies later.
-        unset($installs[$key]);
-      }
+    $module_data = $this->moduleExtensionList->getList();
+    $nonexistent_themes = array_keys(array_diff_key($core_extension['theme'], $theme_data));
+    foreach ($nonexistent_themes as $theme) {
+      $config_importer->logError($this->t('Unable to install the %theme theme since it does not exist.', ['%theme' => $theme]));
     }
 
     // Ensure that all themes being installed have their dependencies met.
+    $installs = $config_importer->getExtensionChangelist('theme', 'install');
     foreach ($installs as $theme) {
-      foreach (array_keys($theme_data[$theme]->requires) as $required_theme) {
+      $module_dependencies = $theme_data[$theme]->module_dependencies;
+      // $theme_data[$theme]->requires contains both theme and module
+      // dependencies keyed by the extension machine names.
+      // $theme_data[$theme]->module_dependencies contains only the module
+      // dependencies keyed by the module extension machine name. Therefore, we
+      // can find the theme dependencies by finding array keys for 'requires'
+      // that are not in $module_dependencies.
+      $theme_dependencies = array_diff_key($theme_data[$theme]->requires, $module_dependencies);
+      foreach (array_keys($theme_dependencies) as $required_theme) {
         if (!isset($core_extension['theme'][$required_theme])) {
           $theme_name = $theme_data[$theme]->info['name'];
           $required_theme_name = $theme_data[$required_theme]->info['name'];
           $config_importer->logError($this->t('Unable to install the %theme theme since it requires the %required_theme theme.', ['%theme' => $theme_name, '%required_theme' => $required_theme_name]));
+        }
+      }
+      foreach (array_keys($module_dependencies) as $required_module) {
+        if (!isset($core_extension['module'][$required_module])) {
+          $theme_name = $theme_data[$theme]->info['name'];
+          $required_module_name = $module_data[$required_module]->info['name'];
+          $config_importer->logError($this->t('Unable to install the %theme theme since it requires the %required_module module.', ['%theme' => $theme_name, '%required_module' => $required_module_name]));
         }
       }
     }
@@ -227,7 +268,7 @@ class ConfigImportSubscriber extends ConfigImportValidateEventSubscriberBase {
     foreach ($config_importer->getStorageComparer()->getSourceStorage()->listAll() as $name) {
       // Ensure that the config owner is installed. This checks all
       // configuration including configuration entities.
-      list($owner,) = explode('.', $name, 2);
+      [$owner] = explode('.', $name, 2);
       if ($owner !== 'core') {
         $message = FALSE;
         if (!isset($core_extension['module'][$owner]) && isset($module_data[$owner])) {

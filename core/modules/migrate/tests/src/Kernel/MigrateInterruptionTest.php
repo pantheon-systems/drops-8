@@ -60,10 +60,10 @@ class MigrateInterruptionTest extends KernelTestBase {
     // interruption.
     $result = $executable->import();
 
-    $this->assertEqual($result, MigrationInterface::RESULT_INCOMPLETE);
+    $this->assertEquals(MigrationInterface::RESULT_INCOMPLETE, $result);
 
     // The status should have been reset to IDLE.
-    $this->assertEqual($migration->getStatus(), MigrationInterface::STATUS_IDLE);
+    $this->assertEquals(MigrationInterface::STATUS_IDLE, $migration->getStatus());
   }
 
   /**

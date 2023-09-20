@@ -119,7 +119,7 @@ class CacheCollectorTest extends UnitTestCase {
     $this->cacheBackend->expects($this->once())
       ->method('get')
       ->with($this->cid)
-      ->will($this->returnValue($cache));
+      ->willReturn($cache);
     $this->assertTrue($this->collector->has($key));
     $this->assertEquals($value, $this->collector->get($key));
     $this->assertEquals(0, $this->collector->getCacheMisses());
@@ -175,7 +175,7 @@ class CacheCollectorTest extends UnitTestCase {
     $this->lock->expects($this->once())
       ->method('acquire')
       ->with($this->cid . ':Drupal\Core\Cache\CacheCollector')
-      ->will($this->returnValue(TRUE));
+      ->willReturn(TRUE);
     $this->cacheBackend->expects($this->once())
       ->method('get')
       ->with($this->cid, FALSE);
@@ -204,7 +204,7 @@ class CacheCollectorTest extends UnitTestCase {
     $this->lock->expects($this->once())
       ->method('acquire')
       ->with($this->cid . ':Drupal\Core\Cache\CacheCollector')
-      ->will($this->returnValue(FALSE));
+      ->willReturn(FALSE);
     $this->cacheBackend->expects($this->never())
       ->method('set');
 
@@ -219,35 +219,32 @@ class CacheCollectorTest extends UnitTestCase {
     $key = $this->randomMachineName();
     $value = $this->randomMachineName();
 
-    $cache = (object) [
-      'data' => [$key => $value],
-      'created' => (int) $_SERVER['REQUEST_TIME'],
-    ];
-    $this->cacheBackend->expects($this->at(0))
+    // Set up mock cache get with conflicting entries.
+    $this->cacheBackend->expects($this->exactly(2))
       ->method('get')
       ->with($this->cid)
-      ->will($this->returnValue($cache));
+      ->willReturnOnConsecutiveCalls(
+        (object) [
+          'data' => [$key => $value],
+          'created' => (int) $_SERVER['REQUEST_TIME'],
+        ],
+        (object) [
+          'data' => [$key => $value],
+          'created' => (int) $_SERVER['REQUEST_TIME'] + 1,
+        ],
+      );
 
-    $this->cacheBackend->expects($this->at(1))
+    $this->cacheBackend->expects($this->once())
       ->method('invalidate')
       ->with($this->cid);
     $this->collector->set($key, 'new value');
 
     // Set up mock objects for the expected calls, first a lock acquire, then
-    // cache get to look for conflicting cache entries, which does find
-    // and then it deletes the cache and aborts.
+    // when cache get finds conflicting entries it deletes the cache and aborts.
     $this->lock->expects($this->once())
       ->method('acquire')
       ->with($this->cid . ':Drupal\Core\Cache\CacheCollector')
-      ->will($this->returnValue(TRUE));
-    $cache = (object) [
-      'data' => [$key => $value],
-      'created' => (int) $_SERVER['REQUEST_TIME'] + 1,
-    ];
-    $this->cacheBackend->expects($this->at(0))
-      ->method('get')
-      ->with($this->cid)
-      ->will($this->returnValue($cache));
+      ->willReturn(TRUE);
     $this->cacheBackend->expects($this->once())
       ->method('delete')
       ->with($this->cid);
@@ -275,15 +272,15 @@ class CacheCollectorTest extends UnitTestCase {
     $this->lock->expects($this->once())
       ->method('acquire')
       ->with($this->cid . ':Drupal\Core\Cache\CacheCollector')
-      ->will($this->returnValue(TRUE));
+      ->willReturn(TRUE);
     $cache = (object) [
       'data' => ['other key' => 'other value'],
       'created' => (int) $_SERVER['REQUEST_TIME'] + 1,
     ];
-    $this->cacheBackend->expects($this->at(0))
+    $this->cacheBackend->expects($this->once())
       ->method('get')
       ->with($this->cid)
-      ->will($this->returnValue($cache));
+      ->willReturn($cache);
     $this->cacheBackend->expects($this->once())
       ->method('set')
       ->with($this->cid, ['other key' => 'other value', $key => $value], Cache::PERMANENT, []);
@@ -306,26 +303,24 @@ class CacheCollectorTest extends UnitTestCase {
       'data' => [$key => $value],
       'created' => (int) $_SERVER['REQUEST_TIME'],
     ];
-    $this->cacheBackend->expects($this->at(0))
+    // Set up mock expectation, on the second call the with the second argument
+    // set to TRUE because we triggered a cache invalidation.
+    $this->cacheBackend->expects($this->exactly(2))
       ->method('get')
-      ->with($this->cid)
-      ->will($this->returnValue($cache));
+      ->withConsecutive(
+        [$this->cid],
+        [$this->cid, TRUE],
+      )
+      ->willReturn($cache);
 
     $this->collector->delete($key);
 
     // Set up mock objects for the expected calls, first a lock acquire, then
-    // cache get to look for conflicting cache entries, then a cache set and
-    // finally the lock is released again.
+    // a cache set and finally the lock is released again.
     $this->lock->expects($this->once())
       ->method('acquire')
       ->with($this->cid . ':Drupal\Core\Cache\CacheCollector')
-      ->will($this->returnValue(TRUE));
-    // The second argument is set to TRUE because we triggered a cache
-    // invalidation.
-    $this->cacheBackend->expects($this->at(0))
-      ->method('get')
-      ->with($this->cid, TRUE)
-      ->will($this->returnValue($cache));
+      ->willReturn(TRUE);
     $this->cacheBackend->expects($this->once())
       ->method('set')
       ->with($this->cid, [], Cache::PERMANENT, []);
