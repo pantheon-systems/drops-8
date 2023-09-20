@@ -6,7 +6,7 @@ use Drupal\migrate\Plugin\MigrationInterface;
 use Drupal\Component\EventDispatcher\Event;
 
 /**
- * Wraps an idmap message event for event listeners.
+ * Wraps an ID map message event for event listeners.
  */
 class MigrateIdMapMessageEvent extends Event {
 
@@ -88,8 +88,11 @@ class MigrateIdMapMessageEvent extends Event {
   }
 
   /**
-   * Gets the severity level of the message (one of the
-   * MigrationInterface::MESSAGE_* constants).
+   * Gets the severity level of the message.
+   *
+   * Message levels are declared in MigrationInterface and start with MESSAGE_.
+   *
+   * @see \Drupal\migrate\Plugin\MigrationInterface
    *
    * @return int
    *   The message level.

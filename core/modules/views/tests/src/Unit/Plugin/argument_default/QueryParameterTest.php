@@ -13,7 +13,7 @@ use Symfony\Component\HttpFoundation\Request;
 class QueryParameterTest extends UnitTestCase {
 
   /**
-   * Test the getArgument() method.
+   * Tests the getArgument() method.
    *
    * @covers ::getArgument
    * @dataProvider providerGetArgument
@@ -21,7 +21,7 @@ class QueryParameterTest extends UnitTestCase {
   public function testGetArgument($options, Request $request, $expected) {
     $view = $this->getMockBuilder('Drupal\views\ViewExecutable')
       ->disableOriginalConstructor()
-      ->setMethods(NULL)
+      ->onlyMethods([])
       ->getMock();
     $view->setRequest($request);
     $display_plugin = $this->getMockBuilder('Drupal\views\Plugin\views\display\DisplayPluginBase')
@@ -67,6 +67,24 @@ class QueryParameterTest extends UnitTestCase {
       ['query_param' => 'test', 'fallback' => 'blub'],
       new Request([]),
       'blub',
+    ];
+
+    $data[] = [
+      ['query_param' => 'test[tier1][tier2][tier3]'],
+      new Request(['test' => ['tier1' => ['tier2' => ['tier3' => 'foo']]]]),
+      'foo',
+    ];
+
+    $data[] = [
+      ['query_param' => 'test[tier1][tier2]'],
+      new Request(['test' => ['tier1' => ['tier2' => ['foo', 'bar']]]]),
+      'foo,bar',
+    ];
+
+    $data[] = [
+      ['query_param' => 'test[tier1][tier2]'],
+      new Request(['test' => 'foo']),
+      NULL,
     ];
 
     return $data;

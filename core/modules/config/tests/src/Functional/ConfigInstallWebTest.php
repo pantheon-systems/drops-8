@@ -11,8 +11,10 @@ use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\Tests\BrowserTestBase;
 
 /**
- * Tests installation and removal of configuration objects in install, disable
- * and uninstall functionality.
+ * Tests configuration objects before and after module install and uninstall.
+ *
+ * The installation and removal of configuration objects in install, disable
+ * and uninstall functionality is tested.
  *
  * @group config
  */
@@ -70,10 +72,10 @@ class ConfigInstallWebTest extends BrowserTestBase {
     \Drupal::configFactory()->reset($default_configuration_entity);
     $config_static = $this->config($default_config);
     $this->assertFalse($config_static->isNew());
-    $this->assertIdentical($config_static->get('foo'), 'default setting');
+    $this->assertSame('default setting', $config_static->get('foo'));
     $config_entity = $this->config($default_configuration_entity);
     $this->assertFalse($config_entity->isNew());
-    $this->assertIdentical($config_entity->get('label'), 'Default integration config label');
+    $this->assertSame('Default integration config label', $config_entity->get('label'));
 
     // Customize both configuration objects.
     $config_static->set('foo', 'customized setting')->save();
@@ -95,7 +97,7 @@ class ConfigInstallWebTest extends BrowserTestBase {
     // Verify the integration config still exists.
     $config_entity = $this->config($default_configuration_entity);
     $this->assertFalse($config_entity->isNew());
-    $this->assertIdentical($config_entity->get('label'), 'Customized integration config label');
+    $this->assertSame('Customized integration config label', $config_entity->get('label'));
 
     // Reinstall the integration module.
     try {
@@ -117,12 +119,12 @@ class ConfigInstallWebTest extends BrowserTestBase {
     \Drupal::configFactory()->reset($default_configuration_entity);
     $config_static = $this->config($default_config);
     $this->assertFalse($config_static->isNew());
-    $this->assertIdentical($config_static->get('foo'), 'default setting');
+    $this->assertSame('default setting', $config_static->get('foo'));
 
     // Verify the integration config is using the default.
     $config_entity = \Drupal::config($default_configuration_entity);
     $this->assertFalse($config_entity->isNew());
-    $this->assertIdentical($config_entity->get('label'), 'Default integration config label');
+    $this->assertSame('Default integration config label', $config_entity->get('label'));
   }
 
   /**
@@ -135,20 +137,26 @@ class ConfigInstallWebTest extends BrowserTestBase {
     // will install the config_test module first because it is a dependency of
     // config_install_fail_test.
     // @see \Drupal\system\Form\ModulesListForm::submitForm()
-    $this->drupalPostForm('admin/modules', ['modules[config_test][enable]' => TRUE, 'modules[config_install_fail_test][enable]' => TRUE], 'Install');
-    $this->assertRaw('Unable to install Configuration install fail test, <em class="placeholder">config_test.dynamic.dotted.default</em> already exists in active configuration.');
+    $this->drupalGet('admin/modules');
+    $this->submitForm([
+      'modules[config_test][enable]' => TRUE,
+      'modules[config_install_fail_test][enable]' => TRUE,
+    ], 'Install');
+    $this->assertSession()->responseContains('Unable to install Configuration install fail test, <em class="placeholder">config_test.dynamic.dotted.default</em> already exists in active configuration.');
 
     // Uninstall the config_test module to test the confirm form.
-    $this->drupalPostForm('admin/modules/uninstall', ['uninstall[config_test]' => TRUE], 'Uninstall');
+    $this->drupalGet('admin/modules/uninstall');
+    $this->submitForm(['uninstall[config_test]' => TRUE], 'Uninstall');
     $this->submitForm([], 'Uninstall');
 
     // Try to install config_install_fail_test without selecting config_test.
     // The user is shown a confirm form because the config_test module is a
     // dependency.
     // @see \Drupal\system\Form\ModulesListConfirmForm::submitForm()
-    $this->drupalPostForm('admin/modules', ['modules[config_install_fail_test][enable]' => TRUE], 'Install');
+    $this->drupalGet('admin/modules');
+    $this->submitForm(['modules[config_install_fail_test][enable]' => TRUE], 'Install');
     $this->submitForm([], 'Continue');
-    $this->assertRaw('Unable to install Configuration install fail test, <em class="placeholder">config_test.dynamic.dotted.default</em> already exists in active configuration.');
+    $this->assertSession()->responseContains('Unable to install Configuration install fail test, <em class="placeholder">config_test.dynamic.dotted.default</em> already exists in active configuration.');
 
     // Test that collection configuration clashes during a module install are
     // reported correctly.
@@ -160,8 +168,9 @@ class ConfigInstallWebTest extends BrowserTestBase {
       ->set('label', 'Je suis Charlie')
       ->save();
 
-    $this->drupalPostForm('admin/modules', ['modules[config_install_fail_test][enable]' => TRUE], 'Install');
-    $this->assertRaw('Unable to install Configuration install fail test, <em class="placeholder">config_test.dynamic.dotted.default, language/fr/config_test.dynamic.dotted.default</em> already exist in active configuration.');
+    $this->drupalGet('admin/modules');
+    $this->submitForm(['modules[config_install_fail_test][enable]' => TRUE], 'Install');
+    $this->assertSession()->responseContains('Unable to install Configuration install fail test, <em class="placeholder">config_test.dynamic.dotted.default, language/fr/config_test.dynamic.dotted.default</em> already exist in active configuration.');
 
     // Test installing a theme through the UI that has existing configuration.
     // This relies on the fact the config_test has been installed and created
@@ -170,7 +179,7 @@ class ConfigInstallWebTest extends BrowserTestBase {
     $this->drupalGet('admin/appearance');
     $url = $this->xpath("//a[contains(@href,'config_clash_test_theme') and contains(@href,'/install?')]/@href")[0];
     $this->drupalGet($this->getAbsoluteUrl($url->getText()));
-    $this->assertRaw('Unable to install config_clash_test_theme, <em class="placeholder">config_test.dynamic.dotted.default, language/fr/config_test.dynamic.dotted.default</em> already exist in active configuration.');
+    $this->assertSession()->responseContains('Unable to install config_clash_test_theme, <em class="placeholder">config_test.dynamic.dotted.default, language/fr/config_test.dynamic.dotted.default</em> already exist in active configuration.');
 
     // Test installing a theme through the API that has existing configuration.
     try {
@@ -191,16 +200,22 @@ class ConfigInstallWebTest extends BrowserTestBase {
     $this->drupalLogin($this->adminUser);
     // We need to install separately since config_install_dependency_test does
     // not depend on config_test and order is important.
-    $this->drupalPostForm('admin/modules', ['modules[config_test][enable]' => TRUE], 'Install');
-    $this->drupalPostForm('admin/modules', ['modules[config_install_dependency_test][enable]' => TRUE], 'Install');
-    $this->assertRaw('Unable to install <em class="placeholder">Config install dependency test</em> due to unmet dependencies: <em class="placeholder">config_test.dynamic.other_module_test_with_dependency (config_other_module_config_test, config_test.dynamic.dotted.english)</em>');
+    $this->drupalGet('admin/modules');
+    $this->submitForm(['modules[config_test][enable]' => TRUE], 'Install');
+    $this->drupalGet('admin/modules');
+    $this->submitForm(['modules[config_install_dependency_test][enable]' => TRUE], 'Install');
+    $this->assertSession()->responseContains('Unable to install <em class="placeholder">Config install dependency test</em> due to unmet dependencies: <em class="placeholder">config_test.dynamic.other_module_test_with_dependency (config_other_module_config_test, config_test.dynamic.dotted.english)</em>');
 
-    $this->drupalPostForm('admin/modules', ['modules[config_test_language][enable]' => TRUE], 'Install');
-    $this->drupalPostForm('admin/modules', ['modules[config_install_dependency_test][enable]' => TRUE], 'Install');
-    $this->assertRaw('Unable to install <em class="placeholder">Config install dependency test</em> due to unmet dependencies: <em class="placeholder">config_test.dynamic.other_module_test_with_dependency (config_other_module_config_test)</em>');
+    $this->drupalGet('admin/modules');
+    $this->submitForm(['modules[config_test_language][enable]' => TRUE], 'Install');
+    $this->drupalGet('admin/modules');
+    $this->submitForm(['modules[config_install_dependency_test][enable]' => TRUE], 'Install');
+    $this->assertSession()->responseContains('Unable to install <em class="placeholder">Config install dependency test</em> due to unmet dependencies: <em class="placeholder">config_test.dynamic.other_module_test_with_dependency (config_other_module_config_test)</em>');
 
-    $this->drupalPostForm('admin/modules', ['modules[config_other_module_config_test][enable]' => TRUE], 'Install');
-    $this->drupalPostForm('admin/modules', ['modules[config_install_dependency_test][enable]' => TRUE], 'Install');
+    $this->drupalGet('admin/modules');
+    $this->submitForm(['modules[config_other_module_config_test][enable]' => TRUE], 'Install');
+    $this->drupalGet('admin/modules');
+    $this->submitForm(['modules[config_install_dependency_test][enable]' => TRUE], 'Install');
     $this->rebuildContainer();
     $this->assertInstanceOf(ConfigTest::class, \Drupal::entityTypeManager()->getStorage('config_test')->load('other_module_test_with_dependency'));
   }
@@ -210,7 +225,8 @@ class ConfigInstallWebTest extends BrowserTestBase {
    */
   public function testConfigModuleRequirements() {
     $this->drupalLogin($this->adminUser);
-    $this->drupalPostForm('admin/modules', ['modules[config][enable]' => TRUE], 'Install');
+    $this->drupalGet('admin/modules');
+    $this->submitForm(['modules[config][enable]' => TRUE], 'Install');
 
     $directory = Settings::get('config_sync_directory');
     try {
@@ -220,7 +236,7 @@ class ConfigInstallWebTest extends BrowserTestBase {
       // Ignore failed deletes.
     }
     $this->drupalGet('/admin/reports/status');
-    $this->assertRaw(t('The directory %directory does not exist.', ['%directory' => $directory]));
+    $this->assertSession()->pageTextContains("The directory $directory does not exist.");
   }
 
 }

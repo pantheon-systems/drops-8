@@ -58,7 +58,8 @@ class ContentTranslationConfigImportTest extends KernelTestBase {
       $this->container->get('module_installer'),
       $this->container->get('theme_handler'),
       $this->container->get('string_translation'),
-      $this->container->get('extension.list.module')
+      $this->container->get('extension.list.module'),
+      $this->container->get('extension.list.theme')
     );
   }
 
@@ -100,7 +101,7 @@ class ContentTranslationConfigImportTest extends KernelTestBase {
 
     // Verify the values appeared.
     $config = $this->config($config_name);
-    $this->assertIdentical($config->get('id'), $config_id);
+    $this->assertSame($config_id, $config->get('id'));
 
     // Verify that updates were performed.
     $entity_type = $this->container->get('entity_type.manager')->getDefinition($entity_type_id);

@@ -63,8 +63,10 @@ class TableTest extends KernelTestBase {
   }
 
   /**
-   * Tests that the table header is printed correctly even if there are no rows,
-   * and that the empty text is displayed correctly.
+   * Tests the display of the table header.
+   *
+   * Tests are performed when the there are no rows and that the empty text is
+   * displayed correctly.
    */
   public function testThemeTableWithEmptyMessage() {
     $header = [
@@ -81,9 +83,9 @@ class TableTest extends KernelTestBase {
       '#empty' => 'Empty row.',
     ];
 
-    // Enable the Classy theme.
-    \Drupal::service('theme_installer')->install(['classy']);
-    $this->config('system.theme')->set('default', 'classy')->save();
+    // Enable the Starterkit theme.
+    \Drupal::service('theme_installer')->install(['starterkit_theme']);
+    $this->config('system.theme')->set('default', 'starterkit_theme')->save();
 
     $this->render($table);
     $this->removeWhiteSpace();
@@ -111,7 +113,7 @@ class TableTest extends KernelTestBase {
   }
 
   /**
-   * Test that the 'footer' option works correctly.
+   * Tests that the 'footer' option works correctly.
    */
   public function testThemeTableFooter() {
     $footer = [

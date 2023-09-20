@@ -57,21 +57,23 @@ class EntityContentBaseTest extends MigrateDrupal6TestBase {
   }
 
   /**
-   * Tests overwriting all mapped properties in the destination entity (default
-   * behavior).
+   * Tests overwriting all mapped properties in the destination entity.
+   *
+   * This is the default behavior.
    */
   public function testOverwriteAllMappedProperties() {
     $this->executeMigration('d6_user');
     /** @var \Drupal\user\UserInterface $account */
     $account = User::load(2);
-    $this->assertIdentical('john.doe', $account->label());
-    $this->assertIdentical('john.doe@example.com', $account->getEmail());
-    $this->assertIdentical('doe@example.com', $account->getInitialEmail());
+    $this->assertSame('john.doe', $account->label());
+    $this->assertSame('john.doe@example.com', $account->getEmail());
+    $this->assertSame('doe@example.com', $account->getInitialEmail());
   }
 
   /**
-   * Tests overwriting selected properties in the destination entity, specified
-   * in the destination configuration.
+   * Tests overwriting selected properties in the destination entity.
+   *
+   * The selected properties are specified in the destination configuration.
    */
   public function testOverwriteProperties() {
     // Execute the migration in migrate_overwrite_test, which documents how
@@ -80,16 +82,16 @@ class EntityContentBaseTest extends MigrateDrupal6TestBase {
 
     /** @var \Drupal\user\UserInterface $account */
     $account = User::load(2);
-    $this->assertIdentical('john.doe', $account->label());
-    $this->assertIdentical('john.doe@example.com', $account->getEmail());
-    $this->assertIdentical('The answer is 42.', $account->signature->value);
+    $this->assertSame('john.doe', $account->label());
+    $this->assertSame('john.doe@example.com', $account->getEmail());
+    $this->assertSame('The answer is 42.', $account->signature->value);
     // This value is not overwritten because it's not listed in
     // overwrite_properties.
-    $this->assertIdentical('proto@zo.an', $account->getInitialEmail());
+    $this->assertSame('proto@zo.an', $account->getInitialEmail());
   }
 
   /**
-   * Test that translation destination fails for untranslatable entities.
+   * Tests that translation destination fails for untranslatable entities.
    */
   public function testUntranslatable() {
     $this->enableModules(['language_test']);

@@ -74,7 +74,7 @@ class EntityAccessControlHandler extends EntityHandlerBase implements EntityAcce
     // individual revisions to have specific access control and be cached
     // separately.
     if ($entity instanceof RevisionableInterface) {
-      /** @var $entity \Drupal\Core\Entity\RevisionableInterface */
+      /** @var \Drupal\Core\Entity\RevisionableInterface $entity */
       $cid .= ':' . $entity->getRevisionId();
     }
 
@@ -109,6 +109,8 @@ class EntityAccessControlHandler extends EntityHandlerBase implements EntityAcce
   }
 
   /**
+   * Determines entity access.
+   *
    * We grant access to the entity if both of these conditions are met:
    * - No modules say to deny access.
    * - At least one module says to grant access.
@@ -340,12 +342,16 @@ class EntityAccessControlHandler extends EntityHandlerBase implements EntityAcce
     $default = $default->andIf($entity_default);
 
     // Invoke hook and collect grants/denies for field access from other
-    // modules. Our default access flag is masked under the ':default' key.
-    $grants = [':default' => $default];
-    $hook_implementations = $this->moduleHandler()->getImplementations('entity_field_access');
-    foreach ($hook_implementations as $module) {
-      $grants = array_merge($grants, [$module => $this->moduleHandler()->invoke($module, 'entity_field_access', [$operation, $field_definition, $account, $items])]);
-    }
+    // modules.
+    $grants = [];
+    $this->moduleHandler()->invokeAllWith(
+      'entity_field_access',
+      function (callable $hook, string $module) use ($operation, $field_definition, $account, $items, &$grants) {
+        $grants[] = [$module => $hook($operation, $field_definition, $account, $items)];
+      }
+    );
+    // Our default access flag is masked under the ':default' key.
+    $grants = array_merge([':default' => $default], ...$grants);
 
     // Also allow modules to alter the returned grants/denies.
     $context = [

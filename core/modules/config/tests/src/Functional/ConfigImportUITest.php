@@ -2,8 +2,8 @@
 
 namespace Drupal\Tests\config\Functional;
 
-use Drupal\Component\Utility\Html;
 use Drupal\Core\Config\InstallStorage;
+use Drupal\Core\Serialization\Yaml;
 use Drupal\Tests\BrowserTestBase;
 
 /**
@@ -29,7 +29,7 @@ class ConfigImportUITest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  protected $defaultTheme = 'classy';
+  protected $defaultTheme = 'stark';
 
   /**
    * A user with the 'synchronize configuration' permission.
@@ -38,6 +38,9 @@ class ConfigImportUITest extends BrowserTestBase {
    */
   protected $webUser;
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp(): void {
     parent::setUp();
 
@@ -56,7 +59,7 @@ class ConfigImportUITest extends BrowserTestBase {
     $sync = $this->container->get('config.storage.sync');
 
     $this->drupalGet('admin/config/development/configuration');
-    $this->assertText('There are no configuration changes to import.');
+    $this->assertSession()->pageTextContains('The staged configuration is identical to the active configuration.');
     $this->assertSession()->buttonNotExists('Import all');
 
     // Create updated configuration object.
@@ -89,18 +92,18 @@ class ConfigImportUITest extends BrowserTestBase {
     $core_extension['module']['automated_cron'] = 0;
     $core_extension['module']['ban'] = 0;
     $core_extension['module'] = module_config_sort($core_extension['module']);
-    // Bartik is a subtheme of Stable so Stable must be enabled.
-    $core_extension['theme']['stable'] = 0;
-    $core_extension['theme']['bartik'] = 0;
+    $core_extension['theme']['olivero'] = 0;
     $sync->write('core.extension', $core_extension);
+    // Olivero ships with configuration.
+    $sync->write('olivero.settings', Yaml::decode(file_get_contents('core/themes/olivero/config/install/olivero.settings.yml')));
 
     // Use the install storage so that we can read configuration from modules
     // and themes that are not installed.
     $install_storage = new InstallStorage();
 
-    // Set the Bartik theme as default.
+    // Set the Olivero theme as default.
     $system_theme = $this->config('system.theme')->get();
-    $system_theme['default'] = 'bartik';
+    $system_theme['default'] = 'olivero';
     $sync->write('system.theme', $system_theme);
 
     // Read the automated_cron config from module default config folder.
@@ -120,32 +123,32 @@ class ConfigImportUITest extends BrowserTestBase {
 
     // Verify that both appear as ready to import.
     $this->drupalGet('admin/config/development/configuration');
-    $this->assertRaw('<td>' . $name);
-    $this->assertRaw('<td>' . $dynamic_name);
-    $this->assertRaw('<td>core.extension');
-    $this->assertRaw('<td>system.theme');
-    $this->assertRaw('<td>automated_cron.settings');
+    $this->assertSession()->responseContains('<td>' . $name);
+    $this->assertSession()->responseContains('<td>' . $dynamic_name);
+    $this->assertSession()->responseContains('<td>core.extension');
+    $this->assertSession()->responseContains('<td>system.theme');
+    $this->assertSession()->responseContains('<td>automated_cron.settings');
     $this->assertSession()->buttonExists('Import all');
 
     // Import and verify that both do not appear anymore.
     $this->submitForm([], 'Import all');
-    $this->assertNoRaw('<td>' . $name);
-    $this->assertNoRaw('<td>' . $dynamic_name);
-    $this->assertNoRaw('<td>core.extension');
-    $this->assertNoRaw('<td>system.theme');
-    $this->assertNoRaw('<td>automated_cron.settings');
+    $this->assertSession()->responseNotContains('<td>' . $name);
+    $this->assertSession()->responseNotContains('<td>' . $dynamic_name);
+    $this->assertSession()->responseNotContains('<td>core.extension');
+    $this->assertSession()->responseNotContains('<td>system.theme');
+    $this->assertSession()->responseNotContains('<td>automated_cron.settings');
 
     $this->assertSession()->buttonNotExists('Import all');
 
     // Verify that there are no further changes to import.
-    $this->assertText('There are no configuration changes to import.');
+    $this->assertSession()->pageTextContains('The staged configuration is identical to the active configuration.');
 
     $this->rebuildContainer();
     // Verify site name has changed.
-    $this->assertIdentical($new_site_name, $this->config('system.site')->get('name'));
+    $this->assertSame($new_site_name, $this->config('system.site')->get('name'));
 
     // Verify that new config entity exists.
-    $this->assertIdentical($original_dynamic_data, $this->config($dynamic_name)->get());
+    $this->assertSame($original_dynamic_data, $this->config($dynamic_name)->get());
 
     // Verify the cache got cleared.
     $this->assertTrue(isset($GLOBALS['hook_cache_flush']));
@@ -156,14 +159,14 @@ class ConfigImportUITest extends BrowserTestBase {
     $this->assertTrue(\Drupal::moduleHandler()->moduleExists('automated_cron'), 'Automated Cron module installed during import.');
     $this->assertTrue(\Drupal::moduleHandler()->moduleExists('options'), 'Options module installed during import.');
     $this->assertTrue(\Drupal::moduleHandler()->moduleExists('text'), 'Text module installed during import.');
-    $this->assertTrue(\Drupal::service('theme_handler')->themeExists('bartik'), 'Bartik theme installed during import.');
+    $this->assertTrue(\Drupal::service('theme_handler')->themeExists('olivero'), 'Olivero theme installed during import.');
 
     // Ensure installations and uninstallation occur as expected.
     $installed = \Drupal::state()->get('ConfigImportUITest.core.extension.modules_installed', []);
     $uninstalled = \Drupal::state()->get('ConfigImportUITest.core.extension.modules_uninstalled', []);
     $expected = ['automated_cron', 'ban', 'text', 'options'];
-    $this->assertIdentical($expected, $installed, 'Automated Cron, Ban, Text and Options modules installed in the correct order.');
-    $this->assertTrue(empty($uninstalled), 'No modules uninstalled during import');
+    $this->assertSame($expected, $installed, 'Automated Cron, Ban, Text and Options modules installed in the correct order.');
+    $this->assertEmpty($uninstalled, 'No modules uninstalled during import');
 
     // Verify that the automated_cron configuration object was only written
     // once during the import process and only with the value set in the staged
@@ -171,21 +174,25 @@ class ConfigImportUITest extends BrowserTestBase {
     // used during configuration import and, additionally, that after installing
     // a module, that configuration is not synced twice.
     $interval_values = \Drupal::state()->get('ConfigImportUITest.automated_cron.settings.interval', []);
-    $this->assertIdentical($interval_values, [10000]);
+    $this->assertSame([10000], $interval_values);
 
     $core_extension = $this->config('core.extension')->get();
     unset($core_extension['module']['automated_cron']);
     unset($core_extension['module']['ban']);
     unset($core_extension['module']['options']);
     unset($core_extension['module']['text']);
-    unset($core_extension['theme']['bartik']);
+    unset($core_extension['theme']['olivero']);
     $sync->write('core.extension', $core_extension);
     $sync->delete('automated_cron.settings');
     $sync->delete('text.settings');
+    $sync->delete('olivero.settings');
 
     $system_theme = $this->config('system.theme')->get();
-    $system_theme['default'] = 'stark';
-    $system_theme['admin'] = 'stark';
+    $system_theme = [
+      '_core' => $system_theme['_core'],
+      'admin' => 'stark',
+      'default' => 'stark',
+    ];
     $sync->write('system.theme', $system_theme);
 
     // Set the state system to record installations and uninstallations.
@@ -194,15 +201,15 @@ class ConfigImportUITest extends BrowserTestBase {
 
     // Verify that both appear as ready to import.
     $this->drupalGet('admin/config/development/configuration');
-    $this->assertRaw('<td>core.extension');
-    $this->assertRaw('<td>system.theme');
-    $this->assertRaw('<td>automated_cron.settings');
+    $this->assertSession()->responseContains('<td>core.extension');
+    $this->assertSession()->responseContains('<td>system.theme');
+    $this->assertSession()->responseContains('<td>automated_cron.settings');
 
     // Import and verify that both do not appear anymore.
     $this->submitForm([], 'Import all');
-    $this->assertNoRaw('<td>core.extension');
-    $this->assertNoRaw('<td>system.theme');
-    $this->assertNoRaw('<td>automated_cron.settings');
+    $this->assertSession()->responseNotContains('<td>core.extension');
+    $this->assertSession()->responseNotContains('<td>system.theme');
+    $this->assertSession()->responseNotContains('<td>automated_cron.settings');
 
     $this->rebuildContainer();
     $this->assertFalse(\Drupal::moduleHandler()->moduleExists('ban'), 'Ban module uninstalled during import.');
@@ -215,16 +222,16 @@ class ConfigImportUITest extends BrowserTestBase {
     $installed = \Drupal::state()->get('ConfigImportUITest.core.extension.modules_installed', []);
     $uninstalled = \Drupal::state()->get('ConfigImportUITest.core.extension.modules_uninstalled', []);
     $expected = ['options', 'text', 'ban', 'automated_cron'];
-    $this->assertIdentical($expected, $uninstalled, 'Options, Text, Ban and Automated Cron modules uninstalled in the correct order.');
-    $this->assertTrue(empty($installed), 'No modules installed during import');
+    $this->assertSame($expected, $uninstalled, 'Options, Text, Ban and Automated Cron modules uninstalled in the correct order.');
+    $this->assertEmpty($installed, 'No modules installed during import');
 
     $theme_info = \Drupal::service('theme_handler')->listInfo();
-    $this->assertFalse(isset($theme_info['bartik']), 'Bartik theme uninstalled during import.');
+    $this->assertFalse(isset($theme_info['olivero']), 'Olivero theme uninstalled during import.');
 
     // Verify that the automated_cron.settings configuration object was only
     // deleted once during the import process.
     $delete_called = \Drupal::state()->get('ConfigImportUITest.automated_cron.settings.delete', 0);
-    $this->assertIdentical($delete_called, 1, "The automated_cron.settings configuration was deleted once during configuration import.");
+    $this->assertSame(1, $delete_called, "The automated_cron.settings configuration was deleted once during configuration import.");
   }
 
   /**
@@ -237,7 +244,7 @@ class ConfigImportUITest extends BrowserTestBase {
 
     // Verify that there are configuration differences to import.
     $this->drupalGet('admin/config/development/configuration');
-    $this->assertNoText('There are no configuration changes to import.');
+    $this->assertSession()->pageTextNotContains('The staged configuration is identical to the active configuration.');
 
     // Acquire a fake-lock on the import mechanism.
     $config_importer = $this->configImporter();
@@ -245,13 +252,13 @@ class ConfigImportUITest extends BrowserTestBase {
 
     // Attempt to import configuration and verify that an error message appears.
     $this->submitForm([], 'Import all');
-    $this->assertText('Another request may be synchronizing configuration already.');
+    $this->assertSession()->pageTextContains('Another request may be synchronizing configuration already.');
 
     // Release the lock, just to keep testing sane.
     $this->container->get('lock.persistent')->release($config_importer::LOCK_NAME);
 
     // Verify site name has not changed.
-    $this->assertNotEqual($new_site_name, $this->config('system.site')->get('name'));
+    $this->assertNotEquals($this->config('system.site')->get('name'), $new_site_name);
   }
 
   /**
@@ -267,7 +274,7 @@ class ConfigImportUITest extends BrowserTestBase {
 
     // Verify that there are configuration differences to import.
     $this->drupalGet('admin/config/development/configuration');
-    $this->assertText('The staged configuration cannot be imported, because it originates from a different site than this site. You can only synchronize configuration between cloned instances of this site.');
+    $this->assertSession()->pageTextContains('The staged configuration cannot be imported, because it originates from a different site than this site. You can only synchronize configuration between cloned instances of this site.');
     $this->assertSession()->buttonNotExists('Import all');
   }
 
@@ -299,7 +306,7 @@ class ConfigImportUITest extends BrowserTestBase {
 
     // Load the diff UI and verify that the diff reflects the change.
     $this->drupalGet('admin/config/development/configuration/sync/diff/' . $config_name);
-    $this->assertNoRaw('&amp;nbsp;');
+    $this->assertSession()->responseNotContains('&amp;nbsp;');
     $this->assertSession()->titleEquals("View changes of $config_name | Drupal");
 
     // The following assertions do not use
@@ -308,18 +315,17 @@ class ConfigImportUITest extends BrowserTestBase {
     // changed.
 
     // Changed values are escaped.
-    $this->assertText(Html::escape("foo: '<p><em>foobar</em></p>'"));
-    $this->assertText(Html::escape("foo: '<p>foobar</p>'"));
+    $this->assertSession()->pageTextContains("foo: '<p><em>foobar</em></p>'");
+    $this->assertSession()->pageTextContains("foo: '<p>foobar</p>'");
     // The no change values are escaped.
-    $this->assertText(Html::escape("baz: '<strong>no change</strong>'"));
+    $this->assertSession()->pageTextContains("baz: '<strong>no change</strong>'");
     // Added value is escaped.
-    $this->assertText(Html::escape("biff: '<em>bangpow</em>'"));
+    $this->assertSession()->pageTextContains("biff: '<em>bangpow</em>'");
     // Deleted value is escaped.
-    $this->assertText(Html::escape("404: '<em>herp</em>'"));
+    $this->assertSession()->pageTextContains("404: '<em>herp</em>'");
 
     // Verify diff colors are displayed.
-    $result = $this->xpath('//table[contains(@class, :class)]', [':class' => 'diff']);
-    $this->assertCount(1, $result, "Diff UI is displaying colors.");
+    $this->assertSession()->elementsCount('xpath', '//table[contains(@class, "diff")]', 1);
 
     // Reset data back to original, and remove a key
     $sync_data = $original_data;
@@ -329,10 +335,10 @@ class ConfigImportUITest extends BrowserTestBase {
     // Load the diff UI and verify that the diff reflects a removed key.
     $this->drupalGet('admin/config/development/configuration/sync/diff/' . $config_name);
     // The no change values are escaped.
-    $this->assertText(Html::escape("foo: '<p>foobar</p>'"));
-    $this->assertText(Html::escape("baz: '<strong>no change</strong>'"));
+    $this->assertSession()->pageTextContains("foo: '<p>foobar</p>'");
+    $this->assertSession()->pageTextContains("baz: '<strong>no change</strong>'");
     // Removed key is escaped.
-    $this->assertText(Html::escape("404: '<em>herp</em>'"));
+    $this->assertSession()->pageTextContains("404: '<em>herp</em>'");
 
     // Reset data back to original and add a key
     $sync_data = $original_data;
@@ -342,10 +348,10 @@ class ConfigImportUITest extends BrowserTestBase {
     // Load the diff UI and verify that the diff reflects an added key.
     $this->drupalGet('admin/config/development/configuration/sync/diff/' . $config_name);
     // The no change values are escaped.
-    $this->assertText(Html::escape("baz: '<strong>no change</strong>'"));
-    $this->assertText(Html::escape("404: '<em>herp</em>'"));
+    $this->assertSession()->pageTextContains("baz: '<strong>no change</strong>'");
+    $this->assertSession()->pageTextContains("404: '<em>herp</em>'");
     // Added key is escaped.
-    $this->assertText(Html::escape("biff: '<em>bangpow</em>'"));
+    $this->assertSession()->pageTextContains("biff: '<em>bangpow</em>'");
   }
 
   /**
@@ -361,16 +367,16 @@ class ConfigImportUITest extends BrowserTestBase {
     $this->prepareSiteNameUpdate($new_site_name);
 
     $this->drupalGet('admin/config/development/configuration');
-    $this->assertNoText('There are no configuration changes to import.');
+    $this->assertSession()->pageTextNotContains('The staged configuration is identical to the active configuration.');
     $this->submitForm([], 'Import all');
 
     // Verify that the validation messages appear.
-    $this->assertText('The configuration cannot be imported because it failed validation for the following reasons:');
-    $this->assertText('Config import validate error 1.');
-    $this->assertText('Config import validate error 2.');
+    $this->assertSession()->pageTextContains('The configuration cannot be imported because it failed validation for the following reasons:');
+    $this->assertSession()->pageTextContains('Config import validate error 1.');
+    $this->assertSession()->pageTextContains('Config import validate error 2.');
 
     // Verify site name has not changed.
-    $this->assertNotEqual($new_site_name, $this->config('system.site')->get('name'));
+    $this->assertNotEquals($this->config('system.site')->get('name'), $new_site_name);
   }
 
   public function testConfigUninstallConfigException() {
@@ -381,11 +387,11 @@ class ConfigImportUITest extends BrowserTestBase {
     $sync->write('core.extension', $core_extension);
 
     $this->drupalGet('admin/config/development/configuration');
-    $this->assertText('core.extension');
+    $this->assertSession()->pageTextContains('core.extension');
 
     // Import and verify that both do not appear anymore.
     $this->submitForm([], 'Import all');
-    $this->assertText('Can not uninstall the Configuration module as part of a configuration synchronization through the user interface.');
+    $this->assertSession()->pageTextContains('Can not uninstall the Configuration module as part of a configuration synchronization through the user interface.');
   }
 
   public function prepareSiteNameUpdate($new_site_name) {
@@ -438,14 +444,14 @@ class ConfigImportUITest extends BrowserTestBase {
     $sync->write($name_secondary, $values_secondary);
     // Verify that there are configuration differences to import.
     $this->drupalGet('admin/config/development/configuration');
-    $this->assertNoText('There are no configuration changes to import.');
+    $this->assertSession()->pageTextNotContains('The staged configuration is identical to the active configuration.');
 
     // Attempt to import configuration and verify that an error message appears.
     $this->submitForm([], 'Import all');
-    $this->assertText('Deleted and replaced configuration entity "' . $name_secondary . '"');
-    $this->assertText('The configuration was imported with errors.');
-    $this->assertNoText('The configuration was imported successfully.');
-    $this->assertText('There are no configuration changes to import.');
+    $this->assertSession()->pageTextContains('Deleted and replaced configuration entity "' . $name_secondary . '"');
+    $this->assertSession()->pageTextContains('The configuration was imported with errors.');
+    $this->assertSession()->pageTextNotContains('The configuration was imported successfully.');
+    $this->assertSession()->pageTextContains('The staged configuration is identical to the active configuration.');
   }
 
   /**
@@ -462,34 +468,34 @@ class ConfigImportUITest extends BrowserTestBase {
     $this->drupalGet('admin/config/development/configuration');
     // The node type, body field and entity displays will be scheduled for
     // removal.
-    $this->assertText('node.type.' . $node_type->id());
-    $this->assertText('field.field.node.' . $node_type->id() . '.body');
-    $this->assertText('core.entity_view_display.node.' . $node_type->id() . '.teaser');
-    $this->assertText('core.entity_view_display.node.' . $node_type->id() . '.default');
-    $this->assertText('core.entity_form_display.node.' . $node_type->id() . '.default');
+    $this->assertSession()->pageTextContains('node.type.' . $node_type->id());
+    $this->assertSession()->pageTextContains('field.field.node.' . $node_type->id() . '.body');
+    $this->assertSession()->pageTextContains('core.entity_view_display.node.' . $node_type->id() . '.teaser');
+    $this->assertSession()->pageTextContains('core.entity_view_display.node.' . $node_type->id() . '.default');
+    $this->assertSession()->pageTextContains('core.entity_form_display.node.' . $node_type->id() . '.default');
 
     // Attempt to import configuration and verify that an error message appears
     // and the node type, body field and entity displays are still scheduled for
     // removal.
     $this->submitForm([], 'Import all');
-    $validation_message = t('Entities exist of type %entity_type and %bundle_label %bundle. These entities need to be deleted before importing.', ['%entity_type' => $node->getEntityType()->getLabel(), '%bundle_label' => $node->getEntityType()->getBundleLabel(), '%bundle' => $node_type->label()]);
-    $this->assertRaw($validation_message);
-    $this->assertText('node.type.' . $node_type->id());
-    $this->assertText('field.field.node.' . $node_type->id() . '.body');
-    $this->assertText('core.entity_view_display.node.' . $node_type->id() . '.teaser');
-    $this->assertText('core.entity_view_display.node.' . $node_type->id() . '.default');
-    $this->assertText('core.entity_form_display.node.' . $node_type->id() . '.default');
+    $validation_message = "Entities exist of type {$node->getEntityType()->getLabel()} and {$node->getEntityType()->getBundleLabel()} {$node_type->label()}. These entities need to be deleted before importing.";
+    $this->assertSession()->pageTextContains($validation_message);
+    $this->assertSession()->pageTextContains('node.type.' . $node_type->id());
+    $this->assertSession()->pageTextContains('field.field.node.' . $node_type->id() . '.body');
+    $this->assertSession()->pageTextContains('core.entity_view_display.node.' . $node_type->id() . '.teaser');
+    $this->assertSession()->pageTextContains('core.entity_view_display.node.' . $node_type->id() . '.default');
+    $this->assertSession()->pageTextContains('core.entity_form_display.node.' . $node_type->id() . '.default');
 
     // Delete the node and try to import again.
     $node->delete();
     $this->submitForm([], 'Import all');
-    $this->assertNoRaw($validation_message);
-    $this->assertText('There are no configuration changes to import.');
-    $this->assertNoText('node.type.' . $node_type->id());
-    $this->assertNoText('field.field.node.' . $node_type->id() . '.body');
-    $this->assertNoText('core.entity_view_display.node.' . $node_type->id() . '.teaser');
-    $this->assertNoText('core.entity_view_display.node.' . $node_type->id() . '.default');
-    $this->assertNoText('core.entity_form_display.node.' . $node_type->id() . '.default');
+    $this->assertSession()->pageTextNotContains($validation_message);
+    $this->assertSession()->pageTextContains('The staged configuration is identical to the active configuration.');
+    $this->assertSession()->pageTextNotContains('node.type.' . $node_type->id());
+    $this->assertSession()->pageTextNotContains('field.field.node.' . $node_type->id() . '.body');
+    $this->assertSession()->pageTextNotContains('core.entity_view_display.node.' . $node_type->id() . '.teaser');
+    $this->assertSession()->pageTextNotContains('core.entity_view_display.node.' . $node_type->id() . '.default');
+    $this->assertSession()->pageTextNotContains('core.entity_form_display.node.' . $node_type->id() . '.default');
   }
 
   /**
@@ -509,7 +515,6 @@ class ConfigImportUITest extends BrowserTestBase {
     unset($core['module']['text']);
     $module_data = $this->container->get('extension.list.module')->getList();
     $this->assertTrue(isset($module_data['node']->requires['text']), 'The Node module depends on the Text module.');
-    // Bartik depends on Stable.
     unset($core['theme']['test_basetheme']);
     $theme_data = \Drupal::service('theme_handler')->rebuildThemeData();
     $this->assertTrue(isset($theme_data['test_subtheme']->requires['test_basetheme']), 'The Test Subtheme theme depends on the Test Basetheme theme.');
@@ -519,12 +524,13 @@ class ConfigImportUITest extends BrowserTestBase {
     $core['theme']['does_not_exist'] = 0;
     $sync->write('core.extension', $core);
 
-    $this->drupalPostForm('admin/config/development/configuration', [], 'Import all');
-    $this->assertText('The configuration cannot be imported because it failed validation for the following reasons:');
-    $this->assertText('Unable to uninstall the Text module since the Node module is installed.');
-    $this->assertText('Unable to uninstall the Theme test base theme theme since the Theme test subtheme theme is installed.');
-    $this->assertText('Unable to install the does_not_exist module since it does not exist.');
-    $this->assertText('Unable to install the does_not_exist theme since it does not exist.');
+    $this->drupalGet('admin/config/development/configuration');
+    $this->submitForm([], 'Import all');
+    $this->assertSession()->pageTextContains('The configuration cannot be imported because it failed validation for the following reasons:');
+    $this->assertSession()->pageTextContains('Unable to uninstall the Text module since the Node module is installed.');
+    $this->assertSession()->pageTextContains('Unable to uninstall the Theme test base theme theme since the Theme test subtheme theme is installed.');
+    $this->assertSession()->pageTextContains('Unable to install the does_not_exist module since it does not exist.');
+    $this->assertSession()->pageTextContains('Unable to install the does_not_exist theme since it does not exist.');
   }
 
   /**
@@ -534,7 +540,8 @@ class ConfigImportUITest extends BrowserTestBase {
     $new_site_name = 'Config import test ' . $this->randomString();
     $this->prepareSiteNameUpdate($new_site_name);
     \Drupal::state()->set('config_import_steps_alter.error', TRUE);
-    $this->drupalPostForm('admin/config/development/configuration', [], 'Import all');
+    $this->drupalGet('admin/config/development/configuration');
+    $this->submitForm([], 'Import all');
     $this->assertSession()->responseContains('_config_import_test_config_import_steps_alter batch error');
     $this->assertSession()->responseContains('_config_import_test_config_import_steps_alter ConfigImporter error');
     $this->assertSession()->responseContains('The configuration was imported with errors.');

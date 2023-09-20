@@ -23,6 +23,9 @@ class ForumIndexTest extends BrowserTestBase {
    */
   protected $defaultTheme = 'stark';
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp(): void {
     parent::setUp();
 
@@ -53,13 +56,13 @@ class ForumIndexTest extends BrowserTestBase {
 
     // Create the forum topic, preselecting the forum ID via a URL parameter.
     $this->drupalGet("forum/$tid");
-    $this->clickLink(t('Add new @node_type', ['@node_type' => 'Forum topic']));
+    $this->clickLink('Add new Forum topic');
     $this->assertSession()->addressEquals("node/add/forum?forum_id=$tid");
     $this->submitForm($edit, 'Save');
 
     // Check that the node exists in the database.
     $node = $this->drupalGetNodeByTitle($title);
-    $this->assertTrue(!empty($node), 'New forum node found in database.');
+    $this->assertNotEmpty($node, 'New forum node found in database.');
 
     // Create a child forum.
     $edit = [
@@ -67,14 +70,15 @@ class ForumIndexTest extends BrowserTestBase {
       'description[0][value]' => $this->randomMachineName(200),
       'parent[0]' => $tid,
     ];
-    $this->drupalPostForm('admin/structure/forum/add/forum', $edit, 'Save');
+    $this->drupalGet('admin/structure/forum/add/forum');
+    $this->submitForm($edit, 'Save');
     $this->assertSession()->linkExists('edit forum');
 
     $tid_child = $tid + 1;
 
     // Verify that the node appears on the index.
     $this->drupalGet('forum/' . $tid);
-    $this->assertText($title, 'Published forum topic appears on index.');
+    $this->assertSession()->pageTextContains($title);
     $this->assertSession()->responseHeaderContains('X-Drupal-Cache-Tags', 'node_list');
     $this->assertSession()->responseHeaderContains('X-Drupal-Cache-Tags', 'config:node.type.forum');
     $this->assertSession()->responseHeaderContains('X-Drupal-Cache-Tags', 'comment_list');
@@ -84,13 +88,14 @@ class ForumIndexTest extends BrowserTestBase {
 
     // Unpublish the node.
     $edit = ['status[value]' => FALSE];
-    $this->drupalPostForm('node/' . $node->id() . '/edit', $edit, 'Save');
+    $this->drupalGet('node/' . $node->id() . '/edit');
+    $this->submitForm($edit, 'Save');
     $this->drupalGet('node/' . $node->id());
-    $this->assertText('Access denied', 'Unpublished node is no longer accessible.');
+    $this->assertSession()->pageTextContains('Access denied');
 
     // Verify that the node no longer appears on the index.
     $this->drupalGet('forum/' . $tid);
-    $this->assertNoText($title, 'Unpublished forum topic no longer appears on index.');
+    $this->assertSession()->pageTextNotContains($title);
   }
 
 }

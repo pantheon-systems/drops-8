@@ -9,8 +9,7 @@ use Drupal\Component\Utility\Xss;
 use Drupal\Core\Render\BubbleableMetadata;
 
 /**
- * Generates text using placeholders for dummy content to check token
- * replacement.
+ * Tests token replacement.
  *
  * @group system
  */
@@ -26,7 +25,7 @@ class TokenReplaceKernelTest extends TokenReplaceKernelTestBase {
   }
 
   /**
-   * Test whether token-replacement works in various contexts.
+   * Tests whether token-replacement works in various contexts.
    */
   public function testSystemTokenRecognition() {
     // Generate prefixes and suffixes for the token context.
@@ -48,11 +47,11 @@ class TokenReplaceKernelTest extends TokenReplaceKernelTestBase {
       $input = $test['prefix'] . '[site:name]' . $test['suffix'];
       $expected = $test['prefix'] . 'Drupal' . $test['suffix'];
       $output = $this->tokenService->replace($input, [], ['langcode' => $this->interfaceLanguage->getId()]);
-      $this->assertTrue($output == $expected, new FormattableMarkup('Token recognized in string %string', ['%string' => $input]));
+      $this->assertSame($expected, $output, new FormattableMarkup('Token recognized in string %string', ['%string' => $input]));
     }
 
     // Test token replacement when the string contains no tokens.
-    $this->assertEqual($this->tokenService->replace('No tokens here.'), 'No tokens here.');
+    $this->assertEquals('No tokens here.', $this->tokenService->replace('No tokens here.'));
   }
 
   /**
@@ -69,12 +68,12 @@ class TokenReplaceKernelTest extends TokenReplaceKernelTestBase {
     // Replace with the clear parameter, only the valid token should remain.
     $target = Html::escape($this->config('system.site')->get('name'));
     $result = $this->tokenService->replace($source, [], ['langcode' => $this->interfaceLanguage->getId(), 'clear' => TRUE]);
-    $this->assertEqual($target, $result, 'Valid tokens replaced while invalid tokens ignored.');
+    $this->assertEquals($target, $result, 'Valid tokens replaced while invalid tokens ignored.');
 
     $target .= '[user:name]';
     $target .= '[bogus:token]';
     $result = $this->tokenService->replace($source, [], ['langcode' => $this->interfaceLanguage->getId()]);
-    $this->assertEqual($target, $result, 'Valid tokens replaced while invalid tokens ignored.');
+    $this->assertEquals($target, $result, 'Valid tokens replaced while invalid tokens ignored.');
   }
 
   /**
@@ -123,8 +122,8 @@ class TokenReplaceKernelTest extends TokenReplaceKernelTestBase {
     foreach ($tests as $input => $expected) {
       $bubbleable_metadata = new BubbleableMetadata();
       $output = $this->tokenService->replace($input, [], ['langcode' => $this->interfaceLanguage->getId()], $bubbleable_metadata);
-      $this->assertEqual($output, $expected, new FormattableMarkup('System site information token %token replaced.', ['%token' => $input]));
-      $this->assertEqual($bubbleable_metadata, $metadata_tests[$input]);
+      $this->assertEquals($expected, $output, new FormattableMarkup('System site information token %token replaced.', ['%token' => $input]));
+      $this->assertEquals($metadata_tests[$input], $bubbleable_metadata);
     }
   }
 
@@ -150,7 +149,7 @@ class TokenReplaceKernelTest extends TokenReplaceKernelTestBase {
 
     foreach ($tests as $input => $expected) {
       $output = $this->tokenService->replace($input, ['date' => $date], ['langcode' => $this->interfaceLanguage->getId()]);
-      $this->assertEqual($output, $expected, new FormattableMarkup('Date token %token replaced.', ['%token' => $input]));
+      $this->assertEquals($expected, $output, new FormattableMarkup('Date token %token replaced.', ['%token' => $input]));
     }
   }
 

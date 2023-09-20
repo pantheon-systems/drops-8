@@ -39,9 +39,11 @@ class ManyToOneHelper {
   }
 
   /**
+   * Get the field via formula or build it using alias and field name.
+   *
    * Sometimes the handler might want us to use some kind of formula, so give
    * it that option. If it wants us to do this, it must set $helper->formula = TRUE
-   * and implement handler->getFormula();
+   * and implement handler->getFormula().
    */
   public function getField() {
     if (!empty($this->formula)) {
@@ -111,8 +113,10 @@ class ManyToOneHelper {
   }
 
   /**
-   * Provide the proper join for summary queries. This is important in part because
-   * it will cooperate with other arguments if possible.
+   * Provides the proper join for summary queries.
+   *
+   * This is important in part because it will cooperate with other arguments if
+   * possible.
    */
   public function summaryJoin() {
     $field = $this->handler->relationship . '_' . $this->handler->table . '.' . $this->handler->field;
@@ -149,6 +153,7 @@ class ManyToOneHelper {
 
   /**
    * Override ensureMyTable so we can control how this joins in.
+   *
    * The operator actually has influence over joining.
    */
   public function ensureMyTable() {

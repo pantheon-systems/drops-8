@@ -15,8 +15,9 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Route;
 
 /**
- * Ensures that rendered menu links bubble the necessary bubbleable metadata
- * for outbound path/route processing.
+ * Ensures that rendered menu links bubble the necessary bubbleable metadata.
+ *
+ * This for outbound path/route processing.
  *
  * @group menu_link_content
  */
@@ -124,7 +125,7 @@ class MenuLinkContentCacheabilityBubblingTest extends KernelTestBase {
       $renderer->renderRoot($build);
 
       $expected_cacheability = $default_menu_cacheability->merge($expectation['cacheability']);
-      $this->assertEqual($expected_cacheability, BubbleableMetadata::createFromRenderArray($build));
+      $this->assertEqualsCanonicalizing($expected_cacheability, BubbleableMetadata::createFromRenderArray($build));
 
       $menu_link_content->delete();
     }
@@ -146,7 +147,7 @@ class MenuLinkContentCacheabilityBubblingTest extends KernelTestBase {
     $build = $menu_tree->build($tree);
     $renderer->renderRoot($build);
     $expected_cacheability = $expected_cacheability->merge($default_menu_cacheability);
-    $this->assertEqual($expected_cacheability, BubbleableMetadata::createFromRenderArray($build));
+    $this->assertEqualsCanonicalizing($expected_cacheability, BubbleableMetadata::createFromRenderArray($build));
   }
 
 }

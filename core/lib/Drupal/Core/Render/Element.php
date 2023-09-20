@@ -24,7 +24,7 @@ class Element {
    *   TRUE of the key is a property, FALSE otherwise.
    */
   public static function property($key) {
-    return $key[0] == '#';
+    return is_string($key) && $key[0] == '#';
   }
 
   /**
@@ -57,7 +57,8 @@ class Element {
    * Identifies the children of an element array, optionally sorted by weight.
    *
    * The children of an element array are those key/value pairs whose key does
-   * not start with a '#'. See drupal_render() for details.
+   * not start with a '#'. See \Drupal\Core\Render\RendererInterface::render()
+   * for details.
    *
    * @param array $elements
    *   The element array whose children are to be identified. Passed by
@@ -186,8 +187,8 @@ class Element {
   /**
    * Indicates whether the given element is empty.
    *
-   * An element that only has #cache set is considered empty, because it will
-   * render to the empty string.
+   * An element that only has #cache or #weight set is considered
+   * empty, because it will render to the empty string.
    *
    * @param array $elements
    *   The element.
@@ -196,7 +197,7 @@ class Element {
    *   Whether the given element is empty.
    */
   public static function isEmpty(array $elements) {
-    return empty($elements) || (count($elements) === 1 && array_keys($elements) === ['#cache']);
+    return \array_diff(\array_keys($elements), ['#cache', '#weight']) === [];
   }
 
 }

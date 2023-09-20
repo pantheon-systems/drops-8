@@ -12,8 +12,10 @@ use Drupal\tour\Entity\Tour;
 use Drupal\user\Entity\Role;
 
 /**
- * Tests installation and removal of configuration objects in install, disable
- * and uninstall functionality.
+ * Tests that configuration objects are correct after various operations.
+ *
+ * The installation and removal of configuration objects in install, disable
+ * and uninstall functionality is tested.
  *
  * @group config
  */
@@ -52,21 +54,21 @@ class ConfigInstallProfileOverrideTest extends BrowserTestBase {
       ],
       'logging' => 1,
     ];
-    $expected_profile_data['_core']['default_config_hash'] = Crypt::hashBase64(serialize($expected_profile_data));
+    $expected_profile_data = ['_core' => ['default_config_hash' => Crypt::hashBase64(serialize($expected_profile_data))]] + $expected_profile_data;
 
     // Verify that the original data matches. We have to read the module config
     // file directly, because the install profile default system.cron.yml
     // configuration file was used to create the active configuration.
-    $config_dir = drupal_get_path('module', 'system') . '/' . InstallStorage::CONFIG_INSTALL_DIRECTORY;
+    $config_dir = $this->getModulePath('system') . '/' . InstallStorage::CONFIG_INSTALL_DIRECTORY;
     $this->assertDirectoryExists($config_dir);
     $source_storage = new FileStorage($config_dir);
     $data = $source_storage->read($config_name);
-    $this->assertIdentical($data, $expected_original_data);
+    $this->assertSame($expected_original_data, $data);
 
     // Verify that active configuration matches the expected data, which was
     // created from the testing install profile's system.cron.yml file.
     $config = $this->config($config_name);
-    $this->assertIdentical($config->get(), $expected_profile_data);
+    $this->assertSame($expected_profile_data, $config->get());
 
     $config = $this->config('system.site');
     // Verify the system.site config has a valid UUID.
@@ -101,7 +103,7 @@ class ConfigInstallProfileOverrideTest extends BrowserTestBase {
     // Ensure that optional configuration from a profile is not created if
     // dependencies are not met. Cannot use the entity system since the entity
     // type does not exist.
-    $optional_dir = drupal_get_path('module', 'testing_config_overrides') . '/' . InstallStorage::CONFIG_OPTIONAL_DIRECTORY;
+    $optional_dir = $this->getModulePath('testing_config_overrides') . '/' . InstallStorage::CONFIG_OPTIONAL_DIRECTORY;
     $optional_storage = new FileStorage($optional_dir);
     foreach (['config_test.dynamic.dotted.default', 'config_test.dynamic.override', 'config_test.dynamic.override_unmet'] as $id) {
       $this->assertTrue(\Drupal::config($id)->isNew(), "The config_test entity $id contained in the profile's optional directory does not exist.");
@@ -141,6 +143,7 @@ class ConfigInstallProfileOverrideTest extends BrowserTestBase {
     // Ensure the authenticated role has the access tour permission.
     $role = Role::load(Role::AUTHENTICATED_ID);
     $this->assertTrue($role->hasPermission('access tour'), 'The Authenticated role has the "access tour" permission.');
+    $this->assertEquals(['module' => ['tour']], $role->getDependencies());
   }
 
 }

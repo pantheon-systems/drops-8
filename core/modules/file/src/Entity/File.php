@@ -2,6 +2,7 @@
 
 namespace Drupal\file\Entity;
 
+use Drupal\Core\Cache\Cache;
 use Drupal\Core\Entity\ContentEntityBase;
 use Drupal\Core\Entity\EntityChangedTrait;
 use Drupal\Core\Entity\EntityStorageInterface;
@@ -80,11 +81,9 @@ class File extends ContentEntityBase implements FileInterface {
    * {@inheritdoc}
    */
   public function createFileUrl($relative = TRUE) {
-    $url = file_create_url($this->getFileUri());
-    if ($relative && $url) {
-      $url = file_url_transform_relative($url);
-    }
-    return $url;
+    /** @var \Drupal\Core\File\FileUrlGeneratorInterface $file_url_generator */
+    $file_url_generator = \Drupal::service('file_url_generator');
+    return $relative ? $file_url_generator->generateString($this->getFileUri()) : $file_url_generator->generateAbsoluteString($this->getFileUri());
   }
 
   /**
@@ -126,7 +125,7 @@ class File extends ContentEntityBase implements FileInterface {
    * {@inheritdoc}
    */
   public function isPermanent() {
-    return $this->get('status')->value == FILE_STATUS_PERMANENT;
+    return $this->get('status')->value == static::STATUS_PERMANENT;
   }
 
   /**
@@ -140,7 +139,7 @@ class File extends ContentEntityBase implements FileInterface {
    * {@inheritdoc}
    */
   public function setPermanent() {
-    $this->get('status')->value = FILE_STATUS_PERMANENT;
+    $this->get('status')->value = static::STATUS_PERMANENT;
   }
 
   /**
@@ -276,6 +275,22 @@ class File extends ContentEntityBase implements FileInterface {
    */
   public static function getDefaultEntityOwner() {
     return NULL;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function invalidateTagsOnSave($update) {
+    $tags = $this->getListCacheTagsToInvalidate();
+    // Always invalidate the 404 or 403 response cache because while files do
+    // not have a canonical URL as such, they may be served via routes such as
+    // private files.
+    // Creating or updating an entity may change a cached 403 or 404 response.
+    $tags = Cache::mergeTags($tags, ['4xx-response']);
+    if ($update) {
+      $tags = Cache::mergeTags($tags, $this->getCacheTagsToInvalidate());
+    }
+    Cache::invalidateTags($tags);
   }
 
 }

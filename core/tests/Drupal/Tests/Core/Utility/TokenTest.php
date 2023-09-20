@@ -114,12 +114,12 @@ class TokenTest extends UnitTestCase {
 
     $this->language->expects($this->atLeastOnce())
       ->method('getId')
-      ->will($this->returnValue($this->randomMachineName()));
+      ->willReturn($this->randomMachineName());
 
     $this->languageManager->expects($this->once())
       ->method('getCurrentLanguage')
       ->with(LanguageInterface::TYPE_CONTENT)
-      ->will($this->returnValue($this->language));
+      ->willReturn($this->language);
 
     // The persistent cache must only be hit once, after which the info is
     // cached statically.
@@ -132,7 +132,7 @@ class TokenTest extends UnitTestCase {
     $this->moduleHandler->expects($this->once())
       ->method('invokeAll')
       ->with('token_info')
-      ->will($this->returnValue($token_info));
+      ->willReturn($token_info);
     $this->moduleHandler->expects($this->once())
       ->method('alter')
       ->with('token_info', $token_info);
@@ -292,6 +292,31 @@ class TokenTest extends UnitTestCase {
     ];
 
     return $data;
+  }
+
+  /**
+   * @covers ::replacePlain
+   */
+  public function testReplacePlain() {
+    $this->setupSiteTokens();
+    $base = 'Wow, great "[site:name]" has a slogan "[site:slogan]"';
+    $plain = $this->token->replacePlain($base);
+    $this->assertEquals($plain, 'Wow, great "Your <best> buys" has a slogan "We are best"');
+  }
+
+  /**
+   * Sets up the token library to return site tokens.
+   */
+  protected function setupSiteTokens() {
+    // The site name is plain text, but the slogan is markup.
+    $tokens = [
+      '[site:name]' => 'Your <best> buys',
+      '[site:slogan]' => Markup::Create('We are <b>best</b>'),
+    ];
+
+    $this->moduleHandler->expects($this->any())
+      ->method('invokeAll')
+      ->willReturn($tokens);
   }
 
 }

@@ -17,6 +17,13 @@ class MediaEmbedFilterConfigurationUiTest extends MediaJavascriptTestBase {
 
   /**
    * {@inheritdoc}
+   *
+   * @todo Remove this class property in https://www.drupal.org/node/3091878/.
+   */
+  protected $failOnJavascriptConsoleErrors = FALSE;
+
+  /**
+   * {@inheritdoc}
    */
   public static function setUpBeforeClass(): void {
     parent::setUpBeforeClass();
@@ -137,8 +144,7 @@ class MediaEmbedFilterConfigurationUiTest extends MediaJavascriptTestBase {
   }
 
   /**
-   * Data provider for testValidationWhenAdding() and
-   * testValidationWhenEditing().
+   * Data provider for testing validation when adding and editing media embeds.
    */
   public function providerTestValidations() {
     return [

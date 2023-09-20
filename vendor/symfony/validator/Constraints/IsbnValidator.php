@@ -40,7 +40,7 @@ class IsbnValidator extends ConstraintValidator
             return;
         }
 
-        if (!is_scalar($value) && !(\is_object($value) && method_exists($value, '__toString'))) {
+        if (!\is_scalar($value) && !(\is_object($value) && method_exists($value, '__toString'))) {
             throw new UnexpectedValueException($value, 'string');
         }
 
@@ -163,8 +163,7 @@ class IsbnValidator extends ConstraintValidator
         }
 
         for ($i = 1; $i < 12; $i += 2) {
-            $checkSum += $isbn[$i]
-            * 3;
+            $checkSum += $isbn[$i] * 3;
         }
 
         return 0 === $checkSum % 10 ? true : Isbn::CHECKSUM_FAILED_ERROR;

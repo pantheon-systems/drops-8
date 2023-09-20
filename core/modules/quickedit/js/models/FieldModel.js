@@ -4,7 +4,6 @@
 * https://www.drupal.org/node/2815083
 * @preserve
 **/
-
 (function (_, Backbone, Drupal) {
   Drupal.quickedit.FieldModel = Drupal.quickedit.BaseModel.extend({
     defaults: {
@@ -31,19 +30,16 @@
       if (this.get('state') !== 'inactive') {
         throw new Error('FieldModel cannot be destroyed if it is not inactive state.');
       }
-
       Drupal.quickedit.BaseModel.prototype.destroy.call(this, options);
     },
     sync: function sync() {},
     validate: function validate(attrs, options) {
       var current = this.get('state');
       var next = attrs.state;
-
       if (current !== next) {
         if (_.indexOf(this.constructor.states, next) === -1) {
           return "\"".concat(next, "\" is an invalid state");
         }
-
         if (!this.get('acceptStateChange')(current, next, options, this)) {
           return 'state change not accepted';
         }

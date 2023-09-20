@@ -40,6 +40,9 @@ class RouteCachingLanguageTest extends BrowserTestBase {
    */
   protected $webUser;
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp(): void {
     parent::setUp();
 
@@ -75,7 +78,8 @@ class RouteCachingLanguageTest extends BrowserTestBase {
       'settings[node][page][fields][body]' => 1,
       'settings[node][page][settings][language][language_alterable]' => 1,
     ];
-    $this->drupalPostForm('admin/config/regional/content-language', $edit, 'Save configuration');
+    $this->drupalGet('admin/config/regional/content-language');
+    $this->submitForm($edit, 'Save configuration');
 
     // Create a field with settings to validate.
     $field_storage = FieldStorageConfig::create([
@@ -108,9 +112,11 @@ class RouteCachingLanguageTest extends BrowserTestBase {
     // Enable URL language detection and selection and set a prefix for both
     // languages.
     $edit = ['language_interface[enabled][language-url]' => 1];
-    $this->drupalPostForm('admin/config/regional/language/detection', $edit, 'Save settings');
+    $this->drupalGet('admin/config/regional/language/detection');
+    $this->submitForm($edit, 'Save settings');
     $edit = ['prefix[en]' => 'en'];
-    $this->drupalPostForm('admin/config/regional/language/detection/url', $edit, 'Save configuration');
+    $this->drupalGet('admin/config/regional/language/detection/url');
+    $this->submitForm($edit, 'Save configuration');
 
     // Reset the cache after changing the negotiation settings as that changes
     // how links are built.
@@ -137,7 +143,8 @@ class RouteCachingLanguageTest extends BrowserTestBase {
       'title[0][value]' => 'Target page',
       'path[0][alias]' => '/target-page',
     ];
-    $this->drupalPostForm('node/add/page', $edit, 'Save', $source_url_options);
+    $this->drupalGet('node/add/page', $source_url_options);
+    $this->submitForm($edit, 'Save');
 
     // Confirm that the alias works.
     $assert_session = $this->assertSession();
@@ -153,7 +160,8 @@ class RouteCachingLanguageTest extends BrowserTestBase {
       'field_link[0][title]' => 'Target page',
       'path[0][alias]' => '/link-page',
     ];
-    $this->drupalPostForm('node/add/page', $edit, 'Save', $source_url_options);
+    $this->drupalGet('node/add/page', $source_url_options);
+    $this->submitForm($edit, 'Save');
 
     // Make sure the link node is displayed with a working link.
     $assert_session->pageTextContains('Link page');
@@ -167,7 +175,7 @@ class RouteCachingLanguageTest extends BrowserTestBase {
 
     $this->drupalGet('link-page', $source_url_options);
     $this->clickLink('Translate');
-    $this->clickLink(t('Add'));
+    $this->clickLink('Add');
 
     // Do not change the link field.
     $edit = [

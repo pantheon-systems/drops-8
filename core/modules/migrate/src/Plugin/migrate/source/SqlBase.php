@@ -14,6 +14,8 @@ use Drupal\migrate\Plugin\MigrateIdMapInterface;
 use Drupal\migrate\Plugin\RequirementsInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
+// cspell:ignore destid sourceid
+
 /**
  * Sources whose data may be fetched via a database connection.
  *
@@ -264,9 +266,6 @@ abstract class SqlBase extends SourcePluginBase implements ContainerFactoryPlugi
     if ($this->batch == 0) {
       $this->prepareQuery();
 
-      // Get the key values, for potential use in joining to the map table.
-      $keys = [];
-
       // The rules for determining what conditions to add to the query are as
       // follows (applying first applicable rule):
       // 1. If the map is joinable, join it. We will want to accept all rows
@@ -276,7 +275,7 @@ abstract class SqlBase extends SourcePluginBase implements ContainerFactoryPlugi
       //    conditions, so we need to OR them together (but AND with any existing
       //    conditions in the query). So, ultimately the SQL condition will look
       //    like (original conditions) AND (map IS NULL OR map needs update
-      //      OR above high water).
+      //    OR above high water).
       $conditions = $this->query->orConditionGroup();
       $condition_added = FALSE;
       $added_fields = [];
@@ -378,14 +377,24 @@ abstract class SqlBase extends SourcePluginBase implements ContainerFactoryPlugi
   }
 
   /**
+   * {@inheritdoc}
+   */
+  public function rewind(): void {
+    $this->batch = 0;
+    // Database queries have to be run again as they cannot be rewound.
+    unset($this->iterator);
+    parent::rewind();
+  }
+
+  /**
    * @return \Drupal\Core\Database\Query\SelectInterface
    */
   abstract public function query();
 
   /**
-   * {@inheritdoc}
+   * Gets the source count using countQuery().
    */
-  public function count($refresh = FALSE) {
+  protected function doCount() {
     return (int) $this->query()->countQuery()->execute()->fetchField();
   }
 
@@ -459,6 +468,13 @@ abstract class SqlBase extends SourcePluginBase implements ContainerFactoryPlugi
       }
     }
     return TRUE;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function __sleep() {
+    return array_diff(parent::__sleep(), ['database']);
   }
 
 }

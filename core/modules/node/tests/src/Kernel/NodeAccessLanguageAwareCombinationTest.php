@@ -11,8 +11,7 @@ use Drupal\user\Entity\User;
 use Drupal\field\Entity\FieldStorageConfig;
 
 /**
- * Tests node access functionality with multiple languages and two node access
- * modules.
+ * Tests node access with multiple languages and two node access modules.
  *
  * @group node
  */
@@ -50,6 +49,9 @@ class NodeAccessLanguageAwareCombinationTest extends NodeAccessTestBase {
    */
   protected $adminUser;
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp(): void {
     parent::setUp();
 
@@ -175,7 +177,7 @@ class NodeAccessLanguageAwareCombinationTest extends NodeAccessTestBase {
     $this->nodes['public_no_language_private'] = $this->drupalCreateNode([
       'field_private' => [['value' => 1]],
       'private' => FALSE,
-        'langcode' => LanguageInterface::LANGCODE_NOT_SPECIFIED,
+      'langcode' => LanguageInterface::LANGCODE_NOT_SPECIFIED,
     ]);
     $this->nodes['public_no_language_public'] = $this->drupalCreateNode([
       'field_private' => [['value' => 0]],
@@ -309,7 +311,7 @@ class NodeAccessLanguageAwareCombinationTest extends NodeAccessTestBase {
     $nids = $select->execute()->fetchAllAssoc('nid');
 
     // There are no nodes with German translations, so no results are returned.
-    $this->assertTrue(empty($nids), 'Query returns an empty result.');
+    $this->assertEmpty($nids, 'Query returns an empty result.');
 
     // Query the nodes table as admin user (full access) with the node access
     // tag and no specific langcode.

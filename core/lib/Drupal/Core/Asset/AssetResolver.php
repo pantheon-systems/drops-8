@@ -130,7 +130,7 @@ class AssetResolver implements AssetResolverInterface {
     ];
 
     foreach ($libraries_to_load as $library) {
-      list($extension, $name) = explode('/', $library, 2);
+      [$extension, $name] = explode('/', $library, 2);
       $definition = $this->libraryDiscovery->getLibraryByName($extension, $name);
       if (isset($definition['css'])) {
         foreach ($definition['css'] as $options) {
@@ -147,7 +147,7 @@ class AssetResolver implements AssetResolverInterface {
 
           // Always add a tiny value to the weight, to conserve the insertion
           // order.
-          $options['weight'] += count($css) / 1000;
+          $options['weight'] += count($css) / 30000;
 
           // CSS files are being keyed by the full path.
           $css[$options['data']] = $options;
@@ -196,7 +196,7 @@ class AssetResolver implements AssetResolverInterface {
     $settings = [];
 
     foreach ($this->getLibrariesToLoad($assets) as $library) {
-      list($extension, $name) = explode('/', $library, 2);
+      [$extension, $name] = explode('/', $library, 2);
       $definition = $this->libraryDiscovery->getLibraryByName($extension, $name);
       if (isset($definition['drupalSettings'])) {
         $settings = NestedArray::mergeDeepArray([$settings, $definition['drupalSettings']], TRUE);
@@ -218,7 +218,7 @@ class AssetResolver implements AssetResolverInterface {
     $cid = 'js:' . $theme_info->getName() . ':' . $this->languageManager->getCurrentLanguage()->getId() . ':' . Crypt::hashBase64(serialize($libraries_to_load)) . (int) (count($assets->getSettings()) > 0) . (int) $optimize;
 
     if ($cached = $this->cache->get($cid)) {
-      list($js_assets_header, $js_assets_footer, $settings, $settings_in_header) = $cached->data;
+      [$js_assets_header, $js_assets_footer, $settings, $settings_in_header] = $cached->data;
     }
     else {
       $javascript = [];
@@ -236,7 +236,7 @@ class AssetResolver implements AssetResolverInterface {
       // Collect all libraries that contain JS assets and are in the header.
       $header_js_libraries = [];
       foreach ($libraries_to_load as $library) {
-        list($extension, $name) = explode('/', $library, 2);
+        [$extension, $name] = explode('/', $library, 2);
         $definition = $this->libraryDiscovery->getLibraryByName($extension, $name);
         if (isset($definition['js']) && !empty($definition['header'])) {
           $header_js_libraries[] = $library;
@@ -248,7 +248,7 @@ class AssetResolver implements AssetResolverInterface {
       $header_js_libraries = $this->libraryDependencyResolver->getLibrariesWithDependencies($header_js_libraries);
 
       foreach ($libraries_to_load as $library) {
-        list($extension, $name) = explode('/', $library, 2);
+        [$extension, $name] = explode('/', $library, 2);
         $definition = $this->libraryDiscovery->getLibraryByName($extension, $name);
         if (isset($definition['js'])) {
           foreach ($definition['js'] as $options) {
@@ -264,7 +264,7 @@ class AssetResolver implements AssetResolverInterface {
 
             // Always add a tiny value to the weight, to conserve the insertion
             // order.
-            $options['weight'] += count($javascript) / 1000;
+            $options['weight'] += count($javascript) / 30000;
 
             // Local and external files must keep their name as the associative
             // key so the same JavaScript file is not added twice.
@@ -312,10 +312,9 @@ class AssetResolver implements AssetResolverInterface {
       if ($settings_required && $settings_have_changed) {
         $settings = $this->getJsSettingsAssets($assets);
         // Allow modules to add cached JavaScript settings.
-        foreach ($this->moduleHandler->getImplementations('js_settings_build') as $module) {
-          $function = $module . '_js_settings_build';
-          $function($settings, $assets);
-        }
+        $this->moduleHandler->invokeAllWith('js_settings_build', function (callable $hook, string $module) use (&$settings, $assets) {
+          $hook($settings, $assets);
+        });
       }
       $settings_in_header = in_array('core/drupalSettings', $header_js_libraries);
       $this->cache->set($cid, [$js_assets_header, $js_assets_footer, $settings, $settings_in_header], CacheBackendInterface::CACHE_PERMANENT, ['library_info']);
@@ -357,19 +356,22 @@ class AssetResolver implements AssetResolverInterface {
   /**
    * Sorts CSS and JavaScript resources.
    *
+   * Callback for uasort().
+   *
    * This sort order helps optimize front-end performance while providing
    * modules and themes with the necessary control for ordering the CSS and
    * JavaScript appearing on a page.
    *
-   * @param $a
+   * @param array $a
    *   First item for comparison. The compared items should be associative
    *   arrays of member items.
-   * @param $b
+   * @param array $b
    *   Second item for comparison.
    *
    * @return int
+   *   The comparison result for uasort().
    */
-  public static function sort($a, $b) {
+  public static function sort(array $a, array $b) {
     // First order by group, so that all items in the CSS_AGGREGATE_DEFAULT
     // group appear before items in the CSS_AGGREGATE_THEME group. Modules may
     // create additional groups by defining their own constants.

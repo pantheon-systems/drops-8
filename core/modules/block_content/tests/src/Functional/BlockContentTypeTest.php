@@ -25,7 +25,7 @@ class BlockContentTypeTest extends BlockContentTestBase {
   /**
    * {@inheritdoc}
    */
-  protected $defaultTheme = 'classy';
+  protected $defaultTheme = 'stark';
 
   /**
    * Permissions to grant admin user.
@@ -44,10 +44,24 @@ class BlockContentTypeTest extends BlockContentTestBase {
    */
   protected $autoCreateBasicBlockType = FALSE;
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp(): void {
     parent::setUp();
 
     $this->drupalPlaceBlock('page_title_block');
+  }
+
+  /**
+   * Tests the order of the block content types on the add page.
+   */
+  public function testBlockContentAddPageOrder() {
+    $this->createBlockContentType(['id' => 'bundle_1', 'label' => 'Bundle 1']);
+    $this->createBlockContentType(['id' => 'bundle_2', 'label' => 'Aaa Bundle 2']);
+    $this->drupalLogin($this->adminUser);
+    $this->drupalGet('block/add');
+    $this->assertSession()->pageTextMatches('/Aaa Bundle 2(.*)Bundle 1/');
   }
 
   /**
@@ -60,7 +74,7 @@ class BlockContentTypeTest extends BlockContentTestBase {
     // Test the page with no block-types.
     $this->drupalGet('block/add');
     $this->assertSession()->statusCodeEquals(200);
-    $this->assertText('You have not created any block types yet');
+    $this->assertSession()->pageTextContains('You have not created any block types yet');
     $this->clickLink('block type creation page');
 
     // Create a block type via the user interface.
@@ -77,7 +91,7 @@ class BlockContentTypeTest extends BlockContentTestBase {
 
     // Check that the block type was created in site default language.
     $default_langcode = \Drupal::languageManager()->getDefaultLanguage()->getId();
-    $this->assertEqual($block_type->language()->getId(), $default_langcode);
+    $this->assertEquals($block_type->language()->getId(), $default_langcode);
 
     // Create block types programmatically.
     $this->createBlockContentType('basic', TRUE);
@@ -112,7 +126,7 @@ class BlockContentTypeTest extends BlockContentTestBase {
 
     // Verify that title and body fields are displayed.
     $this->drupalGet('block/add/basic');
-    $this->assertRaw('Block description');
+    $this->assertSession()->pageTextContains('Block description');
     $this->assertNotEmpty($this->cssSelect('#edit-body-0-value'), 'Body field was found.');
 
     // Change the block type name.
@@ -132,15 +146,17 @@ class BlockContentTypeTest extends BlockContentTestBase {
     \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
 
     $this->drupalGet('block/add');
-    $this->assertRaw('Bar');
+    $this->assertSession()->pageTextContains('Bar');
     $this->clickLink('Bar');
     // Verify that the original machine name was used in the URL.
     $this->assertSession()->addressEquals(Url::fromRoute('block_content.add_form', ['block_content_type' => 'basic']));
 
     // Remove the body field.
-    $this->drupalPostForm('admin/structure/block/block-content/manage/basic/fields/block_content.basic.body/delete', [], 'Delete');
+    $this->drupalGet('admin/structure/block/block-content/manage/basic/fields/block_content.basic.body/delete');
+    $this->submitForm([], 'Delete');
     // Resave the settings for this type.
-    $this->drupalPostForm('admin/structure/block/block-content/manage/basic', [], 'Save');
+    $this->drupalGet('admin/structure/block/block-content/manage/basic');
+    $this->submitForm([], 'Save');
     // Check that the body field doesn't exist.
     $this->drupalGet('block/add/basic');
     $this->assertEmpty($this->cssSelect('#edit-body-0-value'), 'Body field was not found.');
@@ -162,19 +178,15 @@ class BlockContentTypeTest extends BlockContentTestBase {
     $block = $this->createBlockContent(FALSE, 'foo');
     // Attempt to delete the block type, which should not be allowed.
     $this->drupalGet('admin/structure/block/block-content/manage/' . $type->id() . '/delete');
-    $this->assertRaw(
-      t('%label is used by 1 custom block on your site. You can not remove this block type until you have removed all of the %label blocks.', ['%label' => $type->label()])
-    );
-    $this->assertNoText('This action cannot be undone.', 'The block type deletion confirmation form is not available.');
+    $this->assertSession()->pageTextContains($type->label() . ' is used by 1 custom block on your site. You can not remove this block type until you have removed all of the ' . $type->label() . ' blocks.');
+    $this->assertSession()->pageTextNotContains('This action cannot be undone.');
 
     // Delete the block.
     $block->delete();
     // Attempt to delete the block type, which should now be allowed.
     $this->drupalGet('admin/structure/block/block-content/manage/' . $type->id() . '/delete');
-    $this->assertRaw(
-      t('Are you sure you want to delete the custom block type %type?', ['%type' => $type->id()])
-    );
-    $this->assertText('This action cannot be undone.', 'The custom block type deletion confirmation form is available.');
+    $this->assertSession()->pageTextContains('Are you sure you want to delete the custom block type ' . $type->id() . '?');
+    $this->assertSession()->pageTextContains('This action cannot be undone.');
   }
 
   /**
@@ -195,30 +207,23 @@ class BlockContentTypeTest extends BlockContentTestBase {
       ->getStorage('block_content');
 
     // Install all themes.
-    \Drupal::service('theme_installer')->install(['bartik', 'seven', 'stark']);
+    $themes = ['olivero', 'stark', 'claro'];
+    \Drupal::service('theme_installer')->install($themes);
     $theme_settings = $this->config('system.theme');
-    foreach (['bartik', 'seven', 'stark'] as $default_theme) {
+    foreach ($themes as $default_theme) {
       // Change the default theme.
       $theme_settings->set('default', $default_theme)->save();
       $this->drupalPlaceBlock('local_actions_block');
 
       // For each installed theme, go to its block page and test the redirects.
-      foreach (['bartik', 'seven', 'stark'] as $theme) {
+      foreach ($themes as $theme) {
         // Test that adding a block from the 'place blocks' form sends you to the
         // block configure form.
         $path = $theme == $default_theme ? 'admin/structure/block' : "admin/structure/block/list/$theme";
         $this->drupalGet($path);
         $this->clickLink('Place block');
-        $this->clickLink(t('Add custom block'));
-        // The seven theme has markup inside the link, we cannot use clickLink().
-        if ($default_theme == 'seven') {
-          $options = $theme != $default_theme ? ['query' => ['theme' => $theme]] : [];
-          $this->assertSession()->linkByHrefExists(Url::fromRoute('block_content.add_form', ['block_content_type' => 'foo'], $options)->toString());
-          $this->drupalGet('block/add/foo', $options);
-        }
-        else {
-          $this->clickLink('foo');
-        }
+        $this->clickLink('Add custom block');
+        $this->clickLink('foo');
         // Create a new block.
         $edit = ['info[0][value]' => $this->randomMachineName(8)];
         $this->submitForm($edit, 'Save');
@@ -238,7 +243,7 @@ class BlockContentTypeTest extends BlockContentTestBase {
     // Test that adding a block from the 'custom blocks list' doesn't send you
     // to the block configure form.
     $this->drupalGet('admin/structure/block/block-content');
-    $this->clickLink(t('Add custom block'));
+    $this->clickLink('Add custom block');
     $this->clickLink('foo');
     $edit = ['info[0][value]' => $this->randomMachineName(8)];
     $this->submitForm($edit, 'Save');
