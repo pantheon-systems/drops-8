@@ -3,6 +3,7 @@
 namespace Drupal\plugin_test\Plugin\plugin_test\mock_block;
 
 use Drupal\Component\Plugin\Derivative\DeriverInterface;
+use Drupal\Core\StringTranslation\StringTranslationTrait;
 
 /**
  * Mock implementation of DeriverInterface for the mock menu block plugin.
@@ -10,6 +11,8 @@ use Drupal\Component\Plugin\Derivative\DeriverInterface;
  * @see \Drupal\plugin_test\Plugin\MockBlockManager
  */
 class MockMenuBlockDeriver implements DeriverInterface {
+
+  use StringTranslationTrait;
 
   /**
    * {@inheritdoc}
@@ -19,6 +22,7 @@ class MockMenuBlockDeriver implements DeriverInterface {
     if (isset($derivatives[$derivative_id])) {
       return $derivatives[$derivative_id];
     }
+    return NULL;
   }
 
   /**
@@ -36,16 +40,16 @@ class MockMenuBlockDeriver implements DeriverInterface {
     // Drupal's configuration to find out which menus actually exist.
     $derivatives = [
       'main_menu' => [
-        'label' => t('Main menu'),
+        'label' => $this->t('Main menu'),
       ] + $base_plugin_definition,
       'navigation' => [
-        'label' => t('Navigation'),
+        'label' => $this->t('Navigation'),
       ] + $base_plugin_definition,
       'foo' => [
         // Instead of the derivative label, the specific label will be used.
-        'label' => t('Derivative label'),
+        'label' => $this->t('Derivative label'),
         // This setting will be merged in.
-         'setting' => 'default',
+        'setting' => 'default',
       ] + $base_plugin_definition,
     ];
 

@@ -4,14 +4,12 @@
 * https://www.drupal.org/node/2815083
 * @preserve
 **/
-
 (function ($, Drupal) {
   Drupal.theme.quickeditBackstage = function (settings) {
     var html = '';
     html += "<div id=\"".concat(settings.id, "\"></div>");
     return html;
   };
-
   Drupal.theme.quickeditEntityToolbar = function (settings) {
     var html = '';
     html += "<div id=\"".concat(settings.id, "\" class=\"quickedit quickedit-toolbar-container clearfix\">");
@@ -24,29 +22,23 @@
     html += '</div><div class="quickedit-toolbar-lining"></div></div>';
     return html;
   };
-
   Drupal.theme.quickeditEntityToolbarLabel = function (settings) {
     return "<span class=\"field\">".concat(Drupal.checkPlain(settings.fieldLabel), "</span>").concat(Drupal.checkPlain(settings.entityLabel));
   };
-
   Drupal.theme.quickeditEntityToolbarFence = function () {
     return '<div id="quickedit-toolbar-fence"></div>';
   };
-
   Drupal.theme.quickeditFieldToolbar = function (settings) {
     return "<div id=\"".concat(settings.id, "\"></div>");
   };
-
   Drupal.theme.quickeditToolgroup = function (settings) {
     var classes = settings.classes || [];
     classes.unshift('quickedit-toolgroup');
     var html = '';
     html += "<div class=\"".concat(classes.join(' '), "\"");
-
     if (settings.id) {
       html += " id=\"".concat(settings.id, "\"");
     }
-
     html += '>';
     html += Drupal.theme('quickeditButtons', {
       buttons: settings.buttons
@@ -54,17 +46,13 @@
     html += '</div>';
     return html;
   };
-
   Drupal.theme.quickeditButtons = function (settings) {
     var html = '';
-
     var _loop = function _loop(i) {
       var button = settings.buttons[i];
-
       if (!button.hasOwnProperty('type')) {
         button.type = 'button';
       }
-
       var attributes = [];
       var attrMap = settings.buttons[i].attributes || {};
       Object.keys(attrMap).forEach(function (attr) {
@@ -72,14 +60,11 @@
       });
       html += "<button type=\"".concat(button.type, "\" class=\"").concat(button.classes, "\" ").concat(attributes.join(' '), ">").concat(button.label, "</button>");
     };
-
     for (var i = 0; i < settings.buttons.length; i++) {
       _loop(i);
     }
-
     return html;
   };
-
   Drupal.theme.quickeditFormContainer = function (settings) {
     var html = '';
     html += "<div id=\"".concat(settings.id, "\" class=\"quickedit-form-container\">");
@@ -89,6 +74,23 @@
     html += '    </div>';
     html += '  </div>';
     html += '</div>';
+    return html;
+  };
+  Drupal.theme.quickeditImageErrors = function (settings) {
+    return "<div class=\"quickedit-image-errors\">".concat(settings.errors, "</div>");
+  };
+  Drupal.theme.quickeditImageDropzone = function (settings) {
+    return "<div class=\"quickedit-image-dropzone ".concat(settings.state, "\">") + '  <i class="quickedit-image-icon"></i>' + "  <span class=\"quickedit-image-text\">".concat(settings.text, "</span>") + '</div>';
+  };
+  Drupal.theme.quickeditImageToolbar = function (settings) {
+    var html = '<form class="quickedit-image-field-info">';
+    if (settings.alt_field) {
+      html += "<div><label for=\"alt\" class=\"".concat(settings.alt_field_required ? 'required' : '', "\">").concat(Drupal.t('Alternative text'), "</label>") + "<input type=\"text\" placeholder=\"".concat(settings.alt, "\" value=\"").concat(settings.alt, "\" name=\"alt\" ").concat(settings.alt_field_required ? 'required' : '', "/>") + '  </div>';
+    }
+    if (settings.title_field) {
+      html += "<div><label for=\"title\" class=\"".concat(settings.title_field_required ? 'form-required' : '', "\">").concat(Drupal.t('Title'), "</label>") + "<input type=\"text\" placeholder=\"".concat(settings.title, "\" value=\"").concat(settings.title, "\" name=\"title\" ").concat(settings.title_field_required ? 'required' : '', "/>") + '</div>';
+    }
+    html += '</form>';
     return html;
   };
 })(jQuery, Drupal);

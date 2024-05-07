@@ -24,16 +24,8 @@
   -webkit-touch-callout: none;
 }
 
-/**
- * Adjust the style of in-place editing CKEditor instances.
- */
-.quickedit-toolgroup.wysiwyg-main .cke_chrome,
-.quickedit-toolgroup.wysiwyg-main .cke_inner,
-.quickedit-toolgroup.wysiwyg-main .cke_top {
-  border-top: none;
-  border-right: none;
-  border-bottom: none;
-  border-left: none;
-  background: transparent;
-  box-shadow: none;
+.cke.cke_chrome.cke_focus {
+  outline: 1px dotted #212121;
+  outline: 5px auto Highlight;
+  outline: 5px auto -webkit-focus-ring-color;
 }

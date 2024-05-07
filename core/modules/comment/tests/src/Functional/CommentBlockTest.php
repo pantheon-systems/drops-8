@@ -2,7 +2,6 @@
 
 namespace Drupal\Tests\comment\Functional;
 
-use Drupal\Component\Render\FormattableMarkup;
 use Drupal\user\RoleInterface;
 
 /**
@@ -24,6 +23,9 @@ class CommentBlockTest extends CommentTestBase {
    */
   protected $defaultTheme = 'stark';
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp(): void {
     parent::setUp();
     // Update admin user to have the 'administer blocks' permission.
@@ -35,7 +37,7 @@ class CommentBlockTest extends CommentTestBase {
       'access comments',
       'access content',
       'administer blocks',
-     ]);
+    ]);
   }
 
   /**
@@ -61,19 +63,19 @@ class CommentBlockTest extends CommentTestBase {
     $this->drupalLogout();
     user_role_revoke_permissions(RoleInterface::ANONYMOUS_ID, ['access comments']);
     $this->drupalGet('');
-    $this->assertNoText('Recent comments');
+    $this->assertSession()->pageTextNotContains('Recent comments');
     user_role_grant_permissions(RoleInterface::ANONYMOUS_ID, ['access comments']);
 
     // Test that a user with the 'access comments' permission can see the
     // block.
     $this->drupalLogin($this->webUser);
     $this->drupalGet('');
-    $this->assertText('Recent comments');
+    $this->assertSession()->pageTextContains('Recent comments');
 
     // Test the only the 10 latest comments are shown and in the proper order.
-    $this->assertNoText($comments[10]->getSubject(), 'Comment 11 not found in block.');
+    $this->assertSession()->pageTextNotContains($comments[10]->getSubject());
     for ($i = 0; $i < 10; $i++) {
-      $this->assertText($comments[$i]->getSubject(), new FormattableMarkup('Comment @number found in block.', ['@number' => 10 - $i]));
+      $this->assertSession()->pageTextContains($comments[$i]->getSubject());
       if ($i > 1) {
         $previous_position = $position;
         $position = strpos($this->getSession()->getPage()->getContent(), $comments[$i]->getSubject());
@@ -87,8 +89,8 @@ class CommentBlockTest extends CommentTestBase {
 
     for ($i = 0; $i < 10; $i++) {
       $this->clickLink($comments[$i]->getSubject());
-      $this->assertText($comments[$i]->getSubject(), 'Comment link goes to correct page.');
-      $this->assertRaw('<link rel="canonical"');
+      $this->assertSession()->pageTextContains($comments[$i]->getSubject());
+      $this->assertSession()->responseContains('<link rel="canonical"');
     }
   }
 

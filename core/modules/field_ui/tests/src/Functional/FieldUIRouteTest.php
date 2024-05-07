@@ -40,7 +40,7 @@ class FieldUIRouteTest extends BrowserTestBase {
    */
   public function testFieldUIRoutes() {
     $this->drupalGet('entity_test_no_id/structure/entity_test/fields');
-    $this->assertText('No fields are present yet.');
+    $this->assertSession()->pageTextContains('No fields are present yet.');
 
     $this->drupalGet('admin/config/people/accounts/fields');
     $this->assertSession()->titleEquals('Manage fields | Drupal');
@@ -74,7 +74,8 @@ class FieldUIRouteTest extends BrowserTestBase {
     $this->drupalGet('admin/config/people/accounts/form-display/register');
     $this->assertSession()->titleEquals('Manage form display | Drupal');
     $this->assertLocalTasks();
-    $this->assertCount(1, $this->xpath('//ul/li[1]/a[contains(text(), :text)]', [':text' => 'Default']), 'Default secondary tab is in first position.');
+    // Test that default secondary tab is in first position.
+    $this->assertSession()->elementsCount('xpath', "//ul/li[1]/a[contains(text(), 'Default')]", 1);
 
     // Create new view mode and verify it's available on the Manage Display
     // screen after enabling it.
@@ -86,7 +87,8 @@ class FieldUIRouteTest extends BrowserTestBase {
     $this->container->get('router.builder')->rebuildIfNeeded();
 
     $edit = ['display_modes_custom[test]' => TRUE];
-    $this->drupalPostForm('admin/config/people/accounts/display', $edit, 'Save');
+    $this->drupalGet('admin/config/people/accounts/display');
+    $this->submitForm($edit, 'Save');
     $this->assertSession()->linkExists('Test');
 
     // Create new form mode and verify it's available on the Manage Form
@@ -99,14 +101,17 @@ class FieldUIRouteTest extends BrowserTestBase {
     $this->container->get('router.builder')->rebuildIfNeeded();
 
     $edit = ['display_modes_custom[test]' => TRUE];
-    $this->drupalPostForm('admin/config/people/accounts/form-display', $edit, 'Save');
+    $this->drupalGet('admin/config/people/accounts/form-display');
+    $this->submitForm($edit, 'Save');
     $this->assertSession()->linkExists('Test');
   }
 
   /**
    * Asserts that local tasks exists.
+   *
+   * @internal
    */
-  public function assertLocalTasks() {
+  public function assertLocalTasks(): void {
     $this->assertSession()->linkExists('Settings');
     $this->assertSession()->linkExists('Manage fields');
     $this->assertSession()->linkExists('Manage display');

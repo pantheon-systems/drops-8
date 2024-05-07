@@ -74,15 +74,17 @@
       );
     }
     editMode = !!editMode;
-    const $editButton = $(toggleEditSelector);
     let $editables;
+    const editButton = document.querySelector(toggleEditSelector);
     // Turn on edit mode.
     if (editMode) {
-      $editButton.text(Drupal.t('Editing'));
+      if (editButton) {
+        editButton.textContent = Drupal.t('Editing');
+      }
       closeToolbarTrays();
 
-      $editables = $('[data-drupal-settingstray="editable"]').once(
-        'settingstray',
+      $editables = $(
+        once('settingstray', '[data-drupal-settingstray="editable"]'),
       );
       if ($editables.length) {
         // Use event capture to prevent clicks on links.
@@ -132,8 +134,8 @@
     }
     // Disable edit mode.
     else {
-      $editables = $('[data-drupal-settingstray="editable"]').removeOnce(
-        'settingstray',
+      $editables = $(
+        once.remove('settingstray', '[data-drupal-settingstray="editable"]'),
       );
       if ($editables.length) {
         document
@@ -142,8 +144,9 @@
         $editables.off('.settingstray');
         $(quickEditItemSelector).off('.settingstray');
       }
-
-      $editButton.text(Drupal.t('Edit'));
+      if (editButton) {
+        editButton.textContent = Drupal.t('Edit');
+      }
       closeOffCanvas();
       disableQuickEdit();
     }
@@ -221,16 +224,13 @@
     prepareAjaxLinks();
 
     // When the first contextual link is added to the page set Edit Mode.
-    $('body')
-      .once('settings_tray.edit_mode_init')
-      .each(() => {
-        const editMode =
-          localStorage.getItem('Drupal.contextualToolbar.isViewing') ===
-          'false';
-        if (editMode) {
-          setEditModeState(true);
-        }
-      });
+    once('settings_tray.edit_mode_init', 'body').forEach(() => {
+      const editMode =
+        localStorage.getItem('Drupal.contextualToolbar.isViewing') === 'false';
+      if (editMode) {
+        setEditModeState(true);
+      }
+    });
 
     /**
      * Bind a listener to all 'Quick edit' links for blocks. Click "Edit"
@@ -267,9 +267,10 @@
    */
   Drupal.behaviors.toggleEditMode = {
     attach() {
-      $(toggleEditSelector)
-        .once('settingstray')
-        .on('click.settingstray', toggleEditMode);
+      $(once('settingstray', toggleEditSelector)).on(
+        'click.settingstray',
+        toggleEditMode,
+      );
     },
   };
 

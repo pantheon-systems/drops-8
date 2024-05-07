@@ -33,7 +33,7 @@ class NonDefaultBlockAdminTest extends BrowserTestBase {
   }
 
   /**
-   * Test non-default theme admin.
+   * Tests non-default theme admin.
    */
   public function testNonDefaultBlockAdmin() {
     $admin_user = $this->drupalCreateUser([
@@ -41,10 +41,11 @@ class NonDefaultBlockAdminTest extends BrowserTestBase {
       'administer themes',
     ]);
     $this->drupalLogin($admin_user);
-    $new_theme = 'bartik';
+    $new_theme = 'olivero';
     \Drupal::service('theme_installer')->install([$new_theme]);
+    // Ensure that the Olivero tab is shown.
     $this->drupalGet('admin/structure/block/list/' . $new_theme);
-    $this->assertText('Bartik(' . t('active tab') . ')', 'Tab for non-default theme found.');
+    $this->assertSession()->pageTextContains('Olivero(active tab)');
   }
 
 }

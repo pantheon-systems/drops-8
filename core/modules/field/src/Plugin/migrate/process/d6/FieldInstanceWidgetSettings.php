@@ -6,7 +6,7 @@ use Drupal\migrate\MigrateExecutableInterface;
 use Drupal\migrate\ProcessPluginBase;
 use Drupal\migrate\Row;
 
-// cspell:ignore imagefield optionwidgets
+// cspell:ignore filefield imagefield optionwidgets
 
 /**
  * Get the field instance widget settings.
@@ -23,7 +23,7 @@ class FieldInstanceWidgetSettings extends ProcessPluginBase {
    * Get the field instance default/mapped widget settings.
    */
   public function transform($value, MigrateExecutableInterface $migrate_executable, Row $row, $destination_property) {
-    list($widget_type, $widget_settings) = $value;
+    [$widget_type, $widget_settings] = $value;
     return $this->getSettings($widget_type, $widget_settings);
   }
 
@@ -39,9 +39,9 @@ class FieldInstanceWidgetSettings extends ProcessPluginBase {
    *   A valid array of settings.
    */
   public function getSettings($widget_type, $widget_settings) {
-    $progress = isset($widget_settings['progress_indicator']) ? $widget_settings['progress_indicator'] : 'throbber';
-    $size = isset($widget_settings['size']) ? $widget_settings['size'] : 60;
-    $rows = isset($widget_settings['rows']) ? $widget_settings['rows'] : 5;
+    $progress = $widget_settings['progress_indicator'] ?? 'throbber';
+    $size = $widget_settings['size'] ?? 60;
+    $rows = $widget_settings['rows'] ?? 5;
 
     $settings = [
       'text_textfield' => [
@@ -77,7 +77,7 @@ class FieldInstanceWidgetSettings extends ProcessPluginBase {
       ],
     ];
 
-    return isset($settings[$widget_type]) ? $settings[$widget_type] : [];
+    return $settings[$widget_type] ?? [];
   }
 
 }

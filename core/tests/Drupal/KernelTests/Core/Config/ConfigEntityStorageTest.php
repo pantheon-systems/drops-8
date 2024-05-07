@@ -6,8 +6,7 @@ use Drupal\Core\Config\ConfigDuplicateUUIDException;
 use Drupal\KernelTests\KernelTestBase;
 
 /**
- * Tests sync and importing config entities with IDs and UUIDs that match
- * existing config.
+ * Tests configuration entity storage.
  *
  * @group config
  */
@@ -48,7 +47,7 @@ class ConfigEntityStorageTest extends KernelTestBase {
 
     // Ensure that the config entity was not corrupted.
     $entity = $storage->loadUnchanged($entity->id());
-    $this->assertIdentical($entity->toArray(), $original_properties);
+    $this->assertSame($original_properties, $entity->toArray());
   }
 
   /**

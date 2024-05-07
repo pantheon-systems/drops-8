@@ -75,11 +75,8 @@ class ResourceIdentifierNormalizer extends NormalizerBase implements Denormalize
     if (empty($context['related']) || empty($field_definitions[$context['related']])) {
       throw new BadRequestHttpException('Invalid or missing related field.');
     }
-    /* @var \Drupal\field\Entity\FieldConfig $field_definition */
+    /** @var \Drupal\field\Entity\FieldConfig $field_definition */
     $field_definition = $field_definitions[$context['related']];
-    // This is typically 'target_id'.
-    $item_definition = $field_definition->getItemDefinition();
-    $property_key = $item_definition->getMainPropertyName();
     $target_resource_types = $resource_type->getRelatableResourceTypesByField($resource_type->getPublicName($context['related']));
     $target_resource_type_names = array_map(function (ResourceType $resource_type) {
       return $resource_type->getTypeName();
@@ -87,7 +84,7 @@ class ResourceIdentifierNormalizer extends NormalizerBase implements Denormalize
 
     $is_multiple = $field_definition->getFieldStorageDefinition()->isMultiple();
     $data = $this->massageRelationshipInput($data, $is_multiple);
-    $resource_identifiers = array_map(function ($value) use ($property_key, $target_resource_type_names) {
+    $resource_identifiers = array_map(function ($value) use ($target_resource_type_names) {
       // Make sure that the provided type is compatible with the targeted
       // resource.
       if (!in_array($value['type'], $target_resource_type_names)) {
@@ -97,7 +94,7 @@ class ResourceIdentifierNormalizer extends NormalizerBase implements Denormalize
           implode(', ', $target_resource_type_names)
         ));
       }
-      return new ResourceIdentifier($value['type'], $value['id'], isset($value['meta']) ? $value['meta'] : []);
+      return new ResourceIdentifier($value['type'], $value['id'], $value['meta'] ?? []);
     }, $data['data']);
     if (!ResourceIdentifier::areResourceIdentifiersUnique($resource_identifiers)) {
       throw new BadRequestHttpException('Duplicate relationships are not permitted. Use `meta.arity` to distinguish resource identifiers with matching `type` and `id` values.');
@@ -140,6 +137,13 @@ class ResourceIdentifierNormalizer extends NormalizerBase implements Denormalize
       $data['data'] = [$data['data']];
     }
     return $data;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function hasCacheableSupportsMethod(): bool {
+    return TRUE;
   }
 
 }

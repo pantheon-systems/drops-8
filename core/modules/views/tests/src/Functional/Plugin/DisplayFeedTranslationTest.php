@@ -48,8 +48,11 @@ class DisplayFeedTranslationTest extends ViewTestBase {
    */
   protected $langcodes;
 
-  protected function setUp($import_test_views = TRUE): void {
-    parent::setUp($import_test_views);
+  /**
+   * {@inheritdoc}
+   */
+  protected function setUp($import_test_views = TRUE, $modules = ['views_test_config']): void {
+    parent::setUp($import_test_views, $modules);
 
     $this->enableViewsTestModule();
 
@@ -76,7 +79,8 @@ class DisplayFeedTranslationTest extends ViewTestBase {
       'settings[node][page][translatable]' => TRUE,
       'settings[node][page][settings][language][language_alterable]' => TRUE,
     ];
-    $this->drupalPostForm('admin/config/regional/content-language', $edit, 'Save configuration');
+    $this->drupalGet('admin/config/regional/content-language');
+    $this->submitForm($edit, 'Save configuration');
 
     // Rebuild the container so that the new languages are picked up by services
     // that hold a list of languages.

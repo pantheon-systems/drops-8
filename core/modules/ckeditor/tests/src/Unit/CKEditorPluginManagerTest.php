@@ -10,6 +10,7 @@ use Drupal\Tests\UnitTestCase;
  * @coversDefaultClass \Drupal\ckeditor\CKEditorPluginManager
  *
  * @group ckeditor
+ * @group legacy
  */
 class CKEditorPluginManagerTest extends UnitTestCase {
 
@@ -67,7 +68,7 @@ class CKEditorPluginManagerTest extends UnitTestCase {
             ['name' => 'Formatting', 'items' => ['Bold', 'Italic']],
             // Group 2.
             ['name' => 'Linking', 'items' => ['Link']],
-        ],
+          ],
           // Row 2.
           [
             // Group 1.

@@ -50,8 +50,7 @@ class TwigEnvironment extends Environment {
   protected $twigCachePrefix = '';
 
   /**
-   * Constructs a TwigEnvironment object and stores cache and storage
-   * internally.
+   * Creates a TwigEnvironment object, including its cache and storage.
    *
    * @param string $root
    *   The app root.
@@ -66,7 +65,7 @@ class TwigEnvironment extends Environment {
    * @param array $options
    *   The options for the Twig environment.
    */
-  public function __construct($root, CacheBackendInterface $cache, $twig_extension_hash, StateInterface $state, LoaderInterface $loader = NULL, array $options = []) {
+  public function __construct($root, CacheBackendInterface $cache, $twig_extension_hash, StateInterface $state, LoaderInterface $loader, array $options = []) {
     $this->state = $state;
 
     $this->templateClasses = [];

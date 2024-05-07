@@ -50,10 +50,10 @@ display:
           group_type: group
           admin_label: ''
           empty: true
-          content: "start: @start | end: @end | total: @total | label: @label | per page: @per_page | current page: @current_page | current record count: @current_record_count | page count: @page_count"
+          content: "<script />start: @start | end: @end | total: @total | label: @label | per page: @per_page | current page: @current_page | current record count: @current_record_count | page count: @page_count"
           plugin_id: result
     display_plugin: default
-    display_title: Master
+    display_title: Default
     id: default
     position: 0
   page_1:

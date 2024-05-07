@@ -44,8 +44,18 @@ user.admin_permissions:
   route_name: user.admin_permissions
   base_route: entity.user.collection
 
+entity.bundle.permission_form:
+  class: \Drupal\Core\Menu\LocalTaskDefault
+  deriver: \Drupal\user\Plugin\Derivative\UserLocalTask
+
 entity.user_role.collection:
   title: 'Roles'
   route_name: entity.user_role.collection
   base_route: entity.user.collection
   weight: 10
+
+user.role.settings:
+  title: 'Role settings'
+  route_name: user.role.settings
+  base_route: entity.user.collection
+  weight: 11

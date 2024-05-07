@@ -139,8 +139,6 @@ class Random {
    * @return string
    */
   public function word($length) {
-    mt_srand((double) microtime() * 1000000);
-
     $vowels = ["a", "e", "i", "o", "u"];
     $cons = ["b", "c", "d", "g", "h", "j", "k", "l", "m", "n", "p", "r", "s", "t", "u", "v", "w", "tr",
       "cr", "br", "fr", "th", "dr", "ch", "ph", "wr", "st", "sp", "sw", "pr",
@@ -251,6 +249,7 @@ class Random {
    * Generate paragraphs separated by double new line.
    *
    * @param int $paragraph_count
+   *   The number of paragraphs to create. Defaults to 12.
    *
    * @return string
    */
@@ -289,13 +288,13 @@ class Random {
       $color = imagecolorallocate($im, rand(0, 255), rand(0, 255), rand(0, 255));
       $x = $width / 2 * ($n % 2);
       $y = $height / 2 * (int) ($n >= 2);
-      imagefilledrectangle($im, $x, $y, $x + $width / 2, $y + $height / 2, $color);
+      imagefilledrectangle($im, (int) $x, (int) $y, (int) ($x + $width / 2), (int) ($y + $height / 2), $color);
     }
 
     // Make a perfect circle in the image middle.
     $color = imagecolorallocate($im, rand(0, 255), rand(0, 255), rand(0, 255));
     $smaller_dimension = min($width, $height);
-    imageellipse($im, $width / 2, $height / 2, $smaller_dimension, $smaller_dimension, $color);
+    imageellipse($im, (int) ($width / 2), (int) ($height / 2), $smaller_dimension, $smaller_dimension, $color);
 
     $save_function = 'image' . ($extension == 'jpg' ? 'jpeg' : $extension);
     $save_function($im, $destination);

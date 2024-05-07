@@ -28,7 +28,7 @@ use Symfony\Component\Yaml\Yaml;
  */
 class YamlFileLoader extends FileLoader
 {
-    private static $availableKeys = [
+    private const AVAILABLE_KEYS = [
         'resource', 'type', 'prefix', 'path', 'host', 'schemes', 'methods', 'defaults', 'requirements', 'options', 'condition', 'controller', 'name_prefix', 'trailing_slash_on_root', 'locale', 'format', 'utf8', 'exclude',
     ];
     private $yamlParser;
@@ -108,13 +108,13 @@ class YamlFileLoader extends FileLoader
      */
     protected function parseRoute(RouteCollection $collection, $name, array $config, $path)
     {
-        $defaults = isset($config['defaults']) ? $config['defaults'] : [];
-        $requirements = isset($config['requirements']) ? $config['requirements'] : [];
-        $options = isset($config['options']) ? $config['options'] : [];
-        $host = isset($config['host']) ? $config['host'] : '';
-        $schemes = isset($config['schemes']) ? $config['schemes'] : [];
-        $methods = isset($config['methods']) ? $config['methods'] : [];
-        $condition = isset($config['condition']) ? $config['condition'] : null;
+        $defaults = $config['defaults'] ?? [];
+        $requirements = $config['requirements'] ?? [];
+        $options = $config['options'] ?? [];
+        $host = $config['host'] ?? '';
+        $schemes = $config['schemes'] ?? [];
+        $methods = $config['methods'] ?? [];
+        $condition = $config['condition'] ?? null;
 
         foreach ($requirements as $placeholder => $requirement) {
             if (\is_int($placeholder)) {
@@ -161,15 +161,15 @@ class YamlFileLoader extends FileLoader
      */
     protected function parseImport(RouteCollection $collection, array $config, $path, $file)
     {
-        $type = isset($config['type']) ? $config['type'] : null;
-        $prefix = isset($config['prefix']) ? $config['prefix'] : '';
-        $defaults = isset($config['defaults']) ? $config['defaults'] : [];
-        $requirements = isset($config['requirements']) ? $config['requirements'] : [];
-        $options = isset($config['options']) ? $config['options'] : [];
-        $host = isset($config['host']) ? $config['host'] : null;
-        $condition = isset($config['condition']) ? $config['condition'] : null;
-        $schemes = isset($config['schemes']) ? $config['schemes'] : null;
-        $methods = isset($config['methods']) ? $config['methods'] : null;
+        $type = $config['type'] ?? null;
+        $prefix = $config['prefix'] ?? '';
+        $defaults = $config['defaults'] ?? [];
+        $requirements = $config['requirements'] ?? [];
+        $options = $config['options'] ?? [];
+        $host = $config['host'] ?? null;
+        $condition = $config['condition'] ?? null;
+        $schemes = $config['schemes'] ?? null;
+        $methods = $config['methods'] ?? null;
         $trailingSlashOnRoot = $config['trailing_slash_on_root'] ?? true;
         $exclude = $config['exclude'] ?? null;
 
@@ -269,8 +269,8 @@ class YamlFileLoader extends FileLoader
         if (!\is_array($config)) {
             throw new \InvalidArgumentException(sprintf('The definition of "%s" in "%s" must be a YAML array.', $name, $path));
         }
-        if ($extraKeys = array_diff(array_keys($config), self::$availableKeys)) {
-            throw new \InvalidArgumentException(sprintf('The routing file "%s" contains unsupported keys for "%s": "%s". Expected one of: "%s".', $path, $name, implode('", "', $extraKeys), implode('", "', self::$availableKeys)));
+        if ($extraKeys = array_diff(array_keys($config), self::AVAILABLE_KEYS)) {
+            throw new \InvalidArgumentException(sprintf('The routing file "%s" contains unsupported keys for "%s": "%s". Expected one of: "%s".', $path, $name, implode('", "', $extraKeys), implode('", "', self::AVAILABLE_KEYS)));
         }
         if (isset($config['resource']) && isset($config['path'])) {
             throw new \InvalidArgumentException(sprintf('The routing file "%s" must not specify both the "resource" key and the "path" key for "%s". Choose between an import and a route definition.', $path, $name));

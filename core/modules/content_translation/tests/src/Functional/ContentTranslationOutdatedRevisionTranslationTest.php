@@ -39,7 +39,8 @@ class ContentTranslationOutdatedRevisionTranslationTest extends ContentTranslati
     $entity = $this->storage->load($id);
 
     // Add a published Italian translation.
-    $add_translation_url = Url::fromRoute("entity.{$this->entityTypeId}.content_translation_add", [
+    $add_translation_url = Url::fromRoute("entity.{$this->entityTypeId}.content_translation_add",
+      [
         $entity->getEntityTypeId() => $id,
         'source' => 'en',
         'target' => 'it',
@@ -58,7 +59,8 @@ class ContentTranslationOutdatedRevisionTranslationTest extends ContentTranslati
     $this->submitForm($edit, 'Save (this translation)');
 
     // Add a published French translation.
-    $add_translation_url = Url::fromRoute("entity.{$this->entityTypeId}.content_translation_add", [
+    $add_translation_url = Url::fromRoute("entity.{$this->entityTypeId}.content_translation_add",
+      [
         $entity->getEntityTypeId() => $id,
         'source' => 'en',
         'target' => 'fr',
@@ -85,8 +87,10 @@ class ContentTranslationOutdatedRevisionTranslationTest extends ContentTranslati
 
   /**
    * Checks whether the flag widget is displayed.
+   *
+   * @internal
    */
-  protected function assertFlagWidget() {
+  protected function assertFlagWidget(): void {
     $this->assertSession()->pageTextNotContains('Flag other translations as outdated');
     $this->assertSession()->pageTextContains('Translations cannot be flagged as outdated when content is moderated.');
   }

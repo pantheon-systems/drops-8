@@ -4,9 +4,9 @@ namespace Drupal\Tests\block\Functional\Rest;
 
 use Drupal\block\Entity\Block;
 use Drupal\Core\Cache\CacheableMetadata;
-use Drupal\Tests\rest\Functional\EntityResource\EntityResourceTestBase;
+use Drupal\Tests\rest\Functional\EntityResource\ConfigEntityResourceTestBase;
 
-abstract class BlockResourceTestBase extends EntityResourceTestBase {
+abstract class BlockResourceTestBase extends ConfigEntityResourceTestBase {
 
   /**
    * {@inheritdoc}
@@ -50,7 +50,7 @@ abstract class BlockResourceTestBase extends EntityResourceTestBase {
       'plugin' => 'llama_block',
       'region' => 'header',
       'id' => 'llama',
-      'theme' => 'classy',
+      'theme' => 'stark',
     ]);
     // All blocks can be viewed by the anonymous user by default. An interesting
     // side effect of this is that any anonymous user is also able to read the
@@ -85,10 +85,10 @@ abstract class BlockResourceTestBase extends EntityResourceTestBase {
       'status' => TRUE,
       'dependencies' => [
         'theme' => [
-          'classy',
+          'stark',
         ],
       ],
-      'theme' => 'classy',
+      'theme' => 'stark',
       'region' => 'header',
       'provider' => NULL,
       'plugin' => 'llama_block',
@@ -109,6 +109,7 @@ abstract class BlockResourceTestBase extends EntityResourceTestBase {
    */
   protected function getNormalizedPostEntity() {
     // @todo Update in https://www.drupal.org/node/2300677.
+    return [];
   }
 
   /**

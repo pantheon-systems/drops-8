@@ -24,10 +24,10 @@ class SelectTableSortDefaultTest extends DatabaseTestBase {
    */
   public function testTableSortQuery() {
     $sorts = [
-      ['field' => t('Task ID'), 'sort' => 'desc', 'first' => 'perform at superbowl', 'last' => 'eat'],
-      ['field' => t('Task ID'), 'sort' => 'asc', 'first' => 'eat', 'last' => 'perform at superbowl'],
-      ['field' => t('Task'), 'sort' => 'asc', 'first' => 'code', 'last' => 'sleep'],
-      ['field' => t('Task'), 'sort' => 'desc', 'first' => 'sleep', 'last' => 'code'],
+      ['field' => 'Task ID', 'sort' => 'desc', 'first' => 'perform at superbowl', 'last' => 'eat'],
+      ['field' => 'Task ID', 'sort' => 'asc', 'first' => 'eat', 'last' => 'perform at superbowl'],
+      ['field' => 'Task', 'sort' => 'asc', 'first' => 'code', 'last' => 'sleep'],
+      ['field' => 'Task', 'sort' => 'desc', 'first' => 'sleep', 'last' => 'code'],
       // more elements here
 
     ];
@@ -39,8 +39,8 @@ class SelectTableSortDefaultTest extends DatabaseTestBase {
       $first = array_shift($data->tasks);
       $last = array_pop($data->tasks);
 
-      $this->assertEqual($first->task, $sort['first'], 'Items appear in the correct order.');
-      $this->assertEqual($last->task, $sort['last'], 'Items appear in the correct order.');
+      $this->assertEquals($sort['first'], $first->task, 'Items appear in the correct order.');
+      $this->assertEquals($sort['last'], $last->task, 'Items appear in the correct order.');
     }
   }
 
@@ -52,10 +52,10 @@ class SelectTableSortDefaultTest extends DatabaseTestBase {
    */
   public function testTableSortQueryFirst() {
     $sorts = [
-      ['field' => t('Task ID'), 'sort' => 'desc', 'first' => 'perform at superbowl', 'last' => 'eat'],
-      ['field' => t('Task ID'), 'sort' => 'asc', 'first' => 'eat', 'last' => 'perform at superbowl'],
-      ['field' => t('Task'), 'sort' => 'asc', 'first' => 'code', 'last' => 'sleep'],
-      ['field' => t('Task'), 'sort' => 'desc', 'first' => 'sleep', 'last' => 'code'],
+      ['field' => 'Task ID', 'sort' => 'desc', 'first' => 'perform at superbowl', 'last' => 'eat'],
+      ['field' => 'Task ID', 'sort' => 'asc', 'first' => 'eat', 'last' => 'perform at superbowl'],
+      ['field' => 'Task', 'sort' => 'asc', 'first' => 'code', 'last' => 'sleep'],
+      ['field' => 'Task', 'sort' => 'desc', 'first' => 'sleep', 'last' => 'code'],
       // more elements here
 
     ];
@@ -67,8 +67,8 @@ class SelectTableSortDefaultTest extends DatabaseTestBase {
       $first = array_shift($data->tasks);
       $last = array_pop($data->tasks);
 
-      $this->assertEqual($first->task, $sort['first'], new FormattableMarkup('Items appear in the correct order sorting by @field @sort.', ['@field' => $sort['field'], '@sort' => $sort['sort']]));
-      $this->assertEqual($last->task, $sort['last'], new FormattableMarkup('Items appear in the correct order sorting by @field @sort.', ['@field' => $sort['field'], '@sort' => $sort['sort']]));
+      $this->assertEquals($sort['first'], $first->task, new FormattableMarkup('Items appear in the correct order sorting by @field @sort.', ['@field' => $sort['field'], '@sort' => $sort['sort']]));
+      $this->assertEquals($sort['last'], $last->task, new FormattableMarkup('Items appear in the correct order sorting by @field @sort.', ['@field' => $sort['field'], '@sort' => $sort['sort']]));
     }
   }
 
@@ -86,7 +86,7 @@ class SelectTableSortDefaultTest extends DatabaseTestBase {
     // Verify that the table was displayed. Just the header is checked for
     // because if there were any fatal errors or exceptions in displaying the
     // sorted table, it would not print the table.
-    $assert->pageTextContains(t('Username'));
+    $assert->pageTextContains('Username');
 
     // Verify that the header links are built properly.
     $assert->linkByHrefExists('database_test/tablesort_default_sort');

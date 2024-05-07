@@ -110,7 +110,7 @@ class ResourceObjectNormalizationCacher implements EventSubscriberInterface {
    */
   public function onTerminate(TerminateEvent $event) {
     foreach ($this->toCache as $value) {
-      list($object, $normalization_parts) = $value;
+      [$object, $normalization_parts] = $value;
       $this->set($object, $normalization_parts);
     }
   }
@@ -164,7 +164,7 @@ class ResourceObjectNormalizationCacher implements EventSubscriberInterface {
   protected static function generateLookupRenderArray(ResourceObject $object) {
     return [
       '#cache' => [
-        'keys' => [$object->getResourceType()->getTypeName(), $object->getId()],
+        'keys' => [$object->getResourceType()->getTypeName(), $object->getId(), $object->getLanguage()->getId()],
         'bin' => 'jsonapi_normalizations',
       ],
     ];

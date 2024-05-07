@@ -86,15 +86,13 @@ class FinalExceptionSubscriber implements EventSubscriberInterface {
     if ($this->isErrorDisplayable($error)) {
       // If error type is 'User notice' then treat it as debug information
       // instead of an error message.
-      // @see debug()
       if ($error['%type'] == 'User notice') {
         $error['%type'] = 'Debug';
       }
 
       $error = $this->simplifyFileInError($error);
 
-      unset($error['backtrace']);
-      unset($error['severity_level']);
+      unset($error['backtrace'], $error['exception'], $error['severity_level']);
 
       if (!$this->isErrorLevelVerbose()) {
         // Without verbose logging, use a simple message.
@@ -102,7 +100,7 @@ class FinalExceptionSubscriber implements EventSubscriberInterface {
         // We use \Drupal\Component\Render\FormattableMarkup directly here,
         // rather than use t() since we are in the middle of error handling, and
         // we don't want t() to cause further errors.
-        $message = new FormattableMarkup('%type: @message in %function (line %line of %file).', $error);
+        $message = new FormattableMarkup(Error::DEFAULT_ERROR_MESSAGE, $error);
       }
       else {
         // With verbose logging, we will also include a backtrace.
@@ -120,13 +118,13 @@ class FinalExceptionSubscriber implements EventSubscriberInterface {
 
         // Generate a backtrace containing only scalar argument values.
         $error['@backtrace'] = Error::formatBacktrace($backtrace);
-        $message = new FormattableMarkup('%type: @message in %function (line %line of %file). <pre class="backtrace">@backtrace</pre>', $error);
+        $message = new FormattableMarkup(Error::DEFAULT_ERROR_MESSAGE . ' <pre class="backtrace">@backtrace</pre>', $error);
       }
     }
 
     $content_type = $event->getRequest()->getRequestFormat() == 'html' ? 'text/html' : 'text/plain';
     $content = $this->t('The website encountered an unexpected error. Please try again later.');
-    $content .= $message ? '</br></br>' . $message : '';
+    $content .= $message ? '<br><br>' . $message : '';
     $response = new Response($content, 500, ['Content-Type' => $content_type]);
 
     if ($exception instanceof HttpExceptionInterface) {
@@ -181,7 +179,7 @@ class FinalExceptionSubscriber implements EventSubscriberInterface {
    * @param $error
    *   Optional error to examine for ERROR_REPORTING_DISPLAY_SOME.
    *
-   * @return
+   * @return array
    *   The updated $error.
    */
   protected function simplifyFileInError($error) {

@@ -86,7 +86,7 @@ class FieldPluginBaseTest extends UnitTestCase {
   protected $display;
 
   /**
-   * The mocked url generator.
+   * The mocked URL generator.
    *
    * @var \Drupal\Core\Routing\UrlGeneratorInterface|\PHPUnit\Framework\MockObject\MockObject
    */
@@ -100,7 +100,7 @@ class FieldPluginBaseTest extends UnitTestCase {
   protected $pathValidator;
 
   /**
-   * The unrouted url assembler service.
+   * The unrouted URL assembler service.
    *
    * @var \Drupal\Core\Utility\UnroutedUrlAssemblerInterface|\PHPUnit\Framework\MockObject\MockObject
    */
@@ -170,7 +170,7 @@ class FieldPluginBaseTest extends UnitTestCase {
   }
 
   /**
-   * Sets up the unrouted url assembler and the link generator.
+   * Sets up the unrouted URL assembler and the link generator.
    */
   protected function setUpUrlIntegrationServices() {
     $this->pathProcessor = $this->createMock('Drupal\Core\PathProcessor\OutboundPathProcessorInterface');
@@ -210,7 +210,7 @@ class FieldPluginBaseTest extends UnitTestCase {
   }
 
   /**
-   * Test rendering as a link without a path.
+   * Tests rendering as a link without a path.
    *
    * @covers ::renderAsLink
    */
@@ -230,12 +230,12 @@ class FieldPluginBaseTest extends UnitTestCase {
   }
 
   /**
-   * Test rendering with a more link.
+   * Tests rendering with a more link.
    *
    * @param string $path
    *   An internal or external path.
    * @param string $url
-   *   The final url used by the more link.
+   *   The final URL used by the more link.
    *
    * @dataProvider providerTestRenderTrimmedWithMoreLinkAndPath
    * @covers ::renderText
@@ -313,7 +313,7 @@ class FieldPluginBaseTest extends UnitTestCase {
   }
 
   /**
-   * Test rendering of a link with a path and options.
+   * Tests rendering of a link with a path and options.
    *
    * @dataProvider providerTestRenderAsLinkWithPathAndOptions
    * @covers ::renderAsLink
@@ -324,7 +324,7 @@ class FieldPluginBaseTest extends UnitTestCase {
       'path' => $path,
     ];
 
-    $final_html = isset($final_html) ? $final_html : $link_html;
+    $final_html = $final_html ?? $link_html;
 
     $this->setUpUrlIntegrationServices();
     $this->setupDisplayWithEmptyArgumentsAndFields();
@@ -398,7 +398,7 @@ class FieldPluginBaseTest extends UnitTestCase {
       'url' => $url,
     ];
 
-    $final_html = isset($final_html) ? $final_html : $link_html;
+    $final_html = $final_html ?? $link_html;
 
     $this->setUpUrlIntegrationServices();
     $this->setupDisplayWithEmptyArgumentsAndFields();
@@ -434,7 +434,7 @@ class FieldPluginBaseTest extends UnitTestCase {
     $url = Url::fromRoute('test_route');
     $data[] = [$url, [], clone $url, '/test-path', clone $url, '<a href="/test-path">value</a>'];
 
-    // Simple url with parameters.
+    // Simple URL with parameters.
     $url_parameters = Url::fromRoute('test_route', ['key' => 'value']);
     $data[] = [$url_parameters, [], clone $url_parameters, '/test-path/value', clone $url_parameters, '<a href="/test-path/value">value</a>'];
 
@@ -529,7 +529,7 @@ class FieldPluginBaseTest extends UnitTestCase {
   }
 
   /**
-   * Test rendering of a link with a path and options.
+   * Tests rendering of a link with a path and options.
    *
    * @dataProvider providerTestRenderAsLinkWithPathAndTokens
    * @covers ::renderAsLink
@@ -589,7 +589,7 @@ class FieldPluginBaseTest extends UnitTestCase {
   }
 
   /**
-   * Test rendering of a link with a path and options.
+   * Tests rendering of a link with a path and options.
    *
    * @dataProvider providerTestRenderAsExternalLinkWithPathAndTokens
    * @covers ::renderAsLink
@@ -653,7 +653,7 @@ class FieldPluginBaseTest extends UnitTestCase {
   protected function setupTestField(array $options = []) {
     /** @var \Drupal\Tests\views\Unit\Plugin\field\FieldPluginBaseTestField $field */
     $field = $this->getMockBuilder('Drupal\Tests\views\Unit\Plugin\field\FieldPluginBaseTestField')
-      ->setMethods(['l'])
+      ->addMethods(['l'])
       ->setConstructorArgs([$this->configuration, $this->pluginId, $this->pluginDefinition])
       ->getMock();
     $field->init($this->executable, $this->display, $options);

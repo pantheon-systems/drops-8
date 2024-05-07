@@ -95,8 +95,15 @@ class HtmlTag extends RenderElement {
     // Construct all other elements.
     else {
       $open_tag .= '>';
-      $markup = $element['#value'] instanceof MarkupInterface ? $element['#value'] : Xss::filterAdmin($element['#value']);
-      $element['#markup'] = Markup::create($markup);
+      if ($element['#value'] === NULL) {
+        $element['#markup'] = '';
+      }
+      elseif ($element['#value'] instanceof MarkupInterface) {
+        $element['#markup'] = $element['#value'];
+      }
+      else {
+        $element['#markup'] = Markup::create(Xss::filterAdmin($element['#value']));
+      }
     }
     $prefix = isset($element['#prefix']) ? $element['#prefix'] . $open_tag : $open_tag;
     $suffix = isset($element['#suffix']) ? $close_tag . $element['#suffix'] : $close_tag;
@@ -139,7 +146,7 @@ class HtmlTag extends RenderElement {
    *   added to '#prefix' and '#suffix'.
    */
   public static function preRenderConditionalComments($element) {
-    $browsers = isset($element['#browsers']) ? $element['#browsers'] : [];
+    $browsers = $element['#browsers'] ?? [];
     $browsers += [
       'IE' => TRUE,
       '!IE' => TRUE,
@@ -172,13 +179,13 @@ class HtmlTag extends RenderElement {
     // technique. See http://wikipedia.org/wiki/Conditional_comment
     // for details.
 
-    // Ensure what we are dealing with is safe.
-    // This would be done later anyway in drupal_render().
-    $prefix = isset($element['#prefix']) ? $element['#prefix'] : '';
+    // Ensure what we are dealing with is safe. This would be done later anyway
+    // in \Drupal::service('renderer')->render().
+    $prefix = $element['#prefix'] ?? '';
     if ($prefix && !($prefix instanceof MarkupInterface)) {
       $prefix = Xss::filterAdmin($prefix);
     }
-    $suffix = isset($element['#suffix']) ? $element['#suffix'] : '';
+    $suffix = $element['#suffix'] ?? '';
     if ($suffix && !($suffix instanceof MarkupInterface)) {
       $suffix = Xss::filterAdmin($suffix);
     }

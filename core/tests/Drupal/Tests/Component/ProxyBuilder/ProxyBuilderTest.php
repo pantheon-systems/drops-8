@@ -312,8 +312,12 @@ EOS;
   /**
    * Constructs the expected class output.
    *
+   * @param string $class
+   *   The class name that is being built.
    * @param string $expected_methods_body
    *   The expected body of decorated methods.
+   * @param string $interface_string
+   *   (optional) The expected "implements" clause of the class definition.
    *
    * @return string
    *   The code of the entire proxy.
@@ -432,7 +436,7 @@ class TestServiceMethodWithParameter {
 class TestServiceComplexMethod {
 
   public function complexMethod(string $parameter, callable $function, TestServiceNoMethod $test_service = NULL, array &$elements = []): array {
-
+    return [];
   }
 
 }
@@ -440,7 +444,7 @@ class TestServiceComplexMethod {
 class TestServiceNullableTypehintSelf {
 
   public function typehintSelf(?self $parameter): ?self {
-
+    return NULL;
   }
 
 }

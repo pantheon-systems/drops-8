@@ -20,7 +20,8 @@ class EditorAdminTest extends WebDriverTestBase {
    * {@inheritdoc}
    */
   protected static $modules = [
-    'ckeditor',
+    'editor_test',
+    'ckeditor5',
   ];
 
   /**
@@ -52,17 +53,41 @@ class EditorAdminTest extends WebDriverTestBase {
     $page->fillField('name', 'Sulaco');
     // Wait for machine name to be filled in.
     $this->assertNotEmpty($assert_session->waitForText('sulaco'));
-    $page->selectFieldOption('editor[editor]', 'ckeditor');
-    $this->assertNotEmpty($this->assertSession()->waitForElementVisible('css', 'ul.ckeditor-toolbar-group-buttons'));
+    $page->selectFieldOption('editor[editor]', 'unicorn');
+    $this->assertNotEmpty($this->assertSession()->waitForField('editor[settings][ponies_too]'));
     $page->pressButton('Save configuration');
 
     // Test that toggling the editor selection off and back on works.
     $this->drupalGet('/admin/config/content/formats/manage/sulaco');
     // Deselect and reselect an editor.
     $page->selectFieldOption('editor[editor]', '');
-    $this->assertNotEmpty($this->assertSession()->waitForElementRemoved('css', 'ul.ckeditor-toolbar-group-buttons'));
-    $page->selectFieldOption('editor[editor]', 'ckeditor');
-    $this->assertNotEmpty($this->assertSession()->waitForElementVisible('css', 'ul.ckeditor-toolbar-group-buttons'));
+    $this->assertNotEmpty($this->assertSession()->waitForElementRemoved('named', ['field', 'editor[settings][ponies_too]']));
+    $page->selectFieldOption('editor[editor]', 'unicorn');
+    $this->assertNotEmpty($this->assertSession()->waitForField('editor[settings][ponies_too]'));
+  }
+
+  /**
+   * Tests that editor creation works fine while switching text editor field.
+   *
+   * The order in which the different editors are selected is significant,
+   * because the form state must change accordingly.
+   * @see https://www.drupal.org/project/drupal/issues/3230829
+   */
+  public function testEditorCreation() {
+    $page = $this->getSession()->getPage();
+    $assert_session = $this->assertSession();
+
+    $this->drupalGet('/admin/config/content/formats/add');
+    $page->fillField('name', $this->randomString());
+    $page->selectFieldOption('editor[editor]', 'ckeditor5');
+    $this->assertNotEmpty($this->assertSession()->waitForElementVisible('css', 'ul.ckeditor5-toolbar-available__buttons'));
+
+    $page->selectFieldOption('editor[editor]', '');
+    $this->assertNotEmpty($this->assertSession()->waitForElementRemoved('css', 'ul.ckeditor5-toolbar-available__buttons'));
+    $this->assertEmpty($this->assertSession()->waitForField('editor[settings][ponies_too]'));
+
+    $page->selectFieldOption('editor[editor]', 'unicorn');
+    $this->assertNotEmpty($this->assertSession()->waitForField('editor[settings][ponies_too]'));
   }
 
 }

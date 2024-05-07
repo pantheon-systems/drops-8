@@ -395,7 +395,7 @@ class EntityReferenceFieldItemNormalizerTest extends UnitTestCase {
    */
   public function testDenormalizeWithEmptyUuid() {
     $this->expectException(InvalidArgumentException::class);
-    $this->expectExceptionMessage('If provided "target_uuid" cannot be empty for field "test_type".');
+    $this->expectExceptionMessage('If provided "target_uuid" cannot be empty for field "field_reference".');
 
     $data = [
       'target_id' => 'test',
@@ -427,8 +427,10 @@ class EntityReferenceFieldItemNormalizerTest extends UnitTestCase {
    *
    * @param array $data
    *   The data to denormalize.
+   *
+   * @internal
    */
-  protected function assertDenormalize(array $data) {
+  protected function assertDenormalize(array $data): void {
     $this->fieldItem->getParent()
       ->willReturn($this->prophesize(FieldItemListInterface::class)->reveal());
     $this->fieldItem->getFieldDefinition()->willReturn($this->fieldDefinition->reveal());

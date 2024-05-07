@@ -256,6 +256,7 @@ class FilterHtml extends FilterBase {
     $html = str_replace('>', ' />', $this->settings['allowed_html']);
     // Protect any trailing * characters in attribute names, since DomDocument
     // strips them as invalid.
+    // cSpell:disable-next-line
     $star_protector = '__zqh6vxfbk3cg__';
     $html = str_replace('*', $star_protector, $html);
     $body_child_nodes = Html::load($html)->getElementsByTagName('body')->item(0)->childNodes;
@@ -266,12 +267,29 @@ class FilterHtml extends FilterBase {
         continue;
       }
       $tag = $node->tagName;
+
+      // All attributes are already allowed on this tag, this is the most
+      // permissive configuration, no additional processing is required.
+      if (isset($restrictions['allowed'][$tag]) && $restrictions['allowed'][$tag] === TRUE) {
+        continue;
+      }
+
       if ($node->hasAttributes()) {
-        // Mark the tag as allowed, assigning TRUE for each attribute name if
-        // all values are allowed, or an array of specific allowed values.
-        $restrictions['allowed'][$tag] = [];
+        // If the tag is not yet present, prepare to add attribute restrictions.
+        // Otherwise, check if a more restrictive configuration (FALSE, meaning
+        // no attributes were allowed) is present: then override the existing
+        // value to prepare to add attribute restrictions.
+        if (!isset($restrictions['allowed'][$tag]) || $restrictions['allowed'][$tag] === FALSE) {
+          $restrictions['allowed'][$tag] = [];
+        }
+
         // Iterate over any attributes, and mark them as allowed.
         foreach ($node->attributes as $name => $attribute) {
+          // Only add specific attribute values if all values are not already
+          // allowed.
+          if (isset($restrictions['allowed'][$tag][$name]) && $restrictions['allowed'][$tag][$name] === TRUE) {
+            continue;
+          }
           // Put back any trailing * on wildcard attribute name.
           $name = str_replace($star_protector, '*', $name);
 
@@ -285,7 +303,7 @@ class FilterHtml extends FilterBase {
           // allowed attribute values with a wildcard. A wildcard by itself
           // would mean allowing all possible attribute values. But in that
           // case, one would not specify an attribute value at all.
-          $allowed_attribute_values = array_filter($allowed_attribute_values, function ($value) use ($star_protector) {
+          $allowed_attribute_values = array_filter($allowed_attribute_values, function ($value) {
             return $value !== '*';
           });
 
@@ -302,7 +320,8 @@ class FilterHtml extends FilterBase {
           }
         }
       }
-      else {
+
+      if (empty($restrictions['allowed'][$tag])) {
         // Mark the tag as allowed, but with no attributes allowed.
         $restrictions['allowed'][$tag] = FALSE;
       }
@@ -352,7 +371,7 @@ class FilterHtml extends FilterBase {
     }
 
     $output .= '<p>' . $this->t('This site allows HTML content. While learning all of HTML may feel intimidating, learning how to use a very small number of the most basic HTML "tags" is very easy. This table provides examples for each tag that is enabled on this site.') . '</p>';
-    $output .= '<p>' . $this->t('For more information see W3C\'s <a href=":html-specifications">HTML Specifications</a> or use your favorite search engine to find other sites that explain HTML.', [':html-specifications' => 'http://www.w3.org/TR/html/']) . '</p>';
+    $output .= '<p>' . $this->t('For more information see the <a href=":html-specifications">HTML Living Standard</a> or use your favorite search engine to find other sites that explain HTML.', [':html-specifications' => 'https://html.spec.whatwg.org/']) . '</p>';
     $tips = [
       'a' => [$this->t('Anchors are used to make links to other pages.'), '<a href="' . $base_url . '">' . Html::escape(\Drupal::config('system.site')->get('name')) . '</a>'],
       'br' => [$this->t('By default line break tags are automatically added, so use this tag to add additional ones. Use of this tag is different because it is not used with an open/close pair like all the others. Use the extra " /" inside the tag to maintain XHTML 1.0 compatibility'), $this->t('Text with <br />line break')],

@@ -63,7 +63,8 @@ class ConfigImportRenameValidationTest extends KernelTestBase {
       $this->container->get('module_installer'),
       $this->container->get('theme_handler'),
       $this->container->get('string_translation'),
-      $this->container->get('extension.list.module')
+      $this->container->get('extension.list.module'),
+      $this->container->get('extension.list.theme')
     );
   }
 
@@ -113,7 +114,7 @@ class ConfigImportRenameValidationTest extends KernelTestBase {
       $expected = [
         new FormattableMarkup('Entity type mismatch on rename. @old_type not equal to @new_type for existing configuration @old_name and staged configuration @new_name.', ['@old_type' => 'node_type', '@new_type' => 'config_test', '@old_name' => 'node.type.' . $content_type->id(), '@new_name' => 'config_test.dynamic.' . $test_entity_id]),
       ];
-      $this->assertEqual($expected, $this->configImporter->getErrors());
+      $this->assertEquals($expected, $this->configImporter->getErrors());
     }
   }
 
@@ -155,7 +156,7 @@ class ConfigImportRenameValidationTest extends KernelTestBase {
       $expected = [
         new FormattableMarkup('Rename operation for simple configuration. Existing configuration @old_name and staged configuration @new_name.', ['@old_name' => 'config_test.old', '@new_name' => 'config_test.new']),
       ];
-      $this->assertEqual($expected, $this->configImporter->getErrors());
+      $this->assertEquals($expected, $this->configImporter->getErrors());
     }
   }
 

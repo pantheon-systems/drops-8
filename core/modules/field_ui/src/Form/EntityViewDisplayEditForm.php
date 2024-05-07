@@ -95,7 +95,7 @@ class EntityViewDisplayEditForm extends EntityDisplayFormBase {
    * {@inheritdoc}
    */
   protected function getDefaultPlugin($field_type) {
-    return isset($this->fieldTypes[$field_type]['default_formatter']) ? $this->fieldTypes[$field_type]['default_formatter'] : NULL;
+    return $this->fieldTypes[$field_type]['default_formatter'] ?? NULL;
   }
 
   /**
@@ -118,7 +118,7 @@ class EntityViewDisplayEditForm extends EntityDisplayFormBase {
   protected function getDisplayModesLink() {
     return [
       '#type' => 'link',
-      '#title' => t('Manage view modes'),
+      '#title' => $this->t('Manage view modes'),
       '#url' => Url::fromRoute('entity.entity_view_mode.collection'),
     ];
   }
@@ -169,15 +169,18 @@ class EntityViewDisplayEditForm extends EntityDisplayFormBase {
     $settings_form = [];
     // Invoke hook_field_formatter_third_party_settings_form(), keying resulting
     // subforms by module name.
-    foreach ($this->moduleHandler->getImplementations('field_formatter_third_party_settings_form') as $module) {
-      $settings_form[$module] = $this->moduleHandler->invoke($module, 'field_formatter_third_party_settings_form', [
-        $plugin,
-        $field_definition,
-        $this->entity->getMode(),
-        $form,
-        $form_state,
-      ]);
-    }
+    $this->moduleHandler->invokeAllWith(
+      'field_formatter_third_party_settings_form',
+      function (callable $hook, string $module) use (&$settings_form, &$plugin, &$field_definition, &$form, &$form_state) {
+        $settings_form[$module] = $hook(
+          $plugin,
+          $field_definition,
+          $this->entity->getMode(),
+          $form,
+          $form_state,
+        );
+      }
+    );
     return $settings_form;
   }
 

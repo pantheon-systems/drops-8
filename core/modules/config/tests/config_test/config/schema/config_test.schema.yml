@@ -74,15 +74,15 @@ config_test.types:
     boolean:
       type: boolean
       label: 'Boolean'
+    exp:
+      type: float
+      label: 'Exponential'
     float:
       type: float
       label: 'Float'
     float_as_integer:
       type: float
       label: 'Float'
-    exp:
-      type: float
-      label: 'Exponential'
     hex:
       type: integer
       label: 'Hexadecimal'
@@ -109,6 +109,9 @@ config_test.no_status.default:
     label:
       type: label
       label: 'Label'
+    uuid:
+      type: string
+      label: 'UUID'
 
 config_test.system:
   type: config_object
@@ -128,13 +131,13 @@ config_test.new:
   type: config_object
   label: 'Configuration test'
   mapping:
-     key:
-       type: string
-       label: 'Test setting'
-     new_key:
-       type: string
-       label: 'Test setting'
-     uuid:
+    key:
+      type: string
+      label: 'Test setting'
+    new_key:
+      type: string
+      label: 'Test setting'
+    uuid:
       type: uuid
 
 config_test.old:
@@ -144,16 +147,16 @@ config_test.foo:
   type: config_object
   label: 'Configuration test'
   mapping:
-     value:
-       type: mapping
-       label: 'Value'
-       mapping:
-         key:
-           type: string
-           label: 'Key'
-     label:
-       type: label
-       label: 'Label'
+    value:
+      type: mapping
+      label: 'Value'
+      mapping:
+        key:
+          type: string
+          label: 'Key'
+    label:
+      type: label
+      label: 'Label'
 
 config_test.bar:
   type: config_test.foo

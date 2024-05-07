@@ -71,16 +71,16 @@ field_formatter:
       type: string
       label: 'Format type machine name'
     label:
-       type: string
-       label: 'Label setting machine name'
+      type: string
+      label: 'Label setting machine name'
     settings:
       type: field.formatter.settings.[%parent.type]
       label: 'Settings'
     third_party_settings:
-       type: sequence
-       label: 'Third party settings'
-       sequence:
-         type: field.formatter.third_party.[%key]
+      type: sequence
+      label: 'Third party settings'
+      sequence:
+        type: field.formatter.third_party.[%key]
 
 field_formatter.entity_view_display:
   type: field_formatter
@@ -343,10 +343,10 @@ field.formatter.settings.timestamp_ago:
   label: 'Timestamp ago display format settings'
   mapping:
     future_format:
-      type: string
+      type: label
       label: 'Future format'
     past_format:
-      type: string
+      type: label
       label: 'Past format'
     granularity:
       type: integer

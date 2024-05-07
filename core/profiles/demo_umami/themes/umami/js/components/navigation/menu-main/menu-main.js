@@ -4,16 +4,13 @@
 * https://www.drupal.org/node/2815083
 * @preserve
 **/
-
 (function () {
   var toggler = document.querySelector('[data-drupal-selector="menu-main-toggle"]');
   var menu = document.querySelector('[data-drupal-selector="menu-main"]');
-
   function toggleMenu() {
     toggler.classList.toggle('menu-main-toggle--active');
     menu.classList.toggle('menu-main--active');
     return false;
   }
-
   toggler.addEventListener('click', toggleMenu);
 })();

@@ -118,7 +118,7 @@ abstract class UpdatePathTestBase extends BrowserTestBase {
   protected $strictConfigSchema = FALSE;
 
   /**
-   * Overrides WebTestBase::setUp() for update testing.
+   * Overrides BrowserTestBase::setUp() for update testing.
    *
    * The main difference in this method is that rather than performing the
    * installation via the installer, a database is loaded. Additional work is
@@ -301,7 +301,7 @@ abstract class UpdatePathTestBase extends BrowserTestBase {
    */
   protected function replaceUser1() {
     /** @var \Drupal\user\UserInterface $account */
-    // @todo: Saving the account before the update is problematic.
+    // @todo Saving the account before the update is problematic.
     //   https://www.drupal.org/node/2560237
     $account = User::load(1);
     $account->setPassword($this->rootUser->pass_raw);

@@ -42,8 +42,9 @@ function file_test_reset() {
 }
 
 /**
- * Get the arguments passed to invocation of a given hook since
- * file_test_reset() was last called.
+ * Gets the arguments passed to a given hook invocation.
+ *
+ * Arguments are gathered since file_test_reset() was last called.
  *
  * @param string $op
  *   One of the hook_file_* operations: 'load', 'validate', 'download',
@@ -63,7 +64,7 @@ function file_test_get_calls($op) {
 /**
  * Get an array with the calls for all hooks.
  *
- * @return
+ * @return array
  *   An array keyed by hook name ('load', 'validate', 'download', 'insert',
  *   'update', 'copy', 'move', 'delete') with values being arrays of parameters
  *   passed to each call.
@@ -354,7 +355,7 @@ function file_test_file_scan_callback_reset() {
  */
 function file_test_entity_type_alter(&$entity_types) {
   if (\Drupal::state()->get('file_test_alternate_access_handler', FALSE)) {
-    /** @var $entity_types \Drupal\Core\Entity\EntityTypeInterface[] */
+    /** @var \Drupal\Core\Entity\EntityTypeInterface[] $entity_types */
     $entity_types['file']
       ->setAccessClass('Drupal\file_test\FileTestAccessControlHandler');
   }

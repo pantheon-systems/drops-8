@@ -15,6 +15,7 @@ use Drupal\comment\Entity\Comment;
  * Tests the RDFa markup of comments.
  *
  * @group rdf
+ * @group legacy
  */
 class CommentAttributesTest extends CommentTestBase {
 
@@ -52,6 +53,9 @@ class CommentAttributesTest extends CommentTestBase {
    */
   protected $nodeUri;
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp(): void {
     parent::setUp();
 
@@ -249,10 +253,11 @@ class CommentAttributesTest extends CommentTestBase {
    *
    * Tests the current page for basic comment RDFa markup.
    *
-   * @param $comment
+   * @param \Drupal\comment\CommentInterface $comment
    *   Comment object.
-   * @param $account
-   *   An array containing information about an anonymous user.
+   * @param array|null $account
+   *   (optional) An array containing information about an anonymous user.
+   *   Defaults to NULL.
    */
   public function _testBasicCommentRdfaMarkup(CommentInterface $comment, $account = NULL) {
     $this->drupalGet($this->node->toUrl());

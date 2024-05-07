@@ -103,7 +103,7 @@ class Table extends StylePluginBase implements CacheableDependencyInterface {
     $query = $this->view->getRequest()->query;
     $order = $query->get('order');
     if (!isset($order)) {
-      // check for a 'default' clicksort. If there isn't one, exit gracefully.
+      // check for a 'default' clickSort. If there isn't one, exit gracefully.
       if (empty($this->options['default'])) {
         return;
       }
@@ -140,6 +140,8 @@ class Table extends StylePluginBase implements CacheableDependencyInterface {
   }
 
   /**
+   * Sanitizes the columns.
+   *
    * Normalize a list of columns based upon the fields that are
    * available. This compares the fields stored in the style handler
    * to the list of fields actually in the view, removing fields that
@@ -336,7 +338,7 @@ class Table extends StylePluginBase implements CacheableDependencyInterface {
           'views-align-left' => $this->t('Left', [], ['context' => 'Text alignment']),
           'views-align-center' => $this->t('Center', [], ['context' => 'Text alignment']),
           'views-align-right' => $this->t('Right', [], ['context' => 'Text alignment']),
-          ],
+        ],
         '#states' => [
           'visible' => [
             $column_selector => ['value' => $field],
@@ -348,7 +350,7 @@ class Table extends StylePluginBase implements CacheableDependencyInterface {
         '#title_display' => 'invisible',
         '#type' => 'textfield',
         '#size' => 10,
-        '#default_value' => isset($this->options['info'][$field]['separator']) ? $this->options['info'][$field]['separator'] : '',
+        '#default_value' => $this->options['info'][$field]['separator'] ?? '',
         '#states' => [
           'visible' => [
             $column_selector => ['value' => $field],
@@ -359,7 +361,7 @@ class Table extends StylePluginBase implements CacheableDependencyInterface {
         '#title' => $this->t('Hide empty column for @field', ['@field' => $field]),
         '#title_display' => 'invisible',
         '#type' => 'checkbox',
-        '#default_value' => isset($this->options['info'][$field]['empty_column']) ? $this->options['info'][$field]['empty_column'] : FALSE,
+        '#default_value' => $this->options['info'][$field]['empty_column'] ?? FALSE,
         '#states' => [
           'visible' => [
             $column_selector => ['value' => $field],
@@ -370,7 +372,7 @@ class Table extends StylePluginBase implements CacheableDependencyInterface {
         '#title' => $this->t('Responsive setting for @field', ['@field' => $field]),
         '#title_display' => 'invisible',
         '#type' => 'select',
-        '#default_value' => isset($this->options['info'][$field]['responsive']) ? $this->options['info'][$field]['responsive'] : '',
+        '#default_value' => $this->options['info'][$field]['responsive'] ?? '',
         '#options' => ['' => $this->t('High'), RESPONSIVE_PRIORITY_MEDIUM => $this->t('Medium'), RESPONSIVE_PRIORITY_LOW => $this->t('Low')],
         '#states' => [
           'visible' => [
@@ -433,7 +435,7 @@ class Table extends StylePluginBase implements CacheableDependencyInterface {
   public function getCacheContexts() {
     $contexts = [];
 
-    foreach ($this->options['info'] as $field_id => $info) {
+    foreach ($this->options['info'] as $info) {
       if (!empty($info['sortable'])) {
         // The rendered link needs to play well with any other query parameter
         // used on the page, like pager and exposed filter.

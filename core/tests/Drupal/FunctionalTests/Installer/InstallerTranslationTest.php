@@ -15,7 +15,7 @@ class InstallerTranslationTest extends InstallerTestBase {
   /**
    * {@inheritdoc}
    */
-  protected $defaultTheme = 'classy';
+  protected $defaultTheme = 'starterkit_theme';
 
   /**
    * Overrides the language code in which to install Drupal.
@@ -36,13 +36,11 @@ class InstallerTranslationTest extends InstallerTestBase {
 
     // After selecting a different language than English, all following screens
     // should be translated already.
-    $elements = $this->xpath('//input[@type="submit"]/@value');
-    $this->assertEqual(current($elements)->getText(), 'Save and continue de');
+    $this->assertSession()->buttonExists('Save and continue de');
     $this->translations['Save and continue'] = 'Save and continue de';
 
     // Check the language direction.
-    $direction = current($this->xpath('/@dir'))->getText();
-    $this->assertEqual($direction, 'ltr');
+    $this->assertSession()->elementTextEquals('xpath', '/@dir', 'ltr');
   }
 
   /**
@@ -68,8 +66,8 @@ class InstallerTranslationTest extends InstallerTestBase {
 
     // Ensure that the error message translation is working.
     // cSpell:disable
-    $this->assertRaw('Beheben Sie alle Probleme unten, um die Installation fortzusetzen. Informationen zur Konfiguration der Datenbankserver finden Sie in der <a href="https://www.drupal.org/docs/8/install">Installationshandbuch</a>, oder kontaktieren Sie Ihren Hosting-Anbieter.');
-    $this->assertRaw('<strong>CREATE</strong> ein Test-Tabelle auf Ihrem Datenbankserver mit dem Befehl <em class="placeholder">CREATE TABLE {drupal_install_test} (id int NOT NULL PRIMARY KEY)</em> fehlgeschlagen.');
+    $this->assertSession()->responseContains('Beheben Sie alle Probleme unten, um die Installation fortzusetzen. Informationen zur Konfiguration der Datenbankserver finden Sie in der <a href="https://www.drupal.org/docs/installing-drupal">Installationshandbuch</a>, oder kontaktieren Sie Ihren Hosting-Anbieter.');
+    $this->assertSession()->responseContains('<strong>CREATE</strong> ein Test-Tabelle auf Ihrem Datenbankserver mit dem Befehl <em class="placeholder">CREATE TABLE {drupal_install_test} (id int NOT NULL PRIMARY KEY)</em> fehlgeschlagen.');
     // cSpell:enable
 
     // Now do it successfully.
@@ -86,28 +84,30 @@ class InstallerTranslationTest extends InstallerTestBase {
 
     // Verify German was configured but not English.
     $this->drupalGet('admin/config/regional/language');
-    $this->assertText('German');
-    $this->assertNoText('English');
+    $this->assertSession()->pageTextContains('German');
+    $this->assertSession()->pageTextNotContains('English');
 
     // The current container still has the english as current language, rebuild.
     $this->rebuildContainer();
     /** @var \Drupal\user\Entity\User $account */
     $account = User::load(0);
-    $this->assertEqual($account->language()->getId(), 'en', 'Anonymous user is English.');
+    $this->assertEquals('de', $account->language()->getId(), 'Anonymous user is German.');
     $account = User::load(1);
-    $this->assertEqual($account->language()->getId(), 'en', 'Administrator user is English.');
+    $this->assertEquals('de', $account->language()->getId(), 'Administrator user is German.');
     $account = $this->drupalCreateUser();
-    $this->assertEqual($account->language()->getId(), 'de', 'New user is German.');
+    $this->assertEquals('de', $account->language()->getId(), 'New user is German.');
 
     // Ensure that we can enable basic_auth on a non-english site.
-    $this->drupalPostForm('admin/modules', ['modules[basic_auth][enable]' => TRUE], 'Install');
+    $this->drupalGet('admin/modules');
+    $this->submitForm(['modules[basic_auth][enable]' => TRUE], 'Install');
     $this->assertSession()->statusCodeEquals(200);
 
     // Assert that the theme CSS was added to the page.
     $edit = ['preprocess_css' => FALSE];
-    $this->drupalPostForm('admin/config/development/performance', $edit, 'Save configuration');
+    $this->drupalGet('admin/config/development/performance');
+    $this->submitForm($edit, 'Save configuration');
     $this->drupalGet('<front>');
-    $this->assertRaw('classy/css/components/action-links.css');
+    $this->assertSession()->responseContains('starterkit_theme/css/components/action-links.css');
 
     // Verify the strings from the translation files were imported.
     $test_samples = ['Save and continue', 'Anonymous'];
@@ -116,8 +116,9 @@ class InstallerTranslationTest extends InstallerTestBase {
       $edit['langcode'] = 'de';
       $edit['translation'] = 'translated';
       $edit['string'] = $sample;
-      $this->drupalPostForm('admin/config/regional/translate', $edit, 'Filter');
-      $this->assertText($sample . ' de');
+      $this->drupalGet('admin/config/regional/translate');
+      $this->submitForm($edit, 'Filter');
+      $this->assertSession()->pageTextContains($sample . ' de');
     }
 
     /** @var \Drupal\language\ConfigurableLanguageManager $language_manager */
@@ -128,17 +129,18 @@ class InstallerTranslationTest extends InstallerTestBase {
     $config = \Drupal::config('user.settings');
     $override_de = $language_manager->getLanguageConfigOverride('de', 'user.settings');
     $override_en = $language_manager->getLanguageConfigOverride('en', 'user.settings');
-    $this->assertEqual($config->get('anonymous'), 'Anonymous de');
-    $this->assertEqual($config->get('langcode'), 'de');
+    $this->assertEquals('Anonymous de', $config->get('anonymous'));
+    $this->assertEquals('de', $config->get('langcode'));
     $this->assertTrue($override_de->isNew());
     $this->assertTrue($override_en->isNew());
 
     // Assert that adding English makes the English override available.
     $edit = ['predefined_langcode' => 'en'];
-    $this->drupalPostForm('admin/config/regional/language/add', $edit, 'Add language');
+    $this->drupalGet('admin/config/regional/language/add');
+    $this->submitForm($edit, 'Add language');
     $override_en = $language_manager->getLanguageConfigOverride('en', 'user.settings');
     $this->assertFalse($override_en->isNew());
-    $this->assertEqual($override_en->get('anonymous'), 'Anonymous');
+    $this->assertEquals('Anonymous', $override_en->get('anonymous'));
   }
 
   /**
@@ -161,8 +163,8 @@ msgstr "Save and continue $langcode"
 msgid "Anonymous"
 msgstr "Anonymous $langcode"
 
-msgid "Resolve all issues below to continue the installation. For help configuring your database server, see the <a href="https://www.drupal.org/docs/8/install">installation handbook</a>, or contact your hosting provider."
-msgstr "Beheben Sie alle Probleme unten, um die Installation fortzusetzen. Informationen zur Konfiguration der Datenbankserver finden Sie in der <a href="https://www.drupal.org/docs/8/install">Installationshandbuch</a>, oder kontaktieren Sie Ihren Hosting-Anbieter."
+msgid "Resolve all issues below to continue the installation. For help configuring your database server, see the <a href="https://www.drupal.org/docs/installing-drupal">installation handbook</a>, or contact your hosting provider."
+msgstr "Beheben Sie alle Probleme unten, um die Installation fortzusetzen. Informationen zur Konfiguration der Datenbankserver finden Sie in der <a href="https://www.drupal.org/docs/installing-drupal">Installationshandbuch</a>, oder kontaktieren Sie Ihren Hosting-Anbieter."
 
 msgid "Failed to <strong>CREATE</strong> a test table on your database server with the command %query. The server reports the following message: %error.<p>Are you sure the configured username has the necessary permissions to create tables in the database?</p>"
 msgstr "<strong>CREATE</strong> ein Test-Tabelle auf Ihrem Datenbankserver mit dem Befehl %query fehlgeschlagen."

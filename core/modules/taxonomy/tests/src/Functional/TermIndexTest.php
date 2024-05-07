@@ -46,6 +46,9 @@ class TermIndexTest extends TaxonomyTestBase {
    */
   protected $fieldName2;
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp(): void {
     parent::setUp();
 
@@ -62,7 +65,7 @@ class TermIndexTest extends TaxonomyTestBase {
     $handler_settings = [
       'target_bundles' => [
         $this->vocabulary->id() => $this->vocabulary->id(),
-       ],
+      ],
       'auto_create' => TRUE,
     ];
     $this->createEntityReferenceField('node', 'article', $this->fieldName1, NULL, 'taxonomy_term', 'default', $handler_settings, FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED);
@@ -112,7 +115,8 @@ class TermIndexTest extends TaxonomyTestBase {
     $edit['body[0][value]'] = $this->randomMachineName();
     $edit["{$this->fieldName1}[]"] = $term_1->id();
     $edit["{$this->fieldName2}[]"] = $term_1->id();
-    $this->drupalPostForm('node/add/article', $edit, 'Save');
+    $this->drupalGet('node/add/article');
+    $this->submitForm($edit, 'Save');
 
     // Check that the term is indexed, and only once.
     $node = $this->drupalGetNodeByTitle($edit['title[0][value]']);
@@ -123,11 +127,12 @@ class TermIndexTest extends TaxonomyTestBase {
       ->countQuery()
       ->execute()
       ->fetchField();
-    $this->assertEqual(1, $index_count, 'Term 1 is indexed once.');
+    $this->assertEquals(1, $index_count, 'Term 1 is indexed once.');
 
     // Update the article to change one term.
     $edit["{$this->fieldName1}[]"] = $term_2->id();
-    $this->drupalPostForm('node/' . $node->id() . '/edit', $edit, 'Save');
+    $this->drupalGet('node/' . $node->id() . '/edit');
+    $this->submitForm($edit, 'Save');
 
     // Check that both terms are indexed.
     $index_count = $connection->select('taxonomy_index')
@@ -136,18 +141,19 @@ class TermIndexTest extends TaxonomyTestBase {
       ->countQuery()
       ->execute()
       ->fetchField();
-    $this->assertEqual(1, $index_count, 'Term 1 is indexed.');
+    $this->assertEquals(1, $index_count, 'Term 1 is indexed.');
     $index_count = $connection->select('taxonomy_index')
       ->condition('nid', $node->id())
       ->condition('tid', $term_2->id())
       ->countQuery()
       ->execute()
       ->fetchField();
-    $this->assertEqual(1, $index_count, 'Term 2 is indexed.');
+    $this->assertEquals(1, $index_count, 'Term 2 is indexed.');
 
     // Update the article to change another term.
     $edit["{$this->fieldName2}[]"] = $term_2->id();
-    $this->drupalPostForm('node/' . $node->id() . '/edit', $edit, 'Save');
+    $this->drupalGet('node/' . $node->id() . '/edit');
+    $this->submitForm($edit, 'Save');
 
     // Check that only one term is indexed.
     $index_count = $connection->select('taxonomy_index')
@@ -156,14 +162,14 @@ class TermIndexTest extends TaxonomyTestBase {
       ->countQuery()
       ->execute()
       ->fetchField();
-    $this->assertEqual(0, $index_count, 'Term 1 is not indexed.');
+    $this->assertEquals(0, $index_count, 'Term 1 is not indexed.');
     $index_count = $connection->select('taxonomy_index')
       ->condition('nid', $node->id())
       ->condition('tid', $term_2->id())
       ->countQuery()
       ->execute()
       ->fetchField();
-    $this->assertEqual(1, $index_count, 'Term 2 is indexed once.');
+    $this->assertEquals(1, $index_count, 'Term 2 is indexed once.');
 
     // Redo the above tests without interface.
     $node_storage->resetCache([$node->id()]);
@@ -180,14 +186,14 @@ class TermIndexTest extends TaxonomyTestBase {
       ->countQuery()
       ->execute()
       ->fetchField();
-    $this->assertEqual(0, $index_count, 'Term 1 is not indexed.');
+    $this->assertEquals(0, $index_count, 'Term 1 is not indexed.');
     $index_count = $connection->select('taxonomy_index')
       ->condition('nid', $node->id())
       ->condition('tid', $term_2->id())
       ->countQuery()
       ->execute()
       ->fetchField();
-    $this->assertEqual(1, $index_count, 'Term 2 is indexed once.');
+    $this->assertEquals(1, $index_count, 'Term 2 is indexed once.');
 
     // Update the article to change one term.
     $node->{$this->fieldName1} = [['target_id' => $term_1->id()]];
@@ -200,14 +206,14 @@ class TermIndexTest extends TaxonomyTestBase {
       ->countQuery()
       ->execute()
       ->fetchField();
-    $this->assertEqual(1, $index_count, 'Term 1 is indexed.');
+    $this->assertEquals(1, $index_count, 'Term 1 is indexed.');
     $index_count = $connection->select('taxonomy_index')
       ->condition('nid', $node->id())
       ->condition('tid', $term_2->id())
       ->countQuery()
       ->execute()
       ->fetchField();
-    $this->assertEqual(1, $index_count, 'Term 2 is indexed.');
+    $this->assertEquals(1, $index_count, 'Term 2 is indexed.');
 
     // Update the article to change another term.
     $node->{$this->fieldName2} = [['target_id' => $term_1->id()]];
@@ -220,14 +226,14 @@ class TermIndexTest extends TaxonomyTestBase {
       ->countQuery()
       ->execute()
       ->fetchField();
-    $this->assertEqual(1, $index_count, 'Term 1 is indexed once.');
+    $this->assertEquals(1, $index_count, 'Term 1 is indexed once.');
     $index_count = $connection->select('taxonomy_index')
       ->condition('nid', $node->id())
       ->condition('tid', $term_2->id())
       ->countQuery()
       ->execute()
       ->fetchField();
-    $this->assertEqual(0, $index_count, 'Term 2 is not indexed.');
+    $this->assertEquals(0, $index_count, 'Term 2 is not indexed.');
   }
 
   /**
@@ -245,7 +251,7 @@ class TermIndexTest extends TaxonomyTestBase {
     // Breadcrumbs are not rendered with a language, prevent the term
     // language from being added to the options.
     // Check that parent term link is displayed when viewing the node.
-    $this->assertRaw(Link::fromTextAndUrl($term2->getName(), $term2->toUrl('canonical', ['language' => NULL]))->toString());
+    $this->assertSession()->responseContains(Link::fromTextAndUrl($term2->getName(), $term2->toUrl('canonical', ['language' => NULL]))->toString());
   }
 
 }

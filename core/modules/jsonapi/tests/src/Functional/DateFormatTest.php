@@ -10,7 +10,7 @@ use Drupal\Core\Url;
  *
  * @group jsonapi
  */
-class DateFormatTest extends ResourceTestBase {
+class DateFormatTest extends ConfigEntityResourceTestBase {
 
   /**
    * {@inheritdoc}
@@ -108,6 +108,7 @@ class DateFormatTest extends ResourceTestBase {
    */
   protected function getPostDocument() {
     // @todo Update in https://www.drupal.org/node/2300677.
+    return [];
   }
 
 }

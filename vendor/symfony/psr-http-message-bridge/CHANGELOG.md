@@ -1,6 +1,20 @@
 CHANGELOG
 =========
 
+# 2.1.3 (2022-09-05)
+
+* Ignore invalid HTTP headers when creating PSR7 objects
+* Fix for wrong type passed to `moveTo()`
+
+# 2.1.2 (2021-11-05)
+
+* Allow Symfony 6
+
+# 2.1.0 (2021-02-17)
+
+  * Added a `PsrResponseListener` to automatically convert PSR-7 responses returned by controllers
+  * Added a `PsrServerRequestResolver` that allows injecting PSR-7 request objects into controllers
+
 # 2.0.2 (2020-09-29)
 
   * Fix populating server params from URI in HttpFoundationFactory

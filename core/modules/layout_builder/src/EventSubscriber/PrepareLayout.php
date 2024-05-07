@@ -11,7 +11,9 @@ use Drupal\layout_builder\OverridesSectionStorageInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 /**
- * An event subscriber to prepare section storage via the
+ * An event subscriber to prepare section storage.
+ *
+ * Section storage works via the
  * \Drupal\layout_builder\Event\PrepareLayoutEvent.
  *
  * @see \Drupal\layout_builder\Event\PrepareLayoutEvent
@@ -69,13 +71,16 @@ class PrepareLayout implements EventSubscriberInterface {
     if ($this->layoutTempstoreRepository->has($section_storage)) {
       $this->messenger->addWarning($this->t('You have unsaved changes.'));
     }
-    // If the layout is an override that has not yet been overridden, copy the
-    // sections from the corresponding default.
-    elseif ($section_storage instanceof OverridesSectionStorageInterface && !$section_storage->isOverridden()) {
-      $sections = $section_storage->getDefaultSectionStorage()->getSections();
-      foreach ($sections as $section) {
-        $section_storage->appendSection($section);
+    else {
+      // If the layout is an override that has not yet been overridden, copy the
+      // sections from the corresponding default.
+      if ($section_storage instanceof OverridesSectionStorageInterface && !$section_storage->isOverridden()) {
+        $sections = $section_storage->getDefaultSectionStorage()->getSections();
+        foreach ($sections as $section) {
+          $section_storage->appendSection($section);
+        }
       }
+      // Add storage to tempstore regardless of what the storage is.
       $this->layoutTempstoreRepository->set($section_storage);
     }
   }

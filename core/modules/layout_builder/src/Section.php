@@ -3,6 +3,8 @@
 namespace Drupal\layout_builder;
 
 use Drupal\Core\Config\Entity\ThirdPartySettingsInterface;
+use Drupal\Core\Plugin\PreviewAwarePluginInterface;
+use Drupal\Core\Render\Element;
 
 /**
  * Provides a domain object for layout sections.
@@ -88,17 +90,34 @@ class Section implements ThirdPartySettingsInterface {
       }
     }
 
-    return $this->getLayout()->build($regions);
+    $layout = $this->getLayout($contexts);
+    if ($layout instanceof PreviewAwarePluginInterface) {
+      $layout->setInPreview($in_preview);
+    }
+
+    $build = $layout->build($regions);
+    // If an entity was used to build the layout, store it on the build.
+    if (!Element::isEmpty($build) && isset($contexts['layout_builder.entity'])) {
+      $build['#entity'] = $contexts['layout_builder.entity']->getContextValue();
+    }
+    return $build;
   }
 
   /**
    * Gets the layout plugin for this section.
    *
+   * @param \Drupal\Core\Plugin\Context\ContextInterface[] $contexts
+   *   An array of available contexts.
+   *
    * @return \Drupal\Core\Layout\LayoutInterface
    *   The layout plugin.
    */
-  public function getLayout() {
-    return $this->layoutPluginManager()->createInstance($this->getLayoutId(), $this->layoutSettings);
+  public function getLayout(array $contexts = []) {
+    $layout = $this->layoutPluginManager()->createInstance($this->getLayoutId(), $this->layoutSettings);
+    if ($contexts) {
+      $this->contextHandler()->applyContextMapping($layout, $contexts);
+    }
+    return $layout;
   }
 
   /**
@@ -154,7 +173,7 @@ class Section implements ThirdPartySettingsInterface {
    * Returns the components of the section.
    *
    * @return \Drupal\layout_builder\SectionComponent[]
-   *   The components.
+   *   An array of components, keyed by the component UUID.
    */
   public function getComponents() {
     return $this->components;
@@ -251,7 +270,7 @@ class Section implements ThirdPartySettingsInterface {
       return $component->getRegion() === $region;
     });
     uasort($components, function (SectionComponent $a, SectionComponent $b) {
-      return $a->getWeight() > $b->getWeight() ? 1 : -1;
+      return $a->getWeight() <=> $b->getWeight();
     });
     return $components;
   }
@@ -384,14 +403,14 @@ class Section implements ThirdPartySettingsInterface {
    * {@inheritdoc}
    */
   public function getThirdPartySetting($provider, $key, $default = NULL) {
-    return isset($this->thirdPartySettings[$provider][$key]) ? $this->thirdPartySettings[$provider][$key] : $default;
+    return $this->thirdPartySettings[$provider][$key] ?? $default;
   }
 
   /**
    * {@inheritdoc}
    */
   public function getThirdPartySettings($provider) {
-    return isset($this->thirdPartySettings[$provider]) ? $this->thirdPartySettings[$provider] : [];
+    return $this->thirdPartySettings[$provider] ?? [];
   }
 
   /**
@@ -420,6 +439,16 @@ class Section implements ThirdPartySettingsInterface {
    */
   public function getThirdPartyProviders() {
     return array_keys($this->thirdPartySettings);
+  }
+
+  /**
+   * Wraps the context handler.
+   *
+   * @return \Drupal\Core\Plugin\Context\ContextHandlerInterface
+   *   The context handler.
+   */
+  protected function contextHandler() {
+    return \Drupal::service('context.handler');
   }
 
 }

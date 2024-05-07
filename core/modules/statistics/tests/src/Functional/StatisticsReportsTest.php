@@ -35,7 +35,7 @@ class StatisticsReportsTest extends StatisticsTestBase {
     $post = http_build_query(['nid' => $nid]);
     $headers = ['Content-Type' => 'application/x-www-form-urlencoded'];
     global $base_url;
-    $stats_path = $base_url . '/' . drupal_get_path('module', 'statistics') . '/statistics.php';
+    $stats_path = $base_url . '/' . $this->getModulePath('statistics') . '/statistics.php';
     $client = \Drupal::httpClient();
     $client->post($stats_path, ['headers' => $headers, 'body' => $post]);
 
@@ -49,21 +49,21 @@ class StatisticsReportsTest extends StatisticsTestBase {
 
     // Get some page and check if the block is displayed.
     $this->drupalGet('user');
-    $this->assertText('Popular content', 'Found the popular content block.');
-    $this->assertText("Today's", "Found today's popular content.");
-    $this->assertText('All time', 'Found the all time popular content.');
-    $this->assertText('Last viewed', 'Found the last viewed popular content.');
+    $this->assertSession()->pageTextContains('Popular content');
+    $this->assertSession()->pageTextContains("Today's");
+    $this->assertSession()->pageTextContains('All time');
+    $this->assertSession()->pageTextContains('Last viewed');
 
     $tags = Cache::mergeTags($node->getCacheTags(), $block->getCacheTags());
     $tags = Cache::mergeTags($tags, $this->blockingUser->getCacheTags());
     $tags = Cache::mergeTags($tags, ['block_view', 'config:block_list', 'node_list', 'rendered', 'user_view']);
     $this->assertCacheTags($tags);
     $contexts = Cache::mergeContexts($node->getCacheContexts(), $block->getCacheContexts());
-    $contexts = Cache::mergeContexts($contexts, ['url.query_args:_wrapper_format']);
+    $contexts = Cache::mergeContexts($contexts, ['url.query_args:_wrapper_format', 'url.site']);
     $this->assertCacheContexts($contexts);
 
     // Check if the node link is displayed.
-    $this->assertRaw(Link::fromTextAndUrl($node->label(), $node->toUrl('canonical'))->toString());
+    $this->assertSession()->responseContains(Link::fromTextAndUrl($node->label(), $node->toUrl('canonical'))->toString());
   }
 
 }

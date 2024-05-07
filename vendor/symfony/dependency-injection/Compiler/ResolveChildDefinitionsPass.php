@@ -114,6 +114,8 @@ class ResolveChildDefinitionsPass extends AbstractRecursivePass
 
         $def->setBindings($definition->getBindings() + $parentDef->getBindings());
 
+        $def->setSynthetic($definition->isSynthetic());
+
         // overwrite with values specified in the decorator
         $changes = $definition->getChanges();
         if (isset($changes['class'])) {
@@ -158,7 +160,7 @@ class ResolveChildDefinitionsPass extends AbstractRecursivePass
         foreach ($definition->getArguments() as $k => $v) {
             if (is_numeric($k)) {
                 $def->addArgument($v);
-            } elseif (0 === strpos($k, 'index_')) {
+            } elseif (str_starts_with($k, 'index_')) {
                 $def->replaceArgument((int) substr($k, \strlen('index_')), $v);
             } else {
                 $def->setArgument($k, $v);
@@ -184,6 +186,12 @@ class ResolveChildDefinitionsPass extends AbstractRecursivePass
         // autoconfigure is never taken from parent (on purpose)
         // and it's not legal on an instanceof
         $def->setAutoconfigured($definition->isAutoconfigured());
+
+        if (!$def->hasTag('proxy')) {
+            foreach ($parentDef->getTag('proxy') as $v) {
+                $def->addTag('proxy', $v);
+            }
+        }
 
         return $def;
     }

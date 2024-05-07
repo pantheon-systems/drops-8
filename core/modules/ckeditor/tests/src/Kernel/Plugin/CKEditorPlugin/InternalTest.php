@@ -10,6 +10,7 @@ use Drupal\KernelTests\KernelTestBase;
  * @coversDefaultClass \Drupal\ckeditor\Plugin\CKEditorPlugin\Internal
  *
  * @group ckeditor
+ * @group legacy
  */
 class InternalTest extends KernelTestBase {
 
@@ -84,7 +85,7 @@ class InternalTest extends KernelTestBase {
   }
 
   /**
-   * Test the format tags settings.
+   * Tests the format tags settings.
    *
    * @dataProvider formatTagsSettingsTestCases
    */

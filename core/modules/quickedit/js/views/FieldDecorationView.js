@@ -4,7 +4,6 @@
 * https://www.drupal.org/node/2815083
 * @preserve
 **/
-
 (function ($, Backbone, Drupal) {
   Drupal.quickedit.FieldDecorationView = Backbone.View.extend({
     _widthAttributeIsEmpty: null,
@@ -27,57 +26,42 @@
     stateChange: function stateChange(model, state) {
       var from = model.previous('state');
       var to = state;
-
       switch (to) {
         case 'inactive':
           this.undecorate();
           break;
-
         case 'candidate':
           this.decorate();
-
           if (from !== 'inactive') {
             this.stopHighlight();
-
             if (from !== 'highlighted') {
               this.model.set('isChanged', false);
               this.stopEdit();
             }
           }
-
           this._unpad();
-
           break;
-
         case 'highlighted':
           this.startHighlight();
           break;
-
         case 'activating':
           this.prepareEdit();
           break;
-
         case 'active':
           if (from !== 'activating') {
             this.prepareEdit();
           }
-
           if (this.editorView.getQuickEditUISettings().padding) {
             this._pad();
           }
-
           break;
-
         case 'changed':
           this.model.set('isChanged', true);
           break;
-
         case 'saving':
           break;
-
         case 'saved':
           break;
-
         case 'invalid':
           break;
       }
@@ -117,34 +101,27 @@
     },
     prepareEdit: function prepareEdit() {
       this.$el.addClass('quickedit-editing');
-
       if (this.editorView.getQuickEditUISettings().popup) {
         this.$el.addClass('quickedit-editor-is-popup');
       }
     },
     stopEdit: function stopEdit() {
       this.$el.removeClass('quickedit-highlighted quickedit-editing');
-
       if (this.editorView.getQuickEditUISettings().popup) {
         this.$el.removeClass('quickedit-editor-is-popup');
       }
-
       $('.quickedit-candidate').addClass('quickedit-editable');
     },
     _pad: function _pad() {
       if (this.$el.data('quickedit-padded')) {
         return;
       }
-
       var self = this;
-
       if (this.$el[0].style.width === '') {
         this._widthAttributeIsEmpty = true;
         this.$el.addClass('quickedit-animate-disable-width').css('width', this.$el.width());
       }
-
       var posProp = this._getPositionProperties(this.$el);
-
       setTimeout(function () {
         self.$el.removeClass('quickedit-animate-disable-width');
         self.$el.css({
@@ -163,15 +140,11 @@
       if (!this.$el.data('quickedit-padded')) {
         return;
       }
-
       var self = this;
-
       if (this._widthAttributeIsEmpty) {
         this.$el.addClass('quickedit-animate-disable-width').css('width', '');
       }
-
       var posProp = this._getPositionProperties(this.$el);
-
       setTimeout(function () {
         self.$el.removeClass('quickedit-animate-disable-width');
         self.$el.css({
@@ -192,19 +165,16 @@
       var r = {};
       var props = ['top', 'left', 'bottom', 'right', 'padding-top', 'padding-left', 'padding-right', 'padding-bottom', 'margin-bottom'];
       var propCount = props.length;
-
       for (var i = 0; i < propCount; i++) {
         p = props[i];
         r[p] = parseInt(this._replaceBlankPosition($e.css(p)), 10);
       }
-
       return r;
     },
     _replaceBlankPosition: function _replaceBlankPosition(pos) {
       if (pos === 'auto' || !pos) {
         pos = '0px';
       }
-
       return pos;
     }
   });

@@ -24,6 +24,9 @@ class EntityOperationsTest extends BrowserTestBase {
    */
   protected $defaultTheme = 'stark';
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp(): void {
     parent::setUp();
 
@@ -50,10 +53,10 @@ class EntityOperationsTest extends BrowserTestBase {
    * {@inheritdoc}
    */
   protected function createRole(array $permissions, $rid = NULL, $name = NULL, $weight = NULL) {
-    // WebTestBase::drupalCreateRole() by default uses random strings which may
-    // include HTML entities for the entity label. Since in this test the entity
-    // label is used to generate a link, and AssertContentTrait::assertLink() is
-    // not designed to deal with links potentially containing HTML entities this
+    // The parent method uses random strings by default, which may include HTML
+    // entities for the entity label. Since in this test the entity label is
+    // used to generate a link, and AssertContentTrait::assertLink() is not
+    // designed to deal with links potentially containing HTML entities this
     // causes random failures. Use a random HTML safe string instead.
     $name = $name ?: $this->randomMachineName();
     return parent::createRole($permissions, $rid, $name, $weight);

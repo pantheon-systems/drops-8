@@ -4,7 +4,6 @@
 * https://www.drupal.org/node/2815083
 * @preserve
 **/
-
 (function ($, Drupal, drupalSettings) {
   var options = $.extend({
     breakpoints: {
@@ -23,8 +22,7 @@
       if (!window.matchMedia('only screen').matches) {
         return;
       }
-
-      $(context).find('#toolbar-administration').once('toolbar').each(function () {
+      once('toolbar', '#toolbar-administration', context).forEach(function (toolbar) {
         var model = new Drupal.toolbar.ToolbarModel({
           locked: JSON.parse(localStorage.getItem('Drupal.toolbar.trayVerticalLocked')),
           activeTab: document.getElementById(JSON.parse(localStorage.getItem('Drupal.toolbar.activeTabID'))),
@@ -39,17 +37,17 @@
           Drupal.toolbar.mediaQueryChangeHandler.call(null, model, label, mql);
         });
         Drupal.toolbar.views.toolbarVisualView = new Drupal.toolbar.ToolbarVisualView({
-          el: this,
+          el: toolbar,
           model: model,
           strings: options.strings
         });
         Drupal.toolbar.views.toolbarAuralView = new Drupal.toolbar.ToolbarAuralView({
-          el: this,
+          el: toolbar,
           model: model,
           strings: options.strings
         });
         Drupal.toolbar.views.bodyVisualView = new Drupal.toolbar.BodyVisualView({
-          el: this,
+          el: toolbar,
           model: model
         });
         model.trigger('change:isFixed', model, model.get('isFixed'));
@@ -57,7 +55,7 @@
         var menuModel = new Drupal.toolbar.MenuModel();
         Drupal.toolbar.models.menuModel = menuModel;
         Drupal.toolbar.views.menuVisualView = new Drupal.toolbar.MenuVisualView({
-          el: $(this).find('.toolbar-menu-administration').get(0),
+          el: $(toolbar).find('.toolbar-menu-administration').get(0),
           model: menuModel,
           strings: options.strings
         });
@@ -78,18 +76,15 @@
         }).on('change:activeTray', function (model, tray) {
           $(document).trigger('drupalToolbarTrayChange', tray);
         });
-
         if (Drupal.toolbar.models.toolbarModel.get('orientation') === 'horizontal' && Drupal.toolbar.models.toolbarModel.get('activeTab') === null) {
           Drupal.toolbar.models.toolbarModel.set({
             activeTab: $('.toolbar-bar .toolbar-tab:not(.home-toolbar-tab) a').get(0)
           });
         }
-
         $(window).on({
           'dialog:aftercreate': function dialogAftercreate(event, dialog, $element, settings) {
             var $toolbar = $('#toolbar-bar');
             $toolbar.css('margin-top', '0');
-
             if (settings.drupalOffCanvasPosition === 'top') {
               var height = Drupal.offCanvas.getContainer($element).outerHeight();
               $toolbar.css('margin-top', "".concat(height, "px"));
@@ -118,7 +113,6 @@
             isOriented: mql.matches,
             isTrayToggleVisible: false
           });
-
           if (!mql.matches || !model.get('orientation')) {
             model.set({
               orientation: 'vertical'
@@ -126,15 +120,12 @@
               validate: true
             });
           }
-
           break;
-
         case 'toolbar.standard':
           model.set({
             isFixed: mql.matches
           });
           break;
-
         case 'toolbar.wide':
           model.set({
             orientation: mql.matches && !model.get('locked') ? 'horizontal' : 'vertical'
@@ -145,17 +136,14 @@
             isTrayToggleVisible: mql.matches
           });
           break;
-
         default:
           break;
       }
     }
   };
-
   Drupal.theme.toolbarOrientationToggle = function () {
     return '<div class="toolbar-toggle-orientation"><div class="toolbar-lining">' + '<button class="toolbar-icon" type="button"></button>' + '</div></div>';
   };
-
   Drupal.AjaxCommands.prototype.setToolbarSubtrees = function (ajax, response, status) {
     Drupal.toolbar.setSubtrees.resolve(response.subtrees);
   };

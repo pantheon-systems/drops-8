@@ -7,7 +7,7 @@ use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\migrate\MigrateException;
 use Drupal\migrate\MigrateExecutableInterface;
 use Drupal\migrate\Row;
-use GuzzleHttp\Client;
+use GuzzleHttp\ClientInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -79,14 +79,14 @@ class Download extends FileProcessBase implements ContainerFactoryPluginInterfac
    *   The plugin configuration.
    * @param string $plugin_id
    *   The plugin ID.
-   * @param mixed $plugin_definition
+   * @param array $plugin_definition
    *   The plugin definition.
    * @param \Drupal\Core\File\FileSystemInterface $file_system
    *   The file system service.
-   * @param \GuzzleHttp\Client $http_client
+   * @param \GuzzleHttp\ClientInterface $http_client
    *   The HTTP client.
    */
-  public function __construct(array $configuration, $plugin_id, array $plugin_definition, FileSystemInterface $file_system, Client $http_client) {
+  public function __construct(array $configuration, $plugin_id, array $plugin_definition, FileSystemInterface $file_system, ClientInterface $http_client) {
     $configuration += [
       'guzzle_options' => [],
     ];
@@ -117,7 +117,7 @@ class Download extends FileProcessBase implements ContainerFactoryPluginInterfac
     if ($row->isStub()) {
       return NULL;
     }
-    list($source, $destination) = $value;
+    [$source, $destination] = $value;
 
     // Modify the destination filename if necessary.
     $final_destination = $this->fileSystem->getDestinationFilename($destination, $this->configuration['file_exists']);
@@ -153,6 +153,10 @@ class Download extends FileProcessBase implements ContainerFactoryPluginInterfac
     }
     catch (\Exception $e) {
       throw new MigrateException("{$e->getMessage()} ($source)");
+    }
+
+    if (is_resource($destination_stream)) {
+      fclose($destination_stream);
     }
 
     return $final_destination;

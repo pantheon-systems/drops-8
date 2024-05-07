@@ -18,7 +18,7 @@ abstract class MediaLibraryTestBase extends WebDriverTestBase {
   /**
    * {@inheritdoc}
    */
-  protected $defaultTheme = 'classy';
+  protected $defaultTheme = 'stark';
 
   /**
    * Create media items.
@@ -333,7 +333,6 @@ abstract class MediaLibraryTestBase extends WebDriverTestBase {
     $assert_session->elementNotExists('css', '[data-drupal-selector$="preview"]', $fields);
     $assert_session->buttonNotExists('Remove', $fields);
     $assert_session->elementNotExists('css', '[data-drupal-selector$="filename"]', $fields);
-    $assert_session->elementNotExists('css', '.file-size', $fields);
   }
 
   /**
@@ -342,7 +341,7 @@ abstract class MediaLibraryTestBase extends WebDriverTestBase {
   protected function assertNoMediaAdded() {
     // Assert the focus is shifted to the first tabbable element of the add
     // form, which should be the source field.
-    $this->assertJsCondition('jQuery("#media-library-add-form-wrapper :tabbable").is(":focus")');
+    $this->assertJsCondition('jQuery(tabbable.tabbable(document.getElementById("media-library-add-form-wrapper"))[0]).is(":focus")');
 
     $this->assertSession()
       ->elementNotExists('css', '[data-drupal-selector="edit-media-0-fields"]');

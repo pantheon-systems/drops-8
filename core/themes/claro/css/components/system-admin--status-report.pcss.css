@@ -50,7 +50,7 @@
   left: auto;
 }
 .system-status-report__status-icon--error:before {
-  background-image: url(../../images/core/e32700/error.svg);
+  background-image: url(../../../../misc/icons/dc2323/error.svg);
 }
 .system-status-report__status-icon--warning:before {
   background-image: url(../../images/core/e29700/warning.svg);
@@ -69,7 +69,7 @@
 
 .system-status-report__row {
   display: flex;
-  border-bottom: 1px solid #d4d4d8;
+  border-bottom: 1px solid #d3d4d9;
 }
 .system-status-report__row:last-of-type {
   border-bottom: none;

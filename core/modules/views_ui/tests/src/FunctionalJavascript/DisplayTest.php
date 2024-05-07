@@ -3,9 +3,13 @@
 namespace Drupal\Tests\views_ui\FunctionalJavascript;
 
 use Drupal\FunctionalJavascriptTests\WebDriverTestBase;
+use Drupal\language\Entity\ConfigurableLanguage;
+use Drupal\locale\SourceString;
 use Drupal\views\Entity\View;
 use Drupal\views\Tests\ViewTestData;
 use Drupal\Tests\node\Traits\NodeCreationTrait;
+
+// cSpell:ignore Blokk hozzáadása
 
 /**
  * Tests the display UI.
@@ -23,6 +27,8 @@ class DisplayTest extends WebDriverTestBase {
     'block',
     'contextual',
     'node',
+    'language',
+    'locale',
     'views',
     'views_ui',
     'views_test_config',
@@ -31,7 +37,7 @@ class DisplayTest extends WebDriverTestBase {
   /**
    * {@inheritdoc}
    */
-  protected $defaultTheme = 'classy';
+  protected $defaultTheme = 'stark';
 
   public static $testViews = ['test_content_ajax', 'test_display'];
 
@@ -76,6 +82,28 @@ class DisplayTest extends WebDriverTestBase {
   }
 
   /**
+   * Tests setting the administrative title.
+   */
+  public function testRenameDisplayAdminName() {
+    $titles = ['New admin title', '</title><script>alert("alert!")</script>'];
+    foreach ($titles as $new_title) {
+      $this->drupalGet('admin/structure/views/view/test_content_ajax');
+      $page = $this->getSession()->getPage();
+
+      $page->findLink('Edit view name/description')->click();
+      $this->getSession()->executeScript("document.title = 'Initial title | " . \Drupal::config('system.site')->get('name') . "'");
+
+      $admin_name_field = $this->assertSession()
+        ->waitForField('Administrative name');
+      $dialog_buttons = $page->find('css', '.ui-dialog-buttonset');
+      $admin_name_field->setValue($new_title);
+
+      $dialog_buttons->pressButton('Apply');
+      $this->assertJsCondition("document.title === '" . $new_title . " (Content) | " . \Drupal::config('system.site')->get('name') . "'");
+    }
+  }
+
+  /**
    * Tests contextual links on Views page displays.
    */
   public function testPageContextualLinks() {
@@ -94,7 +122,7 @@ class DisplayTest extends WebDriverTestBase {
     $page = $this->getSession()->getPage();
     $this->assertSession()->assertWaitOnAjaxRequest();
 
-    $selector = '.view-test-display';
+    $selector = '.views-element-container';
     $this->toggleContextualTriggerVisibility($selector);
 
     $element = $this->getSession()->getPage()->find('css', $selector);
@@ -128,28 +156,53 @@ class DisplayTest extends WebDriverTestBase {
   }
 
   /**
-   * Confirms that form_alter is triggered after ajax rebuilds.
+   * Test if 'add' translations are filtered from multilingual display options.
    */
-  public function testAjaxRebuild() {
-    \Drupal::service('theme_installer')->install(['views_test_classy_subtheme']);
+  public function testAddDisplayBlockTranslation() {
 
-    $this->config('system.theme')
-      ->set('default', 'views_test_classy_subtheme')
-      ->save();
+    // Set up an additional language (Hungarian).
+    $langcode = 'hu';
+    ConfigurableLanguage::createFromLangcode($langcode)->save();
+    $config = $this->config('language.negotiation');
+    $config->set('url.prefixes', [$langcode => $langcode])->save();
+    \Drupal::service('kernel')->rebuildContainer();
+    \Drupal::languageManager()->reset();
 
+    // Add Hungarian translations.
+    $this->addTranslation($langcode, 'Block', 'Blokk');
+    $this->addTranslation($langcode, 'Add @display', '@display hozzáadása');
+
+    $this->drupalGet('hu/admin/structure/views/view/test_display');
     $page = $this->getSession()->getPage();
-    $assert_session = $this->assertSession();
 
-    $this->drupalGet('admin/structure/views/view/content');
-    $assert_session->pageTextContains('This is text added to the display tabs at the top');
-    $assert_session->pageTextContains('This is text added to the display edit form');
-    $page->clickLink('Content: Title (Title)');
-    $assert_session->waitForElementVisible('css', '.views-ui-dialog');
-    $page->fillField('Label', 'New Title');
-    $page->find('css', '.ui-dialog-buttonset button:contains("Apply")')->press();
-    $assert_session->waitForElementRemoved('css', '.views-ui-dialog');
-    $assert_session->pageTextContains('This is text added to the display tabs at the top');
-    $assert_session->pageTextContains('This is text added to the display edit form');
+    $page->find('css', '#views-display-menu-tabs .add')->click();
+
+    // Wait for the animation to complete.
+    $this->assertSession()->assertWaitOnAjaxRequest();
+
+    // Look for the input element, always in second spot.
+    $elements = $page->findAll('css', '.add ul input');
+    $this->assertEquals('Blokk', $elements[1]->getAttribute('value'));
+  }
+
+  /**
+   * Helper function for adding interface text translations.
+   */
+  private function addTranslation($langcode, $source_string, $translation_string) {
+    $storage = \Drupal::service('locale.storage');
+    $string = $storage->findString(['source' => $source_string]);
+    if (is_null($string)) {
+      $string = new SourceString();
+      $string
+        ->setString($source_string)
+        ->setStorage($storage)
+        ->save();
+    }
+    $storage->createTranslation([
+      'lid' => $string->getId(),
+      'language' => $langcode,
+      'translation' => $translation_string,
+    ])->save();
   }
 
 }

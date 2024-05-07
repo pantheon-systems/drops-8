@@ -10,8 +10,7 @@ use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\Tests\BrowserTestBase;
 
 /**
- * Create a entity with revisions and test viewing, saving, reverting, and
- * deleting revisions.
+ * Tests modifying an entity with revisions.
  *
  * @group Entity
  */
@@ -36,6 +35,9 @@ class EntityRevisionsTest extends BrowserTestBase {
    */
   protected $webUser;
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp(): void {
     parent::setUp();
 
@@ -147,8 +149,8 @@ class EntityRevisionsTest extends BrowserTestBase {
       // Check that the fields and properties contain new content.
       // Verify that the revision ID changed.
       $this->assertGreaterThan($legacy_revision_id, $entity->revision_id->value);
-      $this->assertNotEqual($entity->name->value, $legacy_name, new FormattableMarkup('%entity_type: Name changed.', ['%entity_type' => $entity_type]));
-      $this->assertNotEqual($entity->translatable_test_field->value, $legacy_text, new FormattableMarkup('%entity_type: Text changed.', ['%entity_type' => $entity_type]));
+      $this->assertNotEquals($legacy_name, $entity->name->value, new FormattableMarkup('%entity_type: Name changed.', ['%entity_type' => $entity_type]));
+      $this->assertNotEquals($legacy_text, $entity->translatable_test_field->value, new FormattableMarkup('%entity_type: Text changed.', ['%entity_type' => $entity_type]));
     }
 
     $revisions = $storage->loadMultipleRevisions($revision_ids);
@@ -157,22 +159,22 @@ class EntityRevisionsTest extends BrowserTestBase {
       $entity_revision = $revisions[$revision_ids[$i]];
 
       // Check if properties and fields contain the revision specific content.
-      $this->assertEqual($entity_revision->revision_id->value, $revision_ids[$i], new FormattableMarkup('%entity_type: Revision ID matches.', ['%entity_type' => $entity_type]));
-      $this->assertEqual($entity_revision->name->value, $values['en'][$i]['name'], new FormattableMarkup('%entity_type: Name matches.', ['%entity_type' => $entity_type]));
-      $this->assertEqual($entity_revision->translatable_test_field[0]->value, $values['en'][$i]['translatable_test_field'][0], new FormattableMarkup('%entity_type: Text matches.', ['%entity_type' => $entity_type]));
-      $this->assertEqual($entity_revision->translatable_test_field[1]->value, $values['en'][$i]['translatable_test_field'][1], new FormattableMarkup('%entity_type: Text matches.', ['%entity_type' => $entity_type]));
+      $this->assertEquals($revision_ids[$i], $entity_revision->revision_id->value, new FormattableMarkup('%entity_type: Revision ID matches.', ['%entity_type' => $entity_type]));
+      $this->assertEquals($values['en'][$i]['name'], $entity_revision->name->value, new FormattableMarkup('%entity_type: Name matches.', ['%entity_type' => $entity_type]));
+      $this->assertEquals($values['en'][$i]['translatable_test_field'][0], $entity_revision->translatable_test_field[0]->value, new FormattableMarkup('%entity_type: Text matches.', ['%entity_type' => $entity_type]));
+      $this->assertEquals($values['en'][$i]['translatable_test_field'][1], $entity_revision->translatable_test_field[1]->value, new FormattableMarkup('%entity_type: Text matches.', ['%entity_type' => $entity_type]));
 
       // Check the translated values.
       if ($entity->getEntityType()->isTranslatable()) {
         $revision_translation = $entity_revision->getTranslation('de');
-        $this->assertEqual($revision_translation->name->value, $values['de'][$i]['name'], new FormattableMarkup('%entity_type: Name matches.', ['%entity_type' => $entity_type]));
-        $this->assertEqual($revision_translation->translatable_test_field[0]->value, $values['de'][$i]['translatable_test_field'][0], new FormattableMarkup('%entity_type: Text matches.', ['%entity_type' => $entity_type]));
-        $this->assertEqual($revision_translation->translatable_test_field[1]->value, $values['de'][$i]['translatable_test_field'][1], new FormattableMarkup('%entity_type: Text matches.', ['%entity_type' => $entity_type]));
+        $this->assertEquals($values['de'][$i]['name'], $revision_translation->name->value, new FormattableMarkup('%entity_type: Name matches.', ['%entity_type' => $entity_type]));
+        $this->assertEquals($values['de'][$i]['translatable_test_field'][0], $revision_translation->translatable_test_field[0]->value, new FormattableMarkup('%entity_type: Text matches.', ['%entity_type' => $entity_type]));
+        $this->assertEquals($values['de'][$i]['translatable_test_field'][1], $revision_translation->translatable_test_field[1]->value, new FormattableMarkup('%entity_type: Text matches.', ['%entity_type' => $entity_type]));
       }
 
       // Check non-revisioned values are loaded.
       $this->assertTrue(isset($entity_revision->created->value), new FormattableMarkup('%entity_type: Non-revisioned field is loaded.', ['%entity_type' => $entity_type]));
-      $this->assertEqual($entity_revision->created->value, $values['en'][2]['created'], new FormattableMarkup('%entity_type: Non-revisioned field value is the same between revisions.', ['%entity_type' => $entity_type]));
+      $this->assertEquals($values['en'][2]['created'], $entity_revision->created->value, new FormattableMarkup('%entity_type: Non-revisioned field value is the same between revisions.', ['%entity_type' => $entity_type]));
     }
 
     // Confirm the correct revision text appears in the edit form.
@@ -211,12 +213,12 @@ class EntityRevisionsTest extends BrowserTestBase {
     $revision_url = 'entity_test_mulrev/' . $entity->id() . '/revision/' . $pending_revision->getRevisionId() . '/view';
 
     $this->drupalGet($revision_url);
-    $this->assertText('pending revision - en');
-    $this->assertNoText('pending revision - de');
+    $this->assertSession()->pageTextContains('pending revision - en');
+    $this->assertSession()->pageTextNotContains('pending revision - de');
 
     $this->drupalGet('de/' . $revision_url);
-    $this->assertText('pending revision - de');
-    $this->assertNoText('pending revision - en');
+    $this->assertSession()->pageTextContains('pending revision - de');
+    $this->assertSession()->pageTextNotContains('pending revision - en');
   }
 
   /**

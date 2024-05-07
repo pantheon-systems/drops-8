@@ -2,7 +2,9 @@
 
 namespace Drupal\Tests\standard\Functional;
 
+use Drupal\ckeditor5\Plugin\Editor\CKEditor5;
 use Drupal\Component\Utility\Html;
+use Drupal\editor\Entity\Editor;
 use Drupal\media\Entity\MediaType;
 use Drupal\media\Plugin\media\Source\Image;
 use Drupal\Tests\SchemaCheckTestTrait;
@@ -13,6 +15,7 @@ use Drupal\filter\Entity\FilterFormat;
 use Drupal\Tests\BrowserTestBase;
 use Drupal\Tests\RequirementsPageTrait;
 use Drupal\user\Entity\Role;
+use Symfony\Component\Validator\ConstraintViolation;
 
 /**
  * Tests Standard installation profile expectations.
@@ -38,9 +41,7 @@ class StandardTest extends BrowserTestBase {
    */
   public function testStandard() {
     $this->drupalGet('');
-    $this->assertSession()->linkExists('Contact');
-    $this->clickLink(t('Contact'));
-    $this->assertSession()->statusCodeEquals(200);
+    $this->assertSession()->pageTextContains('Powered by Drupal');
 
     // Test anonymous user can access 'Main navigation' block.
     $this->adminUser = $this->drupalCreateUser([
@@ -52,27 +53,22 @@ class StandardTest extends BrowserTestBase {
     ]);
     $this->drupalLogin($this->adminUser);
     // Configure the block.
-    $this->drupalGet('admin/structure/block/add/system_menu_block:main/bartik');
+    $this->drupalGet('admin/structure/block/add/system_menu_block:main/olivero');
     $this->submitForm([
-      'region' => 'sidebar_first',
+      'region' => 'sidebar',
       'id' => 'main_navigation',
     ], 'Save block');
     // Verify admin user can see the block.
     $this->drupalGet('');
-    $this->assertText('Main navigation');
+    $this->assertSession()->pageTextContains('Main navigation');
 
     // Verify we have role = complementary on help_block blocks.
     $this->drupalGet('admin/structure/block');
-    $elements = $this->xpath('//div[@role=:role and @id=:id]', [
-      ':role' => 'complementary',
-      ':id' => 'block-bartik-help',
-    ]);
-
-    $this->assertCount(1, $elements, 'Found complementary role on help block.');
+    $this->assertSession()->elementAttributeContains('xpath', "//div[@id='block-olivero-help']", 'role', 'complementary');
 
     // Verify anonymous user can see the block.
     $this->drupalLogout();
-    $this->assertText('Main navigation');
+    $this->assertSession()->pageTextContains('Main navigation');
 
     // Ensure comments don't show in the front page RSS feed.
     // Create an article.
@@ -88,15 +84,15 @@ class StandardTest extends BrowserTestBase {
     $this->drupalLogin($this->adminUser);
     $this->drupalGet('node/1');
     // Verify that a line break is present.
-    $this->assertRaw('Then she picked out two somebodies,<br />Sally and me');
+    $this->assertSession()->responseContains('Then she picked out two somebodies,<br />Sally and me');
     $this->submitForm([
       'subject[0][value]' => 'Barfoo',
       'comment_body[0][value]' => 'Then she picked out two somebodies, Sally and me',
     ], 'Save');
     // Fetch the feed.
     $this->drupalGet('rss.xml');
-    $this->assertText('Foobar');
-    $this->assertNoText('Then she picked out two somebodies, Sally and me');
+    $this->assertSession()->responseContains('Foobar');
+    $this->assertSession()->responseNotContains('Then she picked out two somebodies, Sally and me');
 
     // Ensure block body exists.
     $this->drupalGet('block/add');
@@ -113,10 +109,29 @@ class StandardTest extends BrowserTestBase {
       $this->assertConfigSchema($typed_config, $name, $config->get());
     }
 
+    // Validate all configuration.
+    // @todo Generalize in https://www.drupal.org/project/drupal/issues/2164373
+    foreach (Editor::loadMultiple() as $editor) {
+      // Currently only text editors using CKEditor 5 can be validated.
+      if ($editor->getEditor() !== 'ckeditor5') {
+        continue;
+      }
+
+      $this->assertSame([], array_map(
+        function (ConstraintViolation $v) {
+          return (string) $v->getMessage();
+        },
+        iterator_to_array(CKEditor5::validatePair(
+          $editor,
+          $editor->getFilterFormat()
+        ))
+      ));
+    }
+
     // Ensure that configuration from the Standard profile is not reused when
     // enabling a module again since it contains configuration that can not be
     // installed. For example, editor.editor.basic_html is editor configuration
-    // that depends on the ckeditor module. The ckeditor module can not be
+    // that depends on the CKEditor 5 module. The CKEditor 5 module can not be
     // installed before the editor module since it depends on the editor module.
     // The installer does not have this limitation since it ensures that all of
     // the install profiles dependencies are installed before creating the
@@ -129,13 +144,13 @@ class StandardTest extends BrowserTestBase {
       $filter->removeFilter('editor_file_reference');
       $filter->save();
     }
-    \Drupal::service('module_installer')->uninstall(['editor', 'ckeditor']);
+    \Drupal::service('module_installer')->uninstall(['editor', 'ckeditor5']);
     $this->rebuildContainer();
     \Drupal::service('module_installer')->install(['editor']);
     /** @var \Drupal\contact\ContactFormInterface $contact_form */
     $contact_form = ContactForm::load('feedback');
     $recipients = $contact_form->getRecipients();
-    $this->assertEqual(['simpletest@example.com'], $recipients);
+    $this->assertEquals(['simpletest@example.com'], $recipients);
 
     $role = Role::create([
       'id' => 'admin_theme',
@@ -153,31 +168,30 @@ class StandardTest extends BrowserTestBase {
     $this->drupalGet('update.php/selection');
     $this->updateRequirementsProblem();
     $this->drupalGet('update.php/selection');
-    $this->assertText('No pending updates.');
+    $this->assertSession()->pageTextContains('No pending updates.');
 
     // Ensure that there are no pending entity updates after installation.
     $this->assertFalse($this->container->get('entity.definition_update_manager')->needsUpdates(), 'After installation, entity schema is up to date.');
 
     // Make sure the optional image styles are not installed.
     $this->drupalGet('admin/config/media/image-styles');
-    $this->assertNoText('Max 325x325');
-    $this->assertNoText('Max 650x650');
-    $this->assertNoText('Max 1300x1300');
-    $this->assertNoText('Max 2600x2600');
+    $this->assertSession()->pageTextNotContains('Max 325x325');
+    $this->assertSession()->pageTextNotContains('Max 650x650');
+    $this->assertSession()->pageTextNotContains('Max 1300x1300');
+    $this->assertSession()->pageTextNotContains('Max 2600x2600');
 
     // Make sure the optional image styles are installed after enabling
     // the responsive_image module.
     \Drupal::service('module_installer')->install(['responsive_image']);
     $this->rebuildContainer();
     $this->drupalGet('admin/config/media/image-styles');
-    $this->assertText('Max 325x325');
-    $this->assertText('Max 650x650');
-    $this->assertText('Max 1300x1300');
-    $this->assertText('Max 2600x2600');
+    $this->assertSession()->pageTextContains('Max 325x325');
+    $this->assertSession()->pageTextContains('Max 650x650');
+    $this->assertSession()->pageTextContains('Max 1300x1300');
+    $this->assertSession()->pageTextContains('Max 2600x2600');
 
     // Verify certain routes' responses are cacheable by Dynamic Page Cache, to
     // ensure these responses are very fast for authenticated users.
-    $this->dumpHeaders = TRUE;
     $this->drupalLogin($this->adminUser);
     $url = Url::fromRoute('contact.site_page');
     $this->drupalGet($url);
@@ -216,14 +230,14 @@ class StandardTest extends BrowserTestBase {
     $this->adminUser->save();
     $this->rebuildContainer();
     $this->drupalGet('admin/config/workflow/workflows/manage/editorial');
-    $this->assertText('Draft');
-    $this->assertText('Published');
-    $this->assertText('Archived');
-    $this->assertText('Create New Draft');
-    $this->assertText('Publish');
-    $this->assertText('Archive');
-    $this->assertText('Restore to Draft');
-    $this->assertText('Restore');
+    $this->assertSession()->pageTextContains('Draft');
+    $this->assertSession()->pageTextContains('Published');
+    $this->assertSession()->pageTextContains('Archived');
+    $this->assertSession()->pageTextContains('Create New Draft');
+    $this->assertSession()->pageTextContains('Publish');
+    $this->assertSession()->pageTextContains('Archive');
+    $this->assertSession()->pageTextContains('Restore to Draft');
+    $this->assertSession()->pageTextContains('Restore');
 
     \Drupal::service('module_installer')->install(['media']);
     $role = Role::create([
@@ -249,8 +263,9 @@ class StandardTest extends BrowserTestBase {
       // The name field should be hidden.
       $assert_session->fieldNotExists('Name', $form);
       // The source field should be shown before the vertical tabs.
-      $test_source_field = $assert_session->fieldExists($media_type->getSource()->getSourceFieldDefinition($media_type)->getLabel(), $form)->getOuterHtml();
-      $vertical_tabs = $assert_session->elementExists('css', '.form-type-vertical-tabs', $form)->getOuterHtml();
+      $source_field_label = $media_type->getSource()->getSourceFieldDefinition($media_type)->getLabel();
+      $test_source_field = $assert_session->elementExists('xpath', "//*[contains(text(), '$source_field_label')]", $form)->getOuterHtml();
+      $vertical_tabs = $assert_session->elementExists('css', '.js-form-type-vertical-tabs', $form)->getOuterHtml();
       $this->assertGreaterThan(strpos($form_html, $test_source_field), strpos($form_html, $vertical_tabs));
       // The "Published" checkbox should be the last element.
       $date_field = $assert_session->fieldExists('Date', $form)->getOuterHtml();

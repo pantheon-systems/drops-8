@@ -71,12 +71,12 @@ abstract class AbstractSurrogateFragmentRenderer extends RoutableFragmentRendere
             $uri = $this->generateSignedFragmentUri($uri, $request);
         }
 
-        $alt = isset($options['alt']) ? $options['alt'] : null;
+        $alt = $options['alt'] ?? null;
         if ($alt instanceof ControllerReference) {
             $alt = $this->generateSignedFragmentUri($alt, $request);
         }
 
-        $tag = $this->surrogate->renderIncludeTag($uri, $alt, isset($options['ignore_errors']) ? $options['ignore_errors'] : false, isset($options['comment']) ? $options['comment'] : '');
+        $tag = $this->surrogate->renderIncludeTag($uri, $alt, $options['ignore_errors'] ?? false, $options['comment'] ?? '');
 
         return new Response($tag);
     }
@@ -96,9 +96,11 @@ abstract class AbstractSurrogateFragmentRenderer extends RoutableFragmentRendere
     private function containsNonScalars(array $values): bool
     {
         foreach ($values as $value) {
-            if (\is_array($value)) {
-                return $this->containsNonScalars($value);
-            } elseif (!is_scalar($value) && null !== $value) {
+            if (\is_scalar($value) || null === $value) {
+                continue;
+            }
+
+            if (!\is_array($value) || $this->containsNonScalars($value)) {
                 return true;
             }
         }

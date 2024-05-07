@@ -91,14 +91,16 @@ class EntityReferenceSelectionAccessTest extends KernelTestBase {
    *   An array of tests to run.
    * @param string $handler_name
    *   The name of the entity type selection handler being tested.
+   *
+   * @internal
    */
-  protected function assertReferenceable(array $selection_options, $tests, $handler_name) {
+  protected function assertReferenceable(array $selection_options, array $tests, string $handler_name): void {
     $handler = \Drupal::service('plugin.manager.entity_reference_selection')->getInstance($selection_options);
 
     foreach ($tests as $test) {
       foreach ($test['arguments'] as $arguments) {
         $result = call_user_func_array([$handler, 'getReferenceableEntities'], $arguments);
-        $this->assertEqual($result, $test['result'], new FormattableMarkup('Valid result set returned by @handler.', ['@handler' => $handler_name]));
+        $this->assertEquals($test['result'], $result, new FormattableMarkup('Valid result set returned by @handler.', ['@handler' => $handler_name]));
 
         $result = call_user_func_array([$handler, 'countReferenceableEntities'], $arguments);
         if (!empty($test['result'])) {
@@ -109,13 +111,13 @@ class EntityReferenceSelectionAccessTest extends KernelTestBase {
           $count = 0;
         }
 
-        $this->assertEqual($result, $count, new FormattableMarkup('Valid count returned by @handler.', ['@handler' => $handler_name]));
+        $this->assertEquals($count, $result, new FormattableMarkup('Valid count returned by @handler.', ['@handler' => $handler_name]));
       }
     }
   }
 
   /**
-   * Test the node-specific overrides of the entity handler.
+   * Tests the node-specific overrides of the entity handler.
    */
   public function testNodeHandler() {
     $selection_options = [
@@ -239,7 +241,7 @@ class EntityReferenceSelectionAccessTest extends KernelTestBase {
   }
 
   /**
-   * Test the user-specific overrides of the entity handler.
+   * Tests the user-specific overrides of the entity handler.
    */
   public function testUserHandler() {
     $selection_options = [
@@ -398,7 +400,7 @@ class EntityReferenceSelectionAccessTest extends KernelTestBase {
   }
 
   /**
-   * Test the comment-specific overrides of the entity handler.
+   * Tests the comment-specific overrides of the entity handler.
    */
   public function testCommentHandler() {
     $selection_options = [
@@ -556,7 +558,7 @@ class EntityReferenceSelectionAccessTest extends KernelTestBase {
   }
 
   /**
-   * Test the term-specific overrides of the selection handler.
+   * Tests the term-specific overrides of the selection handler.
    */
   public function testTermHandler() {
     // Create a 'Tags' vocabulary.

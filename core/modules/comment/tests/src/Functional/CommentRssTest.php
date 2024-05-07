@@ -72,13 +72,13 @@ class CommentRssTest extends CommentTestBase {
     ]));
 
     $raw = '<comments>' . $this->node->toUrl('canonical', ['fragment' => 'comments', 'absolute' => TRUE])->toString() . '</comments>';
-    $this->assertRaw($raw);
+    $this->assertSession()->responseContains($raw);
 
     // Hide comments from RSS feed and check presence.
     $this->node->set('comment', CommentItemInterface::HIDDEN);
     $this->node->save();
     $this->drupalGet('rss.xml');
-    $this->assertNoRaw($raw);
+    $this->assertSession()->responseNotContains($raw);
   }
 
 }

@@ -24,8 +24,8 @@ class ViewsNoResultsBehaviorTest extends ViewTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp($import_test_views = TRUE): void {
-    parent::setUp();
+  protected function setUp($import_test_views = TRUE, $modules = []): void {
+    parent::setUp($import_test_views, $modules);
     $this->enableViewsTestModule();
     $user = $this->createUser([], NULL, TRUE);
     $this->drupalLogin($user);
@@ -42,7 +42,7 @@ class ViewsNoResultsBehaviorTest extends ViewTestBase {
    */
   public function testDuplicateText() {
     $output = $this->drupalGet('admin/content');
-    $this->assertEqual(1, substr_count($output, 'No content available.'), 'Only one message should be present');
+    $this->assertEquals(1, substr_count($output, 'No content available.'), 'Only one message should be present');
   }
 
 }

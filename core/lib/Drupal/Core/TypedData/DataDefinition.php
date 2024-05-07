@@ -72,13 +72,13 @@ class DataDefinition implements DataDefinitionInterface, \ArrayAccess {
    * {@inheritdoc}
    */
   public function getLabel() {
-    return isset($this->definition['label']) ? $this->definition['label'] : NULL;
+    return $this->definition['label'] ?? NULL;
   }
 
   /**
    * Sets the human-readable label.
    *
-   * @param string $label
+   * @param string|\Drupal\Core\StringTranslation\TranslatableMarkup $label
    *   The label to set.
    *
    * @return static
@@ -93,13 +93,13 @@ class DataDefinition implements DataDefinitionInterface, \ArrayAccess {
    * {@inheritdoc}
    */
   public function getDescription() {
-    return isset($this->definition['description']) ? $this->definition['description'] : NULL;
+    return $this->definition['description'] ?? NULL;
   }
 
   /**
    * Sets the human-readable description.
    *
-   * @param string $description
+   * @param string|\Drupal\Core\StringTranslation\TranslatableMarkup $description
    *   The description to set.
    *
    * @return static
@@ -215,7 +215,7 @@ class DataDefinition implements DataDefinitionInterface, \ArrayAccess {
    * {@inheritdoc}
    */
   public function getSettings() {
-    return isset($this->definition['settings']) ? $this->definition['settings'] : [];
+    return $this->definition['settings'] ?? [];
   }
 
   /**
@@ -236,7 +236,7 @@ class DataDefinition implements DataDefinitionInterface, \ArrayAccess {
    * {@inheritdoc}
    */
   public function getSetting($setting_name) {
-    return isset($this->definition['settings'][$setting_name]) ? $this->definition['settings'][$setting_name] : NULL;
+    return $this->definition['settings'][$setting_name] ?? NULL;
   }
 
   /**
@@ -259,7 +259,7 @@ class DataDefinition implements DataDefinitionInterface, \ArrayAccess {
    * {@inheritdoc}
    */
   public function getConstraints() {
-    $constraints = isset($this->definition['constraints']) ? $this->definition['constraints'] : [];
+    $constraints = $this->definition['constraints'] ?? [];
     $constraints += $this->getTypedDataManager()->getDefaultConstraints($this);
     return $constraints;
   }
@@ -269,7 +269,7 @@ class DataDefinition implements DataDefinitionInterface, \ArrayAccess {
    */
   public function getConstraint($constraint_name) {
     $constraints = $this->getConstraints();
-    return isset($constraints[$constraint_name]) ? $constraints[$constraint_name] : NULL;
+    return $constraints[$constraint_name] ?? NULL;
   }
 
   /**
@@ -301,6 +301,7 @@ class DataDefinition implements DataDefinitionInterface, \ArrayAccess {
    * This is for BC support only.
    * @todo: Remove in https://www.drupal.org/node/1928868.
    */
+  #[\ReturnTypeWillChange]
   public function offsetExists($offset) {
     // PHP's array access does not work correctly with isset(), so we have to
     // bake isset() in here. See https://bugs.php.net/bug.php?id=41727.
@@ -313,6 +314,7 @@ class DataDefinition implements DataDefinitionInterface, \ArrayAccess {
    * This is for BC support only.
    * @todo: Remove in https://www.drupal.org/node/1928868.
    */
+  #[\ReturnTypeWillChange]
   public function &offsetGet($offset) {
     if (!isset($this->definition[$offset])) {
       $this->definition[$offset] = NULL;
@@ -326,6 +328,7 @@ class DataDefinition implements DataDefinitionInterface, \ArrayAccess {
    * This is for BC support only.
    * @todo: Remove in https://www.drupal.org/node/1928868.
    */
+  #[\ReturnTypeWillChange]
   public function offsetSet($offset, $value) {
     $this->definition[$offset] = $value;
   }
@@ -336,6 +339,7 @@ class DataDefinition implements DataDefinitionInterface, \ArrayAccess {
    * This is for BC support only.
    * @todo: Remove in https://www.drupal.org/node/1928868.
    */
+  #[\ReturnTypeWillChange]
   public function offsetUnset($offset) {
     unset($this->definition[$offset]);
   }
@@ -377,6 +381,8 @@ class DataDefinition implements DataDefinitionInterface, \ArrayAccess {
    *   Whether the data value should be internal.
    *
    * @return $this
+   *
+   * @see \Drupal\Core\TypedData\DataDefinitionInterface::isInternal
    */
   public function setInternal($internal) {
     $this->definition['internal'] = $internal;

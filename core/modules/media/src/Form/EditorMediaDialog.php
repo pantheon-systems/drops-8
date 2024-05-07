@@ -77,6 +77,10 @@ class EditorMediaDialog extends FormBase {
   /**
    * {@inheritdoc}
    *
+   * @param array $form
+   *   A nested array form elements comprising the form.
+   * @param \Drupal\Core\Form\FormStateInterface $form_state
+   *   The current state of the form.
    * @param \Drupal\editor\EditorInterface $editor
    *   The text editor to which this dialog corresponds.
    */
@@ -92,7 +96,6 @@ class EditorMediaDialog extends FormBase {
       $editor_object = $form_state->getUserInput()['editor_object'];
       // The data that the text editor sends to any dialog is in
       // the 'editor_object' key.
-      // @see core/modules/ckeditor/js/ckeditor.es6.js
       $media_embed_element = $editor_object['attributes'];
       $form_state->set('media_embed_element', $media_embed_element);
       $has_caption = $editor_object['hasCaption'];
@@ -131,7 +134,7 @@ class EditorMediaDialog extends FormBase {
         $media = $media->getTranslation($editor_object['hostEntityLangcode']);
       }
       $settings = $media->{$image_field_name}->getItemDefinition()->getSettings();
-      $alt = isset($media_embed_element['alt']) ? $media_embed_element['alt'] : NULL;
+      $alt = $media_embed_element['alt'] ?? NULL;
       $form['alt'] = [
         '#type' => 'textfield',
         '#title' => $this->t('Alternate text'),
@@ -172,7 +175,7 @@ class EditorMediaDialog extends FormBase {
       '#access' => $filter_caption->status && ($filter_html->status === FALSE || !empty($allowed_attributes['data-caption'])),
     ];
 
-    $view_mode_options = array_intersect_key($this->entityDisplayRepository->getViewModeOptions('media'), $media_embed_filter->settings['allowed_view_modes']);
+    $view_mode_options = array_intersect_key($this->entityDisplayRepository->getViewModeOptionsByBundle('media', $media->bundle()), $media_embed_filter->settings['allowed_view_modes']);
     $default_view_mode = static::getViewModeDefaultValue($view_mode_options, $media_embed_filter, $media_embed_element['data-view-mode'] ?? NULL);
 
     $form['view_mode'] = [

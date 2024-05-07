@@ -31,7 +31,7 @@
    */
   $.fn.drupalGetSummary = function () {
     const callback = this.data('summaryCallback');
-    return this[0] && callback ? $.trim(callback(this[0])) : '';
+    return this[0] && callback ? callback(this[0]).trim() : '';
   };
 
   /**
@@ -127,9 +127,11 @@
         }
       }
 
-      $('body')
-        .once('form-single-submit')
-        .on('submit.singleSubmit', 'form:not([method~="GET"])', onFormSubmit);
+      $(once('form-single-submit', 'body')).on(
+        'submit.singleSubmit',
+        'form:not([method~="GET"])',
+        onFormSubmit,
+      );
     },
   };
 
@@ -155,15 +157,9 @@
    *   Array of IDs for form fields.
    */
   function fieldsList(form) {
-    const $fieldList = $(form)
-      .find('[name]')
-      .map(
-        // We use id to avoid name duplicates on radio fields and filter out
-        // elements with a name but no id.
-        (index, element) => element.getAttribute('id'),
-      );
-    // Return a true array.
-    return $.makeArray($fieldList);
+    // We use id to avoid name duplicates on radio fields and filter out
+    // elements with a name but no id.
+    return [].map.call(form.querySelectorAll('[name][id]'), (el) => el.id);
   }
 
   /**
@@ -182,8 +178,8 @@
     attach(context) {
       const $context = $(context);
       const contextIsForm = $context.is('form');
-      const $forms = (contextIsForm ? $context : $context.find('form')).once(
-        'form-updated',
+      const $forms = $(
+        once('form-updated', contextIsForm ? $context : $context.find('form')),
       );
       let formFields;
 
@@ -218,16 +214,15 @@
       const $context = $(context);
       const contextIsForm = $context.is('form');
       if (trigger === 'unload') {
-        const $forms = (contextIsForm
-          ? $context
-          : $context.find('form')
-        ).removeOnce('form-updated');
-        if ($forms.length) {
-          $.makeArray($forms).forEach((form) => {
+        once
+          .remove(
+            'form-updated',
+            contextIsForm ? $context : $context.find('form'),
+          )
+          .forEach((form) => {
             form.removeAttribute('data-drupal-form-fields');
             $(form).off('.formUpdated');
           });
-        }
       }
     },
   };
@@ -243,18 +238,23 @@
   Drupal.behaviors.fillUserInfoFromBrowser = {
     attach(context, settings) {
       const userInfo = ['name', 'mail', 'homepage'];
-      const $forms = $('[data-user-info-from-browser]').once(
-        'user-info-from-browser',
+      const $forms = $(
+        once('user-info-from-browser', '[data-user-info-from-browser]'),
       );
       if ($forms.length) {
         userInfo.forEach((info) => {
           const $element = $forms.find(`[name=${info}]`);
           const browserData = localStorage.getItem(`Drupal.visitor.${info}`);
-          const emptyOrDefault =
-            $element.val() === '' ||
-            $element.attr('data-drupal-default-value') === $element.val();
-          if ($element.length && emptyOrDefault && browserData) {
-            $element.val(browserData);
+          if (!$element.length) {
+            return;
+          }
+          const emptyValue = $element[0].value === '';
+          const defaultValue =
+            $element.attr('data-drupal-default-value') === $element[0].value;
+          if (browserData && (emptyValue || defaultValue)) {
+            $element.each(function (index, item) {
+              item.value = browserData;
+            });
           }
         });
       }
@@ -262,7 +262,7 @@
         userInfo.forEach((info) => {
           const $element = $forms.find(`[name=${info}]`);
           if ($element.length) {
-            localStorage.setItem(`Drupal.visitor.${info}`, $element.val());
+            localStorage.setItem(`Drupal.visitor.${info}`, $element[0].value);
           }
         });
       });

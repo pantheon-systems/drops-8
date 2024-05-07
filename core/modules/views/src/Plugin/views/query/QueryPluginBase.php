@@ -36,7 +36,7 @@ abstract class QueryPluginBase extends PluginBase implements CacheableDependency
   /**
    * A pager plugin that should be provided by the display.
    *
-   * @var views_plugin_pager
+   * @var \Drupal\views\Plugin\views\pager\PagerPluginBase|null
    */
   public $pager = NULL;
 
@@ -48,8 +48,14 @@ abstract class QueryPluginBase extends PluginBase implements CacheableDependency
   protected $limit;
 
   /**
-   * Generate a query and a countquery from all of the information supplied
-   * to the object.
+   * Controls how the WHERE and HAVING groups are put together.
+   *
+   * @var string
+   */
+  protected $groupOperator;
+
+  /**
+   * Generate a query and a countquery from all of the information supplied.
    *
    * @param $get_count
    *   Provide a countquery if this is true, otherwise provide a normal query.
@@ -59,7 +65,7 @@ abstract class QueryPluginBase extends PluginBase implements CacheableDependency
   /**
    * Let modules modify the query just prior to finalizing it.
    *
-   * @param view $view
+   * @param \Drupal\views\ViewExecutable $view
    *   The view which is executed.
    */
   public function alter(ViewExecutable $view) {}
@@ -67,14 +73,13 @@ abstract class QueryPluginBase extends PluginBase implements CacheableDependency
   /**
    * Builds the necessary info to execute the query.
    *
-   * @param view $view
+   * @param \Drupal\views\ViewExecutable $view
    *   The view which is executed.
    */
   public function build(ViewExecutable $view) {}
 
   /**
-   * Executes the query and fills the associated view object with according
-   * values.
+   * Executes query and fills associated view object with according values.
    *
    * Values to set: $view->result, $view->total_rows, $view->execute_time,
    * $view->pager['current_page'].
@@ -82,7 +87,7 @@ abstract class QueryPluginBase extends PluginBase implements CacheableDependency
    * $view->result should contain an array of objects. The array must use a
    * numeric index starting at 0.
    *
-   * @param view $view
+   * @param \Drupal\views\ViewExecutable $view
    *   The view which is executed.
    */
   public function execute(ViewExecutable $view) {}
@@ -93,7 +98,7 @@ abstract class QueryPluginBase extends PluginBase implements CacheableDependency
    * This signature is something that can be used when perusing query logs to
    * discern where particular queries might be coming from.
    *
-   * @param view $view
+   * @param \Drupal\views\ViewExecutable $view
    *   The view which is executed.
    */
   public function addSignature(ViewExecutable $view) {}
@@ -119,7 +124,7 @@ abstract class QueryPluginBase extends PluginBase implements CacheableDependency
   public function calculateDependencies() {
     $dependencies = [];
 
-    foreach ($this->getEntityTableInfo() as $entity_type => $info) {
+    foreach ($this->getEntityTableInfo() as $info) {
       if (!empty($info['provider'])) {
         $dependencies['module'][] = $info['provider'];
       }
@@ -160,7 +165,7 @@ abstract class QueryPluginBase extends PluginBase implements CacheableDependency
    * @param $where
    *   'where' or 'having'.
    *
-   * @return
+   * @return int|string
    *   The group ID generated.
    */
   public function setWhereGroup($type = 'AND', $group = NULL, $where = 'where') {
@@ -192,7 +197,7 @@ abstract class QueryPluginBase extends PluginBase implements CacheableDependency
 
   /**
    * Loads all entities contained in the passed-in $results.
-   *.
+   *
    * If the entity belongs to the base table, then it gets stored in
    * $result->_entity. Otherwise, it gets stored in
    * $result->_relationship_entities[$relationship_id];

@@ -5,6 +5,7 @@ namespace Drupal\Tests\system\Kernel\System;
 use Drupal\Core\Database\Database;
 use Drupal\Core\Queue\DatabaseQueue;
 use Drupal\Core\Queue\Memory;
+use Drupal\Core\Queue\QueueWorkerManagerInterface;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\cron_queue_test\Plugin\QueueWorker\CronQueueTestDatabaseDelayException;
 use Prophecy\Argument;
@@ -121,6 +122,36 @@ class CronQueueTest extends KernelTestBase {
   }
 
   /**
+   * Tests that leases are expiring correctly, also within the same request.
+   */
+  public function testLeaseTime() {
+    $queue = $this->container->get('queue')->get('cron_queue_test_lease_time');
+    $queue->createItem([$this->randomMachineName() => $this->randomMachineName()]);
+    // Run initial queue job and ensure lease time variable is initialized.
+    $this->cron->run();
+    static::assertEquals(1, \Drupal::state()->get('cron_queue_test_lease_time'));
+    // Ensure the same queue job is not picked up due to the extended lease.
+    $this->cron->run();
+    static::assertEquals(1, \Drupal::state()->get('cron_queue_test_lease_time'));
+
+    // Set the expiration time to 3 seconds ago, so the lease should
+    // automatically expire.
+    \Drupal::database()
+      ->update(DatabaseQueue::TABLE_NAME)
+      ->fields(['expire' => $this->currentTime - 3])
+      ->execute();
+
+    // The queue job should now be picked back up since it's lease has expired,
+    // and the state variable should be consequently incremented.
+    $this->cron->run();
+    static::assertEquals(2, \Drupal::state()->get('cron_queue_test_lease_time'));
+    // Ensure the same queue job is not picked up again due to the extended
+    // lease.
+    $this->cron->run();
+    static::assertEquals(2, \Drupal::state()->get('cron_queue_test_lease_time'));
+  }
+
+  /**
    * Tests that exceptions thrown by workers are handled properly.
    */
   public function testExceptions() {
@@ -133,10 +164,10 @@ class CronQueueTest extends KernelTestBase {
     // Run cron; the worker for this queue should throw an exception and handle
     // it.
     $this->cron->run();
-    $this->assertEqual(\Drupal::state()->get('cron_queue_test_exception'), 1);
+    $this->assertEquals(1, \Drupal::state()->get('cron_queue_test_exception'));
 
     // The item should be left in the queue.
-    $this->assertEqual($queue->numberOfItems(), 1, 'Failing item still in the queue after throwing an exception.');
+    $this->assertEquals(1, $queue->numberOfItems(), 'Failing item still in the queue after throwing an exception.');
 
     // Expire the queue item manually. system_cron() relies in REQUEST_TIME to
     // find queue items whose expire field needs to be reset to 0. This is a
@@ -145,11 +176,11 @@ class CronQueueTest extends KernelTestBase {
     // @see \Drupal\Core\Cron::processQueues()
     $this->connection->update('queue')
       ->condition('name', 'cron_queue_test_exception')
-      ->fields(['expire' => REQUEST_TIME - 1])
+      ->fields(['expire' => \Drupal::time()->getRequestTime() - 1])
       ->execute();
     $this->cron->run();
-    $this->assertEqual(\Drupal::state()->get('cron_queue_test_exception'), 2);
-    $this->assertEqual($queue->numberOfItems(), 0, 'Item was processed and removed from the queue.');
+    $this->assertEquals(2, \Drupal::state()->get('cron_queue_test_exception'));
+    $this->assertEquals(0, $queue->numberOfItems(), 'Item was processed and removed from the queue.');
 
     // Get the queue to test the specific SuspendQueueException.
     $queue = $this->container->get('queue')->get('cron_queue_test_broken_queue');
@@ -164,14 +195,14 @@ class CronQueueTest extends KernelTestBase {
     $this->cron->run();
 
     // Only one item should have been processed.
-    $this->assertEqual($queue->numberOfItems(), 2, 'Failing queue stopped processing at the failing item.');
+    $this->assertEquals(2, $queue->numberOfItems(), 'Failing queue stopped processing at the failing item.');
 
     // Check the items remaining in the queue. The item that throws the
     // exception gets released by cron, so we can claim it again to check it.
     $item = $queue->claimItem();
-    $this->assertEqual($item->data, 'crash', 'Failing item remains in the queue.');
+    $this->assertEquals('crash', $item->data, 'Failing item remains in the queue.');
     $item = $queue->claimItem();
-    $this->assertEqual($item->data, 'ignored', 'Item beyond the failing item remains in the queue.');
+    $this->assertEquals('ignored', $item->data, 'Item beyond the failing item remains in the queue.');
 
     // Test the requeueing functionality.
     $queue = $this->container->get('queue')->get('cron_queue_test_requeue_exception');
@@ -180,6 +211,54 @@ class CronQueueTest extends KernelTestBase {
 
     $this->assertEquals(2, \Drupal::state()->get('cron_queue_test_requeue_exception'));
     $this->assertEquals(0, $queue->numberOfItems());
+  }
+
+  /**
+   * Tests that database queue implementation complies with interfaces specs.
+   */
+  public function testDatabaseQueueReturnTypes(): void {
+    /** @var \Drupal\Core\Queue\DatabaseQueue $queue */
+    $queue = $this->container
+      ->get('queue')
+      ->get('cron_queue_test_database_delay_exception');
+    static::assertInstanceOf(DatabaseQueue::class, $queue);
+
+    $queue->createItem(12);
+    $item = $queue->claimItem();
+    static::assertTrue($queue->delayItem($item, 1));
+    static::assertTrue($queue->releaseItem($item));
+    $queue->deleteItem($item);
+    static::assertFalse($queue->delayItem($item, 1));
+    static::assertFalse($queue->releaseItem($item));
+  }
+
+  /**
+   * Test safeguard against invalid annotations in QueueWorkerManager.
+   */
+  public function testQueueWorkerManagerSafeguard(): void {
+    $queue_worker_manager = $this->container->get('plugin.manager.queue_worker');
+    $plugin_id = 'test_plugin_id';
+
+    // Ensure if no cron annotation is provided, none is added.
+    $definition = [];
+    $queue_worker_manager->processDefinition($definition, $plugin_id);
+    $this->assertArrayNotHasKey('cron', $definition);
+
+    // Ensure if an empty cron annotation is provided, the default lease time is
+    // added.
+    $definition = ['cron' => []];
+    $queue_worker_manager->processDefinition($definition, $plugin_id);
+    $this->assertArrayHasKey('time', $definition['cron']);
+    $this->assertEquals(QueueWorkerManagerInterface::DEFAULT_QUEUE_CRON_TIME, $definition['cron']['time']);
+
+    // Ensure if an invalid lease time (less-than 1 second) is provided, it is
+    // overridden with the default lease time.
+    $definition = ['cron' => ['time' => 0]];
+    $queue_worker_manager->processDefinition($definition, $plugin_id);
+    $this->assertEquals(QueueWorkerManagerInterface::DEFAULT_QUEUE_CRON_TIME, $definition['cron']['time']);
+    $definition = ['cron' => ['time' => -1]];
+    $queue_worker_manager->processDefinition($definition, $plugin_id);
+    $this->assertEquals(QueueWorkerManagerInterface::DEFAULT_QUEUE_CRON_TIME, $definition['cron']['time']);
   }
 
 }

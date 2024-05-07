@@ -4,6 +4,7 @@ namespace Drupal\Core\Plugin\Context;
 
 use Drupal\Core\DependencyInjection\DependencySerializationTrait;
 use Drupal\Core\TypedData\TypedDataTrait;
+use Symfony\Component\Validator\ConstraintViolationList;
 
 /**
  * Defines a class for context definitions.
@@ -80,6 +81,9 @@ class ContextDefinition implements ContextDefinitionInterface {
    *   The created context definition object.
    */
   public static function create($data_type = 'any') {
+    if (strpos($data_type, 'entity:') === 0) {
+      return new EntityContextDefinition($data_type);
+    }
     return new static(
       $data_type
     );
@@ -215,7 +219,7 @@ class ContextDefinition implements ContextDefinitionInterface {
    */
   public function getConstraint($constraint_name) {
     $constraints = $this->getConstraints();
-    return isset($constraints[$constraint_name]) ? $constraints[$constraint_name] : NULL;
+    return $constraints[$constraint_name] ?? NULL;
   }
 
   /**
@@ -304,7 +308,15 @@ class ContextDefinition implements ContextDefinitionInterface {
     $validator = $this->getTypedDataManager()->getValidator();
     foreach ($values as $value) {
       $constraints = array_values($this->getConstraintObjects());
-      $violations = $validator->validate($value, $constraints);
+      if ($definition->isMultiple()) {
+        $violations = new ConstraintViolationList();
+        foreach ($value as $item) {
+          $violations->addAll($validator->validate($item, $constraints));
+        }
+      }
+      else {
+        $violations = $validator->validate($value, $constraints);
+      }
       foreach ($violations as $delta => $violation) {
         // Remove any violation that does not correspond to the constraints.
         if (!in_array($violation->getConstraint(), $constraints)) {

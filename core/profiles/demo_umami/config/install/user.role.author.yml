@@ -1,6 +1,26 @@
 langcode: en
 status: true
-dependencies: {  }
+dependencies:
+  config:
+    - core.entity_view_display.node.article.full
+    - core.entity_view_display.node.page.full
+    - core.entity_view_display.node.recipe.full
+    - node.type.article
+    - node.type.page
+    - node.type.recipe
+    - taxonomy.vocabulary.recipe_category
+    - taxonomy.vocabulary.tags
+    - workflows.workflow.editorial
+  module:
+    - content_moderation
+    - contextual
+    - file
+    - layout_builder
+    - node
+    - path
+    - system
+    - taxonomy
+    - toolbar
 id: author
 label: Author
 weight: 3
@@ -9,10 +29,13 @@ permissions:
   - 'access content overview'
   - 'access contextual links'
   - 'access files overview'
-  - 'access in-place editing'
   - 'access toolbar'
   - 'cancel account'
   - 'change own username'
+  - 'configure editable article node layout overrides'
+  - 'configure editable page node layout overrides'
+  - 'configure editable recipe node layout overrides'
+  - 'create and edit custom blocks'
   - 'create article content'
   - 'create page content'
   - 'create recipe content'

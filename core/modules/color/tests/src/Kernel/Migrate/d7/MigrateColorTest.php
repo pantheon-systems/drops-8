@@ -8,6 +8,7 @@ use Drupal\Tests\migrate_drupal\Kernel\d7\MigrateDrupal7TestBase;
  * Tests migration of Color variables to configuration.
  *
  * @group color
+ * @group legacy
  */
 class MigrateColorTest extends MigrateDrupal7TestBase {
 
@@ -24,6 +25,13 @@ class MigrateColorTest extends MigrateDrupal7TestBase {
     // Install the themes used for this test.
     $this->container->get('theme_installer')->install(['bartik']);
     $this->executeMigration('d7_color');
+  }
+
+  /**
+   * Gets the path to the fixture file.
+   */
+  protected function getFixtureFilePath() {
+    return __DIR__ . '/../../../../fixtures/drupal7.php';
   }
 
   /**

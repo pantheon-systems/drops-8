@@ -16,9 +16,9 @@ class CacheableHttpException extends HttpException implements CacheableDependenc
   /**
    * {@inheritdoc}
    */
-  public function __construct(CacheableDependencyInterface $cacheability, $statusCode = 0, $message = NULL, \Exception $previous = NULL, $code = 0) {
+  public function __construct(CacheableDependencyInterface $cacheability, $statusCode = 0, $message = '', \Exception $previous = NULL, array $headers = [], $code = 0) {
     $this->setCacheability($cacheability);
-    parent::__construct($statusCode, $message, $previous, $code);
+    parent::__construct($statusCode, $message, $previous, $headers, $code);
   }
 
 }

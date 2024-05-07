@@ -79,7 +79,7 @@ class ContentTypeHeaderMatcherTest extends UnitTestCase {
     $this->assertNotNull($routes->get('route_f'), 'The json route was found.');
     $this->assertNull($routes->get('route_g'), 'The xml route was not found.');
     foreach ($routes as $name => $route) {
-      $this->assertEquals($name, 'route_f', 'The json route is the first one in the collection.');
+      $this->assertEquals('route_f', $name, 'The json route is the first one in the collection.');
       break;
     }
   }
@@ -111,9 +111,9 @@ class ContentTypeHeaderMatcherTest extends UnitTestCase {
 
     $routes = $this->fixtures->contentRouteCollection();
     $request = Request::create('path/two', 'POST');
-    $request->headers->set('Content-type', 'application/hal+json');
+    $request->headers->set('Content-type', 'text/html');
     $this->expectException(UnsupportedMediaTypeHttpException::class);
-    $this->expectExceptionMessage('No route found that matches "Content-Type: application/hal+json"');
+    $this->expectExceptionMessage('No route found that matches "Content-Type: text/html"');
     $matcher->filter($routes, $request);
   }
 

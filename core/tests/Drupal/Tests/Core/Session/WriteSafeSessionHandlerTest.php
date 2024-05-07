@@ -27,6 +27,9 @@ class WriteSafeSessionHandlerTest extends UnitTestCase {
    */
   protected $sessionHandler;
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp(): void {
     $this->wrappedSessionHandler = $this->createMock('SessionHandlerInterface');
     $this->sessionHandler = new WriteSafeSessionHandler($this->wrappedSessionHandler);
@@ -46,15 +49,10 @@ class WriteSafeSessionHandlerTest extends UnitTestCase {
     $this->assertTrue($this->sessionHandler->isSessionWritable());
 
     // Writing should be enabled, return value passed to the caller by default.
-    $this->wrappedSessionHandler->expects($this->at(0))
+    $this->wrappedSessionHandler->expects($this->exactly(2))
       ->method('write')
       ->with($session_id, $session_data)
-      ->will($this->returnValue(TRUE));
-
-    $this->wrappedSessionHandler->expects($this->at(1))
-      ->method('write')
-      ->with($session_id, $session_data)
-      ->will($this->returnValue(FALSE));
+      ->willReturnOnConsecutiveCalls(TRUE, FALSE);
 
     $result = $this->sessionHandler->write($session_id, $session_data);
     $this->assertTrue($result);
@@ -111,15 +109,10 @@ class WriteSafeSessionHandlerTest extends UnitTestCase {
     $this->assertTrue($this->sessionHandler->isSessionWritable());
 
     // Writing should be enabled, return value passed to the caller by default.
-    $this->wrappedSessionHandler->expects($this->at(0))
+    $this->wrappedSessionHandler->expects($this->exactly(2))
       ->method('write')
       ->with($session_id, $session_data)
-      ->will($this->returnValue(TRUE));
-
-    $this->wrappedSessionHandler->expects($this->at(1))
-      ->method('write')
-      ->with($session_id, $session_data)
-      ->will($this->returnValue(FALSE));
+      ->willReturnOnConsecutiveCalls(TRUE, FALSE);
 
     $result = $this->sessionHandler->write($session_id, $session_data);
     $this->assertTrue($result);
@@ -142,7 +135,7 @@ class WriteSafeSessionHandlerTest extends UnitTestCase {
   public function testOtherMethods($method, $expected_result, $args) {
     $invocation = $this->wrappedSessionHandler->expects($this->exactly(2))
       ->method($method)
-      ->will($this->returnValue($expected_result));
+      ->willReturn($expected_result);
 
     // Set the parameter matcher.
     call_user_func_array([$invocation, 'with'], $args);
@@ -171,7 +164,7 @@ class WriteSafeSessionHandlerTest extends UnitTestCase {
       ['read', 'some-session-data', ['a-session-id']],
       ['close', TRUE, []],
       ['destroy', TRUE, ['old-session-id']],
-      ['gc', TRUE, [42]],
+      ['gc', 0, [42]],
     ];
   }
 

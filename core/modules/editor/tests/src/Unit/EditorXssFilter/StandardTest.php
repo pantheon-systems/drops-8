@@ -23,6 +23,9 @@ class StandardTest extends UnitTestCase {
    */
   protected $format;
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp(): void {
 
     // Mock text format configuration entity object.
@@ -31,7 +34,7 @@ class StandardTest extends UnitTestCase {
       ->getMock();
     $this->format->expects($this->any())
       ->method('getFilterTypes')
-      ->will($this->returnValue([FilterInterface::TYPE_HTML_RESTRICTOR]));
+      ->willReturn([FilterInterface::TYPE_HTML_RESTRICTOR]);
     $restrictions = [
       'allowed' => [
         'p' => TRUE,
@@ -44,7 +47,7 @@ class StandardTest extends UnitTestCase {
     ];
     $this->format->expects($this->any())
       ->method('getHtmlRestrictions')
-      ->will($this->returnValue($restrictions));
+      ->willReturn($restrictions);
   }
 
   /**
@@ -104,7 +107,7 @@ class StandardTest extends UnitTestCase {
 
     // Default SRC tag by leaving it empty.
     // @see https://www.owasp.org/index.php/XSS_Filter_Evasion_Cheat_Sheet#Default_SRC_tag_by_leaving_it_empty
-    $data[] = ['<IMG SRC= onmouseover="alert(\'xxs\')">', '<IMG nmouseover="alert(&#039;xxs&#039;)">'];
+    $data[] = ['<IMG SRC= onmouseover="alert(\'xxs\')">', '<IMG>'];
 
     // Default SRC tag by leaving it out entirely.
     // @see https://www.owasp.org/index.php/XSS_Filter_Evasion_Cheat_Sheet#Default_SRC_tag_by_leaving_it_out_entirely
@@ -144,7 +147,7 @@ class StandardTest extends UnitTestCase {
 
     // Spaces and meta chars before the JavaScript in images for XSS.
     // @see https://www.owasp.org/index.php/XSS_Filter_Evasion_Cheat_Sheet#Spaces_and_meta_chars_before_the_JavaScript_in_images_for_XSS
-    // @fixme This dataset currently fails under 5.4 because of
+    // @todo This dataset currently fails under 5.4 because of
     //   https://www.drupal.org/node/1210798. Restore after it's fixed.
     if (version_compare(PHP_VERSION, '5.4.0', '<')) {
       $data[] = ['<IMG SRC=" &#14;  javascript:alert(\'XSS\');">', '<IMG src="alert(&#039;XSS&#039;);">'];
@@ -175,7 +178,7 @@ class StandardTest extends UnitTestCase {
     // Double open angle brackets.
     // @see https://www.owasp.org/index.php/XSS_Filter_Evasion_Cheat_Sheet#Double_open_angle_brackets
     // @see http://ha.ckers.org/blog/20060611/hotbot-xss-vulnerability/ to
-    //      understand why this is a vulnerability.
+    // understand why this is a vulnerability.
     $data[] = ['<iframe src=http://ha.ckers.org/scriptlet.html <', '<iframe src="http://ha.ckers.org/scriptlet.html">'];
 
     // Escaping JavaScript escapes.

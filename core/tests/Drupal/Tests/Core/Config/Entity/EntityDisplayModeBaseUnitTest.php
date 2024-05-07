@@ -56,7 +56,7 @@ class EntityDisplayModeBaseUnitTest extends UnitTestCase {
     $this->entityInfo = $this->createMock('\Drupal\Core\Entity\EntityTypeInterface');
     $this->entityInfo->expects($this->any())
       ->method('getProvider')
-      ->will($this->returnValue('entity'));
+      ->willReturn('entity');
 
     $this->entityTypeManager = $this->createMock(EntityTypeManagerInterface::class);
 
@@ -78,21 +78,19 @@ class EntityDisplayModeBaseUnitTest extends UnitTestCase {
     $target_entity_type = $this->createMock('\Drupal\Core\Entity\EntityTypeInterface');
     $target_entity_type->expects($this->any())
       ->method('getProvider')
-      ->will($this->returnValue('test_module'));
+      ->willReturn('test_module');
     $values = ['targetEntityType' => $target_entity_type_id];
 
-    $this->entityTypeManager->expects($this->at(0))
+    $this->entityTypeManager->expects($this->exactly(2))
       ->method('getDefinition')
-      ->with($target_entity_type_id)
-      ->will($this->returnValue($target_entity_type));
-    $this->entityTypeManager->expects($this->at(1))
-      ->method('getDefinition')
-      ->with($this->entityType)
-      ->will($this->returnValue($this->entityInfo));
+      ->willReturnMap([
+        [$target_entity_type_id, TRUE, $target_entity_type],
+        [$this->entityType, TRUE, $this->entityInfo],
+      ]);
 
     $this->entity = $this->getMockBuilder('\Drupal\Core\Entity\EntityDisplayModeBase')
       ->setConstructorArgs([$values, $this->entityType])
-      ->setMethods(['getFilterFormat'])
+      ->addMethods(['getFilterFormat'])
       ->getMock();
 
     $dependencies = $this->entity->calculateDependencies()->getDependencies();
@@ -105,7 +103,7 @@ class EntityDisplayModeBaseUnitTest extends UnitTestCase {
   public function testSetTargetType() {
     // Generate mock.
     $mock = $this->getMockBuilder('Drupal\Core\Entity\EntityDisplayModeBase')
-      ->setMethods(NULL)
+      ->onlyMethods([])
       ->setConstructorArgs([['something' => 'nothing'], 'test_type'])
       ->getMock();
 
@@ -133,7 +131,7 @@ class EntityDisplayModeBaseUnitTest extends UnitTestCase {
   public function testGetTargetType() {
     // Generate mock.
     $mock = $this->getMockBuilder('Drupal\Core\Entity\EntityDisplayModeBase')
-      ->setMethods(NULL)
+      ->onlyMethods([])
       ->setConstructorArgs([['something' => 'nothing'], 'test_type'])
       ->getMock();
 

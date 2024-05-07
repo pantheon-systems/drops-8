@@ -52,6 +52,9 @@ class ContentTranslationSyncImageTest extends ContentTranslationTestBase {
     'field_ui',
   ];
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp(): void {
     parent::setUp();
     $this->files = $this->drupalGetTestFiles('image');
@@ -97,7 +100,7 @@ class ContentTranslationSyncImageTest extends ContentTranslationTestBase {
   }
 
   /**
-   * Tests image field field synchronization.
+   * Tests image field synchronization.
    */
   public function testImageFieldSync() {
     // Check that the alt and title fields are enabled for the image field.
@@ -121,9 +124,9 @@ class ContentTranslationSyncImageTest extends ContentTranslationTestBase {
       'settings[entity_test_mul][entity_test_mul][columns][field_test_et_ui_image][alt]' => TRUE,
       'settings[entity_test_mul][entity_test_mul][columns][field_test_et_ui_image][title]' => TRUE,
     ];
-    $this->drupalPostForm('admin/config/regional/content-language', $edit, 'Save configuration');
-    $errors = $this->xpath('//div[contains(@class, "messages--error")]');
-    $this->assertEmpty($errors, 'Settings correctly stored.');
+    $this->drupalGet('admin/config/regional/content-language');
+    $this->submitForm($edit, 'Save configuration');
+    $this->assertSession()->statusMessageNotExists('error');
     $this->assertSession()->checkboxChecked('edit-settings-entity-test-mul-entity-test-mul-columns-field-test-et-ui-image-alt');
     $this->assertSession()->checkboxChecked('edit-settings-entity-test-mul-entity-test-mul-columns-field-test-et-ui-image-title');
     $this->drupalLogin($this->translator);
@@ -152,9 +155,9 @@ class ContentTranslationSyncImageTest extends ContentTranslationTestBase {
       $field_values = [
         'uri' => $this->files[$index]->uri,
         'uid' => \Drupal::currentUser()->id(),
-        'status' => FILE_STATUS_PERMANENT,
       ];
       $file = File::create($field_values);
+      $file->setPermanent();
       $file->save();
       $fid = $file->id();
       $this->files[$index]->fid = $fid;

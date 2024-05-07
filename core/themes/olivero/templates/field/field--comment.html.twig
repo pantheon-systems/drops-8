@@ -29,19 +29,24 @@
 #}
 
 {{ attach_library('olivero/comments') }}
-<section{{ attributes.addClass('comments') }}>
+<section{{ attributes.setAttribute('data-drupal-selector', 'comments').addClass('comments') }}>
 
-  {% if comments and not label_hidden %}
+  {% if not label_hidden %}
     {{ title_prefix }}
-    <h2{{ title_attributes.addClass('comments__title') }}>{{ label }} <span class="comments__count">{{ comment_count }}</span></h2>
+    <h2{{ title_attributes.addClass('comments__title') }}>
+      {{- label -}}
+      {%- if comments -%}
+        <span class="comments__count">{{ comment_count }}</span>
+      {%- endif -%}
+    </h2>
     {{ title_suffix }}
   {% endif %}
 
   {% if comment_form %}
     <div class="add-comment">
       {% if user_picture %}
-      <div class="add-comment__picture-wrapper comment-picture">
-        <div class="add-comment__picture comment-picture__image">
+      <div class="add-comment__picture-wrapper">
+        <div class="add-comment__picture">
           {{ user_picture }}
         </div>
       </div>

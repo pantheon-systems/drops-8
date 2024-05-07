@@ -447,6 +447,9 @@ function template_preprocess_filter_tips(&$variables) {
  * expression that could possibly match all of the cases in one pass.
  */
 function _filter_url($text, $filter) {
+  // Store the current text in case any of the preg_* functions fail.
+  $saved_text = $text;
+
   // Tags to skip and not recurse into.
   $ignore_tags = 'a|script|style|code|pre';
 
@@ -490,9 +493,12 @@ function _filter_url($text, $filter) {
 
   // Prepare domain name pattern.
   // The ICANN seems to be on track towards accepting more diverse top level
-  // domains, so this pattern has been "future-proofed" to allow for TLDs
-  // of length 2-64.
+  // domains (TLDs), so this pattern has been "future-proofed" to allow for
+  // TLDs of length 2-64.
   $domain = '(?:[\p{L}\p{M}\p{N}._+-]+\.)?[\p{L}\p{M}]{2,64}\b';
+  // Mail domains differ from the generic domain pattern, specifically:
+  // A . character must be present in the string that follows the @ character.
+  $email_domain = '(?:[\p{L}\p{M}\p{N}._+-]+\.)+[\p{L}\p{M}]{2,64}\b';
   $ip = '(?:[0-9]{1,3}\.){3}[0-9]{1,3}';
   $auth = '[\p{L}\p{M}\p{N}:%_+*~#?&=.,/;-]+@';
   $trail = '(' . $valid_url_path . '*)?(\\?' . $valid_url_query_chars . '*' . $valid_url_query_ending_chars . ')?';
@@ -503,7 +509,7 @@ function _filter_url($text, $filter) {
   $tasks['_filter_url_parse_full_links'] = $pattern;
 
   // Match email addresses.
-  $url_pattern = "[\p{L}\p{M}\p{N}._+-]{1,254}@(?:$domain)";
+  $url_pattern = "[\p{L}\p{M}\p{N}._+-]{1,254}@(?:$email_domain)";
   $pattern = "`($url_pattern)`u";
   $tasks['_filter_url_parse_email_links'] = $pattern;
 
@@ -520,56 +526,61 @@ function _filter_url($text, $filter) {
     // markup, especially a '>'. Therefore, remove all comment contents and add
     // them back later.
     _filter_url_escape_comments('', TRUE);
-    $text = preg_replace_callback('`<!--(.*?)-->`s', '_filter_url_escape_comments', $text);
+    $text = is_null($text) ? '' : preg_replace_callback('`<!--(.*?)-->`s', '_filter_url_escape_comments', $text);
 
     // Split at all tags; ensures that no tags or attributes are processed.
-    $chunks = preg_split('/(<.+?>)/is', $text, -1, PREG_SPLIT_DELIM_CAPTURE);
-    // PHP ensures that the array consists of alternating delimiters and
-    // literals, and begins and ends with a literal (inserting NULL as
-    // required). Therefore, the first chunk is always text:
-    $chunk_type = 'text';
-    // If a tag of $ignore_tags is found, it is stored in $open_tag and only
-    // removed when the closing tag is found. Until the closing tag is found,
-    // no replacements are made.
-    $open_tag = '';
+    $chunks = is_null($text) ? [''] : preg_split('/(<.+?>)/is', $text, -1, PREG_SPLIT_DELIM_CAPTURE);
 
-    for ($i = 0; $i < count($chunks); $i++) {
-      if ($chunk_type == 'text') {
-        // Only process this text if there are no unclosed $ignore_tags.
-        if ($open_tag == '') {
-          // If there is a match, inject a link into this chunk via the callback
-          // function contained in $task.
-          $chunks[$i] = preg_replace_callback($pattern, $task, $chunks[$i]);
-        }
-        // Text chunk is done, so next chunk must be a tag.
-        $chunk_type = 'tag';
-      }
-      else {
-        // Only process this tag if there are no unclosed $ignore_tags.
-        if ($open_tag == '') {
-          // Check whether this tag is contained in $ignore_tags.
-          if (preg_match("`<($ignore_tags)(?:\s|>)`i", $chunks[$i], $matches)) {
-            $open_tag = $matches[1];
+    // Do not attempt to convert links into URLs if preg_split() fails.
+    if ($chunks !== FALSE) {
+      // PHP ensures that the array consists of alternating delimiters and
+      // literals, and begins and ends with a literal (inserting NULL as
+      // required). Therefore, the first chunk is always text:
+      $chunk_type = 'text';
+      // If a tag of $ignore_tags is found, it is stored in $open_tag and only
+      // removed when the closing tag is found. Until the closing tag is found,
+      // no replacements are made.
+      $open_tag = '';
+      for ($i = 0; $i < count($chunks); $i++) {
+        if ($chunk_type == 'text') {
+          // Only process this text if there are no unclosed $ignore_tags.
+          if ($open_tag == '') {
+            // If there is a match, inject a link into this chunk via the callback
+            // function contained in $task.
+            $chunks[$i] = preg_replace_callback($pattern, $task, $chunks[$i]);
           }
+          // Text chunk is done, so next chunk must be a tag.
+          $chunk_type = 'tag';
         }
-        // Otherwise, check whether this is the closing tag for $open_tag.
         else {
-          if (preg_match("`<\/$open_tag>`i", $chunks[$i], $matches)) {
-            $open_tag = '';
+          // Only process this tag if there are no unclosed $ignore_tags.
+          if ($open_tag == '') {
+            // Check whether this tag is contained in $ignore_tags.
+            if (preg_match("`<($ignore_tags)(?:\s|>)`i", $chunks[$i], $matches)) {
+              $open_tag = $matches[1];
+            }
           }
+          // Otherwise, check whether this is the closing tag for $open_tag.
+          else {
+            if (preg_match("`<\/$open_tag>`i", $chunks[$i], $matches)) {
+              $open_tag = '';
+            }
+          }
+          // Tag chunk is done, so next chunk must be text.
+          $chunk_type = 'text';
         }
-        // Tag chunk is done, so next chunk must be text.
-        $chunk_type = 'text';
       }
+
+      $text = implode($chunks);
     }
 
-    $text = implode($chunks);
     // Revert to the original comment contents
     _filter_url_escape_comments('', FALSE);
-    $text = preg_replace_callback('`<!--(.*?)-->`', '_filter_url_escape_comments', $text);
+    $text = $text ? preg_replace_callback('`<!--(.*?)-->`', '_filter_url_escape_comments', $text) : $text;
   }
 
-  return $text;
+  // If there is no text at this point revert to the previous text.
+  return strlen((string) $text) > 0 ? $text : $saved_text;
 }
 
 /**
@@ -603,7 +614,7 @@ function _filter_url_parse_email_links($match) {
 }
 
 /**
- * Makes links out of domain names starting with "www."
+ * Makes links out of domain names starting with "www.".
  *
  * Callback for preg_replace_callback() within _filter_url().
  */
@@ -658,7 +669,7 @@ function _filter_url_escape_comments($match, $escape = NULL) {
 }
 
 /**
- * Shortens long URLs to http://www.example.com/long/url…
+ * Shortens a long URL to a given length ending with an ellipsis.
  */
 function _filter_url_trim($text, $length = NULL) {
   static $_length;
@@ -666,7 +677,7 @@ function _filter_url_trim($text, $length = NULL) {
     $_length = $length;
   }
 
-  if (isset($_length)) {
+  if (isset($text) && isset($_length)) {
     $text = Unicode::truncate($text, $_length, FALSE, TRUE);
   }
 
@@ -687,7 +698,7 @@ function _filter_autop($text) {
   // to avoid messing up code. We look for matched pairs and allow basic
   // nesting. For example:
   // "processed <pre> ignored <script> ignored </script> ignored </pre> processed"
-  $chunks = preg_split('@(<!--.*?-->|</?(?:pre|script|style|object|iframe|drupal-media|!--)[^>]*>)@i', $text, -1, PREG_SPLIT_DELIM_CAPTURE);
+  $chunks = preg_split('@(<!--.*?-->|</?(?:pre|script|style|object|iframe|drupal-media|svg|!--)[^>]*>)@i', $text, -1, PREG_SPLIT_DELIM_CAPTURE);
   // Note: PHP ensures the array consists of alternating delimiters and literals
   // and begins and ends with a literal (inserting NULL as required).
   $ignore = FALSE;
@@ -703,7 +714,7 @@ function _filter_autop($text) {
       }
       // Opening or closing tag?
       $open = ($chunk[1] != '/');
-      list($tag) = preg_split('/[ >]/', substr($chunk, 2 - $open), 2);
+      [$tag] = preg_split('/[ >]/', substr($chunk, 2 - $open), 2);
       if (!$ignore) {
         if ($open) {
           $ignore = TRUE;
@@ -768,11 +779,14 @@ function _filter_html_image_secure_process($text) {
 
   $html_dom = Html::load($text);
   $images = $html_dom->getElementsByTagName('img');
+
+  /** @var \Drupal\Core\File\FileUrlGeneratorInterface $file_url_generator */
+  $file_url_generator = \Drupal::service('file_url_generator');
   foreach ($images as $image) {
     $src = $image->getAttribute('src');
     // Transform absolute image URLs to relative image URLs: prevent problems on
     // multisite set-ups and prevent mixed content errors.
-    $image->setAttribute('src', file_url_transform_relative($src));
+    $image->setAttribute('src', $file_url_generator->transformRelative($src));
 
     // Verify that $src starts with $base_path.
     // This also ensures that external images cannot be referenced.
@@ -800,9 +814,6 @@ function _filter_html_image_secure_process($text) {
  * Implements hook_filter_secure_image_alter().
  *
  * Formats an image DOM element that has an invalid source.
- *
- * @param DOMElement $image
- *   An IMG node to format, parsed from the filtered text.
  *
  * @see _filter_html_image_secure_process()
  */

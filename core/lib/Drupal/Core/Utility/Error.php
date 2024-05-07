@@ -4,7 +4,9 @@ namespace Drupal\Core\Utility;
 
 use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Component\Utility\Xss;
+use Drupal\Core\Database\Database;
 use Drupal\Core\Database\DatabaseExceptionWrapper;
+use Drupal\Core\Database\Log;
 
 /**
  * Drupal error utility class.
@@ -17,6 +19,11 @@ class Error {
    * @var int
    */
   const ERROR = 3;
+
+  /**
+   * The default message for logging errors.
+   */
+  const DEFAULT_ERROR_MESSAGE = '%type: @message in %function (line %line of %file).';
 
   /**
    * An array of ignored functions.
@@ -44,15 +51,8 @@ class Error {
     // For PDOException errors, we try to return the initial caller,
     // skipping internal functions of the database layer.
     if ($exception instanceof \PDOException || $exception instanceof DatabaseExceptionWrapper) {
-      // The first element in the stack is the call, the second element gives us
-      // the caller. We skip calls that occurred in one of the classes of the
-      // database layer.
-      while (!empty($backtrace[1]) && ($caller = $backtrace[1]) &&
-        ((isset($caller['class']) && (strpos($caller['class'], 'Query') !== FALSE || strpos($caller['class'], 'Database') !== FALSE || strpos($caller['class'], 'PDO') !== FALSE))
-        )) {
-        // We remove that call.
-        array_shift($backtrace);
-      }
+      $driver_namespace = Database::getConnectionInfo()['default']['namespace'];
+      $backtrace = Log::removeDatabaseEntries($backtrace, $driver_namespace);
       if (isset($exception->query_string, $exception->args)) {
         $message .= ": " . $exception->query_string . "; " . print_r($exception->args, TRUE);
       }
@@ -71,6 +71,7 @@ class Error {
       'severity_level' => static::ERROR,
       'backtrace' => $backtrace,
       '@backtrace_string' => $exception->getTraceAsString(),
+      'exception' => $exception,
     ];
   }
 
@@ -86,7 +87,7 @@ class Error {
   public static function renderExceptionSafe($exception) {
     $decode = static::decodeException($exception);
     $backtrace = $decode['backtrace'];
-    unset($decode['backtrace']);
+    unset($decode['backtrace'], $decode['exception']);
     // Remove 'main()'.
     array_shift($backtrace);
 
@@ -96,7 +97,7 @@ class Error {
     // no longer function correctly (as opposed to a user-triggered error), so
     // we assume that it is safe to include a verbose backtrace.
     $decode['@backtrace'] = Error::formatBacktrace($backtrace);
-    return new FormattableMarkup('%type: @message in %function (line %line of %file). <pre class="backtrace">@backtrace</pre>', $decode);
+    return new FormattableMarkup(Error::DEFAULT_ERROR_MESSAGE . ' <pre class="backtrace">@backtrace</pre>', $decode);
   }
 
   /**

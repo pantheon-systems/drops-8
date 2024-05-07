@@ -102,7 +102,7 @@ class Comment extends ContentEntityBase implements CommentInterface {
           // by retrieving the maximum thread level.
           $max = $storage->getMaxThread($this);
           // Strip the "/" from the end of the thread.
-          $max = rtrim($max, '/');
+          $max = rtrim((string) $max, '/');
           // We need to get the value at the correct depth.
           $parts = explode('.', $max);
           $n = Number::alphadecimalToInt($parts[0]);
@@ -193,7 +193,7 @@ class Comment extends ContentEntityBase implements CommentInterface {
     $comments = $comment_storage->loadMultiple($child_cids);
     $comment_storage->delete($comments);
 
-    foreach ($entities as $id => $entity) {
+    foreach ($entities as $entity) {
       \Drupal::service('comment.statistics')->update($entity);
     }
   }
@@ -389,7 +389,7 @@ class Comment extends ContentEntityBase implements CommentInterface {
    * {@inheritdoc}
    */
   public function getSubject() {
-    return $this->get('subject')->value;
+    return $this->get('subject')->value ?? '';
   }
 
   /**

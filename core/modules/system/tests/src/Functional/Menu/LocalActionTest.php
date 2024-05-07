@@ -70,21 +70,23 @@ class LocalActionTest extends BrowserTestBase {
    *
    * @param array $actions
    *   A list of expected action link titles, keyed by the hrefs.
+   *
+   * @internal
    */
-  protected function assertLocalAction(array $actions) {
+  protected function assertLocalAction(array $actions): void {
     $elements = $this->xpath('//a[contains(@class, :class)]', [
       ':class' => 'button-action',
     ]);
     $index = 0;
     foreach ($actions as $action) {
       /** @var \Drupal\Core\Url $url */
-      list($url, $title) = $action;
+      [$url, $title] = $action;
       // SimpleXML gives us the unescaped text, not the actual escaped markup,
       // so use a pattern instead to check the raw content.
       // This behavior is a bug in libxml, see
       // https://bugs.php.net/bug.php?id=49437.
       $this->assertSession()->responseMatches('@<a [^>]*class="[^"]*button-action[^"]*"[^>]*>' . preg_quote($title, '@') . '</@');
-      $this->assertEqual($elements[$index]->getAttribute('href'), $url->toString());
+      $this->assertEquals($url->toString(), $elements[$index]->getAttribute('href'));
       $index++;
     }
   }

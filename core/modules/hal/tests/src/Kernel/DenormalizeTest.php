@@ -11,6 +11,7 @@ use Symfony\Component\Serializer\Exception\UnexpectedValueException;
  * Tests HAL denormalization edge cases for EntityResource.
  *
  * @group hal
+ * @group legacy
  */
 class DenormalizeTest extends NormalizerTestBase {
 
@@ -27,7 +28,7 @@ class DenormalizeTest extends NormalizerTestBase {
       ],
     ];
     $denormalized = $this->serializer->denormalize($data_with_valid_type, $this->entityClass, $this->format);
-    $this->assertEqual(get_class($denormalized), $this->entityClass, 'Request with valid type results in creation of correct bundle.');
+    $this->assertEquals($this->entityClass, get_class($denormalized), 'Request with valid type results in creation of correct bundle.');
 
     // Multiple types.
     $data_with_multiple_types = [
@@ -43,7 +44,7 @@ class DenormalizeTest extends NormalizerTestBase {
       ],
     ];
     $denormalized = $this->serializer->denormalize($data_with_multiple_types, $this->entityClass, $this->format);
-    $this->assertEqual(get_class($denormalized), $this->entityClass, 'Request with multiple types results in creation of correct bundle.');
+    $this->assertEquals($this->entityClass, get_class($denormalized), 'Request with multiple types results in creation of correct bundle.');
 
     // Invalid type.
     $data_with_invalid_type = [
@@ -105,7 +106,7 @@ class DenormalizeTest extends NormalizerTestBase {
   }
 
   /**
-   * Test that a field set to an empty array is different than an absent field.
+   * Tests that a field set to an empty array is different than an absent field.
    */
   public function testMarkFieldForDeletion() {
     // Add a default value for a field.
@@ -123,8 +124,8 @@ class DenormalizeTest extends NormalizerTestBase {
       ],
     ];
     $entity = $this->serializer->denormalize($data, $this->entityClass, $this->format);
-    $this->assertEqual($entity->field_test_text->count(), 1);
-    $this->assertEqual($entity->field_test_text->value, 'Llama');
+    $this->assertEquals(1, $entity->field_test_text->count());
+    $this->assertEquals('Llama', $entity->field_test_text->value);
 
     // Denormalize data that contains an empty entry for the field, and check
     // that the field is empty in the resulting entity.
@@ -137,7 +138,7 @@ class DenormalizeTest extends NormalizerTestBase {
       'field_test_text' => [],
     ];
     $entity = $this->serializer->denormalize($data, get_class($entity), $this->format, ['target_instance' => $entity]);
-    $this->assertEqual($entity->field_test_text->count(), 0);
+    $this->assertEquals(0, $entity->field_test_text->count());
   }
 
   /**
@@ -157,7 +158,7 @@ class DenormalizeTest extends NormalizerTestBase {
   public function testDenormalizeInvalidCustomSerializedField() {
     $entity = EntitySerializedField::create(['serialized_long' => serialize(['Hello world!'])]);
     $normalized = $this->serializer->normalize($entity);
-    $this->assertEquals($normalized['serialized_long'][0]['value'], ['Hello world!']);
+    $this->assertEquals(['Hello world!'], $normalized['serialized_long'][0]['value']);
 
     $normalized['serialized_long'][0]['value'] = 'boo';
     $this->expectException(\LogicException::class);

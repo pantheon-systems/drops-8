@@ -33,6 +33,13 @@ class UserAccessControlHandlerTest extends UnitTestCase {
   protected $viewer;
 
   /**
+   * The mock user account with 'view user email addresses' permission.
+   *
+   * @var \Drupal\Core\Session\AccountInterface
+   */
+  protected $emailViewer;
+
+  /**
    * The mock user account that is able to change their own account name.
    *
    * @var \Drupal\Core\Session\AccountInterface
@@ -70,39 +77,48 @@ class UserAccessControlHandlerTest extends UnitTestCase {
     $this->viewer
       ->expects($this->any())
       ->method('hasPermission')
-      ->will($this->returnValue(FALSE));
+      ->willReturn(FALSE);
     $this->viewer
       ->expects($this->any())
       ->method('id')
-      ->will($this->returnValue(1));
+      ->willReturn(1);
 
     $this->owner = $this->createMock('\Drupal\Core\Session\AccountInterface');
     $this->owner
       ->expects($this->any())
       ->method('hasPermission')
-      ->will($this->returnValueMap([
+      ->willReturnMap([
         ['administer users', FALSE],
         ['change own username', TRUE],
-      ]));
+      ]);
 
     $this->owner
       ->expects($this->any())
       ->method('id')
-      ->will($this->returnValue(2));
+      ->willReturn(2);
 
     $this->admin = $this->createMock('\Drupal\Core\Session\AccountInterface');
     $this->admin
       ->expects($this->any())
       ->method('hasPermission')
-      ->will($this->returnValue(TRUE));
+      ->willReturn(TRUE);
+
+    $this->emailViewer = $this->createMock('\Drupal\Core\Session\AccountInterface');
+    $this->emailViewer
+      ->expects($this->any())
+      ->method('hasPermission')
+      ->willReturnMap([
+        ['view user email addresses', TRUE],
+      ]);
+    $this->emailViewer
+      ->expects($this->any())
+      ->method('id')
+      ->willReturn(3);
 
     $entity_type = $this->createMock('Drupal\Core\Entity\EntityTypeInterface');
 
     $this->accessControlHandler = new UserAccessControlHandler($entity_type);
     $module_handler = $this->createMock('Drupal\Core\Extension\ModuleHandlerInterface');
-    $module_handler->expects($this->any())
-      ->method('getImplementations')
-      ->will($this->returnValue([]));
     $this->accessControlHandler->setModuleHandler($module_handler);
 
     $this->items = $this->getMockBuilder('Drupal\Core\Field\FieldItemList')
@@ -111,22 +127,24 @@ class UserAccessControlHandlerTest extends UnitTestCase {
     $this->items
       ->expects($this->any())
       ->method('defaultAccess')
-      ->will($this->returnValue(AccessResult::allowed()));
+      ->willReturn(AccessResult::allowed());
   }
 
   /**
    * Asserts correct field access grants for a field.
+   *
+   * @internal
    */
-  public function assertFieldAccess($field, $viewer, $target, $view, $edit) {
+  public function assertFieldAccess(string $field, string $viewer, string $target, bool $view, bool $edit): void {
     $field_definition = $this->createMock('Drupal\Core\Field\FieldDefinitionInterface');
     $field_definition->expects($this->any())
       ->method('getName')
-      ->will($this->returnValue($field));
+      ->willReturn($field);
 
     $this->items
       ->expects($this->any())
       ->method('getEntity')
-      ->will($this->returnValue($this->{$target}));
+      ->willReturn($this->{$target});
 
     foreach (['view' => $view, 'edit' => $edit] as $operation => $result) {
       $result_text = !isset($result) ? 'null' : ($result ? 'true' : 'false');
@@ -238,6 +256,14 @@ class UserAccessControlHandlerTest extends UnitTestCase {
         'viewer' => 'admin',
         'target' => 'owner',
         'view' => TRUE,
+        'edit' => TRUE,
+      ];
+      $access_info[] = [
+        'field' => $field,
+        'viewer' => 'emailViewer',
+        'target' => 'owner',
+        'view' => $field === 'mail',
+        // See note above.
         'edit' => TRUE,
       ];
     }

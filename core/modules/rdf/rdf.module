@@ -8,6 +8,7 @@
 use Drupal\Core\Url;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Template\Attribute;
+use Drupal\node\NodeInterface;
 use Drupal\rdf\Entity\RdfMapping;
 
 /**
@@ -113,17 +114,20 @@ function rdf_get_namespaces() {
   $namespaces = [];
   // In order to resolve duplicate namespaces by using the earliest defined
   // namespace, do not use \Drupal::moduleHandler()->invokeAll().
-  foreach (\Drupal::moduleHandler()->getImplementations('rdf_namespaces') as $module) {
-    $function = $module . '_rdf_namespaces';
-    foreach ($function() as $prefix => $namespace) {
-      if (array_key_exists($prefix, $namespaces) && $namespace !== $namespaces[$prefix]) {
-        throw new Exception("Tried to map '$prefix' to '$namespace', but '$prefix' is already mapped to '{$namespaces[$prefix]}'.");
-      }
-      else {
-        $namespaces[$prefix] = $namespace;
+  \Drupal::moduleHandler()->invokeAllWith(
+    'rdf_namespaces',
+    function (callable $hook, string $module) use (&$namespaces) {
+      $namespacesFromHook = $hook();
+      foreach ($namespacesFromHook as $prefix => $namespace) {
+        if (array_key_exists($prefix, $namespaces) && $namespace !== $namespaces[$prefix]) {
+          throw new Exception("Tried to map '$prefix' to '$namespace', but '$prefix' is already mapped to '{$namespaces[$prefix]}'.");
+        }
+        else {
+          $namespaces[$prefix] = $namespace;
+        }
       }
     }
-  }
+  );
   return $namespaces;
 }
 
@@ -170,7 +174,7 @@ function rdf_rdfa_attributes($mapping, $data = NULL) {
   $attributes = [];
 
   // The type of mapping defaults to 'property'.
-  $type = isset($mapping['mapping_type']) ? $mapping['mapping_type'] : 'property';
+  $type = $mapping['mapping_type'] ?? 'property';
 
   switch ($type) {
     // The mapping expresses the relationship between two resources.
@@ -187,7 +191,7 @@ function rdf_rdfa_attributes($mapping, $data = NULL) {
         // Convert $data to a specific format as per the callback function.
         if (isset($data) && !empty($mapping['datatype_callback'])) {
           $callback = $mapping['datatype_callback']['callable'];
-          $arguments = isset($mapping['datatype_callback']['arguments']) ? $mapping['datatype_callback']['arguments'] : NULL;
+          $arguments = $mapping['datatype_callback']['arguments'] ?? NULL;
           $attributes['content'] = call_user_func($callback, $data, $arguments);
         }
         if (isset($mapping['datatype'])) {
@@ -222,6 +226,23 @@ function rdf_entity_prepare_view($entity_type, array $entities, array $displays)
         }
       }
     }
+  }
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_build_defaults_alter().
+ */
+function rdf_node_build_defaults_alter(array &$build, NodeInterface $node) {
+  // Ensure that RSS views define the RDF namespaces.
+  // @see \Drupal\node\Plugin\views\row\Rss::render()
+  if (!isset($node->rss_namespaces)) {
+    $node->rss_namespaces = [];
+  }
+  foreach (rdf_get_namespaces() as $prefix => $uri) {
+    if ($prefix === 'dc') {
+      continue;
+    }
+    $node->rss_namespaces["xmlns:$prefix"] = $uri;
   }
 }
 
@@ -358,9 +379,7 @@ function rdf_preprocess_node(&$variables) {
       $fields = array_keys(\Drupal::service('comment.manager')->getFields('node'));
       $definitions = array_keys($variables['node']->getFieldDefinitions());
       $valid_fields = array_intersect($fields, $definitions);
-      $count = 0;
       foreach ($valid_fields as $field_name) {
-        $count += $variables['node']->get($field_name)->comment_count;
         // Adds RDFa markup for the comment count near the node title as
         // metadata.
         $comment_count_attributes = rdf_rdfa_attributes($comment_count_mapping, $variables['node']->get($field_name)->comment_count);
@@ -377,7 +396,7 @@ function rdf_preprocess_node(&$variables) {
  * Implements hook_preprocess_HOOK() for user templates.
  */
 function rdf_preprocess_user(&$variables) {
-  /** @var $account \Drupal\user\UserInterface */
+  /** @var \Drupal\user\UserInterface $account */
   $account = $variables['elements']['#user'];
   $uri = $account->toUrl();
   $mapping = rdf_get_mapping('user', 'user');

@@ -89,7 +89,7 @@ class NodeForm extends ContentEntityForm {
     // rebuilding the form.
     $request_uuid = \Drupal::request()->query->get('uuid');
     if (!$form_state->isRebuilding() && $request_uuid && $preview = $store->get($request_uuid)) {
-      /** @var $preview \Drupal\Core\Form\FormStateInterface */
+      /** @var \Drupal\Core\Form\FormStateInterface $preview */
 
       $form_state->setStorage($preview->getStorage());
       $form_state->setUserInput($preview->getUserInput());
@@ -161,7 +161,7 @@ class NodeForm extends ContentEntityForm {
     // Node author information for administrators.
     $form['author'] = [
       '#type' => 'details',
-      '#title' => t('Authoring information'),
+      '#title' => $this->t('Authoring information'),
       '#group' => 'advanced',
       '#attributes' => [
         'class' => ['node-form-author'],
@@ -184,7 +184,7 @@ class NodeForm extends ContentEntityForm {
     // Node options for administrators.
     $form['options'] = [
       '#type' => 'details',
-      '#title' => t('Promotion options'),
+      '#title' => $this->t('Promotion options'),
       '#group' => 'advanced',
       '#attributes' => [
         'class' => ['node-form-options'],
@@ -222,7 +222,7 @@ class NodeForm extends ContentEntityForm {
     $element['preview'] = [
       '#type' => 'submit',
       '#access' => $preview_mode != DRUPAL_DISABLED && ($node->access('create') || $node->access('update')),
-      '#value' => t('Preview'),
+      '#value' => $this->t('Preview'),
       '#weight' => 20,
       '#submit' => ['::submitForm', '::preview'],
     ];

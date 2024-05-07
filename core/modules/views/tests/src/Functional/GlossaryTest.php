@@ -62,7 +62,7 @@ class GlossaryTest extends ViewTestBase {
 
     // Check that the amount of nodes per char.
     foreach ($view->result as $item) {
-      $this->assertEqual($nodes_per_char[$item->title_truncated], $item->num_records);
+      $this->assertEquals($nodes_per_char[$item->title_truncated], $item->num_records);
     }
 
     // Enable the glossary to be displayed.
@@ -116,12 +116,11 @@ class GlossaryTest extends ViewTestBase {
       $label = mb_strtoupper($char);
       // Get the summary link for a certain character. Filter by label and href
       // to ensure that both of them are correct.
-      $result = $this->xpath('//a[contains(@href, :href) and normalize-space(text())=:label]/..', [':href' => $href, ':label' => $label]);
-      $this->assertNotEmpty(count($result));
+      $result = $this->assertSession()->elementExists('xpath', "//a[contains(@href, '{$href}') and normalize-space(text())='{$label}']/..");
       // The rendered output looks like "<a href=''>X</a> | (count)" so let's
       // figure out the int.
-      $result_count = explode(' ', trim(str_replace(['|', '(', ')'], '', $result[0]->getText())))[1];
-      $this->assertEqual($result_count, $count, 'The expected number got rendered.');
+      $result_count = explode(' ', trim(str_replace(['|', '(', ')'], '', $result->getText())))[1];
+      $this->assertEquals($count, $result_count, 'The expected number got rendered.');
     }
   }
 

@@ -18,6 +18,11 @@ class WidgetUploadTest extends MediaLibraryTestBase {
   use TestFileCreationTrait;
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
    * Tests that uploads in the Media library's widget works as expected.
    */
   public function testWidgetUpload() {
@@ -136,8 +141,10 @@ class WidgetUploadTest extends MediaLibraryTestBase {
     $this->waitForText($png_image->filename);
 
     // Remove the item.
+    $assert_session->elementTextContains('css', '.field--name-field-twin-media', $png_image->filename);
     $assert_session->elementExists('css', '.field--name-field-twin-media')->pressButton('Remove');
-    $this->waitForNoText($png_image->filename);
+    $this->waitForElementTextContains('#drupal-live-announce', $png_image->filename . ' has been removed');
+    $assert_session->elementTextNotContains('css', '.field--name-field-twin-media', $png_image->filename);
 
     $this->openMediaLibraryForField('field_twin_media');
     $this->switchToMediaType('Three');
@@ -315,7 +322,7 @@ class WidgetUploadTest extends MediaLibraryTestBase {
     $this->assertJsCondition('jQuery("[data-media-library-added-delta=2]").is(":focus")');
     // Assert the file was deleted.
     $this->assertEmpty($file_storage->loadByProperties(['filename' => $filenames[1]]));
-    $this->assertFileNotExists($file_1_uri);
+    $this->assertFileDoesNotExist($file_1_uri);
 
     // When a file is already in usage, it should not be deleted. To test,
     // let's add a usage for $filenames[3] (now in the third position).
@@ -473,8 +480,10 @@ class WidgetUploadTest extends MediaLibraryTestBase {
     $this->waitForText($png_image->filename);
 
     // Remove the item.
+    $assert_session->elementTextContains('css', '.field--name-field-twin-media', $png_image->filename);
     $assert_session->elementExists('css', '.field--name-field-twin-media')->pressButton('Remove');
-    $this->waitForNoText($png_image->filename);
+    $this->waitForElementTextContains('#drupal-live-announce', $png_image->filename . ' has been removed');
+    $assert_session->elementTextNotContains('css', '.field--name-field-twin-media', $png_image->filename);
 
     $this->openMediaLibraryForField('field_twin_media');
     $this->switchToMediaType('Three');
@@ -684,7 +693,7 @@ class WidgetUploadTest extends MediaLibraryTestBase {
     $assert_session->pageTextContains('The media item ' . $filenames[1] . ' has been removed.');
     // Assert the file was deleted.
     $this->assertEmpty($file_storage->loadByProperties(['filename' => $filenames[1]]));
-    $this->assertFileNotExists($file_1_uri);
+    $this->assertFileDoesNotExist($file_1_uri);
 
     // When a file is already in usage, it should not be deleted. To test,
     // let's add a usage for $filenames[3] (now in the third position).

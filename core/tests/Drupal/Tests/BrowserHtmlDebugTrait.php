@@ -41,7 +41,7 @@ trait BrowserHtmlDebugTrait {
   protected $htmlOutputCounter = 1;
 
   /**
-   * HTML output output enabled.
+   * HTML output enabled.
    *
    * @var bool
    */
@@ -123,8 +123,8 @@ trait BrowserHtmlDebugTrait {
     $html_output_filename = $this->htmlOutputClassName . '-' . $this->htmlOutputCounter . '-' . $this->htmlOutputTestId . '.html';
     file_put_contents($this->htmlOutputDirectory . '/' . $html_output_filename, $message);
     file_put_contents($this->htmlOutputCounterStorage, $this->htmlOutputCounter++);
-    // Do not use file_create_url() as the module_handler service might not be
-    // available.
+    // Do not use the file_url_generator service as the module_handler service
+    // might not be available.
     $uri = $this->htmlOutputBaseUrl . '/sites/simpletest/browser_output/' . $html_output_filename;
     file_put_contents($this->htmlOutputFile, $uri . "\n", FILE_APPEND);
   }
@@ -179,11 +179,20 @@ trait BrowserHtmlDebugTrait {
               $html_output = 'Called from ' . $caller['function'] . ' line ' . $caller['line'];
               $html_output .= '<hr />' . $request->getMethod() . ' request to: ' . $request->getUri();
 
+              /** @var \Psr\Http\Message\StreamInterface $stream */
+              $stream = $response->getBody();
+
+              // Get the response body as a string. The response stream is set
+              // to the sink, which defaults to a readable temp stream but can
+              // be overridden by setting $options['sink'].
+              $body = $stream->isReadable()
+                ? (string) $stream
+                : 'Response is not readable.';
+
               // On redirect responses (status code starting with '3') we need
               // to remove the meta tag that would do a browser refresh. We
               // don't want to redirect developers away when they look at the
               // debug output file in their browser.
-              $body = $response->getBody();
               $status_code = (string) $response->getStatusCode();
               if ($status_code[0] === '3') {
                 $body = preg_replace('#<meta http-equiv="refresh" content=.+/>#', '', $body, 1);

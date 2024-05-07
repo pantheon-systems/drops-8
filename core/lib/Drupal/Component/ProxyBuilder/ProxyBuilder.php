@@ -48,24 +48,16 @@ class ProxyBuilder {
    *
    * @param string $class_name
    *   The class name of the actual service.
-   * @param string $proxy_class_name
-   *   (optional) The class name of the proxy service.
    *
    * @return string
    *   The full string with namespace class and methods.
    */
-  public function build($class_name, $proxy_class_name = '') {
+  public function build($class_name) {
     $reflection = new \ReflectionClass($class_name);
 
-    if ($proxy_class_name) {
-      $proxy_class_reflection = new \ReflectionClass($proxy_class_name);
-      $proxy_namespace = $proxy_class_reflection->getNamespaceName();
-    }
-    else {
-      $proxy_class_name = $this->buildProxyClassName($class_name);
-      $proxy_namespace = $this->buildProxyNamespace($class_name);
-      $proxy_class_shortname = str_replace($proxy_namespace . '\\', '', $proxy_class_name);
-    }
+    $proxy_class_name = $this->buildProxyClassName($class_name);
+    $proxy_namespace = $this->buildProxyNamespace($class_name);
+    $proxy_class_shortname = str_replace($proxy_namespace . '\\', '', $proxy_class_name);
 
     $output = '';
     $class_documentation = <<<'EOS'
@@ -87,7 +79,7 @@ EOS;
     // In order to avoid that, check for each interface, whether one of its
     // parents is also in the list and exclude it.
     if ($interfaces = $reflection->getInterfaces()) {
-      foreach ($interfaces as $interface_name => $interface) {
+      foreach ($interfaces as $interface) {
         // Exclude all parents from the list of implemented interfaces of the
         // class.
         if ($parent_interfaces = $interface->getInterfaceNames()) {

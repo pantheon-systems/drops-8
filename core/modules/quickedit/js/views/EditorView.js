@@ -4,7 +4,6 @@
 * https://www.drupal.org/node/2815083
 * @preserve
 **/
-
 (function ($, Backbone, Drupal) {
   Drupal.quickedit.EditorView = Backbone.View.extend({
     initialize: function initialize(options) {
@@ -29,50 +28,38 @@
     stateChange: function stateChange(fieldModel, state) {
       var from = fieldModel.previous('state');
       var to = state;
-
       switch (to) {
         case 'inactive':
           break;
-
         case 'candidate':
           if (from === 'invalid') {
             this.removeValidationErrors();
           }
-
           break;
-
         case 'highlighted':
           break;
-
         case 'activating':
           {
             var loadDependencies = function loadDependencies(callback) {
               callback();
             };
-
             loadDependencies(function () {
               fieldModel.set('state', 'active');
             });
             break;
           }
-
         case 'active':
           break;
-
         case 'changed':
           break;
-
         case 'saving':
           if (from === 'invalid') {
             this.removeValidationErrors();
           }
-
           this.save();
           break;
-
         case 'saved':
           break;
-
         case 'invalid':
           this.showValidationErrors();
           break;
@@ -83,13 +70,11 @@
       var fieldModel = this.fieldModel;
       var editorModel = this.model;
       var backstageId = "quickedit_backstage-".concat(this.fieldModel.id.replace(/[/[\]_\s]/g, '-'));
-
       function fillAndSubmitForm(value) {
         var $form = $("#".concat(backstageId)).find('form');
         $form.find(':input[type!="hidden"][type!="submit"]:not(select)').not('[name$="\\[summary\\]"]').val(value);
         $form.find('.quickedit-form-submit').trigger('click.quickedit');
       }
-
       var formOptions = {
         fieldID: this.fieldModel.get('fieldID'),
         $el: this.$el,
@@ -106,28 +91,23 @@
         $form.prop('novalidate', true);
         var $submit = $form.find('.quickedit-form-submit');
         self.formSaveAjax = Drupal.quickedit.util.form.ajaxifySaving(formOptions, $submit);
-
         function removeHiddenForm() {
           Drupal.quickedit.util.form.unajaxifySaving(self.formSaveAjax);
           delete self.formSaveAjax;
           $backstage.remove();
         }
-
         self.formSaveAjax.commands.quickeditFieldFormSaved = function (ajax, response, status) {
           removeHiddenForm();
           fieldModel.set('state', 'saved');
           fieldModel.set('htmlForOtherViewModes', response.other_view_modes);
           fieldModel.set('html', response.data);
         };
-
         self.formSaveAjax.commands.quickeditFieldFormValidationErrors = function (ajax, response, status) {
           removeHiddenForm();
           editorModel.set('validationErrors', response.data);
           fieldModel.set('state', 'invalid');
         };
-
         self.formSaveAjax.commands.quickeditFieldForm = function () {};
-
         fillAndSubmitForm(editorModel.get('currentValue'));
       });
     },

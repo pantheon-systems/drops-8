@@ -52,10 +52,13 @@ class ConfigEntityMapperTest extends UnitTestCase {
   /**
    * The mocked event dispatcher.
    *
-   * @var \Symfony\Component\EventDispatcher\EventDispatcherInterface|\PHPUnit\Framework\MockObject\MockObject
+   * @var \Symfony\Contracts\EventDispatcher\EventDispatcherInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $eventDispatcher;
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp(): void {
     $this->entityTypeManager = $this->createMock('Drupal\Core\Entity\EntityTypeManagerInterface');
 
@@ -67,7 +70,7 @@ class ConfigEntityMapperTest extends UnitTestCase {
       ->expects($this->any())
       ->method('getRouteByName')
       ->with('entity.configurable_language.edit_form')
-      ->will($this->returnValue(new Route('/admin/config/regional/language/edit/{configurable_language}')));
+      ->willReturn(new Route('/admin/config/regional/language/edit/{configurable_language}'));
 
     $definition = [
       'class' => '\Drupal\config_translation\ConfigEntityMapper',
@@ -86,7 +89,7 @@ class ConfigEntityMapperTest extends UnitTestCase {
 
     $this->languageManager = $this->createMock('Drupal\Core\Language\LanguageManagerInterface');
 
-    $this->eventDispatcher = $this->createMock('Symfony\Component\EventDispatcher\EventDispatcherInterface');
+    $this->eventDispatcher = $this->createMock('Symfony\Contracts\EventDispatcher\EventDispatcherInterface');
 
     $this->configEntityMapper = new ConfigEntityMapper(
       'configurable_language',
@@ -111,18 +114,18 @@ class ConfigEntityMapperTest extends UnitTestCase {
       ->expects($this->once())
       ->method('id')
       ->with()
-      ->will($this->returnValue('entity_id'));
+      ->willReturn('entity_id');
 
     $entity_type = $this->createMock('Drupal\Core\Config\Entity\ConfigEntityTypeInterface');
     $entity_type
       ->expects($this->any())
       ->method('getConfigPrefix')
-      ->will($this->returnValue('config_prefix'));
+      ->willReturn('config_prefix');
     $this->entityTypeManager
       ->expects($this->once())
       ->method('getDefinition')
       ->with('configurable_language')
-      ->will($this->returnValue($entity_type));
+      ->willReturn($entity_type);
 
     // No entity is set.
     $this->assertNull($this->configEntityMapper->getEntity());
@@ -151,14 +154,14 @@ class ConfigEntityMapperTest extends UnitTestCase {
       ->expects($this->once())
       ->method('getDefinition')
       ->with('configurable_language')
-      ->will($this->returnValue($entity_type));
+      ->willReturn($entity_type);
     $this->configEntityMapper->setEntity($this->entity);
 
     $this->entity
       ->expects($this->once())
       ->method('id')
       ->with()
-      ->will($this->returnValue('entity_id'));
+      ->willReturn('entity_id');
 
     $result = $this->configEntityMapper->getOverviewRouteParameters();
 
@@ -180,12 +183,12 @@ class ConfigEntityMapperTest extends UnitTestCase {
     $entity_type = $this->createMock('Drupal\Core\Config\Entity\ConfigEntityTypeInterface');
     $entity_type->expects($this->once())
       ->method('getLabel')
-      ->will($this->returnValue('test'));
+      ->willReturn('test');
     $this->entityTypeManager
       ->expects($this->once())
       ->method('getDefinition')
       ->with('configurable_language')
-      ->will($this->returnValue($entity_type));
+      ->willReturn($entity_type);
 
     $result = $this->configEntityMapper->getTypeName();
     $this->assertSame('test', $result);
@@ -198,12 +201,12 @@ class ConfigEntityMapperTest extends UnitTestCase {
     $entity_type = $this->createMock('Drupal\Core\Config\Entity\ConfigEntityTypeInterface');
     $entity_type->expects($this->once())
       ->method('getLabel')
-      ->will($this->returnValue('test'));
+      ->willReturn('test');
     $this->entityTypeManager
       ->expects($this->once())
       ->method('getDefinition')
       ->with('configurable_language')
-      ->will($this->returnValue($entity_type));
+      ->willReturn($entity_type);
 
     $result = $this->configEntityMapper->getTypeLabel();
     $this->assertSame('test', $result);

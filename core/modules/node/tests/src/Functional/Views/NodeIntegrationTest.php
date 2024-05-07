@@ -59,14 +59,16 @@ class NodeIntegrationTest extends NodeTestBase {
    *
    * @param array $expected_nids
    *   An array of node IDs.
+   *
+   * @internal
    */
-  protected function assertNids(array $expected_nids = []) {
+  protected function assertNids(array $expected_nids = []): void {
     $result = $this->xpath('//span[@class="field-content"]');
     $nids = [];
     foreach ($result as $element) {
       $nids[] = (int) $element->getText();
     }
-    $this->assertEqual($nids, $expected_nids);
+    $this->assertEquals($expected_nids, $nids);
   }
 
 }

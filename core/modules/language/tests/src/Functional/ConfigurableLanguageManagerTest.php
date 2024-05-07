@@ -53,7 +53,7 @@ class ConfigurableLanguageManagerTest extends BrowserTestBase {
     // Create a page node type and make it translatable.
     NodeType::create([
       'type' => 'page',
-      'name' => t('Page'),
+      'name' => 'Page',
     ])->save();
 
     $config = ContentLanguageSettings::loadByEntityTypeBundle('node', 'page');
@@ -103,7 +103,7 @@ class ConfigurableLanguageManagerTest extends BrowserTestBase {
   }
 
   /**
-   * Test translation with URL and Preferred Admin Language negotiators.
+   * Tests translation with URL and Preferred Admin Language negotiators.
    *
    * The interface language uses the preferred language for admin pages of the
    * user and after that the URL. The Content uses just the URL.
@@ -147,7 +147,7 @@ class ConfigurableLanguageManagerTest extends BrowserTestBase {
   }
 
   /**
-   * Test translation with URL and Session Language Negotiators.
+   * Tests translation with URL and Session Language Negotiators.
    */
   public function testUrlContentTranslationWithSessionLanguage() {
     $assert_session = $this->assertSession();

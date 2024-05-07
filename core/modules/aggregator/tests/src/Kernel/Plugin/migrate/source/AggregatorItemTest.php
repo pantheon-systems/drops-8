@@ -4,11 +4,14 @@ namespace Drupal\Tests\aggregator\Kernel\Plugin\migrate\source;
 
 use Drupal\Tests\migrate\Kernel\MigrateSqlSourceTestBase;
 
+// cspell:ignore larowlan
+
 /**
  * Tests aggregator item source plugin.
  *
  * @covers \Drupal\aggregator\Plugin\migrate\source\AggregatorItem
  * @group aggregator
+ * @group legacy
  */
 class AggregatorItemTest extends MigrateSqlSourceTestBase {
 

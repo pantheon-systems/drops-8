@@ -68,6 +68,9 @@ class FilterFormatAccessTest extends BrowserTestBase {
    */
   protected $disallowedFormat;
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp(): void {
     parent::setUp();
 
@@ -92,11 +95,12 @@ class FilterFormatAccessTest extends BrowserTestBase {
         'format' => mb_strtolower($this->randomMachineName()),
         'name' => $this->randomMachineName(),
       ];
-      $this->drupalPostForm('admin/config/content/formats/add', $edit, 'Save configuration');
+      $this->drupalGet('admin/config/content/formats/add');
+      $this->submitForm($edit, 'Save configuration');
       $this->resetFilterCaches();
       $formats[] = FilterFormat::load($edit['format']);
     }
-    list($this->allowedFormat, $this->secondAllowedFormat, $this->disallowedFormat) = $formats;
+    [$this->allowedFormat, $this->secondAllowedFormat, $this->disallowedFormat] = $formats;
     $this->drupalLogout();
 
     // Create a regular user with access to two of the formats.
@@ -128,11 +132,11 @@ class FilterFormatAccessTest extends BrowserTestBase {
     $fallback_format = FilterFormat::load(filter_fallback_format());
     $disallowed_format_name = $this->disallowedFormat->getPermissionName();
     $this->assertTrue($this->allowedFormat->access('use', $this->webUser), 'A regular user has access to use a text format they were granted access to.');
-    $this->assertEqual(AccessResult::allowed()->addCacheContexts(['user.permissions']), $this->allowedFormat->access('use', $this->webUser, TRUE), 'A regular user has access to use a text format they were granted access to.');
+    $this->assertEquals(AccessResult::allowed()->addCacheContexts(['user.permissions']), $this->allowedFormat->access('use', $this->webUser, TRUE), 'A regular user has access to use a text format they were granted access to.');
     $this->assertFalse($this->disallowedFormat->access('use', $this->webUser), 'A regular user does not have access to use a text format they were not granted access to.');
-    $this->assertEqual(AccessResult::neutral("The '$disallowed_format_name' permission is required.")->cachePerPermissions(), $this->disallowedFormat->access('use', $this->webUser, TRUE), 'A regular user does not have access to use a text format they were not granted access to.');
+    $this->assertEquals(AccessResult::neutral("The '$disallowed_format_name' permission is required.")->cachePerPermissions(), $this->disallowedFormat->access('use', $this->webUser, TRUE), 'A regular user does not have access to use a text format they were not granted access to.');
     $this->assertTrue($fallback_format->access('use', $this->webUser), 'A regular user has access to use the fallback format.');
-    $this->assertEqual(AccessResult::allowed(), $fallback_format->access('use', $this->webUser, TRUE), 'A regular user has access to use the fallback format.');
+    $this->assertEquals(AccessResult::allowed(), $fallback_format->access('use', $this->webUser, TRUE), 'A regular user has access to use the fallback format.');
 
     // Perform similar checks as above, but now against the entire list of
     // available formats for this user.
@@ -146,20 +150,12 @@ class FilterFormatAccessTest extends BrowserTestBase {
     $this->assertFalse($this->webUser->hasPermission($this->disallowedFormat->getPermissionName()), 'A regular user does not have permission to use the disallowed text format.');
 
     // Make sure that the allowed format appears on the node form and that
-    // the disallowed format does not.
+    // the disallowed format and fallback format do not.
     $this->drupalLogin($this->webUser);
     $this->drupalGet('node/add/page');
-    $elements = $this->xpath('//select[@name=:name]/option', [
-      ':name' => 'body[0][format]',
-      ':option' => $this->allowedFormat->id(),
-    ]);
-    $options = [];
-    foreach ($elements as $element) {
-      $options[$element->getValue()] = $element;
-    }
-    $this->assertTrue(isset($options[$this->allowedFormat->id()]), 'The allowed text format appears as an option when adding a new node.');
-    $this->assertFalse(isset($options[$this->disallowedFormat->id()]), 'The disallowed text format does not appear as an option when adding a new node.');
-    $this->assertFalse(isset($options[filter_fallback_format()]), 'The fallback format does not appear as an option when adding a new node.');
+    $this->assertSession()->optionExists('body[0][format]', $this->allowedFormat->id());
+    $this->assertSession()->optionNotExists('body[0][format]', $this->disallowedFormat->id());
+    $this->assertSession()->optionNotExists('body[0][format]', filter_fallback_format());
 
     // Check regular user access to the filter tips pages.
     $this->drupalGet('filter/tips/' . $this->allowedFormat->id());
@@ -203,7 +199,7 @@ class FilterFormatAccessTest extends BrowserTestBase {
     $this->assertNotContains($this->disallowedFormat->id(), array_keys(filter_get_formats_by_role($rid)), 'A text format which a role does not have access to does not appear in the list of formats available to that role.');
 
     // Check that the fallback format is always allowed.
-    $this->assertEqual(filter_get_roles_by_format(FilterFormat::load(filter_fallback_format())), user_role_names(), 'All roles have access to the fallback format.');
+    $this->assertEquals(filter_get_roles_by_format(FilterFormat::load(filter_fallback_format())), user_role_names(), 'All roles have access to the fallback format.');
     $this->assertContains(filter_fallback_format(), array_keys(filter_get_formats_by_role($rid)), 'The fallback format appears in the list of allowed formats for any role.');
   }
 
@@ -226,13 +222,14 @@ class FilterFormatAccessTest extends BrowserTestBase {
     $edit['title[0][value]'] = $this->randomMachineName(8);
     $edit[$body_value_key] = $this->randomMachineName(16);
     $edit[$body_format_key] = $this->disallowedFormat->id();
-    $this->drupalPostForm('node/add/page', $edit, 'Save');
+    $this->drupalGet('node/add/page');
+    $this->submitForm($edit, 'Save');
     $node = $this->drupalGetNodeByTitle($edit['title[0][value]']);
 
     // Try to edit with a less privileged user.
     $this->drupalLogin($this->webUser);
     $this->drupalGet('node/' . $node->id());
-    $this->clickLink(t('Edit'));
+    $this->clickLink('Edit');
 
     // Verify that body field is read-only and contains replacement value.
     $this->assertSession()->fieldDisabled($body_value_key);
@@ -242,13 +239,14 @@ class FilterFormatAccessTest extends BrowserTestBase {
     $new_edit = [];
     $new_edit['title[0][value]'] = $this->randomMachineName(8);
     $this->submitForm($new_edit, 'Preview');
-    $this->assertText($edit[$body_value_key], 'Old body found in preview.');
+    $this->assertSession()->pageTextContains($edit[$body_value_key]);
 
     // Save and verify that only the title was changed.
-    $this->drupalPostForm('node/' . $node->id() . '/edit', $new_edit, 'Save');
-    $this->assertNoText($edit['title[0][value]'], 'Old title not found.');
-    $this->assertText($new_edit['title[0][value]'], 'New title found.');
-    $this->assertText($edit[$body_value_key], 'Old body found.');
+    $this->drupalGet('node/' . $node->id() . '/edit');
+    $this->submitForm($new_edit, 'Save');
+    $this->assertSession()->pageTextNotContains($edit['title[0][value]']);
+    $this->assertSession()->pageTextContains($new_edit['title[0][value]']);
+    $this->assertSession()->pageTextContains($edit[$body_value_key]);
 
     // Check that even an administrator with "administer filters" permission
     // cannot edit the body field if they do not have specific permission to
@@ -285,24 +283,27 @@ class FilterFormatAccessTest extends BrowserTestBase {
     $new_title = $this->randomMachineName(8);
     $edit = [];
     $edit['title[0][value]'] = $new_title;
-    $this->drupalPostForm('node/' . $node->id() . '/edit', $edit, 'Save');
-    $this->assertText('Text format field is required.', 'Error message is displayed.');
+    $this->drupalGet('node/' . $node->id() . '/edit');
+    $this->submitForm($edit, 'Save');
+    $this->assertSession()->statusMessageContains('Text format field is required.', 'error');
     $this->drupalGet('node/' . $node->id());
-    $this->assertText($old_title, 'Old title found.');
-    $this->assertNoText($new_title, 'New title not found.');
+    $this->assertSession()->pageTextContains($old_title);
+    $this->assertSession()->pageTextNotContains($new_title);
 
     // Now select a new text format and make sure the node can be saved.
     $edit[$body_format_key] = filter_fallback_format();
-    $this->drupalPostForm('node/' . $node->id() . '/edit', $edit, 'Save');
+    $this->drupalGet('node/' . $node->id() . '/edit');
+    $this->submitForm($edit, 'Save');
     $this->assertSession()->addressEquals('node/' . $node->id());
-    $this->assertText($new_title, 'New title found.');
-    $this->assertNoText($old_title, 'Old title not found.');
+    $this->assertSession()->pageTextContains($new_title);
+    $this->assertSession()->pageTextNotContains($old_title);
 
     // Switch the text format to a new one, then disable that format and all
     // other formats on the site (leaving only the fallback format).
     $this->drupalLogin($this->adminUser);
     $edit = [$body_format_key => $this->allowedFormat->id()];
-    $this->drupalPostForm('node/' . $node->id() . '/edit', $edit, 'Save');
+    $this->drupalGet('node/' . $node->id() . '/edit');
+    $this->submitForm($edit, 'Save');
     $this->assertSession()->addressEquals('node/' . $node->id());
     foreach (filter_formats() as $format) {
       if (!$format->isFallbackFormat()) {
@@ -320,16 +321,18 @@ class FilterFormatAccessTest extends BrowserTestBase {
     $new_title = $this->randomMachineName(8);
     $edit = [];
     $edit['title[0][value]'] = $new_title;
-    $this->drupalPostForm('node/' . $node->id() . '/edit', $edit, 'Save');
-    $this->assertText('Text format field is required.', 'Error message is displayed.');
+    $this->drupalGet('node/' . $node->id() . '/edit');
+    $this->submitForm($edit, 'Save');
+    $this->assertSession()->statusMessageContains('Text format field is required.', 'error');
     $this->drupalGet('node/' . $node->id());
-    $this->assertText($old_title, 'Old title found.');
-    $this->assertNoText($new_title, 'New title not found.');
+    $this->assertSession()->pageTextContains($old_title);
+    $this->assertSession()->pageTextNotContains($new_title);
     $edit[$body_format_key] = filter_fallback_format();
-    $this->drupalPostForm('node/' . $node->id() . '/edit', $edit, 'Save');
+    $this->drupalGet('node/' . $node->id() . '/edit');
+    $this->submitForm($edit, 'Save');
     $this->assertSession()->addressEquals('node/' . $node->id());
-    $this->assertText($new_title, 'New title found.');
-    $this->assertNoText($old_title, 'Old title not found.');
+    $this->assertSession()->pageTextContains($new_title);
+    $this->assertSession()->pageTextNotContains($old_title);
   }
 
   /**

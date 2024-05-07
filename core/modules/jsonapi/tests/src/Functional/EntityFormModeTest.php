@@ -10,7 +10,7 @@ use Drupal\Core\Url;
  *
  * @group jsonapi
  */
-class EntityFormModeTest extends ResourceTestBase {
+class EntityFormModeTest extends ConfigEntityResourceTestBase {
 
   /**
    * {@inheritdoc}
@@ -106,6 +106,7 @@ class EntityFormModeTest extends ResourceTestBase {
    */
   protected function getPostDocument() {
     // @todo Update in https://www.drupal.org/node/2300677.
+    return [];
   }
 
 }

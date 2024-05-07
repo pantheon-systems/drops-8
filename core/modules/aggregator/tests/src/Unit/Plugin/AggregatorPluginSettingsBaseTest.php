@@ -11,6 +11,7 @@ use Drupal\Tests\UnitTestCase;
  * Tests settings configuration of individual aggregator plugins.
  *
  * @group aggregator
+ * @group legacy
  */
 class AggregatorPluginSettingsBaseTest extends UnitTestCase {
 
@@ -53,7 +54,12 @@ class AggregatorPluginSettingsBaseTest extends UnitTestCase {
         ->getMock();
       $this->managers[$type]->expects($this->once())
         ->method('getDefinitions')
-        ->will($this->returnValue(['aggregator_test' => ['title' => '', 'description' => '']]));
+        ->willReturn([
+          'aggregator_test' => [
+            'title' => '',
+            'description' => '',
+          ],
+        ]);
     }
 
     /** @var \Drupal\Core\Messenger\MessengerInterface|\PHPUnit\Framework\MockObject\MockBuilder $messenger */
@@ -71,7 +77,7 @@ class AggregatorPluginSettingsBaseTest extends UnitTestCase {
   }
 
   /**
-   * Test for AggregatorPluginSettingsBase.
+   * Tests for AggregatorPluginSettingsBase.
    *
    * Ensure that the settings form calls build, validate and submit methods on
    * plugins that extend AggregatorPluginSettingsBase.
@@ -84,24 +90,24 @@ class AggregatorPluginSettingsBaseTest extends UnitTestCase {
     ]);
 
     $test_processor = $this->getMockBuilder('Drupal\aggregator_test\Plugin\aggregator\processor\TestProcessor')
-      ->setMethods(['buildConfigurationForm', 'validateConfigurationForm', 'submitConfigurationForm'])
+      ->onlyMethods(['buildConfigurationForm', 'validateConfigurationForm', 'submitConfigurationForm'])
       ->setConstructorArgs([[], 'aggregator_test', ['description' => ''], $this->configFactory])
       ->getMock();
-    $test_processor->expects($this->at(0))
+    $test_processor->expects($this->once())
       ->method('buildConfigurationForm')
       ->with($this->anything(), $form_state)
       ->will($this->returnArgument(0));
-    $test_processor->expects($this->at(1))
+    $test_processor->expects($this->once())
       ->method('validateConfigurationForm')
       ->with($this->anything(), $form_state);
-    $test_processor->expects($this->at(2))
+    $test_processor->expects($this->once())
       ->method('submitConfigurationForm')
       ->with($this->anything(), $form_state);
 
     $this->managers['processor']->expects($this->once())
       ->method('createInstance')
       ->with($this->equalTo('aggregator_test'))
-      ->will($this->returnValue($test_processor));
+      ->willReturn($test_processor);
 
     $form = $this->settingsForm->buildForm([], $form_state);
     $this->settingsForm->validateForm($form, $form_state);

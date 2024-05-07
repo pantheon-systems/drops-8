@@ -9,10 +9,11 @@ use Drupal\Core\Config\Entity\ConfigEntityTypeInterface;
 use Drupal\Core\Entity\EntityRepositoryInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Extension\ExtensionPathResolver;
 use Drupal\Core\Serialization\Yaml;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslationInterface;
-use Symfony\Component\EventDispatcher\EventDispatcherInterface;
+use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 /**
  * The ConfigManager provides helper functions for the configuration system.
@@ -59,7 +60,7 @@ class ConfigManager implements ConfigManagerInterface {
   /**
    * The event dispatcher.
    *
-   * @var \Symfony\Component\EventDispatcher\EventDispatcherInterface
+   * @var \Symfony\Contracts\EventDispatcher\EventDispatcherInterface
    */
   protected $eventDispatcher;
 
@@ -78,6 +79,13 @@ class ConfigManager implements ConfigManagerInterface {
   protected $storages;
 
   /**
+   * The extension path resolver.
+   *
+   * @var \Drupal\Core\Extension\ExtensionPathResolver
+   */
+  protected $extensionPathResolver;
+
+  /**
    * Creates ConfigManager objects.
    *
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
@@ -90,12 +98,14 @@ class ConfigManager implements ConfigManagerInterface {
    *   The string translation service.
    * @param \Drupal\Core\Config\StorageInterface $active_storage
    *   The active configuration storage.
-   * @param \Symfony\Component\EventDispatcher\EventDispatcherInterface $event_dispatcher
+   * @param \Symfony\Contracts\EventDispatcher\EventDispatcherInterface $event_dispatcher
    *   The event dispatcher.
    * @param \Drupal\Core\Entity\EntityRepositoryInterface $entity_repository
    *   The entity repository.
+   * @param \Drupal\Core\Extension\ExtensionPathResolver $extension_path_resolver
+   *   The extension path resolver.
    */
-  public function __construct(EntityTypeManagerInterface $entity_type_manager, ConfigFactoryInterface $config_factory, TypedConfigManagerInterface $typed_config_manager, TranslationInterface $string_translation, StorageInterface $active_storage, EventDispatcherInterface $event_dispatcher, EntityRepositoryInterface $entity_repository) {
+  public function __construct(EntityTypeManagerInterface $entity_type_manager, ConfigFactoryInterface $config_factory, TypedConfigManagerInterface $typed_config_manager, TranslationInterface $string_translation, StorageInterface $active_storage, EventDispatcherInterface $event_dispatcher, EntityRepositoryInterface $entity_repository, ExtensionPathResolver $extension_path_resolver = NULL) {
     $this->entityTypeManager = $entity_type_manager;
     $this->configFactory = $config_factory;
     $this->typedConfigManager = $typed_config_manager;
@@ -103,6 +113,11 @@ class ConfigManager implements ConfigManagerInterface {
     $this->activeStorage = $active_storage;
     $this->eventDispatcher = $event_dispatcher;
     $this->entityRepository = $entity_repository;
+    if (!$extension_path_resolver) {
+      @trigger_error('Calling ConfigManager::__construct without the $extension_path_resolver argument is deprecated in drupal:9.3.0 and is required in drupal:10.0.0. See https://www.drupal.org/node/2940438', E_USER_DEPRECATED);
+      $extension_path_resolver = \Drupal::service('extension.path.resolver');
+    }
+    $this->extensionPathResolver = $extension_path_resolver;
   }
 
   /**
@@ -210,7 +225,7 @@ class ConfigManager implements ConfigManagerInterface {
       $collection_storage->deleteAll($name . '.');
     }
 
-    $schema_dir = drupal_get_path($type, $name) . '/' . InstallStorage::CONFIG_SCHEMA_DIRECTORY;
+    $schema_dir = $this->extensionPathResolver->getPath($type, $name) . '/' . InstallStorage::CONFIG_SCHEMA_DIRECTORY;
     if (is_dir($schema_dir)) {
       // Refresh the schema cache if uninstalling an extension that provides
       // configuration schema.
@@ -243,22 +258,22 @@ class ConfigManager implements ConfigManagerInterface {
   /**
    * {@inheritdoc}
    */
-  public function findConfigEntityDependents($type, array $names, ConfigDependencyManager $dependency_manager = NULL) {
+  public function findConfigEntityDependencies($type, array $names, ConfigDependencyManager $dependency_manager = NULL) {
     if (!$dependency_manager) {
       $dependency_manager = $this->getConfigDependencyManager();
     }
     $dependencies = [];
     foreach ($names as $name) {
-      $dependencies = array_merge($dependencies, $dependency_manager->getDependentEntities($type, $name));
+      $dependencies[] = $dependency_manager->getDependentEntities($type, $name);
     }
-    return $dependencies;
+    return array_merge([], ...$dependencies);
   }
 
   /**
    * {@inheritdoc}
    */
-  public function findConfigEntityDependentsAsEntities($type, array $names, ConfigDependencyManager $dependency_manager = NULL) {
-    $dependencies = $this->findConfigEntityDependents($type, $names, $dependency_manager);
+  public function findConfigEntityDependenciesAsEntities($type, array $names, ConfigDependencyManager $dependency_manager = NULL) {
+    $dependencies = $this->findConfigEntityDependencies($type, $names, $dependency_manager);
     $entities = [];
     $definitions = $this->entityTypeManager->getDefinitions();
     foreach ($dependencies as $config_name => $dependency) {
@@ -287,6 +302,22 @@ class ConfigManager implements ConfigManagerInterface {
   /**
    * {@inheritdoc}
    */
+  public function findConfigEntityDependents($type, array $names, ConfigDependencyManager $dependency_manager = NULL) {
+    @trigger_error('ConfigManagerInterface::findConfigEntityDependents() is deprecated in drupal:9.3.0 and is removed from drupal:10.0.0. Instead you should use ConfigManagerInterface::findConfigEntityDependencies(). See https://www.drupal.org/node/3225357', E_USER_DEPRECATED);
+    return $this->findConfigEntityDependencies($type, $names, $dependency_manager);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function findConfigEntityDependentsAsEntities($type, array $names, ConfigDependencyManager $dependency_manager = NULL) {
+    @trigger_error('ConfigManagerInterface::findConfigEntityDependentsAsEntities() is deprecated in drupal:9.3.0 and is removed from drupal:10.0.0. Instead you should use ConfigManagerInterface::findConfigEntityDependenciesAsEntities(). See https://www.drupal.org/node/3225357', E_USER_DEPRECATED);
+    return $this->findConfigEntityDependenciesAsEntities($type, $names, $dependency_manager);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function getConfigEntitiesToChangeOnDependencyRemoval($type, array $names, $dry_run = TRUE) {
     $dependency_manager = $this->getConfigDependencyManager();
 
@@ -295,7 +326,7 @@ class ConfigManager implements ConfigManagerInterface {
     // calling the onDependencyRemoval() method.
 
     // The list of original dependents on $names. This list never changes.
-    $original_dependents = $this->findConfigEntityDependentsAsEntities($type, $names, $dependency_manager);
+    $original_dependents = $this->findConfigEntityDependenciesAsEntities($type, $names, $dependency_manager);
 
     // The current list of dependents on $names. This list is recalculated when
     // calling an entity's onDependencyRemoval() method results in the entity
@@ -333,7 +364,7 @@ class ConfigManager implements ConfigManagerInterface {
         // Based on the updated data rebuild the list of current dependents.
         // This will remove entities that are no longer dependent after the
         // recalculation.
-        $current_dependents = $this->findConfigEntityDependentsAsEntities($type, $names, $dependency_manager);
+        $current_dependents = $this->findConfigEntityDependenciesAsEntities($type, $names, $dependency_manager);
         // Rebuild the list of entities that we need to process using the new
         // list of current dependents and removing any entities that we've
         // already processed.
@@ -435,7 +466,7 @@ class ConfigManager implements ConfigManagerInterface {
           }
           else {
             // Ignore the bundle.
-            list($entity_type_id,, $uuid) = explode(':', $name);
+            [$entity_type_id,, $uuid] = explode(':', $name);
             return $this->entityRepository->loadEntityByConfigTarget($entity_type_id, $uuid);
           }
         }, $affected_dependencies[$type]);
@@ -482,7 +513,7 @@ class ConfigManager implements ConfigManagerInterface {
     }
     foreach (array_unique($content_dependencies) as $content_dependency) {
       // Format of the dependency is entity_type:bundle:uuid.
-      list($entity_type, $bundle, $uuid) = explode(':', $content_dependency, 3);
+      [$entity_type, $bundle, $uuid] = explode(':', $content_dependency, 3);
       if (!$this->entityRepository->loadEntityByUuid($entity_type, $uuid)) {
         $missing_dependencies[$uuid] = [
           'entity_type' => $entity_type,

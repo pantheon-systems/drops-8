@@ -21,7 +21,7 @@ class WhosOnlineBlockTest extends KernelTestBase {
   /**
    * The block being tested.
    *
-   * @var \Drupal\block\Entity\BlockInterface
+   * @var \Drupal\block\BlockInterface
    */
   protected $block;
 
@@ -69,7 +69,7 @@ class WhosOnlineBlockTest extends KernelTestBase {
   }
 
   /**
-   * Test the Who's Online block.
+   * Tests the Who's Online block.
    */
   public function testWhosOnlineBlock() {
     $request_time = \Drupal::time()->getRequestTime();

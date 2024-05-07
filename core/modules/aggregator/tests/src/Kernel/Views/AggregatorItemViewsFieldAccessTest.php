@@ -10,6 +10,7 @@ use Drupal\Tests\views\Kernel\Handler\FieldFieldAccessTestBase;
  * Tests base field access in Views for the aggregator_item entity.
  *
  * @group aggregator
+ * @group legacy
  */
 class AggregatorItemViewsFieldAccessTest extends FieldFieldAccessTestBase {
 
@@ -24,6 +25,7 @@ class AggregatorItemViewsFieldAccessTest extends FieldFieldAccessTestBase {
   protected function setUp($import_test_views = TRUE): void {
     parent::setUp($import_test_views);
 
+    $this->installConfig(['aggregator']);
     $this->installEntitySchema('aggregator_feed');
     $this->installEntitySchema('aggregator_item');
   }

@@ -6,7 +6,9 @@ use Drupal\language\Entity\ContentLanguageSettings;
 use Drupal\Tests\migrate_drupal\Kernel\d6\MigrateDrupal6TestBase;
 
 /**
- * Tests migration of language content setting variables,
+ * Tests the migration of language-related settings.
+ *
+ * Settings tested include language content setting variables,
  * language_content_type_$type, i18n_node_options_* and i18n_lock_node_*.
  *
  * @group migrate_drupal_6
@@ -32,7 +34,11 @@ class MigrateLanguageContentSettingsTest extends MigrateDrupal6TestBase {
 
     $this->installConfig(['node']);
     $this->installEntitySchema('node');
-    $this->executeMigrations(['d6_node_type', 'd6_language_content_settings']);
+    $this->executeMigrations([
+      'language',
+      'd6_node_type',
+      'd6_language_content_settings',
+    ]);
   }
 
   /**
@@ -51,13 +57,8 @@ class MigrateLanguageContentSettingsTest extends MigrateDrupal6TestBase {
     $this->assertTrue($config->isDefaultConfiguration());
     $this->assertFalse($config->isLanguageAlterable());
     $this->assertSame($config->getDefaultLangcode(), 'site_default');
-  }
 
-  /**
-   * Tests migration of content language settings when there is no language lock.
-   */
-  public function testLanguageContentWithNoLanguageLock() {
-    // Assert that a we can assign a language.
+    // Assert that a we can assign a language when there is no language lock.
     $config = ContentLanguageSettings::loadByEntityTypeBundle('node', 'employee');
     $this->assertSame($config->getDefaultLangcode(), 'current_interface');
     $this->assertTrue($config->isLanguageAlterable());

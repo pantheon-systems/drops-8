@@ -5,7 +5,9 @@
  * Post update functions for System.
  */
 
+use Drupal\Core\Site\Settings;
 use Drupal\Core\Config\Entity\ConfigEntityUpdater;
+use Drupal\Core\Database\Database;
 use Drupal\Core\Entity\Display\EntityDisplayInterface;
 use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
 use Drupal\Core\Entity\ContentEntityType;
@@ -98,7 +100,7 @@ function system_post_update_entity_revision_metadata_bc_cleanup() {
   });
 
   // Remove the '$requiredRevisionMetadataKeys' property for these entity types.
-  foreach ($last_installed_definitions as $entity_type_id => $entity_type) {
+  foreach ($last_installed_definitions as $entity_type) {
     $closure = function (ContentEntityTypeInterface $entity_type) {
       return get_object_vars($entity_type);
     };
@@ -166,5 +168,100 @@ function system_post_update_schema_version_int() {
     if (is_string($schema)) {
       $registry->set($name, (int) $schema);
     }
+  }
+}
+
+/**
+ * Remove obsolete system.rss configuration.
+ */
+function system_post_update_delete_rss_settings() {
+  \Drupal::configFactory()->getEditable('system.rss')
+    ->clear('channel')
+    ->clear('items.limit')
+    ->clear('langcode')
+    ->save();
+}
+
+/**
+ * Drop the 'all' index on the 'key_value_expire' table.
+ */
+function system_post_update_remove_key_value_expire_all_index() {
+  $schema = \Drupal::database()->schema();
+  if ($schema->tableExists('key_value_expire')) {
+    $schema->dropIndex('key_value_expire', 'all');
+  }
+}
+
+/**
+ * Add new security advisory retrieval settings.
+ */
+function system_post_update_service_advisory_settings() {
+  $config = \Drupal::configFactory()->getEditable('system.advisories');
+  $config->set('interval_hours', 6)->set('enabled', TRUE)->save();
+}
+
+/**
+ * Remove obsolete system.authorize configuration.
+ */
+function system_post_update_delete_authorize_settings() {
+  \Drupal::configFactory()->getEditable('system.authorize')->delete();
+}
+
+/**
+ * Sort all configuration according to its schema.
+ */
+function system_post_update_sort_all_config(&$sandbox) {
+  $factory = \Drupal::configFactory();
+  $iteration_size = Settings::get('entity_update_batch_size', 50);
+
+  if (empty($sandbox['progress'])) {
+    $sandbox['progress'] = 0;
+    $sandbox['all_config_names'] = $factory->listAll();
+    $sandbox['max'] = count($sandbox['all_config_names']);
+  }
+
+  $start = $sandbox['progress'];
+  $end = min($sandbox['max'], $start + $iteration_size);
+  for ($i = $start; $i < $end; $i++) {
+    try {
+      $factory->getEditable($sandbox['all_config_names'][$i])->save();
+    }
+    catch (\Exception $e) {
+      watchdog_exception('system', $e);
+    }
+  }
+
+  if ($sandbox['max'] > 0 && $end < $sandbox['max']) {
+    $sandbox['progress'] = $end;
+    $sandbox['#finished'] = ($end - 1) / $sandbox['max'];
+  }
+  else {
+    $sandbox['#finished'] = 1;
+  }
+}
+
+/**
+ * Enable the modules that are providing the listed database drivers.
+ */
+function system_post_update_enable_provider_database_driver() {
+  $modules_to_install = [];
+  foreach (Database::getAllConnectionInfo() as $targets) {
+    foreach ($targets as $target) {
+      // Provider determination taken from Connection::getProvider().
+      [$first, $second] = explode('\\', $target['namespace'] ?? '', 3);
+      $provider = ($first === 'Drupal' && strtolower($second) === $second) ? $second : 'core';
+      if ($provider !== 'core' && !\Drupal::moduleHandler()->moduleExists($provider)) {
+        $autoload = $target['autoload'] ?? '';
+        // We are only enabling the module for database drivers that are
+        // provided by a module.
+        if (str_contains($autoload, 'src/Driver/Database/')) {
+          $modules_to_install[$provider] = TRUE;
+        }
+      }
+    }
+  }
+
+  if ($modules_to_install !== []) {
+    \Drupal::service('module_installer')->install(array_keys($modules_to_install));
   }
 }

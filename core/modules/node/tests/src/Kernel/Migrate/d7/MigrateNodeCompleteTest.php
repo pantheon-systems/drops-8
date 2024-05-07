@@ -4,6 +4,7 @@ namespace Drupal\Tests\node\Kernel\Migrate\d7;
 
 use Drupal\migrate\MigrateExecutable;
 use Drupal\migrate_drupal\NodeMigrateType;
+use Drupal\node\Entity\Node;
 use Drupal\node\NodeInterface;
 use Drupal\Tests\file\Kernel\Migrate\d7\FileMigrationSetupTrait;
 use Drupal\Tests\migrate_drupal\Kernel\d7\MigrateDrupal7TestBase;
@@ -28,12 +29,11 @@ class MigrateNodeCompleteTest extends MigrateDrupal7TestBase {
     'content_translation',
     'comment',
     'datetime',
+    'datetime_range',
     'image',
     'language',
     'link',
     'menu_ui',
-    // Required for translation migrations.
-    'migrate_drupal_multilingual',
     'node',
     'taxonomy',
     'telephone',
@@ -103,7 +103,7 @@ class MigrateNodeCompleteTest extends MigrateDrupal7TestBase {
     // that only the complete migration ran.
     $results = $this->nodeMigrateMapTableCount('7');
     $this->assertSame(0, $results['node']);
-    $this->assertSame(7, $results['node_complete']);
+    $this->assertSame(8, $results['node_complete']);
 
     $db = \Drupal::database();
     $this->assertEquals($this->expectedNodeFieldRevisionTable(), $db->select('node_field_revision', 'nr')
@@ -125,6 +125,36 @@ class MigrateNodeCompleteTest extends MigrateDrupal7TestBase {
     foreach ($this->expectedNodeFieldRevisionTable() as $key => $revision) {
       $this->assertRevision($revision, $data[$key]);
     }
+
+    // Test the migration of node and user reference fields.
+    foreach ([2, 3] as $revision_id) {
+      $revision = $this->nodeStorage->loadRevision($revision_id);
+      $this->assertCount(1, $revision->field_node_reference);
+      $this->assertSame('5', $revision->field_node_reference->target_id);
+
+      $this->assertCount(1, $revision->field_user_reference);
+      $this->assertSame('Bob', $revision->field_user_reference[0]->entity->getAccountName());
+    }
+
+    // Test the translated node reference in the latest revision of node 2. This
+    // references the legacy site node 4 instead of node 2. The reference is
+    // fixed by the followup migrations, 'd7_entity_reference_translation' and
+    // tested in \Drupal\Tests\migrate_drupal\Kernel\d7\FollowUpMigrationsTest.
+    $node = Node::load(2);
+    $this->assertSame('6', $node->get('field_reference_2')->target_id);
+    $translation = $node->getTranslation('is');
+    $this->assertSame('4', $translation->get('field_reference_2')->target_id);
+
+    // Test the order in multi-value fields.
+    $revision = $this->nodeStorage->loadRevision(1);
+    $this->assertSame([
+      ['value' => 'default@example.com'],
+      ['value' => 'another@example.com'],
+    ], $revision->get('field_email')->getValue());
+    $this->assertSame([
+      ['target_id' => '17'],
+      ['target_id' => '15'],
+    ], $revision->get('field_term_entityreference')->getValue());
   }
 
   /**
@@ -162,9 +192,11 @@ class MigrateNodeCompleteTest extends MigrateDrupal7TestBase {
    *   An array of revision data matching a node_field_revision table row.
    * @param array $data
    *   An array of revision data.
+   *
+   * @internal
    */
-  protected function assertRevision(array $revision, array $data) {
-    /* @var  \Drupal\node\NodeInterface $actual */
+  protected function assertRevision(array $revision, array $data): void {
+    /** @var  \Drupal\node\NodeInterface $actual */
     $actual = $this->nodeStorage->loadRevision($revision['vid'])
       ->getTranslation($revision['langcode']);
     $this->assertInstanceOf(NodeInterface::class, $actual);

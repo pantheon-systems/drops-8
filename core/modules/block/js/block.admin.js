@@ -4,24 +4,19 @@
 * https://www.drupal.org/node/2815083
 * @preserve
 **/
-
-(function ($, Drupal, debounce) {
+(function ($, Drupal, debounce, once) {
   Drupal.behaviors.blockFilterByText = {
     attach: function attach(context, settings) {
-      var $input = $('input.block-filter-text').once('block-filter-text');
+      var $input = $(once('block-filter-text', 'input.block-filter-text'));
       var $table = $($input.attr('data-element'));
       var $filterRows;
-
       function filterBlockList(e) {
-        var query = $(e.target).val().toLowerCase();
-
+        var query = e.target.value.toLowerCase();
         function toggleBlockEntry(index, label) {
-          var $label = $(label);
-          var $row = $label.parent().parent();
-          var textMatch = $label.text().toLowerCase().indexOf(query) !== -1;
+          var $row = $(label).parent().parent();
+          var textMatch = label.textContent.toLowerCase().includes(query);
           $row.toggle(textMatch);
         }
-
         if (query.length >= 2) {
           $filterRows.each(toggleBlockEntry);
           Drupal.announce(Drupal.formatPlural($table.find('tr:visible').length - 1, '1 block is available in the modified list.', '@count blocks are available in the modified list.'));
@@ -31,7 +26,6 @@
           });
         }
       }
-
       if ($table.length) {
         $filterRows = $table.find('div.block-filter-text-source');
         $input.on('keyup', debounce(filterBlockList, 200));
@@ -41,8 +35,8 @@
   Drupal.behaviors.blockHighlightPlacement = {
     attach: function attach(context, settings) {
       if (settings.blockPlacement && $('.js-block-placed').length) {
-        $(context).find('[data-drupal-selector="edit-blocks"]').once('block-highlight').each(function () {
-          var $container = $(this);
+        once('block-highlight', '[data-drupal-selector="edit-blocks"]', context).forEach(function (container) {
+          var $container = $(container);
           $('html, body').animate({
             scrollTop: $('.js-block-placed').offset().top - $container.offset().top + $container.scrollTop()
           }, 500);
@@ -50,4 +44,4 @@
       }
     }
   };
-})(jQuery, Drupal, Drupal.debounce);
+})(jQuery, Drupal, Drupal.debounce, once);

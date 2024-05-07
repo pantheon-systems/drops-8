@@ -18,8 +18,11 @@
    */
   Drupal.behaviors.tableFilterByText = {
     attach(context, settings) {
-      const $input = $('input.table-filter-text').once('table-filter-text');
-      const $table = $($input.attr('data-table'));
+      const [input] = once('table-filter-text', 'input.table-filter-text');
+      if (!input) {
+        return;
+      }
+      const $table = $(input.getAttribute('data-table'));
       let $rowsAndDetails;
       let $rows;
       let $details;
@@ -32,17 +35,21 @@
       }
 
       function filterModuleList(e) {
-        const query = $(e.target).val();
+        const query = e.target.value;
         // Case insensitive expression to find query at the beginning of a word.
         const re = new RegExp(`\\b${query}`, 'i');
 
         function showModuleRow(index, row) {
-          const $row = $(row);
-          const $sources = $row.find(
+          const sources = row.querySelectorAll(
             '.table-filter-text-source, .module-name, .module-description',
           );
-          const textMatch = $sources.text().search(re) !== -1;
-          $row.closest('tr').toggle(textMatch);
+          let sourcesConcat = '';
+          // Concatenate the textContent of the elements in the row.
+          sources.forEach((item) => {
+            sourcesConcat += item.textContent;
+          });
+          const textMatch = sourcesConcat.search(re) !== -1;
+          $(row).closest('tr').toggle(textMatch);
         }
         // Search over all rows and packages.
         $rowsAndDetails.show();
@@ -92,7 +99,7 @@
         $rows = $table.find('tbody tr');
         $details = $rowsAndDetails.filter('.package-listing');
 
-        $input.on({
+        $(input).on({
           keyup: debounce(filterModuleList, 200),
           keydown: preventEnterKey,
         });

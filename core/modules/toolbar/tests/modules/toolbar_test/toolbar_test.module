@@ -45,6 +45,20 @@ function toolbar_test_toolbar() {
     ],
     '#weight' => 50,
   ];
+  $items['empty'] = [
+    '#type' => 'toolbar_item',
+  ];
 
   return $items;
+}
+
+/**
+ * Implements hook_preprocess_HOOK().
+ */
+function toolbar_test_preprocess_menu(&$variables) {
+  // All the standard hook_theme variables should be populated when the
+  // Toolbar module is rendering a menu.
+  foreach (['menu_name', 'items', 'attributes'] as $variable) {
+    $variables[$variable];
+  }
 }

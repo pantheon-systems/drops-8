@@ -112,7 +112,7 @@ class CommentManager implements CommentManagerInterface {
     }
 
     $map = $this->entityFieldManager->getFieldMapByFieldType('comment');
-    return isset($map[$entity_type_id]) ? $map[$entity_type_id] : [];
+    return $map[$entity_type_id] ?? [];
   }
 
   /**
@@ -220,6 +220,7 @@ class CommentManager implements CommentManagerInterface {
 
       // Use the timestamp to retrieve the number of new comments.
       $query = $this->entityTypeManager->getStorage('comment')->getQuery()
+        ->accessCheck(TRUE)
         ->condition('entity_type', $entity->getEntityTypeId())
         ->condition('entity_id', $entity->id())
         ->condition('created', $timestamp, '>')

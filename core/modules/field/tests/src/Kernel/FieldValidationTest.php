@@ -24,6 +24,9 @@ class FieldValidationTest extends FieldKernelTestBase {
    */
   private $entity;
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp(): void {
     parent::setUp();
 
@@ -55,8 +58,8 @@ class FieldValidationTest extends FieldKernelTestBase {
 
     // Check that the expected constraint violations are reported.
     $this->assertCount(1, $violations);
-    $this->assertEqual($violations[0]->getPropertyPath(), '');
-    $this->assertEqual($violations[0]->getMessage(), t('%name: this field cannot hold more than @count values.', ['%name' => $this->fieldTestData->field->getLabel(), '@count' => $cardinality]));
+    $this->assertEquals('', $violations[0]->getPropertyPath());
+    $this->assertEquals(t('%name: this field cannot hold more than @count values.', ['%name' => $this->fieldTestData->field->getLabel(), '@count' => $cardinality]), $violations[0]->getMessage());
   }
 
   /**
@@ -91,7 +94,7 @@ class FieldValidationTest extends FieldKernelTestBase {
     foreach ($violations as $violation) {
       $violations_by_path[$violation->getPropertyPath()][] = $violation->getMessage();
     }
-    $this->assertEqual($violations_by_path, $expected_violations);
+    $this->assertEquals($expected_violations, $violations_by_path);
   }
 
 }

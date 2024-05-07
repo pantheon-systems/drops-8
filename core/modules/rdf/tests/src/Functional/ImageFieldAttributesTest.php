@@ -14,6 +14,7 @@ use Drupal\Tests\TestFileCreationTrait;
  * Tests the RDFa markup of imagefields.
  *
  * @group rdf
+ * @group legacy
  */
 class ImageFieldAttributesTest extends ImageFieldTestBase {
 
@@ -63,6 +64,9 @@ class ImageFieldAttributesTest extends ImageFieldTestBase {
    */
   protected $node;
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp(): void {
     parent::setUp();
 

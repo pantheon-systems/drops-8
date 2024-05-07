@@ -2,6 +2,7 @@
 
 namespace Drupal\Tests\jsonapi\Functional;
 
+use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Url;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
@@ -64,9 +65,7 @@ class RestJsonApiUnsupported extends ResourceTestBase {
   public function setUp(): void {
     parent::setUp();
 
-    // Set up a HTTP client that accepts relative URLs.
-    $this->httpClient = $this->container->get('http_client_factory')
-      ->fromOptions(['base_uri' => $this->baseUrl]);
+    $this->config('system.logging')->set('error_level', ERROR_REPORTING_HIDE)->save();
 
     // Create a "Camelids" node type.
     NodeType::create([
@@ -102,7 +101,7 @@ class RestJsonApiUnsupported extends ResourceTestBase {
       400,
       FALSE,
       $response,
-      ['4xx-response', 'config:user.role.anonymous', 'http_response', 'node:1'],
+      ['4xx-response', 'config:system.logging', 'config:user.role.anonymous', 'http_response', 'node:1'],
       ['url.query_args:_format', 'url.site', 'user.permissions'],
       'MISS',
       'MISS'
@@ -112,16 +111,20 @@ class RestJsonApiUnsupported extends ResourceTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function assertNormalizationEdgeCases($method, Url $url, array $request_options) {}
+  protected function assertNormalizationEdgeCases($method, Url $url, array $request_options): void {}
 
   /**
    * {@inheritdoc}
    */
-  protected function getExpectedUnauthorizedAccessMessage($method) {}
+  protected function getExpectedUnauthorizedAccessMessage($method) {
+    return '';
+  }
 
   /**
    * {@inheritdoc}
    */
-  protected function getExpectedUnauthorizedAccessCacheability() {}
+  protected function getExpectedUnauthorizedAccessCacheability() {
+    return (new CacheableMetadata());
+  }
 
 }

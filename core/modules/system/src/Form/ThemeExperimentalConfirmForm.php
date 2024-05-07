@@ -104,7 +104,7 @@ class ThemeExperimentalConfirmForm extends ConfirmFormBase {
     $dependencies = array_keys($all_themes[$theme]->requires);
     $themes = array_merge([$theme], $dependencies);
     $is_experimental = function ($theme) use ($all_themes) {
-      return isset($all_themes[$theme]) && isset($all_themes[$theme]->info['experimental']) && $all_themes[$theme]->info['experimental'];
+      return isset($all_themes[$theme]) && $all_themes[$theme]->isExperimental();
     };
     $get_label = function ($theme) use ($all_themes) {
       return $all_themes[$theme]->info['name'];
@@ -134,8 +134,8 @@ class ThemeExperimentalConfirmForm extends ConfirmFormBase {
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
     $args = $form_state->getBuildInfo()['args'];
-    $theme = isset($args[0]) ? $args[0] : NULL;
-    $set_default = isset($args[1]) ? $args[1] : FALSE;
+    $theme = $args[0] ?? NULL;
+    $set_default = $args[1] ?? FALSE;
     $themes = $this->themeList->getList();
     $config = $this->configFactory()->getEditable('system.theme');
     try {

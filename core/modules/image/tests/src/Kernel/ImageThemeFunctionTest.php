@@ -51,6 +51,9 @@ class ImageThemeFunctionTest extends KernelTestBase {
    */
   protected $imageFactory;
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp(): void {
     parent::setUp();
 
@@ -93,7 +96,7 @@ class ImageThemeFunctionTest extends KernelTestBase {
     // Create a style.
     $style = ImageStyle::create(['name' => 'test', 'label' => 'Test']);
     $style->save();
-    $url = file_url_transform_relative($style->buildUrl($original_uri));
+    $url = \Drupal::service('file_url_generator')->transformRelative($style->buildUrl($original_uri));
 
     // Create a test entity with the image field set.
     $entity = EntityTest::create();
@@ -155,7 +158,7 @@ class ImageThemeFunctionTest extends KernelTestBase {
     // Create a style.
     $style = ImageStyle::create(['name' => 'image_test', 'label' => 'Test']);
     $style->save();
-    $url = file_url_transform_relative($style->buildUrl($original_uri));
+    $url = \Drupal::service('file_url_generator')->transformRelative($style->buildUrl($original_uri));
 
     // Create the base element that we'll use in the tests below.
     $base_element = [
@@ -187,7 +190,7 @@ class ImageThemeFunctionTest extends KernelTestBase {
     // Test using alt directly with alt attribute.
     $image_with_alt_property = [
       '#theme' => 'image',
-      '#uri' => '/core/themes/bartik/logo.svg',
+      '#uri' => '/core/themes/olivero/logo.svg',
       '#alt' => 'Regular alt',
       '#title' => 'Test title',
       '#width' => '50%',
@@ -202,7 +205,7 @@ class ImageThemeFunctionTest extends KernelTestBase {
     // Test using alt attribute inside attributes.
     $image_with_alt_attribute_alt_attribute = [
       '#theme' => 'image',
-      '#uri' => '/core/themes/bartik/logo.svg',
+      '#uri' => '/core/themes/olivero/logo.svg',
       '#width' => '50%',
       '#height' => '50%',
       '#attributes' => [
@@ -220,7 +223,7 @@ class ImageThemeFunctionTest extends KernelTestBase {
     // Test using alt attribute as property and inside attributes.
     $image_with_alt_attribute_both = [
       '#theme' => 'image',
-      '#uri' => '/core/themes/bartik/logo.svg',
+      '#uri' => '/core/themes/olivero/logo.svg',
       '#width' => '50%',
       '#height' => '50%',
       '#alt' => 'Kitten sustainable',

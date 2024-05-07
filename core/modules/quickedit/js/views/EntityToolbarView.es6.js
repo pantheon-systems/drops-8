@@ -127,18 +127,18 @@
           case 'opened':
             // The saving throbber is not managed by AJAX system. The
             // EntityToolbarView manages this visual element.
+            $button[0].textContent = Drupal.t('Save');
             $button
               .removeClass('action-saving icon-throbber icon-end')
-              .text(Drupal.t('Save'))
               .removeAttr('disabled')
               .attr('aria-hidden', !isDirty);
             break;
 
           // The changes to the fields of the entity are being committed.
           case 'committing':
+            $button[0].textContent = Drupal.t('Saving');
             $button
               .addClass('action-saving icon-throbber icon-end')
-              .text(Drupal.t('Saving'))
               .attr('disabled', 'disabled');
             break;
 
@@ -258,9 +258,8 @@
 
             case 3:
               // Position against a highlighted field.
-              highlightedField = Drupal.quickedit.app.model.get(
-                'highlightedField',
-              );
+              highlightedField =
+                Drupal.quickedit.app.model.get('highlightedField');
               of =
                 highlightedField &&
                 highlightedField.editorView &&
@@ -274,8 +273,9 @@
               let topMostField = null;
               // Position against the topmost field.
               for (let i = 0; i < fieldModels.length; i++) {
-                const pos = fieldModels[i].get('el').getBoundingClientRect()
-                  .top;
+                const pos = fieldModels[i]
+                  .get('el')
+                  .getBoundingClientRect().top;
                 if (pos < topMostPosition) {
                   topMostPosition = pos;
                   topMostField = fieldModels[i];
@@ -496,9 +496,8 @@
         const activeFieldLabel =
           activeField && activeField.get('metadata').label;
         // Label of a highlighted field, if it exists.
-        const highlightedField = Drupal.quickedit.app.model.get(
-          'highlightedField',
-        );
+        const highlightedField =
+          Drupal.quickedit.app.model.get('highlightedField');
         const highlightedFieldLabel =
           highlightedField && highlightedField.get('metadata').label;
         // The label is constructed in a priority order.

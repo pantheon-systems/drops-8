@@ -22,7 +22,7 @@ class EnvironmentCleanerTest extends KernelTestBase {
       'sites' => [
         'simpletest' => [
           'delete_dir' => [
-            'delete.me' => 'I am a gonner.',
+            'delete.me' => 'I am gone.',
           ],
           'delete_me.too' => 'delete this file.',
         ],
@@ -47,9 +47,9 @@ class EnvironmentCleanerTest extends KernelTestBase {
 
     $this->assertEquals(2, $do_cleanup_ref->invoke($cleaner));
 
-    $this->assertDirectoryNotExists(vfsStream::url('cleanup_test/sites/simpletest/delete_dir'));
-    $this->assertFileNotExists(vfsStream::url('cleanup_test/sites/simpletest/delete_dir/delete.me'));
-    $this->assertFileNotExists(vfsStream::url('cleanup_test/sites/simpletest/delete_me.too'));
+    $this->assertDirectoryDoesNotExist(vfsStream::url('cleanup_test/sites/simpletest/delete_dir'));
+    $this->assertFileDoesNotExist(vfsStream::url('cleanup_test/sites/simpletest/delete_dir/delete.me'));
+    $this->assertFileDoesNotExist(vfsStream::url('cleanup_test/sites/simpletest/delete_me.too'));
   }
 
 }

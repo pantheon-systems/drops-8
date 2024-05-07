@@ -82,7 +82,6 @@ class UserViewsData extends EntityViewsData {
     // Note that this field implements field level access control.
     $data['users_field_data']['mail']['help'] = $this->t('Email address for a given user. This field is normally not shown to users, so be cautious when using it.');
 
-    $data['users_field_data']['langcode']['help'] = $this->t('Original language of the user information');
     $data['users_field_data']['langcode']['help'] = $this->t('Language of the translation of user information');
 
     $data['users_field_data']['preferred_langcode']['title'] = $this->t('Preferred language');
@@ -233,7 +232,7 @@ class UserViewsData extends EntityViewsData {
       'name field' => 'name',
       'empty field name' => $this->t('No role'),
       'zero is null' => TRUE,
-      'numeric' => TRUE,
+      'numeric' => FALSE,
     ];
 
     $data['user__roles']['permission'] = [

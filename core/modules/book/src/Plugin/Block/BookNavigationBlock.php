@@ -9,7 +9,7 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Symfony\Component\HttpFoundation\RequestStack;
+use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Entity\EntityStorageInterface;
 
 /**
@@ -24,11 +24,11 @@ use Drupal\Core\Entity\EntityStorageInterface;
 class BookNavigationBlock extends BlockBase implements ContainerFactoryPluginInterface {
 
   /**
-   * The request object.
+   * The current route match.
    *
-   * @var \Symfony\Component\HttpFoundation\RequestStack
+   * @var \Drupal\Core\Routing\RouteMatchInterface
    */
-  protected $requestStack;
+  protected $routeMatch;
 
   /**
    * The book manager.
@@ -53,17 +53,17 @@ class BookNavigationBlock extends BlockBase implements ContainerFactoryPluginInt
    *   The plugin_id for the plugin instance.
    * @param mixed $plugin_definition
    *   The plugin implementation definition.
-   * @param \Symfony\Component\HttpFoundation\RequestStack $request_stack
-   *   The request stack object.
+   * @param \Drupal\Core\Routing\RouteMatchInterface $route_match
+   *   The current route match.
    * @param \Drupal\book\BookManagerInterface $book_manager
    *   The book manager.
    * @param \Drupal\Core\Entity\EntityStorageInterface $node_storage
    *   The node storage.
    */
-  public function __construct(array $configuration, $plugin_id, $plugin_definition, RequestStack $request_stack, BookManagerInterface $book_manager, EntityStorageInterface $node_storage) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, RouteMatchInterface $route_match, BookManagerInterface $book_manager, EntityStorageInterface $node_storage) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
 
-    $this->requestStack = $request_stack;
+    $this->routeMatch = $route_match;
     $this->bookManager = $book_manager;
     $this->nodeStorage = $node_storage;
   }
@@ -76,7 +76,7 @@ class BookNavigationBlock extends BlockBase implements ContainerFactoryPluginInt
       $configuration,
       $plugin_id,
       $plugin_definition,
-      $container->get('request_stack'),
+      $container->get('current_route_match'),
       $container->get('book.manager'),
       $container->get('entity_type.manager')->getStorage('node')
     );
@@ -105,7 +105,7 @@ class BookNavigationBlock extends BlockBase implements ContainerFactoryPluginInt
       '#options' => $options,
       '#default_value' => $this->configuration['block_mode'],
       '#description' => $this->t("If <em>Show block on all pages</em> is selected, the block will contain the automatically generated menus for all of the site's books. If <em>Show block only on book pages</em> is selected, the block will contain only the one menu corresponding to the current page's book. In this case, if the current page is not in a book, no block will be displayed. The <em>Page specific visibility settings</em> or other visibility settings can be used in addition to selectively display this block."),
-      ];
+    ];
 
     return $form;
   }
@@ -123,8 +123,9 @@ class BookNavigationBlock extends BlockBase implements ContainerFactoryPluginInt
   public function build() {
     $current_bid = 0;
 
-    if ($node = $this->requestStack->getCurrentRequest()->get('node')) {
-      $current_bid = empty($node->book['bid']) ? 0 : $node->book['bid'];
+    $node = $this->routeMatch->getParameter('node');
+    if ($node instanceof NodeInterface && !empty($node->book['bid'])) {
+      $current_bid = $node->book['bid'];
     }
     if ($this->configuration['block_mode'] == 'all pages') {
       $book_menus = [];
@@ -160,6 +161,7 @@ class BookNavigationBlock extends BlockBase implements ContainerFactoryPluginInt
       // Only display this block when the user is browsing a book and do
       // not show unpublished books.
       $nid = \Drupal::entityQuery('node')
+        ->accessCheck(TRUE)
         ->condition('nid', $node->book['bid'], '=')
         ->condition('status', NodeInterface::PUBLISHED)
         ->execute();

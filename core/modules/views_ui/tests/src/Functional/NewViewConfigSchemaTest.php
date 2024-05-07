@@ -21,7 +21,6 @@ class NewViewConfigSchemaTest extends UITestBase {
     'file',
     'taxonomy',
     'dblog',
-    'aggregator',
   ];
 
   /**
@@ -45,9 +44,6 @@ class NewViewConfigSchemaTest extends UITestBase {
       'file_managed',
       'taxonomy_term',
       'watchdog',
-      // Standard derivative classes.
-      'standard:aggregator_feed',
-      'standard:aggregator_item',
     ];
     foreach ($wizards as $wizard_key) {
       $edit = [];
@@ -55,7 +51,8 @@ class NewViewConfigSchemaTest extends UITestBase {
       $edit['id'] = strtolower($this->randomMachineName());
       $edit['show[wizard_key]'] = $wizard_key;
       $edit['description'] = $this->randomString();
-      $this->drupalPostForm('admin/structure/views/add', $edit, 'Save and edit');
+      $this->drupalGet('admin/structure/views/add');
+      $this->submitForm($edit, 'Save and edit');
     }
   }
 

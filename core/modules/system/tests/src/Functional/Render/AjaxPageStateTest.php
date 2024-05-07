@@ -30,6 +30,9 @@ class AjaxPageStateTest extends BrowserTestBase {
    */
   protected $adminUser;
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp(): void {
     parent::setUp();
     // Create an administrator with all permissions.
@@ -80,7 +83,7 @@ class AjaxPageStateTest extends BrowserTestBase {
   }
 
   /**
-   * Test if multiple libraries can be excluded.
+   * Tests if multiple libraries can be excluded.
    *
    * The ajax_page_state[libraries] should be able to support multiple libraries
    * comma separated.

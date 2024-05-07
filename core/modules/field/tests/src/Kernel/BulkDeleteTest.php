@@ -64,7 +64,7 @@ class BulkDeleteTest extends FieldKernelTestBase {
       $actual_invocations = $actual_hooks[$hook];
 
       // Check that the number of invocations is correct.
-      $this->assertSame(count($invocations), count($actual_invocations), "$hook() was called the expected number of times.");
+      $this->assertSameSize($invocations, $actual_invocations, "$hook() was called the expected number of times.");
 
       // Check that the hook was called for each expected argument.
       foreach ($invocations as $argument) {
@@ -88,6 +88,9 @@ class BulkDeleteTest extends FieldKernelTestBase {
     }
   }
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp(): void {
     parent::setUp();
 
@@ -152,6 +155,8 @@ class BulkDeleteTest extends FieldKernelTestBase {
   }
 
   /**
+   * Tests deleting fields.
+   *
    * Verify that deleting a field leaves the field data items in the database
    * and that the appropriate Field API functions can operate on the deleted
    * data and field definition.
@@ -168,6 +173,7 @@ class BulkDeleteTest extends FieldKernelTestBase {
     // There are 10 entities of this bundle.
     $found = $storage
       ->getQuery()
+      ->accessCheck(FALSE)
       ->condition('type', $bundle)
       ->execute();
     $this->assertCount(10, $found, 'Correct number of entities found before deleting');
@@ -180,7 +186,7 @@ class BulkDeleteTest extends FieldKernelTestBase {
     $fields = \Drupal::entityTypeManager()->getStorage('field_config')->loadByProperties(['field_storage_uuid' => $field_storage->uuid(), 'deleted' => TRUE, 'include_deleted' => TRUE]);
     $this->assertCount(1, $fields, 'There is one deleted field');
     $field = $fields[$field->uuid()];
-    $this->assertEqual($field->getTargetBundle(), $bundle, 'The deleted field is for the correct bundle');
+    $this->assertEquals($bundle, $field->getTargetBundle(), 'The deleted field is for the correct bundle');
 
     // Check that the actual stored content did not change during delete.
     /** @var \Drupal\Core\Entity\Sql\DefaultTableMapping $table_mapping */
@@ -191,12 +197,13 @@ class BulkDeleteTest extends FieldKernelTestBase {
       ->fields('t')
       ->execute();
     foreach ($result as $row) {
-      $this->assertEqual($this->entities[$row->entity_id]->{$field_name}->value, $row->$column);
+      $this->assertEquals($row->{$column}, $this->entities[$row->entity_id]->{$field_name}->value);
     }
 
     // There are 0 entities of this bundle with non-deleted data.
     $found = $storage
       ->getQuery()
+      ->accessCheck(FALSE)
       ->condition('type', $bundle)
       ->condition("$field_name.deleted", 0)
       ->execute();
@@ -206,6 +213,7 @@ class BulkDeleteTest extends FieldKernelTestBase {
     // their values are correct.
     $found = $storage
       ->getQuery()
+      ->accessCheck(FALSE)
       ->condition('type', $bundle)
       ->condition("$field_name.deleted", 1)
       ->sort('id')
@@ -304,10 +312,12 @@ class BulkDeleteTest extends FieldKernelTestBase {
       ->countQuery()
       ->execute()
       ->fetchField();
-    $this->assertEqual($count, 10);
+    $this->assertEquals(10, $count);
   }
 
   /**
+   * Tests purging fields.
+   *
    * Verify that field data items and fields are purged when a field storage is
    * deleted.
    */
@@ -334,6 +344,7 @@ class BulkDeleteTest extends FieldKernelTestBase {
 
       // There are $count deleted entities left.
       $found = \Drupal::entityQuery('entity_test')
+        ->accessCheck(FALSE)
         ->condition('type', $bundle)
         ->condition($field_name . '.deleted', 1)
         ->execute();
@@ -366,6 +377,8 @@ class BulkDeleteTest extends FieldKernelTestBase {
   }
 
   /**
+   * Tests purging field storages.
+   *
    * Verify that field storages are preserved and purged correctly as multiple
    * fields are deleted and purged.
    */

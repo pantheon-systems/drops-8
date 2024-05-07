@@ -19,12 +19,12 @@ use Symfony\Component\DependencyInjection\Exception\InvalidArgumentException;
  */
 class DefaultsConfigurator extends AbstractServiceConfigurator
 {
-    const FACTORY = 'defaults';
-
     use Traits\AutoconfigureTrait;
     use Traits\AutowireTrait;
     use Traits\BindTrait;
     use Traits\PublicTrait;
+
+    public const FACTORY = 'defaults';
 
     private $path;
 
@@ -49,7 +49,7 @@ class DefaultsConfigurator extends AbstractServiceConfigurator
         }
 
         foreach ($attributes as $attribute => $value) {
-            if (null !== $value && !is_scalar($value)) {
+            if (null !== $value && !\is_scalar($value)) {
                 throw new InvalidArgumentException(sprintf('Tag "%s", attribute "%s" in "_defaults" must be of a scalar-type.', $name, $attribute));
             }
         }

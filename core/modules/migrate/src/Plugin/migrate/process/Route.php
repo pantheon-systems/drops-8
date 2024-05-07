@@ -58,6 +58,11 @@ use Drupal\migrate\Row;
 class Route extends ProcessPluginBase implements ContainerFactoryPluginInterface {
 
   /**
+   * The current migration.
+   */
+  protected $migration;
+
+  /**
    * The path validator service.
    *
    * @var \Drupal\Core\Path\PathValidatorInterface
@@ -97,7 +102,7 @@ class Route extends ProcessPluginBase implements ContainerFactoryPluginInterface
       $options = [];
     }
     else {
-      list($link_path, $options) = $value;
+      [$link_path, $options] = $value;
     }
 
     $extracted = $this->pathValidator->getUrlIfValidWithoutAccessCheck($link_path);

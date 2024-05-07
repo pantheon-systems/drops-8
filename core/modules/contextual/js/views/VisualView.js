@@ -4,16 +4,26 @@
 * https://www.drupal.org/node/2815083
 * @preserve
 **/
-
-(function (Drupal, Backbone, Modernizr) {
+(function (Drupal, Backbone) {
   Drupal.contextual.VisualView = Backbone.View.extend({
     events: function events() {
       var touchEndToClick = function touchEndToClick(event) {
         event.preventDefault();
         event.target.click();
       };
-
-      var mapping = {
+      var touchStart = false;
+      return {
+        touchstart: function touchstart() {
+          touchStart = true;
+        },
+        mouseenter: function mouseenter() {
+          if (!touchStart) {
+            this.model.focus();
+          }
+        },
+        mousemove: function mousemove() {
+          touchStart = false;
+        },
         'click .trigger': function clickTrigger() {
           this.model.toggleOpen();
         },
@@ -23,14 +33,6 @@
         },
         'touchend .contextual-links a': touchEndToClick
       };
-
-      if (!Modernizr.touchevents) {
-        mapping.mouseenter = function () {
-          this.model.focus();
-        };
-      }
-
-      return mapping;
     },
     initialize: function initialize() {
       this.listenTo(this.model, 'change', this.render);
@@ -39,12 +41,10 @@
       var isOpen = this.model.get('isOpen');
       var isVisible = this.model.get('isLocked') || this.model.get('regionIsHovered') || isOpen;
       this.$el.toggleClass('open', isOpen).find('.trigger').toggleClass('visually-hidden', !isVisible);
-
       if ('isOpen' in this.model.changed) {
         this.$el.closest('.contextual-region').find('.contextual .trigger:not(:first)').toggle(!isOpen);
       }
-
       return this;
     }
   });
-})(Drupal, Backbone, Modernizr);
+})(Drupal, Backbone);

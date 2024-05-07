@@ -2,8 +2,9 @@
 
 namespace Drupal\Tests\migrate\Unit;
 
-use Drupal\Core\Database\Driver\sqlite\Connection;
+use Drupal\sqlite\Driver\Database\sqlite\Connection;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
+use Drupal\migrate\Plugin\MigrateIdMapInterface;
 use Drupal\migrate\Plugin\MigrationInterface;
 use Drupal\Tests\UnitTestCase;
 
@@ -36,16 +37,22 @@ abstract class MigrateTestCase extends UnitTestCase {
   /**
    * Retrieves a mocked migration.
    *
+   * @param \Drupal\migrate\Plugin\MigrateIdMapInterface|\PHPUnit\Framework\MockObject\MockObject|null $id_map
+   *   An ID map plugin to use, or NULL for using a mocked one. Optional,
+   *   defaults to NULL.
+   *
    * @return \Drupal\migrate\Plugin\MigrationInterface|\PHPUnit\Framework\MockObject\MockObject
    *   The mocked migration.
    */
-  protected function getMigration() {
+  protected function getMigration($id_map = NULL) {
     $this->migrationConfiguration += ['migrationClass' => 'Drupal\migrate\Plugin\Migration'];
-    $this->idMap = $this->createMock('Drupal\migrate\Plugin\MigrateIdMapInterface');
-
-    $this->idMap
-      ->method('getQualifiedMapTableName')
-      ->willReturn('test_map');
+    $this->idMap = $id_map;
+    if (is_null($id_map)) {
+      $this->idMap = $this->createMock(MigrateIdMapInterface::class);
+      $this->idMap
+        ->method('getQualifiedMapTableName')
+        ->willReturn('test_map');
+    }
 
     $migration = $this->getMockBuilder($this->migrationConfiguration['migrationClass'])
       ->disableOriginalConstructor()
@@ -99,7 +106,7 @@ abstract class MigrateTestCase extends UnitTestCase {
    *   (optional) Options for the database connection. Defaults to an empty
    *   array.
    *
-   * @return \Drupal\Core\Database\Driver\sqlite\Connection
+   * @return \Drupal\sqlite\Driver\Database\sqlite\Connection
    *   The database connection.
    */
   protected function getDatabase(array $database_contents, $connection_options = []) {
@@ -157,7 +164,7 @@ abstract class MigrateTestCase extends UnitTestCase {
    *   An array of expected results.
    */
   public function queryResultTest($iter, $expected_results) {
-    $this->assertSame(count($expected_results), count($iter), 'Number of results match');
+    $this->assertSameSize($expected_results, $iter, 'Number of results match');
     $count = 0;
     foreach ($iter as $data_row) {
       $expected_row = $expected_results[$count];

@@ -58,6 +58,9 @@ class DateTest extends UnitTestCase {
    */
   protected $dateFormatterStub;
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp(): void {
     parent::setUp();
 
@@ -80,7 +83,7 @@ class DateTest extends UnitTestCase {
 
     $this->dateFormatterStub = $this->getMockBuilder('\Drupal\Core\Datetime\DateFormatter')
       ->setConstructorArgs([$this->entityTypeManager, $this->languageManager, $this->stringTranslation, $this->getConfigFactoryStub(), $this->requestStack])
-      ->setMethods(['formatDiff'])
+      ->onlyMethods(['formatDiff'])
       ->getMock();
   }
 
@@ -185,16 +188,12 @@ class DateTest extends UnitTestCase {
 
     // Mocks the formatDiff function of the dateformatter object.
     $this->dateFormatterStub
-      ->expects($this->at(0))
+      ->expects($this->exactly(2))
       ->method('formatDiff')
-      ->with($timestamp, $request_time, $options)
-      ->will($this->returnValue($expected));
-
-    $this->dateFormatterStub
-      ->expects($this->at(1))
-      ->method('formatDiff')
-      ->with($timestamp, $request_time, $options + ['return_as_object' => TRUE])
-      ->will($this->returnValue(new FormattedDateDiff('1 second', 1)));
+      ->willReturnMap([
+        [$timestamp, $request_time, $options, $expected],
+        [$timestamp, $request_time, $options + ['return_as_object' => TRUE], new FormattedDateDiff('1 second', 1)],
+      ]);
 
     $request = Request::createFromGlobals();
     $request->server->set('REQUEST_TIME', $request_time);
@@ -222,16 +221,12 @@ class DateTest extends UnitTestCase {
 
     // Mocks the formatDiff function of the dateformatter object.
     $this->dateFormatterStub
-      ->expects($this->at(0))
+      ->expects($this->exactly(2))
       ->method('formatDiff')
-      ->with($request_time, $timestamp, $options)
-      ->will($this->returnValue($expected));
-
-    $this->dateFormatterStub
-      ->expects($this->at(1))
-      ->method('formatDiff')
-      ->with($request_time, $timestamp, $options + ['return_as_object' => TRUE])
-      ->will($this->returnValue(new FormattedDateDiff('1 second', 1)));
+      ->willReturnMap([
+        [$request_time, $timestamp, $options, $expected],
+        [$request_time, $timestamp, $options + ['return_as_object' => TRUE], new FormattedDateDiff('1 second', 1)],
+      ]);
 
     $request = Request::createFromGlobals();
     $request->server->set('REQUEST_TIME', $request_time);
@@ -253,7 +248,7 @@ class DateTest extends UnitTestCase {
    *
    * @covers ::formatDiff
    */
-  public function testformatDiff($expected, $max_age, $timestamp1, $timestamp2, $options = []) {
+  public function testFormatDiff($expected, $max_age, $timestamp1, $timestamp2, $options = []) {
     // Mocks a simple translateString implementation.
     $this->stringTranslation->expects($this->any())
       ->method('translateString')
@@ -275,7 +270,7 @@ class DateTest extends UnitTestCase {
   }
 
   /**
-   * Data provider for testformatDiff().
+   * Data provider for testFormatDiff().
    */
   public function providerTestFormatDiff() {
     // This is the fixed request time in the test.
@@ -424,11 +419,11 @@ class DateTest extends UnitTestCase {
   }
 
   /**
-   * Creates a UNIX timestamp given a date and time string in the format
-   * year-month-day hour:minute:seconds (e.g. 2013-12-11 10:09:08).
+   * Creates a UNIX timestamp given a date and time string.
    *
    * @param string $dateTimeString
-   *   The formatted date and time string.
+   *   The formatted date and time string. The format is year-month-day
+   *   hour:minute:seconds (e.g. 2013-12-11 10:09:08).
    *
    * @return int
    *   The UNIX timestamp.

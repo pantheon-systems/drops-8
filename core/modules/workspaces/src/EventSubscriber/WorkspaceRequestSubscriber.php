@@ -74,7 +74,7 @@ class WorkspaceRequestSubscriber implements EventSubscriberInterface {
    */
   public function onKernelController(ControllerEvent $event) {
     // Set the cache key on the alias manager cache decorator.
-    if ($event->isMasterRequest() && $this->workspaceManager->hasActiveWorkspace()) {
+    if ($event->isMainRequest() && $this->workspaceManager->hasActiveWorkspace()) {
       $cache_key = $this->workspaceManager->getActiveWorkspace()->id() . ':' . rtrim($this->currentPath->getPath($event->getRequest()), '/');
       $this->aliasManager->setCacheKey($cache_key);
     }
@@ -93,7 +93,7 @@ class WorkspaceRequestSubscriber implements EventSubscriberInterface {
   }
 
   /**
-   * {@inheritDoc}
+   * {@inheritdoc}
    */
   public static function getSubscribedEvents() {
     // Use a priority of 190 in order to run after the generic core subscriber.

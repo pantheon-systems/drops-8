@@ -66,7 +66,7 @@ class NodeGrantDatabaseStorage implements NodeGrantDatabaseStorageInterface {
 
     // If no module implements the hook or the node does not have an id there is
     // no point in querying the database for access grants.
-    if (!$this->moduleHandler->getImplementations('node_grants') || !$node->id()) {
+    if (!$this->moduleHandler->hasImplementations('node_grants') || !$node->id()) {
       // Return the equivalent of the default grant, defined by
       // self::writeDefault().
       if ($operation === 'view') {
@@ -189,7 +189,7 @@ class NodeGrantDatabaseStorage implements NodeGrantDatabaseStorageInterface {
 
         $field = 'nid';
         // Now handle entities.
-        $subquery->where("$nalias.$field = na.nid");
+        $subquery->where("[$nalias].[$field] = [na].[nid]");
 
         $query->exists($subquery);
       }
@@ -208,7 +208,7 @@ class NodeGrantDatabaseStorage implements NodeGrantDatabaseStorageInterface {
       $query->execute();
     }
     // Only perform work when node_access modules are active.
-    if (!empty($grants) && count($this->moduleHandler->getImplementations('node_grants'))) {
+    if (!empty($grants) && $this->moduleHandler->hasImplementations('node_grants')) {
       $query = $this->database->insert('node_access')->fields(['nid', 'langcode', 'fallback', 'realm', 'gid', 'grant_view', 'grant_update', 'grant_delete']);
       // If we have defined a granted langcode, use it. But if not, add a grant
       // for every language this node is translated to.
@@ -256,13 +256,13 @@ class NodeGrantDatabaseStorage implements NodeGrantDatabaseStorageInterface {
   public function writeDefault() {
     $this->database->insert('node_access')
       ->fields([
-          'nid' => 0,
-          'realm' => 'all',
-          'gid' => 0,
-          'grant_view' => 1,
-          'grant_update' => 0,
-          'grant_delete' => 0,
-        ])
+        'nid' => 0,
+        'realm' => 'all',
+        'gid' => 0,
+        'grant_view' => 1,
+        'grant_update' => 0,
+        'grant_delete' => 0,
+      ])
       ->execute();
   }
 
