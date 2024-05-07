@@ -620,7 +620,6 @@ class ExtensionMimeTypeGuesser implements MimeTypeGuesserInterface, LegacyMimeTy
       'kar' => 187,
       'mpega' => 188,
       'mpga' => 188,
-      'm4a' => 188,
       'mp3' => 188,
       'mp2' => 188,
       'ogg' => 189,
@@ -846,6 +845,7 @@ class ExtensionMimeTypeGuesser implements MimeTypeGuesserInterface, LegacyMimeTy
       'vrml' => 345,
       'f4a' => 346,
       'f4b' => 346,
+      'm4a' => 346,
       'flv' => 347,
       'm4v' => 348,
       'azw' => 349,
@@ -913,9 +913,9 @@ class ExtensionMimeTypeGuesser implements MimeTypeGuesserInterface, LegacyMimeTy
 
     // Iterate over the file parts, trying to find a match.
     // For my.awesome.image.jpeg, we try:
-    //   - jpeg
-    //   - image.jpeg, and
-    //   - awesome.image.jpeg
+    // - jpeg
+    // - image.jpeg, and
+    // - awesome.image.jpeg
     while ($additional_part = array_pop($file_parts)) {
       $extension = strtolower($additional_part . ($extension ? '.' . $extension : ''));
       if (isset($this->mapping['extensions'][$extension])) {

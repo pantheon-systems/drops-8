@@ -57,8 +57,11 @@ class TaxonomyFieldFilterTest extends ViewTestBase {
    */
   public $termNames = [];
 
-  public function setUp($import_test_views = TRUE): void {
-    parent::setUp($import_test_views);
+  /**
+   * {@inheritdoc}
+   */
+  public function setUp($import_test_views = TRUE, $modules = []): void {
+    parent::setUp($import_test_views, $modules);
 
     // Add two new languages.
     ConfigurableLanguage::createFromLangcode('fr')->save();
@@ -146,8 +149,10 @@ class TaxonomyFieldFilterTest extends ViewTestBase {
    *   that translation should be shown on the given page.
    * @param string $message
    *   Message suffix to display.
+   *
+   * @internal
    */
-  protected function assertPageCounts($path, $counts, $message) {
+  protected function assertPageCounts(string $path, array $counts, string $message): void {
     // Get the text of the page.
     $this->drupalGet($path);
     $text = $this->getTextContent();
@@ -156,7 +161,7 @@ class TaxonomyFieldFilterTest extends ViewTestBase {
     // page, and they are the same. So the title/body string should appear on
     // the page twice as many times as the input count.
     foreach ($counts as $langcode => $count) {
-      $this->assertEqual(substr_count($text, $this->termNames[$langcode]), 2 * $count, 'Translation ' . $langcode . ' has count ' . $count . ' with ' . $message);
+      $this->assertEquals(2 * $count, substr_count($text, $this->termNames[$langcode]), 'Translation ' . $langcode . ' has count ' . $count . ' with ' . $message);
     }
   }
 

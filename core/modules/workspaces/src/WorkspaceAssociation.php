@@ -69,8 +69,8 @@ class WorkspaceAssociation implements WorkspaceAssociationInterface {
       $tracked_revision_id = key($tracked[$entity->getEntityTypeId()]);
     }
 
-    $transaction = $this->database->startTransaction();
     try {
+      $transaction = $this->database->startTransaction();
       // Update all affected workspaces that were tracking the current revision.
       // This means they are inheriting content and should be updated.
       if ($tracked_revision_id) {
@@ -110,7 +110,9 @@ class WorkspaceAssociation implements WorkspaceAssociationInterface {
       }
     }
     catch (\Exception $e) {
-      $transaction->rollBack();
+      if (isset($transaction)) {
+        $transaction->rollBack();
+      }
       watchdog_exception('workspaces', $e);
       throw $e;
     }
@@ -174,12 +176,12 @@ class WorkspaceAssociation implements WorkspaceAssociationInterface {
     $revision_id_field = $table_mapping->getColumnNames($entity_type->getKey('revision'))['value'];
 
     $query = $this->database->select($entity_type->getRevisionTable(), 'revision');
-    $query->leftJoin($entity_type->getBaseTable(), 'base', "revision.$id_field = base.$id_field");
+    $query->leftJoin($entity_type->getBaseTable(), 'base', "[revision].[$id_field] = [base].[$id_field]");
 
     $query
       ->fields('revision', [$revision_id_field, $id_field])
       ->condition("revision.$workspace_field", $workspace_id)
-      ->where("revision.$revision_id_field > base.$revision_id_field")
+      ->where("[revision].[$revision_id_field] > [base].[$revision_id_field]")
       ->orderBy("revision.$revision_id_field", 'ASC');
 
     // Restrict the result to a set of entity ID's if provided.

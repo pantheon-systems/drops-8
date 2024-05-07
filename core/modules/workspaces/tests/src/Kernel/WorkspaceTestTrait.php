@@ -65,7 +65,10 @@ trait WorkspaceTestTrait {
   }
 
   /**
-   * Creates the following workspace hierarchy:
+   * Creates a test workspace hierarchy.
+   *
+   * The full hierarchy including the default workspaces 'live' and 'stage' is:
+   *
    * live
    * - stage
    *   - dev
@@ -74,13 +77,13 @@ trait WorkspaceTestTrait {
    * - qa
    */
   protected function createWorkspaceHierarchy() {
-    $this->workspaces['dev'] = Workspace::create(['id' => 'dev', 'parent' => 'stage']);
+    $this->workspaces['dev'] = Workspace::create(['id' => 'dev', 'parent' => 'stage', 'label' => 'dev']);
     $this->workspaces['dev']->save();
-    $this->workspaces['local_1'] = Workspace::create(['id' => 'local_1', 'parent' => 'dev']);
+    $this->workspaces['local_1'] = Workspace::create(['id' => 'local_1', 'parent' => 'dev', 'label' => 'local_1']);
     $this->workspaces['local_1']->save();
-    $this->workspaces['local_2'] = Workspace::create(['id' => 'local_2', 'parent' => 'dev']);
+    $this->workspaces['local_2'] = Workspace::create(['id' => 'local_2', 'parent' => 'dev', 'label' => 'local_2']);
     $this->workspaces['local_2']->save();
-    $this->workspaces['qa'] = Workspace::create(['id' => 'qa', 'parent' => 'live']);
+    $this->workspaces['qa'] = Workspace::create(['id' => 'qa', 'parent' => 'live', 'label' => 'qa']);
     $this->workspaces['qa']->save();
   }
 
@@ -97,7 +100,7 @@ trait WorkspaceTestTrait {
     $workspace_association = \Drupal::service('workspaces.association');
     foreach ($expected as $workspace_id => $expected_tracked_revision_ids) {
       $tracked_entities = $workspace_association->getTrackedEntities($workspace_id, $entity_type_id);
-      $tracked_revision_ids = isset($tracked_entities[$entity_type_id]) ? $tracked_entities[$entity_type_id] : [];
+      $tracked_revision_ids = $tracked_entities[$entity_type_id] ?? [];
       $this->assertEquals($expected_tracked_revision_ids, array_keys($tracked_revision_ids));
     }
   }

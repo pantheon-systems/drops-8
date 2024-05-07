@@ -1,10 +1,9 @@
 <?php
-// @codingStandardsIgnoreFile
+
 namespace Drupal\FunctionalTests;
 
 use Behat\Mink\Element\NodeElement;
 use Behat\Mink\Exception\ExpectationException;
-use Behat\Mink\Selector\Xpath\Escaper;
 use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Component\Utility\Xss;
 use Drupal\KernelTests\AssertLegacyTrait as BaseAssertLegacyTrait;
@@ -73,6 +72,9 @@ trait AssertLegacyTrait {
    */
   protected function assertText($text) {
     @trigger_error('AssertLegacyTrait::assertText() is deprecated in drupal:8.2.0 and is removed from drupal:10.0.0. Use $this->assertSession()->responseContains() or $this->assertSession()->pageTextContains() instead. See https://www.drupal.org/node/3129738', E_USER_DEPRECATED);
+    if (func_num_args() > 1) {
+      @trigger_error('Calling AssertLegacyTrait::assertText() with more than one argument is deprecated in drupal:8.2.0 and the method is removed from drupal:10.0.0. Use $this->assertSession()->responseContains() or $this->assertSession()->pageTextContains() instead. See https://www.drupal.org/node/3129738', E_USER_DEPRECATED);
+    }
     // Cast MarkupInterface to string.
     $text = (string) $text;
 
@@ -113,6 +115,10 @@ trait AssertLegacyTrait {
    */
   protected function assertNoText($text) {
     @trigger_error('AssertLegacyTrait::assertNoText() is deprecated in drupal:8.2.0 and is removed from drupal:10.0.0. Use $this->assertSession()->responseNotContains() or $this->assertSession()->pageTextNotContains() instead. See https://www.drupal.org/node/3129738', E_USER_DEPRECATED);
+    if (func_num_args() > 1) {
+      @trigger_error('Calling AssertLegacyTrait::assertNoText() with more than one argument is deprecated in drupal:8.2.0 and the method is removed from drupal:10.0.0. Use $this->assertSession()->responseNotContains() or $this->assertSession()->pageTextNotContains() instead. See https://www.drupal.org/node/3129738', E_USER_DEPRECATED);
+    }
+
     // Cast MarkupInterface to string.
     $text = (string) $text;
 
@@ -752,7 +758,7 @@ trait AssertLegacyTrait {
             // Input element with correct value.
             $found = TRUE;
           }
-          elseif ($field->find('xpath', '//option[@value = ' . (new Escaper())->escapeLiteral($value) . ' and @selected = "selected"]')) {
+          elseif ($field->find('xpath', '//option[@value = ' . $value . ' and @selected = "selected"]')) {
             // Select element with an option.
             $found = TRUE;
           }

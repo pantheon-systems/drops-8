@@ -66,13 +66,6 @@ class EntityTypeManager extends DefaultPluginManager implements EntityTypeManage
   protected $entityLastInstalledSchemaRepository;
 
   /**
-   * A list of entity type definitions that are active for the current request.
-   *
-   * @var \Drupal\Core\Entity\EntityTypeInterface[]
-   */
-  protected $activeDefinitions;
-
-  /**
    * Constructs a new Entity plugin manager.
    *
    * @param \Traversable $namespaces
@@ -121,13 +114,9 @@ class EntityTypeManager extends DefaultPluginManager implements EntityTypeManage
    */
   protected function findDefinitions() {
     $definitions = $this->getDiscovery()->getDefinitions();
-
-    // Directly call the hook implementations to pass the definitions to them
-    // by reference, so new entity types can be added.
-    foreach ($this->moduleHandler->getImplementations('entity_type_build') as $module) {
-      $function = $module . '_entity_type_build';
-      $function($definitions);
-    }
+    $this->moduleHandler->invokeAllWith('entity_type_build', function (callable $hook, string $module) use (&$definitions) {
+      $hook($definitions);
+    });
     foreach ($definitions as $plugin_id => $definition) {
       $this->processDefinition($definition, $plugin_id);
     }
@@ -162,11 +151,8 @@ class EntityTypeManager extends DefaultPluginManager implements EntityTypeManage
    * @internal
    */
   public function getActiveDefinition($entity_type_id) {
-    if (!isset($this->activeDefinitions[$entity_type_id])) {
-      $this->activeDefinitions[$entity_type_id] = $this->entityLastInstalledSchemaRepository->getLastInstalledDefinition($entity_type_id);
-    }
-
-    return $this->activeDefinitions[$entity_type_id] ?: $this->getDefinition($entity_type_id);
+    $definition = $this->entityLastInstalledSchemaRepository->getLastInstalledDefinition($entity_type_id);
+    return $definition ?: $this->getDefinition($entity_type_id);
   }
 
   /**
@@ -174,7 +160,6 @@ class EntityTypeManager extends DefaultPluginManager implements EntityTypeManage
    */
   public function clearCachedDefinitions() {
     parent::clearCachedDefinitions();
-    $this->activeDefinitions = [];
     $this->handlers = [];
   }
 
@@ -184,7 +169,6 @@ class EntityTypeManager extends DefaultPluginManager implements EntityTypeManage
   public function useCaches($use_caches = FALSE) {
     parent::useCaches($use_caches);
     if (!$use_caches) {
-      $this->activeDefinitions = [];
       $this->handlers = [];
       $this->container->get('entity.memory_cache')->reset();
     }
@@ -244,7 +228,7 @@ class EntityTypeManager extends DefaultPluginManager implements EntityTypeManage
       }
     }
 
-    return isset($this->handlers['route_provider'][$entity_type_id]) ? $this->handlers['route_provider'][$entity_type_id] : [];
+    return $this->handlers['route_provider'][$entity_type_id] ?? [];
   }
 
   /**

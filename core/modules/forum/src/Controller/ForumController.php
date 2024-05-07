@@ -235,8 +235,9 @@ class ForumController extends ControllerBase {
     }
     $this->renderer->addCacheableDependency($build, $term);
 
+    $is_forum = empty($term->forum_container->value);
     return [
-      'action' => $this->buildActionLinks($config->get('vocabulary'), $term),
+      'action' => ($is_forum) ? $this->buildActionLinks($config->get('vocabulary'), $term) : [],
       'forum' => $build,
       '#cache' => [
         'tags' => Cache::mergeTags($this->nodeEntityTypeDefinition->getListCacheTags(), $this->commentEntityTypeDefinition->getListCacheTags()),
@@ -254,7 +255,6 @@ class ForumController extends ControllerBase {
     $vid = $this->config('forum.settings')->get('vocabulary');
     $taxonomy_term = $this->termStorage->create([
       'vid' => $vid,
-      'forum_controller' => 0,
     ]);
     return $this->entityFormBuilder()->getForm($taxonomy_term, 'forum');
   }

@@ -70,6 +70,8 @@ class BlockListBuilder extends ConfigEntityListBuilder implements FormInterface 
    *   The theme manager.
    * @param \Drupal\Core\Form\FormBuilderInterface $form_builder
    *   The form builder.
+   * @param \Drupal\Core\Messenger\MessengerInterface $messenger
+   *   The messenger service.
    */
   public function __construct(EntityTypeInterface $entity_type, EntityStorageInterface $storage, ThemeManagerInterface $theme_manager, FormBuilderInterface $form_builder, MessengerInterface $messenger) {
     parent::__construct($entity_type, $storage);
@@ -270,11 +272,20 @@ class BlockListBuilder extends ConfigEntityListBuilder implements FormInterface 
             $form[$entity_id]['#attributes']['class'][] = 'js-block-placed';
           }
           $form[$entity_id]['info'] = [
-            '#plain_text' => $info['status'] ? $info['label'] : $this->t('@label (disabled)', ['@label' => $info['label']]),
             '#wrapper_attributes' => [
               'class' => ['block'],
             ],
           ];
+          // Ensure that the label is always rendered as plain text. Render
+          // array #plain_text key is essentially treated same as @ placeholder
+          // in translatable markup.
+          if ($info['status']) {
+            $form[$entity_id]['info']['#plain_text'] = $info['label'];
+          }
+          else {
+            $form[$entity_id]['info']['#markup'] = $this->t('@label (disabled)', ['@label' => $info['label']]);
+          }
+
           $form[$entity_id]['type'] = [
             '#markup' => $info['category'],
           ];
@@ -361,14 +372,18 @@ class BlockListBuilder extends ConfigEntityListBuilder implements FormInterface 
    * {@inheritdoc}
    */
   public function validateForm(array &$form, FormStateInterface $form_state) {
-    // No validation.
+    if (empty($form_state->getValue('blocks'))) {
+      $form_state->setErrorByName('blocks', $this->t('No blocks settings to update.'));
+    }
+
   }
 
   /**
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
-    $entities = $this->storage->loadMultiple(array_keys($form_state->getValue('blocks')));
+    $blocks = $form_state->getValue('blocks');
+    $entities = $this->storage->loadMultiple(array_keys($blocks));
     /** @var \Drupal\block\BlockInterface[] $entities */
     foreach ($entities as $entity_id => $entity) {
       $entity_values = $form_state->getValue(['blocks', $entity_id]);

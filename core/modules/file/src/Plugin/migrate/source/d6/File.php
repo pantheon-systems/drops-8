@@ -8,6 +8,32 @@ use Drupal\migrate_drupal\Plugin\migrate\source\DrupalSqlBase;
 /**
  * Drupal 6 file source from database.
  *
+ * Available configuration keys:
+ * - site_path: (optional) The path to the site directory relative to Drupal
+ *   root. Defaults to 'sites/default'. This value is ignored if the
+ *   'file_directory_path' variable is set in the source Drupal database.
+ *
+ * Example:
+ *
+ * @code
+ * source:
+ *   plugin: d6_file
+ *   site_path: sites/example
+ * @endcode
+ *
+ * In this example, public file values are retrieved from the source database.
+ * The site path is specified because it's not the default one (sites/default).
+ * The final path to the public files will be "sites/example/files/", assuming
+ * the 'file_directory_path' variable is not set in the source database.
+ *
+ * For complete example, refer to the d6_file.yml migration.
+ *
+ * For additional configuration keys, refer to the parent classes.
+ *
+ * @see \Drupal\migrate\Plugin\migrate\source\SqlBase
+ * @see \Drupal\migrate\Plugin\migrate\source\SourcePluginBase
+ * @see d6_file.yml
+ *
  * @MigrateSource(
  *   id = "d6_file",
  *   source_module = "system"
@@ -42,8 +68,8 @@ class File extends DrupalSqlBase {
   public function query() {
     return $this->select('files', 'f')
       ->fields('f')
-      ->condition('filepath', '/tmp%', 'NOT LIKE')
-      ->orderBy('timestamp')
+      ->condition('f.filepath', '/tmp%', 'NOT LIKE')
+      ->orderBy('f.timestamp')
       // If two or more files have the same timestamp, they'll end up in a
       // non-deterministic order. Ordering by fid (or any other unique field)
       // will prevent this.
@@ -54,7 +80,7 @@ class File extends DrupalSqlBase {
    * {@inheritdoc}
    */
   protected function initializeIterator() {
-    $site_path = isset($this->configuration['site_path']) ? $this->configuration['site_path'] : 'sites/default';
+    $site_path = $this->configuration['site_path'] ?? 'sites/default';
     $this->filePath = $this->variableGet('file_directory_path', $site_path . '/files') . '/';
     $this->tempFilePath = $this->variableGet('file_directory_temp', '/tmp') . '/';
 
@@ -95,6 +121,7 @@ class File extends DrupalSqlBase {
    */
   public function getIds() {
     $ids['fid']['type'] = 'integer';
+    $ids['fid']['alias'] = 'f';
     return $ids;
   }
 

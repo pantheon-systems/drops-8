@@ -8,6 +8,7 @@ use Drupal\aggregator\Entity\Feed;
  * Tests OPML import.
  *
  * @group aggregator
+ * @group legacy
  */
 class ImportOpmlTest extends AggregatorTestBase {
 
@@ -46,7 +47,7 @@ class ImportOpmlTest extends AggregatorTestBase {
     $this->drupalPlaceBlock('help_block', ['region' => 'help']);
 
     $this->drupalGet('admin/config/services/aggregator/add/opml');
-    $this->assertText('A single OPML document may contain many feeds.', 'Found OPML help text.');
+    $this->assertSession()->pageTextContains('A single OPML document may contain many feeds.');
     // Ensure that the file upload, remote URL, and refresh fields exist.
     $this->assertSession()->fieldExists('files[upload]');
     $this->assertSession()->fieldExists('remote');
@@ -57,46 +58,54 @@ class ImportOpmlTest extends AggregatorTestBase {
    * Submits form filled with invalid fields.
    */
   public function validateImportFormFields() {
-    $count_query = \Drupal::entityQuery('aggregator_feed')->count();
+    $count_query = \Drupal::entityQuery('aggregator_feed')->accessCheck(FALSE)->count();
     $before = $count_query->execute();
 
     $edit = [];
-    $this->drupalPostForm('admin/config/services/aggregator/add/opml', $edit, 'Import');
-    $this->assertRaw(t('<em>Either</em> upload a file or enter a URL.'));
+    $this->drupalGet('admin/config/services/aggregator/add/opml');
+    $this->submitForm($edit, 'Import');
+    $this->assertSession()->pageTextContains('Either upload a file or enter a URL.');
 
     $path = $this->getEmptyOpml();
     $edit = [
       'files[upload]' => $path,
-      'remote' => file_create_url($path),
+      'remote' => \Drupal::service('file_url_generator')->generateAbsoluteString($path),
     ];
-    $this->drupalPostForm('admin/config/services/aggregator/add/opml', $edit, 'Import');
-    $this->assertRaw(t('<em>Either</em> upload a file or enter a URL.'));
+    $this->drupalGet('admin/config/services/aggregator/add/opml');
+    $this->submitForm($edit, 'Import');
+    $this->assertSession()->pageTextContains('Either upload a file or enter a URL.');
 
+    // Error if the URL is invalid.
     $edit = ['remote' => 'invalidUrl://empty'];
-    $this->drupalPostForm('admin/config/services/aggregator/add/opml', $edit, 'Import');
-    $this->assertText('The URL invalidUrl://empty is not valid.', 'Error if the URL is invalid.');
+    $this->drupalGet('admin/config/services/aggregator/add/opml');
+    $this->submitForm($edit, 'Import');
+    $this->assertSession()->pageTextContains('The URL invalidUrl://empty is not valid.');
 
     $after = $count_query->execute();
-    $this->assertEqual($before, $after, 'No feeds were added during the three last form submissions.');
+    $this->assertEquals($before, $after, 'No feeds were added during the three last form submissions.');
   }
 
   /**
    * Submits form with invalid, empty, and valid OPML files.
    */
   protected function submitImportForm() {
-    $count_query = \Drupal::entityQuery('aggregator_feed')->count();
+    $count_query = \Drupal::entityQuery('aggregator_feed')->accessCheck(FALSE)->count();
     $before = $count_query->execute();
 
+    // Attempting to upload invalid XML.
     $form['files[upload]'] = $this->getInvalidOpml();
-    $this->drupalPostForm('admin/config/services/aggregator/add/opml', $form, 'Import');
-    $this->assertText('No new feed has been added.', 'Attempting to upload invalid XML.');
+    $this->drupalGet('admin/config/services/aggregator/add/opml');
+    $this->submitForm($form, 'Import');
+    $this->assertSession()->pageTextContains('No new feed has been added.');
 
-    $edit = ['remote' => file_create_url($this->getEmptyOpml())];
-    $this->drupalPostForm('admin/config/services/aggregator/add/opml', $edit, 'Import');
-    $this->assertText('No new feed has been added.', 'Attempting to load empty OPML from remote URL.');
+    // Attempting to load empty OPML from remote URL
+    $edit = ['remote' => \Drupal::service('file_url_generator')->generateAbsoluteString($this->getEmptyOpml())];
+    $this->drupalGet('admin/config/services/aggregator/add/opml');
+    $this->submitForm($edit, 'Import');
+    $this->assertSession()->pageTextContains('No new feed has been added.');
 
     $after = $count_query->execute();
-    $this->assertEqual($before, $after, 'No feeds were added during the two last form submissions.');
+    $this->assertEquals($before, $after, 'No feeds were added during the two last form submissions.');
 
     foreach (Feed::loadMultiple() as $feed) {
       $feed->delete();
@@ -109,14 +118,15 @@ class ImportOpmlTest extends AggregatorTestBase {
       'files[upload]' => $this->getValidOpml($feeds),
       'refresh'       => '900',
     ];
-    $this->drupalPostForm('admin/config/services/aggregator/add/opml', $edit, 'Import');
+    $this->drupalGet('admin/config/services/aggregator/add/opml');
+    $this->submitForm($edit, 'Import');
     // Verify that a duplicate URL was identified.
-    $this->assertRaw(t('A feed with the URL %url already exists.', ['%url' => $feeds[0]['url[0][value]']]));
+    $this->assertSession()->pageTextContains('A feed with the URL ' . $feeds[0]['url[0][value]'] . ' already exists.');
     // Verify that a duplicate title was identified.
-    $this->assertRaw(t('A feed named %title already exists.', ['%title' => $feeds[1]['title[0][value]']]));
+    $this->assertSession()->pageTextContains('A feed named ' . $feeds[1]['title[0][value]'] . ' already exists.');
 
     $after = $count_query->execute();
-    $this->assertEqual($after, 2, 'Verifying that two distinct feeds were added.');
+    $this->assertEquals(2, $after, 'Verifying that two distinct feeds were added.');
 
     $feed_entities = Feed::loadMultiple();
     $refresh = TRUE;
@@ -126,8 +136,8 @@ class ImportOpmlTest extends AggregatorTestBase {
       $refresh = $refresh && $feed_entity->getRefreshRate() == 900;
     }
 
-    $this->assertEqual($title[$feeds[0]['url[0][value]']], $feeds[0]['title[0][value]'], 'First feed was added correctly.');
-    $this->assertEqual($url[$feeds[1]['title[0][value]']], $feeds[1]['url[0][value]'], 'Second feed was added correctly.');
+    $this->assertEquals($title[$feeds[0]['url[0][value]']], $feeds[0]['title[0][value]'], 'First feed was added correctly.');
+    $this->assertEquals($url[$feeds[1]['title[0][value]']], $feeds[1]['url[0][value]'], 'Second feed was added correctly.');
     $this->assertTrue($refresh, 'Refresh times are correct.');
   }
 

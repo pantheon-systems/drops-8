@@ -10,7 +10,7 @@ use Drupal\Core\Url;
  *
  * @group jsonapi
  */
-class ContactFormTest extends ResourceTestBase {
+class ContactFormTest extends ConfigEntityResourceTestBase {
 
   /**
    * {@inheritdoc}
@@ -112,6 +112,7 @@ class ContactFormTest extends ResourceTestBase {
    */
   protected function getPostDocument() {
     // @todo Update in https://www.drupal.org/node/2300677.
+    return [];
   }
 
   /**

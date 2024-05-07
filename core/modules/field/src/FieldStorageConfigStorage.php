@@ -101,7 +101,7 @@ class FieldStorageConfigStorage extends ConfigEntityStorage {
    */
   public function loadByProperties(array $conditions = []) {
     // Include deleted fields if specified in the $conditions parameters.
-    $include_deleted = isset($conditions['include_deleted']) ? $conditions['include_deleted'] : FALSE;
+    $include_deleted = $conditions['include_deleted'] ?? FALSE;
     unset($conditions['include_deleted']);
 
     /** @var \Drupal\field\FieldStorageConfigInterface[] $storages */
@@ -113,7 +113,7 @@ class FieldStorageConfigStorage extends ConfigEntityStorage {
     if (empty($conditions['deleted'])) {
       if (isset($conditions['entity_type']) && isset($conditions['field_name'])) {
         // Optimize for the most frequent case where we do have a specific ID.
-        $id = $conditions['entity_type'] . $conditions['field_name'];
+        $id = $conditions['entity_type'] . '.' . $conditions['field_name'];
         $storages = $this->loadMultiple([$id]);
       }
       else {

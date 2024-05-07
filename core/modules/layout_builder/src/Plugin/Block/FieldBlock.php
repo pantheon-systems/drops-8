@@ -118,7 +118,7 @@ class FieldBlock extends BlockBase implements ContextAwarePluginInterface, Conta
     $this->logger = $logger;
 
     // Get the entity type and field name from the plugin ID.
-    list (, $entity_type_id, $bundle, $field_name) = explode(static::DERIVATIVE_SEPARATOR, $plugin_id, 4);
+    [, $entity_type_id, $bundle, $field_name] = explode(static::DERIVATIVE_SEPARATOR, $plugin_id, 4);
     $this->entityTypeId = $entity_type_id;
     $this->bundle = $bundle;
     $this->fieldName = $field_name;
@@ -204,8 +204,14 @@ class FieldBlock extends BlockBase implements ContextAwarePluginInterface, Conta
       return $access;
     }
 
-    // Check to see if the field has any values.
-    if ($field->isEmpty()) {
+    // Check to see if the field has any values or a default value.
+    if ($field->isEmpty() && !$field->getFieldDefinition()->getDefaultValue($entity)) {
+      // @todo Remove special handling of image fields after
+      //   https://www.drupal.org/project/drupal/issues/3005528.
+      if ($field->getFieldDefinition()->getType() === 'image' && $field->getFieldDefinition()->getSetting('default_image')) {
+        return $access;
+      }
+
       return $access->andIf(AccessResult::forbidden());
     }
     return $access;
@@ -311,15 +317,18 @@ class FieldBlock extends BlockBase implements ContextAwarePluginInterface, Conta
     $settings_form = [];
     // Invoke hook_field_formatter_third_party_settings_form(), keying resulting
     // subforms by module name.
-    foreach ($this->moduleHandler->getImplementations('field_formatter_third_party_settings_form') as $module) {
-      $settings_form[$module] = $this->moduleHandler->invoke($module, 'field_formatter_third_party_settings_form', [
-        $plugin,
-        $field_definition,
-        EntityDisplayBase::CUSTOM_MODE,
-        $form,
-        $form_state,
-      ]);
-    }
+    $this->moduleHandler->invokeAllWith(
+      'field_formatter_third_party_settings_form',
+      function (callable $hook, string $module) use (&$settings_form, $plugin, $field_definition, $form, $form_state) {
+        $settings_form[$module] = $hook(
+          $plugin,
+          $field_definition,
+          EntityDisplayBase::CUSTOM_MODE,
+          $form,
+          $form_state,
+        );
+      }
+    );
     return $settings_form;
   }
 

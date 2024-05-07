@@ -10,6 +10,9 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 /**
  * Provides a console command to generate proxy classes.
+ *
+ * @see lazy_services
+ * @see core/scripts/generate-proxy.sh
  */
 class GenerateProxyClassCommand extends Command {
 
@@ -68,7 +71,7 @@ class GenerateProxyClassCommand extends Command {
 
       $file_string = <<<EOF
 <?php
-// @codingStandardsIgnoreFile
+// phpcs:ignoreFile
 
 /**
  * This file was generated via php core/scripts/generate-proxy-class.php '$class_name' "$namespace_root".

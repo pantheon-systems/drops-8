@@ -83,9 +83,12 @@ class LanguageBlock extends BlockBase implements ContainerFactoryPluginInterface
    */
   public function build() {
     $build = [];
-    $route_name = $this->pathMatcher->isFrontPage() ? '<front>' : '<current>';
     $type = $this->getDerivativeId();
-    $links = $this->languageManager->getLanguageSwitchLinks($type, Url::fromRoute($route_name));
+    $route_match = \Drupal::routeMatch();
+    // If there is no route match, for example when creating blocks on 404 pages
+    // for logged-in users with big_pipe enabled using the front page instead.
+    $url = $route_match->getRouteObject() ? Url::fromRouteMatch($route_match) : Url::fromRoute('<front>');
+    $links = $this->languageManager->getLanguageSwitchLinks($type, $url);
 
     if (isset($links->links)) {
       $build = [

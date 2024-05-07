@@ -14,8 +14,21 @@ use Drupal\filter\Plugin\FilterInterface;
  * @InPlaceEditor(
  *   id = "editor"
  * )
+ *
+ * @deprecated in drupal:9.5.0 and is removed from drupal:10.0.0. There is no
+ * replacement.
+ *
+ * @see https://www.drupal.org/node/3271653
  */
 class Editor extends PluginBase implements InPlaceEditorInterface {
+
+  /**
+   * Constructs an Editor object.
+   */
+  public function __construct(array $configuration, $plugin_id, $plugin_definition) {
+    @trigger_error('Drupal\editor\InPlaceEditor\Editor is deprecated in drupal:9.5.0 and is removed from drupal:10.0.0. There is no replacement. See https://www.drupal.org/node/3271653', E_USER_DEPRECATED);
+    parent::__construct($configuration, $plugin_id, $plugin_definition);
+  }
 
   /**
    * {@inheritdoc}
@@ -88,7 +101,7 @@ class Editor extends PluginBase implements InPlaceEditorInterface {
     $attachments = $manager->getAttachments($formats);
 
     // Also include editor.module's formatted text editor.
-    $attachments['library'][] = 'editor/quickedit.inPlaceEditor.formattedText';
+    $attachments['library'][] = 'quickedit/quickedit.inPlaceEditor.formattedText';
 
     return $attachments;
   }

@@ -8,6 +8,7 @@ use Drupal\views\Entity\View;
  * Tests display of aggregator items on the page.
  *
  * @group aggregator
+ * @group legacy
  */
 class AggregatorRenderingTest extends AggregatorTestBase {
 
@@ -23,6 +24,9 @@ class AggregatorRenderingTest extends AggregatorTestBase {
    */
   protected $defaultTheme = 'stark';
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp(): void {
     parent::setUp();
 
@@ -56,7 +60,7 @@ class AggregatorRenderingTest extends AggregatorTestBase {
 
     // Confirm that the block is now being displayed on pages.
     $this->drupalGet('test-page');
-    $this->assertText($block->label(), 'Feed block is displayed on the page.');
+    $this->assertSession()->pageTextContains($block->label());
 
     // Confirm items appear as links.
     $items = $this->container->get('entity_type.manager')->getStorage('aggregator_item')->loadByFeed($feed->id(), 1);
@@ -80,7 +84,7 @@ class AggregatorRenderingTest extends AggregatorTestBase {
     $block->save();
     // Check that the block is no longer displayed.
     $this->drupalGet('test-page');
-    $this->assertNoText($block->label(), 'Feed block is not displayed on the page when number of items is set to 0.');
+    $this->assertSession()->pageTextNotContains($block->label());
   }
 
   /**
@@ -99,6 +103,8 @@ class AggregatorRenderingTest extends AggregatorTestBase {
     $feed = $this->createFeed();
     $this->updateFeedItems($feed, 30);
 
+    // Request page with no feed items to ensure cache context is set correctly.
+    $this->drupalGet('aggregator', ['query' => ['page' => 2]]);
     // Check for presence of an aggregator pager.
     $this->drupalGet('aggregator');
     $this->assertSession()->elementExists('xpath', '//ul[contains(@class, "pager__items")]');

@@ -2,14 +2,14 @@
 
 namespace Drupal\Tests\workspaces\Functional\EntityResource;
 
-use Drupal\Tests\rest\Functional\EntityResource\EntityResourceTestBase;
+use Drupal\Tests\rest\Functional\EntityResource\ConfigEntityResourceTestBase;
 use Drupal\user\Entity\User;
 use Drupal\workspaces\Entity\Workspace;
 
 /**
  * Base class for workspace EntityResource tests.
  */
-abstract class WorkspaceResourceTestBase extends EntityResourceTestBase {
+abstract class WorkspaceResourceTestBase extends ConfigEntityResourceTestBase {
 
   /**
    * {@inheritdoc}
@@ -181,7 +181,7 @@ abstract class WorkspaceResourceTestBase extends EntityResourceTestBase {
         return "The 'view any workspace' permission is required.";
 
       case 'POST':
-        return "The 'create workspace' permission is required.";
+        return "The following permissions are required: 'administer workspaces' OR 'create workspace'.";
 
       case 'PATCH':
         return "The 'edit any workspace' permission is required.";

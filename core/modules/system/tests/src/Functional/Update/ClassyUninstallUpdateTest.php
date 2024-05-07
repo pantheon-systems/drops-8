@@ -8,6 +8,7 @@ use Drupal\FunctionalTests\Update\UpdatePathTestBase;
  * Ensures that update hook uninstalls Classy when it's no longer needed.
  *
  * @group Update
+ * @group legacy
  * @see system_post_update_uninstall_classy()
  */
 class ClassyUninstallUpdateTest extends UpdatePathTestBase {
@@ -76,7 +77,7 @@ class ClassyUninstallUpdateTest extends UpdatePathTestBase {
     $theme_handler = $this->container->get('theme_handler');
     /** @var \Drupal\Core\Extension\ThemeInstallerInterface $theme_installer */
     $theme_installer = $this->container->get('theme_installer');
-    $theme_installer->install(['test_theme']);
+    $theme_installer->install(['test_legacy_stylesheets_remove']);
     $this->assertTrue($theme_handler->themeExists('classy'));
 
     $this->runUpdates();

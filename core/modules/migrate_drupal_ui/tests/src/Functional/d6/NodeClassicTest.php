@@ -27,12 +27,9 @@ class NodeClassicTest extends MigrateUpgradeExecuteTestBase {
     'config_translation',
     'migrate_drupal_ui',
     'telephone',
-    'aggregator',
     'book',
     'forum',
     'statistics',
-    // Required for translation migrations.
-    'migrate_drupal_multilingual',
   ];
 
   /**
@@ -40,7 +37,7 @@ class NodeClassicTest extends MigrateUpgradeExecuteTestBase {
    */
   protected function setUp(): void {
     parent::setUp();
-    $this->loadFixture(drupal_get_path('module', 'migrate_drupal') . '/tests/fixtures/drupal6.php');
+    $this->loadFixture($this->getModulePath('migrate_drupal') . '/tests/fixtures/drupal6.php');
   }
 
   /**
@@ -54,59 +51,44 @@ class NodeClassicTest extends MigrateUpgradeExecuteTestBase {
    * {@inheritdoc}
    */
   protected function getEntityCounts() {
+    return [];
   }
 
   /**
    * {@inheritdoc}
    */
   protected function getEntityCountsIncremental() {
+    return [];
   }
 
   /**
    * {@inheritdoc}
    */
   protected function getAvailablePaths() {
+    return [];
   }
 
   /**
    * {@inheritdoc}
    */
   protected function getMissingPaths() {
+    return [];
   }
 
   /**
-   * Tests ID Conflict form.
+   * Tests node classic migration via the UI.
    */
-  public function testMigrateUpgradeExecute() {
+  public function testNodeClassicUpgrade() {
     // Add a node classic migrate table to d8.
     $this->makeNodeMigrateMapTable(NodeMigrateType::NODE_MIGRATE_TYPE_CLASSIC, '6');
 
-    $this->drupalGet('/upgrade');
-    $session = $this->assertSession();
-    $session->responseContains("Upgrade a site by importing its files and the data from its database into a clean and empty new install of Drupal $this->destinationSiteVersion.");
-
-    $this->submitForm([], 'Continue');
-    $session->pageTextContains('Provide credentials for the database of the Drupal site you want to upgrade.');
-    $session->fieldExists('mysql[host]');
-
-    // Get valid credentials.
-    $edits = $this->translatePostValues($this->getCredentials());
-
     // Start the upgrade process.
-    $this->drupalGet('/upgrade');
-    $session->responseContains("Upgrade a site by importing its files and the data from its database into a clean and empty new install of Drupal $this->destinationSiteVersion.");
-
-    $this->submitForm([], 'Continue');
-    $session->pageTextContains('Provide credentials for the database of the Drupal site you want to upgrade.');
-    $session->fieldExists('mysql[host]');
-
-    // When the Credential form is submitted the migrate map tables are created.
-    $this->submitForm($edits, 'Review upgrade');
+    $this->submitCredentialForm();
 
     // Confirm there are only classic node migration map tables. This shows
     // that only the classic migration will run.
     $results = $this->nodeMigrateMapTableCount('6');
-    $this->assertSame(13, $results['node']);
+    $this->assertSame(14, $results['node']);
     $this->assertSame(0, $results['node_complete']);
   }
 

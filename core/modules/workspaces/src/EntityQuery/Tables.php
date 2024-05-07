@@ -94,7 +94,7 @@ class Tables extends BaseTables {
       // to also look for a possible workspace-specific revision using COALESCE.
       $condition_parts = explode(' = ', $join_condition);
       $condition_parts_1 = str_replace(['[', ']'], '', $condition_parts[1]);
-      list($base_table, $id_field) = explode('.', $condition_parts_1);
+      [$base_table, $id_field] = explode('.', $condition_parts_1);
 
       if (isset($this->baseTablesEntityType[$base_table])) {
         $entity_type_id = $this->baseTablesEntityType[$base_table];
@@ -147,7 +147,7 @@ class Tables extends BaseTables {
 
       // LEFT join the Workspace association entity's table so we can properly
       // include live content along with a possible workspace-specific revision.
-      $this->contentWorkspaceTables[$base_table_alias] = $this->sqlQuery->leftJoin('workspace_association', NULL, "%alias.target_entity_type_id = '$entity_type_id' AND %alias.target_entity_id = $base_table_alias.$id_field AND %alias.workspace = '$active_workspace_id'");
+      $this->contentWorkspaceTables[$base_table_alias] = $this->sqlQuery->leftJoin('workspace_association', NULL, "[%alias].[target_entity_type_id] = '$entity_type_id' AND [%alias].[target_entity_id] = [$base_table_alias].[$id_field] AND [%alias].[workspace] = '$active_workspace_id'");
 
       $this->baseTablesEntityType[$base_table_alias] = $entity_type->id();
     }

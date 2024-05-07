@@ -7,7 +7,6 @@ use Drupal\Core\Render\Markup;
 use Drupal\Tests\UnitTestCase;
 use Drupal\Core\Config\Config;
 use Drupal\Core\Config\ConfigValueException;
-use PHPUnit\Framework\Error\Warning;
 
 /**
  * Tests the Config.
@@ -37,7 +36,7 @@ class ConfigTest extends UnitTestCase {
   /**
    * Event Dispatcher.
    *
-   * @var \Symfony\Component\EventDispatcher\EventDispatcherInterface|\PHPUnit\Framework\MockObject\MockObject
+   * @var \Symfony\Contracts\EventDispatcher\EventDispatcherInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $eventDispatcher;
 
@@ -55,9 +54,12 @@ class ConfigTest extends UnitTestCase {
    */
   protected $cacheTagsInvalidator;
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp(): void {
     $this->storage = $this->createMock('Drupal\Core\Config\StorageInterface');
-    $this->eventDispatcher = $this->createMock('Symfony\Component\EventDispatcher\EventDispatcherInterface');
+    $this->eventDispatcher = $this->createMock('Symfony\Contracts\EventDispatcher\EventDispatcherInterface');
     $this->typedConfig = $this->createMock('\Drupal\Core\Config\TypedConfigManagerInterface');
     $this->config = new Config('config.test', $this->storage, $this->eventDispatcher, $this->typedConfig);
     $this->cacheTagsInvalidator = $this->createMock('Drupal\Core\Cache\CacheTagsInvalidatorInterface');
@@ -270,7 +272,12 @@ class ConfigTest extends UnitTestCase {
     $this->config->set('testData', 1);
 
     // Attempt to treat the single value as a nested item.
-    $this->expectException(PHP_VERSION_ID >= 80000 ? \Error::class : Warning::class);
+    if (PHP_VERSION_ID >= 80000) {
+      $this->expectError();
+    }
+    else {
+      $this->expectWarning();
+    }
     $this->config->set('testData.illegalOffset', 1);
   }
 
@@ -577,8 +584,10 @@ class ConfigTest extends UnitTestCase {
    *
    * @param array $data
    *   Config data to be checked.
+   *
+   * @internal
    */
-  public function assertConfigDataEquals($data) {
+  public function assertConfigDataEquals(array $data): void {
     foreach ($data as $key => $value) {
       $this->assertEquals($value, $this->config->get($key));
     }
@@ -591,8 +600,10 @@ class ConfigTest extends UnitTestCase {
    *   Config data to be checked.
    * @param bool $apply_overrides
    *   Apply any overrides to the original data.
+   *
+   * @internal
    */
-  public function assertOriginalConfigDataEquals($data, $apply_overrides) {
+  public function assertOriginalConfigDataEquals(array $data, bool $apply_overrides): void {
     foreach ($data as $key => $value) {
       $config_value = $this->config->getOriginal($key, $apply_overrides);
       $this->assertEquals($value, $config_value);
@@ -628,8 +639,10 @@ class ConfigTest extends UnitTestCase {
    *   The original data.
    * @param array $overridden_data
    *   The overridden data.
+   *
+   * @internal
    */
-  protected function assertOverriddenKeys(array $data, array $overridden_data) {
+  protected function assertOverriddenKeys(array $data, array $overridden_data): void {
     if (empty($overridden_data)) {
       $this->assertFalse($this->config->hasOverrides());
     }

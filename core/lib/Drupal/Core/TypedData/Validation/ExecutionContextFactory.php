@@ -4,14 +4,13 @@ namespace Drupal\Core\TypedData\Validation;
 
 use Drupal\Core\Validation\TranslatorInterface;
 use Symfony\Component\Validator\Context\ExecutionContextFactoryInterface;
+use Symfony\Component\Validator\Context\ExecutionContextInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 /**
  * Defines an execution factory for the Typed Data validator.
  *
  * We do not use the factory provided by Symfony as it is marked internal.
- *
- * @codingStandardsIgnoreStart
  */
 class ExecutionContextFactory implements ExecutionContextFactoryInterface {
 
@@ -33,8 +32,7 @@ class ExecutionContextFactory implements ExecutionContextFactoryInterface {
    * @param string $translationDomain
    *   (optional) The translation domain.
    */
-  public function __construct(TranslatorInterface $translator, $translationDomain = null)
-  {
+  public function __construct(TranslatorInterface $translator, $translationDomain = NULL) {
     $this->translator = $translator;
     $this->translationDomain = $translationDomain;
   }
@@ -42,8 +40,7 @@ class ExecutionContextFactory implements ExecutionContextFactoryInterface {
   /**
    * {@inheritdoc}
    */
-  public function createContext(ValidatorInterface $validator, $root)
-  {
+  public function createContext(ValidatorInterface $validator, $root): ExecutionContextInterface {
     return new ExecutionContext(
       $validator,
       $root,

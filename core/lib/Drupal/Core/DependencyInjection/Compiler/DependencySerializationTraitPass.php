@@ -8,6 +8,11 @@ use Symfony\Component\DependencyInjection\ContainerBuilder;
 /**
  * Sets the _serviceId property on all services.
  *
+ * @deprecated in drupal:9.5.0 and is removed from drupal:11.0.0. The _serviceId
+ *   property is no longer part of the container. Use
+ *   \Drupal\Core\DrupalKernelInterface::getServiceIdMapping() instead.
+ *
+ * @see https://www.drupal.org/node/3292540
  * @see \Drupal\Core\DependencyInjection\DependencySerializationTrait
  */
 class DependencySerializationTraitPass implements CompilerPassInterface {
@@ -16,13 +21,6 @@ class DependencySerializationTraitPass implements CompilerPassInterface {
    * {@inheritdoc}
    */
   public function process(ContainerBuilder $container) {
-    foreach ($container->getDefinitions() as $service_id => $definition) {
-      // Only add the property to services that are public (as private services
-      // can not be reloaded through Container::get()) and are objects.
-      if (!$definition->hasTag('parameter_service') && $definition->isPublic()) {
-        $definition->setProperty('_serviceId', $service_id);
-      }
-    }
   }
 
 }

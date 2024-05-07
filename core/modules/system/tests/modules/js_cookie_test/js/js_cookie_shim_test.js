@@ -4,12 +4,11 @@
 * https://www.drupal.org/node/2815083
 * @preserve
 **/
-
 (function (_ref, $) {
   var behaviors = _ref.behaviors;
   behaviors.jqueryCookie = {
     attach: function attach() {
-      if ($('body').once('js_cookie_test-init').length) {
+      if (once('js_cookie_test-init', 'body').length) {
         $('.js_cookie_test_add_button').on('click', function () {
           $.cookie('js_cookie_test', 'red panda');
         });

@@ -27,7 +27,7 @@ class ThemeTest extends KernelTestBase {
   }
 
   /**
-   * Test attribute merging.
+   * Tests attribute merging.
    *
    * Render arrays that use a render element and templates (and hence call
    * template_preprocess()) must ensure the attributes at different occasions
@@ -49,7 +49,7 @@ class ThemeTest extends KernelTestBase {
   }
 
   /**
-   * Test that ThemeManager renders the expected data types.
+   * Tests that ThemeManager renders the expected data types.
    */
   public function testThemeDataTypes() {
     // theme_test_false is an implemented theme hook so \Drupal::theme() service
@@ -60,10 +60,10 @@ class ThemeTest extends KernelTestBase {
       $output = \Drupal::theme()->render('theme_test_foo', ['foo' => $example]);
       $this->assertTrue($output instanceof MarkupInterface || is_string($output), new FormattableMarkup('\Drupal::theme() returns an object that implements MarkupInterface or a string for data type @type.', ['@type' => $type]));
       if ($output instanceof MarkupInterface) {
-        $this->assertIdentical((string) $example, $output->__toString());
+        $this->assertSame((string) $example, $output->__toString());
       }
       elseif (is_string($output)) {
-        $this->assertIdentical($output, '', 'A string will be return when the theme returns an empty string.');
+        $this->assertSame('', $output, 'A string will be return when the theme returns an empty string.');
       }
     }
 
@@ -74,7 +74,7 @@ class ThemeTest extends KernelTestBase {
   }
 
   /**
-   * Test function theme_get_suggestions() for SA-CORE-2009-003.
+   * Tests function theme_get_suggestions() for SA-CORE-2009-003.
    */
   public function testThemeSuggestions() {
     // Set the front page as something random otherwise the CLI
@@ -82,26 +82,26 @@ class ThemeTest extends KernelTestBase {
     $this->config('system.site')->set('page.front', '/nobody-home')->save();
     $args = ['node', '1', 'edit'];
     $suggestions = theme_get_suggestions($args, 'page');
-    $this->assertEqual($suggestions, ['page__node', 'page__node__%', 'page__node__1', 'page__node__edit'], 'Found expected node edit page suggestions');
+    $this->assertEquals(['page__node', 'page__node__%', 'page__node__1', 'page__node__edit'], $suggestions, 'Found expected node edit page suggestions');
     // Check attack vectors.
     $args = ['node', '\\1'];
     $suggestions = theme_get_suggestions($args, 'page');
-    $this->assertEqual($suggestions, ['page__node', 'page__node__%', 'page__node__1'], 'Removed invalid \\ from suggestions');
+    $this->assertEquals(['page__node', 'page__node__%', 'page__node__1'], $suggestions, 'Removed invalid \\ from suggestions');
     $args = ['node', '1/'];
     $suggestions = theme_get_suggestions($args, 'page');
-    $this->assertEqual($suggestions, ['page__node', 'page__node__%', 'page__node__1'], 'Removed invalid / from suggestions');
+    $this->assertEquals(['page__node', 'page__node__%', 'page__node__1'], $suggestions, 'Removed invalid / from suggestions');
     $args = ['node', "1\0"];
     $suggestions = theme_get_suggestions($args, 'page');
-    $this->assertEqual($suggestions, ['page__node', 'page__node__%', 'page__node__1'], 'Removed invalid \\0 from suggestions');
+    $this->assertEquals(['page__node', 'page__node__%', 'page__node__1'], $suggestions, 'Removed invalid \\0 from suggestions');
     // Define path with hyphens to be used to generate suggestions.
     $args = ['node', '1', 'hyphen-path'];
     $result = ['page__node', 'page__node__%', 'page__node__1', 'page__node__hyphen_path'];
     $suggestions = theme_get_suggestions($args, 'page');
-    $this->assertEqual($suggestions, $result, 'Found expected page suggestions for paths containing hyphens.');
+    $this->assertEquals($result, $suggestions, 'Found expected page suggestions for paths containing hyphens.');
   }
 
   /**
-   * Test the listInfo() function.
+   * Tests the listInfo() function.
    */
   public function testListThemes() {
     $this->container->get('theme_installer')->install(['test_subtheme']);
@@ -109,20 +109,20 @@ class ThemeTest extends KernelTestBase {
     $themes = $theme_handler->listInfo();
 
     // Check if ThemeHandlerInterface::listInfo() retrieves enabled themes.
-    $this->assertIdentical(1, $themes['test_theme']->status, 'Installed theme detected');
+    $this->assertSame(1, $themes['test_theme']->status, 'Installed theme detected');
 
     // Check if ThemeHandlerInterface::listInfo() returns disabled themes.
     // Check for base theme and subtheme lists.
     $base_theme_list = ['test_basetheme' => 'Theme test base theme'];
     $sub_theme_list = ['test_subsubtheme' => 'Theme test subsubtheme', 'test_subtheme' => 'Theme test subtheme'];
 
-    $this->assertIdentical($themes['test_basetheme']->sub_themes, $sub_theme_list, 'Base theme\'s object includes list of subthemes.');
-    $this->assertIdentical($themes['test_subtheme']->base_themes, $base_theme_list, 'Subtheme\'s object includes list of base themes.');
+    $this->assertSame($sub_theme_list, $themes['test_basetheme']->sub_themes, 'Base theme\'s object includes list of subthemes.');
+    $this->assertSame($base_theme_list, $themes['test_subtheme']->base_themes, 'Subtheme\'s object includes list of base themes.');
     // Check for theme engine in subtheme.
-    $this->assertIdentical($themes['test_subtheme']->engine, 'twig', 'Subtheme\'s object includes the theme engine.');
+    $this->assertSame('twig', $themes['test_subtheme']->engine, 'Subtheme\'s object includes the theme engine.');
     // Check for theme engine prefix.
-    $this->assertIdentical($themes['test_basetheme']->prefix, 'twig', 'Base theme\'s object includes the theme engine prefix.');
-    $this->assertIdentical($themes['test_subtheme']->prefix, 'twig', 'Subtheme\'s object includes the theme engine prefix.');
+    $this->assertSame('twig', $themes['test_basetheme']->prefix, 'Base theme\'s object includes the theme engine prefix.');
+    $this->assertSame('twig', $themes['test_subtheme']->prefix, 'Subtheme\'s object includes the theme engine prefix.');
   }
 
   /**
@@ -135,7 +135,7 @@ class ThemeTest extends KernelTestBase {
         '#markup' => 'Foo',
       ],
     ];
-    $this->assertThemeOutput('theme_test_render_element_children', $element, 'Foo', 'drupal_render() avoids #theme recursion loop when rendering a render element.');
+    $this->assertThemeOutput('theme_test_render_element_children', $element, 'Foo', "\Drupal::service('renderer')->render() avoids #theme recursion loop when rendering a render element.");
 
     $element = [
       '#theme_wrappers' => ['theme_test_render_element_children'],
@@ -143,7 +143,7 @@ class ThemeTest extends KernelTestBase {
         '#markup' => 'Foo',
       ],
     ];
-    $this->assertThemeOutput('theme_test_render_element_children', $element, 'Foo', 'drupal_render() avoids #theme_wrappers recursion loop when rendering a render element.');
+    $this->assertThemeOutput('theme_test_render_element_children', $element, 'Foo', "\Drupal::service('renderer')->render() avoids #theme_wrappers recursion loop when rendering a render element.");
   }
 
   /**
@@ -151,8 +151,61 @@ class ThemeTest extends KernelTestBase {
    */
   public function testFindThemeTemplates() {
     $registry = $this->container->get('theme.registry')->get();
-    $templates = drupal_find_theme_templates($registry, '.html.twig', drupal_get_path('theme', 'test_theme'));
-    $this->assertEqual($templates['node__1']['template'], 'node--1', 'Template node--1.html.twig was found in test_theme.');
+    $templates = drupal_find_theme_templates($registry, '.html.twig', $this->getThemePath('test_theme'));
+    $this->assertEquals('node--1', $templates['node__1']['template'], 'Template node--1.html.twig was found in test_theme.');
+  }
+
+  /**
+   * Tests the update registry is correct during theme install and uninstall.
+   */
+  public function testThemeUpdateManagement() {
+    // Install modules the theme is dependent on and enable the post update
+    // function.
+    \Drupal::state()->set('test_theme_depending_on_modules.post_update', TRUE);
+    \Drupal::service('module_installer')->install([
+      'test_module_required_by_theme',
+      'test_another_module_required_by_theme',
+    ]);
+
+    /** @var \Drupal\Core\Update\UpdateRegistry $post_update_registry */
+    $post_update_registry = \Drupal::service('update.post_update_registry');
+    $this->assertEmpty($post_update_registry->getUpdateFunctions('test_theme_depending_on_modules'), 'No updates test_theme_depending_on_modules for prior to install.');
+    \Drupal::service('theme_installer')->install(['test_theme_depending_on_modules']);
+
+    // Ensure the post update function has been added to the list of
+    // existing updates.
+    $this->assertContains('test_theme_depending_on_modules_post_update_module_install', \Drupal::service('keyvalue')->get('post_update')->get('existing_updates'));
+
+    \Drupal::service('theme_installer')->uninstall(['test_theme_depending_on_modules']);
+    // Ensure the post update function has been removed from the list of
+    // existing updates.
+    $this->assertNotContains('test_theme_depending_on_modules_post_update_module_install', \Drupal::service('keyvalue')->get('post_update')->get('existing_updates'));
+  }
+
+  /**
+   * Tests the update registry is correct during theme install and uninstall.
+   */
+  public function testThemeUpdateManagementRemovedPostUpdates() {
+    // Install modules the theme is dependent on and enable the removed post
+    // updates function.
+    \Drupal::state()->set('test_theme_depending_on_modules.removed_post_updates', TRUE);
+    \Drupal::service('module_installer')->install([
+      'test_module_required_by_theme',
+      'test_another_module_required_by_theme',
+    ]);
+
+    $post_update_registry = \Drupal::service('update.post_update_registry');
+    $this->assertEmpty($post_update_registry->getUpdateFunctions('test_theme_depending_on_modules'), 'No updates test_theme_depending_on_modules for prior to install.');
+    \Drupal::service('theme_installer')->install(['test_theme_depending_on_modules']);
+
+    // Ensure the removed post update function has been added to the list of
+    // existing updates.
+    $this->assertContains('test_theme_depending_on_modules_post_update_foo', \Drupal::service('keyvalue')->get('post_update')->get('existing_updates'));
+
+    \Drupal::service('theme_installer')->uninstall(['test_theme_depending_on_modules']);
+    // Ensure the removed post update function has been removed from the list of
+    // existing updates.
+    $this->assertNotContains('test_theme_depending_on_modules_post_update_foo', \Drupal::service('keyvalue')->get('post_update')->get('existing_updates'));
   }
 
 }

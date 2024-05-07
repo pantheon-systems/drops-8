@@ -73,7 +73,7 @@ class UrlHelper {
    * @param string $parent
    *   Internal use only. Used to build the $query array key for nested items.
    *
-   * @return
+   * @return array
    *   An array containing query parameters.
    */
   public static function filterQueryParameters(array $query, array $exclude = [], $parent = '') {
@@ -147,14 +147,14 @@ class UrlHelper {
     if ($scheme_delimiter_position !== FALSE && ($query_delimiter_position === FALSE || $scheme_delimiter_position < $query_delimiter_position)) {
       // Split off the fragment, if any.
       if (strpos($url, '#') !== FALSE) {
-        list($url, $options['fragment']) = explode('#', $url, 2);
+        [$url, $options['fragment']] = explode('#', $url, 2);
       }
 
       // Split off everything before the query string into 'path'.
       $parts = explode('?', $url, 2);
 
       // Don't support URLs without a path, like 'http://'.
-      list(, $path) = explode('://', $parts[0], 2);
+      [, $path] = explode('://', $parts[0], 2);
       if ($path != '') {
         $options['path'] = $parts[0];
       }

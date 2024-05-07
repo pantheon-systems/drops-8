@@ -42,13 +42,13 @@ class ResponsiveImageStyleConfigEntityUnitTest extends UnitTestCase {
     $this->entityType = $this->createMock('\Drupal\Core\Entity\EntityTypeInterface');
     $this->entityType->expects($this->any())
       ->method('getProvider')
-      ->will($this->returnValue('responsive_image'));
+      ->willReturn('responsive_image');
 
     $this->entityTypeManager = $this->createMock(EntityTypeManagerInterface::class);
     $this->entityTypeManager->expects($this->any())
       ->method('getDefinition')
       ->with('responsive_image_style')
-      ->will($this->returnValue($this->entityType));
+      ->willReturn($this->entityType);
 
     $this->breakpointManager = $this->createMock('\Drupal\breakpoint\BreakpointManagerInterface');
 
@@ -106,13 +106,13 @@ class ResponsiveImageStyleConfigEntityUnitTest extends UnitTestCase {
     $this->breakpointManager->expects($this->any())
       ->method('getGroupProviders')
       ->with('test_group')
-      ->willReturn(['bartik' => 'theme', 'toolbar' => 'module']);
+      ->willReturn(['olivero' => 'theme', 'toolbar' => 'module']);
 
     \Drupal::getContainer()->set('entity_type.repository', $entity_type_repository);
 
     $dependencies = $entity->calculateDependencies()->getDependencies();
     $this->assertEquals(['toolbar'], $dependencies['module']);
-    $this->assertEquals(['bartik'], $dependencies['theme']);
+    $this->assertEquals(['olivero'], $dependencies['theme']);
     $this->assertEquals(['image.style.fallback', 'image.style.large', 'image.style.medium', 'image.style.small'], $dependencies['config']);
   }
 
@@ -124,45 +124,45 @@ class ResponsiveImageStyleConfigEntityUnitTest extends UnitTestCase {
     $entity = new ResponsiveImageStyle([]);
     $this->assertFalse($entity->hasImageStyleMappings());
     $entity->addImageStyleMapping('test_breakpoint', '1x', [
-        'image_mapping_type' => 'image_style',
-        'image_mapping' => '',
+      'image_mapping_type' => 'image_style',
+      'image_mapping' => '',
     ]);
     $this->assertFalse($entity->hasImageStyleMappings());
     $entity->removeImageStyleMappings();
     $entity->addImageStyleMapping('test_breakpoint', '1x', [
-        'image_mapping_type' => 'sizes',
-        'image_mapping' => [
-          'sizes' => '(min-width:700px) 700px, 100vw',
-          'sizes_image_styles' => [],
+      'image_mapping_type' => 'sizes',
+      'image_mapping' => [
+        'sizes' => '(min-width:700px) 700px, 100vw',
+        'sizes_image_styles' => [],
+      ],
+    ]);
+    $this->assertFalse($entity->hasImageStyleMappings());
+    $entity->removeImageStyleMappings();
+    $entity->addImageStyleMapping('test_breakpoint', '1x', [
+      'image_mapping_type' => 'sizes',
+      'image_mapping' => [
+        'sizes' => '',
+        'sizes_image_styles' => [
+          'large' => 'large',
         ],
+      ],
     ]);
     $this->assertFalse($entity->hasImageStyleMappings());
     $entity->removeImageStyleMappings();
     $entity->addImageStyleMapping('test_breakpoint', '1x', [
-        'image_mapping_type' => 'sizes',
-        'image_mapping' => [
-          'sizes' => '',
-          'sizes_image_styles' => [
-            'large' => 'large',
-          ],
-        ],
-    ]);
-    $this->assertFalse($entity->hasImageStyleMappings());
-    $entity->removeImageStyleMappings();
-    $entity->addImageStyleMapping('test_breakpoint', '1x', [
-        'image_mapping_type' => 'image_style',
-        'image_mapping' => 'large',
+      'image_mapping_type' => 'image_style',
+      'image_mapping' => 'large',
     ]);
     $this->assertTrue($entity->hasImageStyleMappings());
     $entity->removeImageStyleMappings();
     $entity->addImageStyleMapping('test_breakpoint', '1x', [
-        'image_mapping_type' => 'sizes',
-        'image_mapping' => [
-          'sizes' => '(min-width:700px) 700px, 100vw',
-          'sizes_image_styles' => [
-            'large' => 'large',
-          ],
+      'image_mapping_type' => 'sizes',
+      'image_mapping' => [
+        'sizes' => '(min-width:700px) 700px, 100vw',
+        'sizes_image_styles' => [
+          'large' => 'large',
         ],
+      ],
     ]);
     $this->assertTrue($entity->hasImageStyleMappings());
   }

@@ -18,7 +18,7 @@ class EditorDialogAccessTest extends BrowserTestBase {
    *
    * @var array
    */
-  protected static $modules = ['editor', 'filter', 'ckeditor'];
+  protected static $modules = ['editor', 'filter', 'editor_test'];
 
   /**
    * {@inheritdoc}
@@ -26,7 +26,7 @@ class EditorDialogAccessTest extends BrowserTestBase {
   protected $defaultTheme = 'stark';
 
   /**
-   * Test access to the editor image dialog.
+   * Tests access to the editor image dialog.
    */
   public function testEditorImageDialogAccess() {
     $url = Url::fromRoute('editor.image_dialog', ['editor' => 'plain_text']);
@@ -39,23 +39,8 @@ class EditorDialogAccessTest extends BrowserTestBase {
     // With a text editor but without image upload settings, expect a 200, but
     // there should not be an input[type=file].
     $editor = Editor::create([
-      'editor' => 'ckeditor',
+      'editor' => 'unicorn',
       'format' => 'plain_text',
-      'settings' => [
-        'toolbar' => [
-          'rows' => [
-            [
-              [
-                'name' => 'Media',
-                'items' => [
-                  'DrupalImage',
-                ],
-              ],
-            ],
-          ],
-        ],
-        'plugins' => [],
-      ],
       'image_upload' => [
         'status' => FALSE,
         'scheme' => 'public',

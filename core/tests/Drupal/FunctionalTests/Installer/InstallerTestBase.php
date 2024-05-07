@@ -7,6 +7,7 @@ use Drupal\Core\Language\Language;
 use Drupal\Core\Session\UserSession;
 use Drupal\Core\Site\Settings;
 use Drupal\Core\Test\HttpClientMiddleware\TestHttpClientMiddleware;
+use Drupal\Core\Utility\PhpRequirements;
 use Drupal\Tests\BrowserTestBase;
 use Drupal\Tests\RequirementsPageTrait;
 use GuzzleHttp\HandlerStack;
@@ -71,6 +72,19 @@ abstract class InstallerTestBase extends BrowserTestBase {
    * @var bool
    */
   protected $isInstalled = FALSE;
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function installParameters() {
+    $params = parent::installParameters();
+    // Set the checkbox values to FALSE so that
+    // \Drupal\Tests\BrowserTestBase::translatePostValues() does not remove
+    // them.
+    $params['forms']['install_configure_form']['enable_update_status_module'] = FALSE;
+    $params['forms']['install_configure_form']['enable_update_status_emails'] = FALSE;
+    return $params;
+  }
 
   /**
    * {@inheritdoc}
@@ -252,7 +266,9 @@ abstract class InstallerTestBase extends BrowserTestBase {
    * @see system_requirements()
    */
   protected function setUpRequirementsProblem() {
-    // Do nothing.
+    if (version_compare(phpversion(), PhpRequirements::getMinimumSupportedPhp()) < 0) {
+      $this->continueOnExpectedWarnings(['PHP']);
+    }
   }
 
   /**

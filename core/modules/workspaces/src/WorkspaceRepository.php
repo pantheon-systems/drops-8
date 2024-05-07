@@ -2,6 +2,7 @@
 
 namespace Drupal\workspaces;
 
+use Drupal\Component\Assertion\Inspector;
 use Drupal\Component\Graph\Graph;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\CacheBackendInterface;
@@ -62,6 +63,7 @@ class WorkspaceRepository implements WorkspaceRepositoryInterface {
 
       // First, sort everything alphabetically.
       uasort($workspaces, function (WorkspaceInterface $a, WorkspaceInterface $b) {
+        assert(Inspector::assertStringable($a->label()) && Inspector::assertStringable($b->label()), 'Workspace labels are expected to be a string.');
         return strnatcasecmp($a->label(), $b->label());
       });
 
@@ -114,6 +116,7 @@ class WorkspaceRepository implements WorkspaceRepositoryInterface {
       }
       $graph = (new Graph($graph))->searchAndSort();
 
+      $this->tree = [];
       foreach (array_keys($tree) as $workspace_id) {
         $this->tree[$workspace_id] = [
           'depth' => count($graph[$workspace_id]['paths']),

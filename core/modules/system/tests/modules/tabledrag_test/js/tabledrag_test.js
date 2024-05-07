@@ -4,11 +4,10 @@
 * https://www.drupal.org/node/2815083
 * @preserve
 **/
-
 (function ($, Drupal) {
   Drupal.behaviors.tableDragTest = {
     attach: function attach(context) {
-      $('.tabledrag-handle', context).once('tabledrag-test').on('keydown.tabledrag-test', function (event) {
+      $(once('tabledrag-test', '.tabledrag-handle', context)).on('keydown.tabledrag-test', function (event) {
         $(event.currentTarget).removeClass('tabledrag-test-dragging');
       });
     }

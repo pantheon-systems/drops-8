@@ -25,8 +25,9 @@ class TestSetupTraitTest extends UnitTestCase {
    * @covers ::changeDatabasePrefix
    */
   public function testChangeDatabasePrefix() {
+    $root = dirname(__FILE__, 7);
     putenv('SIMPLETEST_DB=pgsql://user:pass@127.0.0.1/db');
-    $connection_info = Database::convertDbUrlToConnectionInfo('mysql://user:pass@localhost/db', '');
+    $connection_info = Database::convertDbUrlToConnectionInfo('mysql://user:pass@localhost/db', $root);
     Database::addConnectionInfo('default', 'default', $connection_info);
     $this->assertEquals('mysql', Database::getConnectionInfo()['default']['driver']);
     $this->assertEquals('localhost', Database::getConnectionInfo()['default']['host']);
@@ -34,8 +35,14 @@ class TestSetupTraitTest extends UnitTestCase {
     // Create a mock for testing the trait and set a few properties that are
     // used to avoid unnecessary set up.
     $test_setup = $this->getMockForTrait(TestSetupTrait::class);
-    $test_setup->databasePrefix = 'testDbPrefix';
-    $test_setup->root = '';
+
+    $reflection = new \ReflectionClass($test_setup);
+    $property = $reflection->getProperty('databasePrefix');
+    $property->setAccessible(TRUE);
+    $property->setValue($test_setup, 'testDbPrefix');
+    $property = $reflection->getProperty('root');
+    $property->setAccessible(TRUE);
+    $property->setValue($test_setup, $root);
 
     $method = new \ReflectionMethod(get_class($test_setup), 'changeDatabasePrefix');
     $method->setAccessible(TRUE);

@@ -16,7 +16,7 @@ trait BrokenHandlerTrait {
    * @see \Drupal\views\Plugin\views\PluginBase::defineOptions()
    */
   public function adminLabel($short = FALSE) {
-    return t('Broken/missing handler');
+    return $this->t('Broken/missing handler');
   }
 
   /**
@@ -29,8 +29,7 @@ trait BrokenHandlerTrait {
   }
 
   /**
-   * Ensure the main table for this handler is in the query. This is used
-   * a lot.
+   * Ensures that the main table for this handler is in the query.
    *
    * @see \Drupal\views\Plugin\views\HandlerBase::ensureMyTable()
    */
@@ -51,7 +50,7 @@ trait BrokenHandlerTrait {
    * @see \Drupal\views\Plugin\views\PluginBase::defineOptions()
    */
   public function buildOptionsForm(&$form, FormStateInterface $form_state) {
-    $description_top = t('The handler for this item is broken or missing. The following details are available:');
+    $description_top = $this->t('The handler for this item is broken or missing. The following details are available:');
 
     foreach ($this->definition['original_configuration'] as $key => $value) {
       if (is_scalar($value)) {
@@ -59,7 +58,7 @@ trait BrokenHandlerTrait {
       }
     }
 
-    $description_bottom = t('Enabling the appropriate module may solve this issue. Otherwise, check to see if there is a module update available.');
+    $description_bottom = $this->t('Enabling the appropriate module may solve this issue. Otherwise, check to see if there is a module update available.');
 
     $form['description'] = [
       '#type' => 'container',

@@ -4,7 +4,6 @@
 * https://www.drupal.org/node/2815083
 * @preserve
 **/
-
 (function ($, Drupal, drupalSettings) {
   drupalSettings.dialog = {
     autoOpen: true,
@@ -16,7 +15,6 @@
       Drupal.detachBehaviors(event.target, null, 'unload');
     }
   };
-
   Drupal.dialog = function (element, options) {
     var undef;
     var $element = $(element);
@@ -24,7 +22,6 @@
       open: false,
       returnValue: undef
     };
-
     function openDialog(settings) {
       settings = $.extend({}, drupalSettings.dialog, options, settings);
       $(window).trigger('dialog:beforecreate', [dialog, $element, settings]);
@@ -32,7 +29,6 @@
       dialog.open = true;
       $(window).trigger('dialog:aftercreate', [dialog, $element, settings]);
     }
-
     function closeDialog(value) {
       $(window).trigger('dialog:beforeclose', [dialog, $element]);
       $element.dialog('close');
@@ -40,19 +36,16 @@
       dialog.open = false;
       $(window).trigger('dialog:afterclose', [dialog, $element]);
     }
-
     dialog.show = function () {
       openDialog({
         modal: false
       });
     };
-
     dialog.showModal = function () {
       openDialog({
         modal: true
       });
     };
-
     dialog.close = closeDialog;
     return dialog;
   };

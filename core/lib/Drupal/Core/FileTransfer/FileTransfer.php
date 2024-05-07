@@ -42,6 +42,27 @@ abstract class FileTransfer {
   protected $port;
 
   /**
+   * Full path to directory where file-transfer is restricted to.
+   *
+   * @var string
+   */
+  protected $jail;
+
+  /**
+   * Path to connection chroot.
+   *
+   * @var string|false|null
+   */
+  private $chrootPath;
+
+  /**
+   * The instantiated connection object.
+   *
+   * @var object|false|null
+   */
+  private $connectionHandle;
+
+  /**
    * Constructs a Drupal\Core\FileTransfer\FileTransfer object.
    *
    * @param $jail
@@ -93,12 +114,49 @@ abstract class FileTransfer {
   public function __get($name) {
     if ($name == 'connection') {
       $this->connect();
-      return $this->connection;
+      return $this->connectionHandle;
     }
 
     if ($name == 'chroot') {
       $this->setChroot();
-      return $this->chroot;
+      return $this->chrootPath;
+    }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function __set(string $name, $value): void {
+    if ($name == 'connection') {
+      $this->connectionHandle = $value;
+    }
+    elseif ($name == 'chroot') {
+      $this->chrootPath = $value;
+    }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function __isset(string $name): bool {
+    if ($name == 'connection') {
+      return isset($this->connectionHandle);
+    }
+    if ($name == 'chroot') {
+      return isset($this->chrootPath);
+    }
+    return FALSE;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function __unset(string $name): void {
+    if ($name == 'connection') {
+      unset($this->connectionHandle);
+    }
+    elseif ($name == 'chroot') {
+      unset($this->chrootPath);
     }
   }
 
@@ -211,7 +269,7 @@ abstract class FileTransfer {
       ->realpath(substr($this->chroot . $path, 0, strlen($full_jail)));
     $full_path = $this->fixRemotePath($full_path, FALSE);
     if ($full_jail !== $full_path) {
-      throw new FileTransferException('@directory is outside of the @jail', NULL, ['@directory' => $path, '@jail' => $this->jail]);
+      throw new FileTransferException('@directory is outside of the @jail', 0, ['@directory' => $path, '@jail' => $this->jail]);
     }
   }
 
@@ -232,11 +290,11 @@ abstract class FileTransfer {
    */
   final protected function fixRemotePath($path, $strip_chroot = TRUE) {
     $path = $this->sanitizePath($path);
-    // Strip out windows driveletter if its there.
+    // Strip out windows drive letter if its there.
     $path = preg_replace('|^([a-z]{1}):|i', '', $path);
     if ($strip_chroot) {
-      if ($this->chroot && strpos($path, $this->chroot) === 0) {
-        $path = ($path == $this->chroot) ? '' : substr($path, strlen($this->chroot));
+      if ($this->chrootPath && strpos($path, $this->chrootPath) === 0) {
+        $path = ($path == $this->chrootPath) ? '' : substr($path, strlen($this->chrootPath));
       }
     }
     return $path;

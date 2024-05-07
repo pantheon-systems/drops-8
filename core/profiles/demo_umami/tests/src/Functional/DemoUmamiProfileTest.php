@@ -52,10 +52,10 @@ class DemoUmamiProfileTest extends BrowserTestBase {
     // the cache layer.
     $active_config_storage = $this->container->get('config.storage');
 
-    $default_config_storage = new FileStorage(drupal_get_path('profile', 'demo_umami') . '/' . InstallStorage::CONFIG_INSTALL_DIRECTORY, InstallStorage::DEFAULT_COLLECTION);
+    $default_config_storage = new FileStorage($this->container->get('extension.list.profile')->getPath('demo_umami') . '/' . InstallStorage::CONFIG_INSTALL_DIRECTORY, InstallStorage::DEFAULT_COLLECTION);
     $this->assertDefaultConfig($default_config_storage, $active_config_storage);
 
-    $default_config_storage = new FileStorage(drupal_get_path('profile', 'demo_umami') . '/' . InstallStorage::CONFIG_OPTIONAL_DIRECTORY, InstallStorage::DEFAULT_COLLECTION);
+    $default_config_storage = new FileStorage($this->container->get('extension.list.profile')->getPath('demo_umami') . '/' . InstallStorage::CONFIG_OPTIONAL_DIRECTORY, InstallStorage::DEFAULT_COLLECTION);
     $this->assertDefaultConfig($default_config_storage, $active_config_storage);
   }
 
@@ -67,7 +67,7 @@ class DemoUmamiProfileTest extends BrowserTestBase {
    * @param \Drupal\Core\Config\StorageInterface $active_config_storage
    *   The active configuration storage.
    */
-  protected function assertDefaultConfig(StorageInterface $default_config_storage, StorageInterface $active_config_storage) {
+  protected function assertDefaultConfig(StorageInterface $default_config_storage, StorageInterface $active_config_storage): void {
     /** @var \Drupal\Core\Config\ConfigManagerInterface $config_manager */
     $config_manager = $this->container->get('config.manager');
 
@@ -91,11 +91,12 @@ class DemoUmamiProfileTest extends BrowserTestBase {
   }
 
   /**
-   * Tests that the users can log in with the admin password selected at install.
+   * Tests that the users can log in with the admin password entered at install.
    */
   public function testUser() {
     $password = $this->rootUser->pass_raw;
     $ids = \Drupal::entityQuery('user')
+      ->accessCheck(FALSE)
       ->condition('roles', ['author', 'editor'], 'IN')
       ->execute();
 
@@ -126,6 +127,12 @@ class DemoUmamiProfileTest extends BrowserTestBase {
     $node = reset($nodes);
     $this->drupalGet($node->toUrl('edit-form'));
     $webassert->statusCodeEquals('200');
+
+    $this->submitForm([], 'Preview');
+    $webassert->statusCodeEquals('200');
+    $this->assertSession()->elementsCount('css', 'h1', 1);
+    $this->clickLink('Back to content editing');
+
     $this->submitForm([], "Save");
     $webassert->pageTextContains('Recipe Deep mediterranean quiche has been updated.');
   }
@@ -161,7 +168,7 @@ class DemoUmamiProfileTest extends BrowserTestBase {
     $nodes = $this->container->get('entity_type.manager')
       ->getStorage('node')
       ->loadByProperties(['title' => 'Deep mediterranean quiche']);
-    /* @var \Drupal\node\Entity\Node $recipe_node */
+    /** @var \Drupal\node\Entity\Node $recipe_node */
     $recipe_node = reset($nodes);
 
     // Check when editing a node, the warning is visible.
@@ -228,7 +235,7 @@ class DemoUmamiProfileTest extends BrowserTestBase {
     $this->submitForm([
       'name' => $account->getAccountName(),
       'pass' => $password,
-    ], t('Log in'));
+    ], 'Log in');
 
     // @see ::drupalUserIsLoggedIn()
     $account->sessionId = $this->getSession()->getCookie(\Drupal::service('session_configuration')->getOptions(\Drupal::request())['name']);

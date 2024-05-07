@@ -4,7 +4,6 @@
 * https://www.drupal.org/node/2815083
 * @preserve
 **/
-
 (function ($, _, Drupal) {
   Drupal.quickedit.editors.plain_text = Drupal.quickedit.EditorView.extend({
     $textElement: null,
@@ -15,11 +14,10 @@
       var $fieldItems = this.$el.find('.quickedit-field');
       var $textElement = $fieldItems.length ? $fieldItems.eq(0) : this.$el;
       this.$textElement = $textElement;
-      editorModel.set('originalValue', $.trim(this.$textElement.text()));
+      editorModel.set('originalValue', this.$textElement[0].textContent.trim());
       var previousText = editorModel.get('originalValue');
       $textElement.on('keyup paste', function (event) {
-        var currentText = $.trim($textElement.text());
-
+        var currentText = $textElement[0].textContent.trim();
         if (previousText !== currentText) {
           previousText = currentText;
           editorModel.set('currentValue', currentText);
@@ -33,50 +31,37 @@
     stateChange: function stateChange(fieldModel, state, options) {
       var from = fieldModel.previous('state');
       var to = state;
-
       switch (to) {
         case 'inactive':
           break;
-
         case 'candidate':
           if (from !== 'inactive') {
             this.$textElement.removeAttr('contenteditable');
           }
-
           if (from === 'invalid') {
             this.removeValidationErrors();
           }
-
           break;
-
         case 'highlighted':
           break;
-
         case 'activating':
           _.defer(function () {
             fieldModel.set('state', 'active');
           });
-
           break;
-
         case 'active':
           this.$textElement.attr('contenteditable', 'true');
           break;
-
         case 'changed':
           break;
-
         case 'saving':
           if (from === 'invalid') {
             this.removeValidationErrors();
           }
-
           this.save(options);
           break;
-
         case 'saved':
           break;
-
         case 'invalid':
           this.showValidationErrors();
           break;

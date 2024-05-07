@@ -15,10 +15,10 @@ use Drupal\Tests\contextual\FunctionalJavascript\ContextualLinkClickTrait;
 use Drupal\Tests\TestFileCreationTrait;
 
 /**
- * Tests loading of in-place editing functionality and lazy loading of its
- * in-place editors.
+ * Tests loading of in-place editing and lazy loading of in-place editors.
  *
  * @group quickedit
+ * @group legacy
  */
 class QuickEditLoadingTest extends WebDriverTestBase {
 
@@ -44,7 +44,7 @@ class QuickEditLoadingTest extends WebDriverTestBase {
   /**
    * {@inheritdoc}
    */
-  protected $defaultTheme = 'classy';
+  protected $defaultTheme = 'starterkit_theme';
 
   /**
    * A user with permissions to create and edit articles.
@@ -120,7 +120,7 @@ class QuickEditLoadingTest extends WebDriverTestBase {
   }
 
   /**
-   * Test the loading of Quick Edit with different permissions.
+   * Tests the loading of Quick Edit with different permissions.
    */
   public function testUserPermissions() {
     $assert = $this->assertSession();
@@ -128,13 +128,13 @@ class QuickEditLoadingTest extends WebDriverTestBase {
     $this->drupalGet('node/1');
 
     // Library and in-place editors.
-    $this->assertNoRaw('core/modules/quickedit/js/quickedit.js');
-    $this->assertNoRaw('core/modules/quickedit/js/editors/formEditor.js');
+    $this->assertSession()->responseNotContains('core/modules/quickedit/js/quickedit.js');
+    $this->assertSession()->responseNotContains('core/modules/quickedit/js/editors/formEditor.js');
 
     // HTML annotation and title class do not exist for users without
     // permission to in-place edit.
-    $this->assertNoRaw('data-quickedit-entity-id="node/1"');
-    $this->assertNoRaw('data-quickedit-field-id="node/1/body/en/full"');
+    $this->assertSession()->responseNotContains('data-quickedit-entity-id="node/1"');
+    $this->assertSession()->responseNotContains('data-quickedit-field-id="node/1/body/en/full"');
     $this->assertSession()->elementNotExists('xpath', '//h1[contains(@class, "js-quickedit-page-title")]');
     $assert->linkNotExists('Quick edit');
 
@@ -182,20 +182,21 @@ class QuickEditLoadingTest extends WebDriverTestBase {
   }
 
   /**
-   * Test Quick Edit does not appear for entities with pending revisions.
+   * Tests Quick Edit does not appear for entities with pending revisions.
    */
   public function testWithPendingRevision() {
     $this->drupalLogin($this->editorUser);
 
     // Verify that the preview is loaded correctly.
-    $this->drupalPostForm('node/add/article', ['title[0][value]' => 'foo'], 'Preview');
+    $this->drupalGet('node/add/article');
+    $this->submitForm(['title[0][value]' => 'foo'], 'Preview');
     // Verify that quickedit is not active on preview.
-    $this->assertNoRaw('data-quickedit-entity-id="node/' . $this->testNode->id() . '"');
-    $this->assertNoRaw('data-quickedit-field-id="node/' . $this->testNode->id() . '/title/' . $this->testNode->language()->getId() . '/full"');
+    $this->assertSession()->responseNotContains('data-quickedit-entity-id="node/' . $this->testNode->id() . '"');
+    $this->assertSession()->responseNotContains('data-quickedit-field-id="node/' . $this->testNode->id() . '/title/' . $this->testNode->language()->getId() . '/full"');
 
     $this->drupalGet('node/' . $this->testNode->id());
-    $this->assertRaw('data-quickedit-entity-id="node/' . $this->testNode->id() . '"');
-    $this->assertRaw('data-quickedit-field-id="node/' . $this->testNode->id() . '/title/' . $this->testNode->language()->getId() . '/full"');
+    $this->assertSession()->responseContains('data-quickedit-entity-id="node/' . $this->testNode->id() . '"');
+    $this->assertSession()->responseContains('data-quickedit-field-id="node/' . $this->testNode->id() . '/title/' . $this->testNode->language()->getId() . '/full"');
 
     // Wait for the page to completely load before making any changes to the
     // node. This allows Quick Edit to fetch the metadata without causing
@@ -207,8 +208,8 @@ class QuickEditLoadingTest extends WebDriverTestBase {
     $this->testNode->save();
 
     $this->drupalGet('node/' . $this->testNode->id());
-    $this->assertNoRaw('data-quickedit-entity-id="node/' . $this->testNode->id() . '"');
-    $this->assertNoRaw('data-quickedit-field-id="node/' . $this->testNode->id() . '/title/' . $this->testNode->language()->getId() . '/full"');
+    $this->assertSession()->responseNotContains('data-quickedit-entity-id="node/' . $this->testNode->id() . '"');
+    $this->assertSession()->responseNotContains('data-quickedit-field-id="node/' . $this->testNode->id() . '/title/' . $this->testNode->language()->getId() . '/full"');
   }
 
   /**
@@ -247,8 +248,7 @@ class QuickEditLoadingTest extends WebDriverTestBase {
   }
 
   /**
-   * Tests that Quick Edit doesn't make fields rendered with display options
-   * editable.
+   * Tests rendering of fields with editable display options.
    */
   public function testDisplayOptions() {
     $node = Node::load('1');
@@ -261,8 +261,7 @@ class QuickEditLoadingTest extends WebDriverTestBase {
   }
 
   /**
-   * Tests Quick Edit on a node that was concurrently edited on the full node
-   * form.
+   * Tests concurrent node edit.
    */
   public function testConcurrentEdit() {
     $nid = $this->testNode->id();
@@ -334,7 +333,7 @@ class QuickEditLoadingTest extends WebDriverTestBase {
     // Check that the data- attribute is present.
     $this->drupalLogin($this->editorUser);
     $this->drupalGet('');
-    $this->assertRaw('data-quickedit-entity-id="block_content/1"');
+    $this->assertSession()->responseContains('data-quickedit-entity-id="block_content/1"');
   }
 
   /**
@@ -353,7 +352,7 @@ class QuickEditLoadingTest extends WebDriverTestBase {
     FieldConfig::create([
       'field_name' => 'field_image',
       'field_type' => 'image',
-      'label' => t('Image'),
+      'label' => 'Image',
       'entity_type' => 'node',
       'bundle' => 'article',
     ])->save();
@@ -375,7 +374,7 @@ class QuickEditLoadingTest extends WebDriverTestBase {
     $page->attachFileToField('files[field_image_0]', $image_path);
     $alt_field = $assert->waitForField('field_image[0][alt]');
     $this->assertNotEmpty($alt_field);
-    $this->submitForm(['field_image[0][alt]' => 'Vivamus aliquet elit'], 'Save');
+    $this->submitForm(['field_image[0][alt]' => 'The quick fox'], 'Save');
 
     // The image field form should load normally.
     // Wait "Quick edit" button for node.

@@ -77,7 +77,7 @@ class LocaleLookupTest extends UnitTestCase {
     $this->user = $this->createMock('Drupal\Core\Session\AccountInterface');
     $this->user->expects($this->any())
       ->method('getRoles')
-      ->will($this->returnValue(['anonymous']));
+      ->willReturn(['anonymous']);
 
     $this->configFactory = $this->getConfigFactoryStub(['locale.settings' => ['cache_strings' => FALSE]]);
 
@@ -112,11 +112,11 @@ class LocaleLookupTest extends UnitTestCase {
     $this->storage->expects($this->once())
       ->method('findTranslation')
       ->with($this->equalTo($args))
-      ->will($this->returnValue($result));
+      ->willReturn($result);
 
     $locale_lookup = $this->getMockBuilder('Drupal\locale\LocaleLookup')
       ->setConstructorArgs(['en', 'irrelevant', $this->storage, $this->cache, $this->lock, $this->configFactory, $this->languageManager, $this->requestStack])
-      ->setMethods(['persist'])
+      ->onlyMethods(['persist'])
       ->getMock();
     $locale_lookup->expects($this->never())
       ->method('persist');
@@ -157,16 +157,17 @@ class LocaleLookupTest extends UnitTestCase {
     // cSpell:enable
     $this->storage->expects($this->any())
       ->method('findTranslation')
-      ->will($this->returnCallback(function ($argument) use ($translations) {
+      ->willReturnCallback(function ($argument) use ($translations) {
         if (isset($translations[$argument['language']][$argument['source']])) {
           return (object) ['translation' => $translations[$argument['language']][$argument['source']]];
         }
+
         return TRUE;
-      }));
+      });
 
     $this->languageManager->expects($this->any())
       ->method('getFallbackCandidates')
-      ->will($this->returnCallback(function (array $context = []) {
+      ->willReturnCallback(function (array $context = []) {
         switch ($context['langcode']) {
           case 'pl':
             return ['cs', 'en'];
@@ -177,7 +178,7 @@ class LocaleLookupTest extends UnitTestCase {
           default:
             return [];
         }
-      }));
+      });
 
     $this->cache->expects($this->once())
       ->method('get')
@@ -228,12 +229,12 @@ class LocaleLookupTest extends UnitTestCase {
     $this->storage->expects($this->once())
       ->method('findTranslation')
       ->with($this->equalTo($args))
-      ->will($this->returnValue($result));
+      ->willReturn($result);
 
     $this->configFactory = $this->getConfigFactoryStub(['locale.settings' => ['cache_strings' => TRUE]]);
     $locale_lookup = $this->getMockBuilder('Drupal\locale\LocaleLookup')
       ->setConstructorArgs(['en', 'irrelevant', $this->storage, $this->cache, $this->lock, $this->configFactory, $this->languageManager, $this->requestStack])
-      ->setMethods(['persist'])
+      ->onlyMethods(['persist'])
       ->getMock();
     $locale_lookup->expects($this->once())
       ->method('persist');
@@ -253,17 +254,17 @@ class LocaleLookupTest extends UnitTestCase {
       ->will($this->returnSelf());
     $this->storage->expects($this->once())
       ->method('findTranslation')
-      ->will($this->returnValue(NULL));
+      ->willReturn(NULL);
     $this->storage->expects($this->once())
       ->method('createString')
-      ->will($this->returnValue($string));
+      ->willReturn($string);
 
     $request = Request::create('/test');
     $this->requestStack->push($request);
 
     $locale_lookup = $this->getMockBuilder('Drupal\locale\LocaleLookup')
       ->setConstructorArgs(['en', 'irrelevant', $this->storage, $this->cache, $this->lock, $this->configFactory, $this->languageManager, $this->requestStack])
-      ->setMethods(['persist'])
+      ->onlyMethods(['persist'])
       ->getMock();
     $locale_lookup->expects($this->never())
       ->method('persist');
@@ -289,20 +290,21 @@ class LocaleLookupTest extends UnitTestCase {
   public function testFixOldPluralStyleTranslations($translations, $langcode, $string, $is_fix) {
     $this->storage->expects($this->any())
       ->method('findTranslation')
-      ->will($this->returnCallback(function ($argument) use ($translations) {
+      ->willReturnCallback(function ($argument) use ($translations) {
         if (isset($translations[$argument['language']][$argument['source']])) {
           return (object) ['translation' => $translations[$argument['language']][$argument['source']]];
         }
+
         return TRUE;
-      }));
+      });
     $this->languageManager->expects($this->any())
       ->method('getFallbackCandidates')
-      ->will($this->returnCallback(function (array $context = []) {
+      ->willReturnCallback(function (array $context = []) {
         switch ($context['langcode']) {
           case 'by':
             return ['ru'];
         }
-      }));
+      });
     $this->cache->expects($this->once())
       ->method('get')
       ->with('locale:' . $langcode . '::anonymous', FALSE);
@@ -335,6 +337,50 @@ class LocaleLookupTest extends UnitTestCase {
       'no-plural from other language' => [$translations, 'by', 'word3', FALSE],
       'plural' => [$translations, 'by', 'word2', TRUE],
       'plural from other language' => [$translations, 'by', 'word4', TRUE],
+    ];
+  }
+
+  /**
+   * @covers ::getCid
+   *
+   * @dataProvider getCidProvider
+   */
+  public function testGetCid(array $roles, $expected) {
+    $this->user = $this->createMock('Drupal\Core\Session\AccountInterface');
+    $this->user->expects($this->any())
+      ->method('getRoles')
+      ->willReturn($roles);
+
+    $container = new ContainerBuilder();
+    $container->set('current_user', $this->user);
+    \Drupal::setContainer($container);
+
+    $locale_lookup = $this->getMockBuilder('Drupal\locale\LocaleLookup')
+      ->setConstructorArgs(['en', 'irrelevant', $this->storage, $this->cache, $this->lock, $this->configFactory, $this->languageManager, $this->requestStack])
+      ->getMock();
+
+    $o = new \ReflectionObject($locale_lookup);
+    $method = $o->getMethod('getCid');
+    $method->setAccessible(TRUE);
+    $cid = $method->invoke($locale_lookup, 'getCid');
+
+    $this->assertEquals($expected, $cid);
+  }
+
+  /**
+   * Provides test data for testGetCid().
+   */
+  public function getCidProvider() {
+    return [
+      [
+        ['a'], 'locale:en:irrelevant:a',
+      ],
+      [
+        ['a', 'b'], 'locale:en:irrelevant:a:b',
+      ],
+      [
+        ['b', 'a'], 'locale:en:irrelevant:a:b',
+      ],
     ];
   }
 

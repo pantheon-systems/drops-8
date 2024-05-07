@@ -10,6 +10,7 @@ use Drupal\Tests\UnitTestCase;
  * @coversDefaultClass \Drupal\ckeditor\Plugin\CKEditorPlugin\Language
  *
  * @group ckeditor
+ * @group legacy
  */
 class LanguageTest extends UnitTestCase {
 
@@ -32,8 +33,8 @@ class LanguageTest extends UnitTestCase {
    */
   public function providerGetConfig() {
     return [
-      ['un', count(LanguageManager::getUnitedNationsLanguageList())],
-      ['all', count(LanguageManager::getStandardLanguageList())],
+      ['un', LanguageManager::getUnitedNationsLanguageList()],
+      ['all', LanguageManager::getStandardLanguageList()],
     ];
   }
 
@@ -42,7 +43,7 @@ class LanguageTest extends UnitTestCase {
    *
    * @dataProvider providerGetConfig
    */
-  public function testGetConfig($language_list, $expected_number) {
+  public function testGetConfig($language_list, $expected_languages) {
     $editor = $this->getMockBuilder('Drupal\editor\Entity\Editor')
       ->disableOriginalConstructor()
       ->getMock();
@@ -59,7 +60,7 @@ class LanguageTest extends UnitTestCase {
     $this->assertContains('fr:French', $config['language_list']);
     $this->assertContains('ru:Russian', $config['language_list']);
     $this->assertContains('ar:Arabic:rtl', $config['language_list']);
-    $this->assertEquals($expected_number, count($config['language_list']));
+    $this->assertSameSize($expected_languages, $config['language_list']);
   }
 
 }

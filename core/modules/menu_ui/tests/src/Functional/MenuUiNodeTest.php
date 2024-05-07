@@ -41,6 +41,9 @@ class MenuUiNodeTest extends BrowserTestBase {
    */
   protected $defaultTheme = 'stark';
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp(): void {
     parent::setUp();
 
@@ -65,7 +68,7 @@ class MenuUiNodeTest extends BrowserTestBase {
   }
 
   /**
-   * Test creating, editing, deleting menu links via node form widget.
+   * Tests creating, editing, deleting menu links via node form widget.
    */
   public function testMenuNodeFormWidget() {
     // Verify that cacheability metadata is bubbled from the menu link tree
@@ -89,12 +92,13 @@ class MenuUiNodeTest extends BrowserTestBase {
     $edit = [
       'menu_options[main]' => FALSE,
     ];
-    $this->drupalPostForm('admin/structure/types/manage/page', $edit, 'Save content type');
+    $this->drupalGet('admin/structure/types/manage/page');
+    $this->submitForm($edit, 'Save content type');
 
     // Verify that no menu settings are displayed and nodes can be created.
     $this->drupalGet('node/add/page');
-    $this->assertText('Create Basic page');
-    $this->assertNoText('Menu settings');
+    $this->assertSession()->pageTextContains('Create Basic page');
+    $this->assertSession()->pageTextNotContains('Menu settings');
     $node_title = $this->randomMachineName();
     $edit = [
       'title[0][value]' => $node_title,
@@ -102,7 +106,7 @@ class MenuUiNodeTest extends BrowserTestBase {
     ];
     $this->submitForm($edit, 'Save');
     $node = $this->drupalGetNodeByTitle($node_title);
-    $this->assertEqual($node->getTitle(), $edit['title[0][value]']);
+    $this->assertEquals($edit['title[0][value]'], $node->getTitle());
 
     // Test that we cannot set a menu item from a menu that is not set as
     // available.
@@ -110,9 +114,10 @@ class MenuUiNodeTest extends BrowserTestBase {
       'menu_options[tools]' => 1,
       'menu_parent' => 'main:',
     ];
-    $this->drupalPostForm('admin/structure/types/manage/page', $edit, 'Save content type');
-    $this->assertText('The selected menu link is not under one of the selected menus.');
-    $this->assertNoRaw(t('The content type %name has been updated.', ['%name' => 'Basic page']));
+    $this->drupalGet('admin/structure/types/manage/page');
+    $this->submitForm($edit, 'Save content type');
+    $this->assertSession()->pageTextContains('The selected menu link is not under one of the selected menus.');
+    $this->assertSession()->pageTextNotContains("The content type Basic page has been updated.");
 
     // Enable Tools menu as available menu.
     $edit = [
@@ -120,8 +125,9 @@ class MenuUiNodeTest extends BrowserTestBase {
       'menu_options[tools]' => 1,
       'menu_parent' => 'main:',
     ];
-    $this->drupalPostForm('admin/structure/types/manage/page', $edit, 'Save content type');
-    $this->assertRaw(t('The content type %name has been updated.', ['%name' => 'Basic page']));
+    $this->drupalGet('admin/structure/types/manage/page');
+    $this->submitForm($edit, 'Save content type');
+    $this->assertSession()->pageTextContains("The content type Basic page has been updated.");
 
     // Test that we can preview a node that will create a menu item.
     $edit = [
@@ -129,7 +135,8 @@ class MenuUiNodeTest extends BrowserTestBase {
       'menu[enabled]' => 1,
       'menu[title]' => 'Test preview',
     ];
-    $this->drupalPostForm('node/add/page', $edit, 'Preview');
+    $this->drupalGet('node/add/page');
+    $this->submitForm($edit, 'Preview');
 
     // Create a node.
     $node_title = $this->randomMachineName();
@@ -137,7 +144,8 @@ class MenuUiNodeTest extends BrowserTestBase {
       'title[0][value]' => $node_title,
       'body[0][value]' => $this->randomString(),
     ];
-    $this->drupalPostForm('node/add/page', $edit, 'Save');
+    $this->drupalGet('node/add/page');
+    $this->submitForm($edit, 'Save');
     $node = $this->drupalGetNodeByTitle($node_title);
     // Assert that there is no link for the node.
     $this->drupalGet('test-page');
@@ -147,7 +155,8 @@ class MenuUiNodeTest extends BrowserTestBase {
     $edit = [
       'menu[enabled]' => 1,
     ];
-    $this->drupalPostForm('node/' . $node->id() . '/edit', $edit, 'Save');
+    $this->drupalGet('node/' . $node->id() . '/edit');
+    $this->submitForm($edit, 'Save');
     // Assert that there is no link for the node.
     $this->drupalGet('test-page');
     $this->assertSession()->linkNotExists($node_title);
@@ -169,12 +178,14 @@ class MenuUiNodeTest extends BrowserTestBase {
       'menu[title]' => $node_title,
       'status[value]' => FALSE,
     ];
-    $this->drupalPostForm('node/' . $node->id() . '/edit', $edit, 'Save');
+    $this->drupalGet('node/' . $node->id() . '/edit');
+    $this->submitForm($edit, 'Save');
     $this->drupalGet('test-page');
     $this->assertSession()->linkNotExists($node_title, 'Found no menu link with the node unpublished');
     // Assert that the link exists if published.
     $edit['status[value]'] = TRUE;
-    $this->drupalPostForm('node/' . $node->id() . '/edit', $edit, 'Save');
+    $this->drupalGet('node/' . $node->id() . '/edit');
+    $this->submitForm($edit, 'Save');
     $this->drupalGet('test-page');
     $this->assertSession()->linkExists($node_title, 0, 'Found a menu link with the node published');
 
@@ -186,7 +197,8 @@ class MenuUiNodeTest extends BrowserTestBase {
       'menu[title]' => $node_title,
       'menu[weight]' => 17,
     ];
-    $this->drupalPostForm('node/' . $node->id() . '/edit', $edit, 'Save');
+    $this->drupalGet('node/' . $node->id() . '/edit');
+    $this->submitForm($edit, 'Save');
     // Assert that the link exists.
     $this->drupalGet('test-page');
     $this->assertSession()->linkExists($node_title);
@@ -206,7 +218,8 @@ class MenuUiNodeTest extends BrowserTestBase {
     $link = MenuLinkContent::load($link_id);
     $link->set('enabled', FALSE);
     $link->save();
-    $this->drupalPostForm($node->toUrl('edit-form'), $edit, 'Save');
+    $this->drupalGet($node->toUrl('edit-form'));
+    $this->submitForm($edit, 'Save');
     $link = MenuLinkContent::load($link_id);
     $this->assertFalse($link->isEnabled(), 'Saving a node with a disabled menu link keeps the menu link disabled.');
 
@@ -214,7 +227,8 @@ class MenuUiNodeTest extends BrowserTestBase {
     $edit = [
       'menu[enabled]' => FALSE,
     ];
-    $this->drupalPostForm('node/' . $node->id() . '/edit', $edit, 'Save');
+    $this->drupalGet('node/' . $node->id() . '/edit');
+    $this->submitForm($edit, 'Save');
     // Assert that there is no link for the node.
     $this->drupalGet('test-page');
     $this->assertSession()->linkNotExists($node_title);
@@ -230,9 +244,10 @@ class MenuUiNodeTest extends BrowserTestBase {
     // Assert that disabled Administration menu is not shown on the
     // node/$nid/edit page.
     $this->drupalGet('node/' . $node->id() . '/edit');
-    $this->assertText('Provide a menu link', 'Link in not allowed menu not shown in node edit form');
+    $this->assertSession()->pageTextContains('Provide a menu link');
     // Assert that the link is still in the Administration menu after save.
-    $this->drupalPostForm('node/' . $node->id() . '/edit', $edit, 'Save');
+    $this->drupalGet('node/' . $node->id() . '/edit');
+    $this->submitForm($edit, 'Save');
     $link = MenuLinkContent::load($item->id());
     $this->assertInstanceOf(MenuLinkContent::class, $link);
 
@@ -294,7 +309,8 @@ class MenuUiNodeTest extends BrowserTestBase {
       'settings[node][page][fields][title]' => TRUE,
       'settings[menu_link_content][menu_link_content][translatable]' => TRUE,
     ];
-    $this->drupalPostForm('admin/config/regional/content-language', $edit, 'Save configuration');
+    $this->drupalGet('admin/config/regional/content-language');
+    $this->submitForm($edit, 'Save configuration');
 
     // Log out and back in as normal user.
     $this->drupalLogout();
@@ -325,7 +341,8 @@ class MenuUiNodeTest extends BrowserTestBase {
     ];
     $options = ['language' => $languages[$langcodes[0]]];
     $url = $node->toUrl('edit-form', $options);
-    $this->drupalPostForm($url, $edit, 'Save (this translation)');
+    $this->drupalGet($url);
+    $this->submitForm($edit, 'Save (this translation)');
 
     // Edit the node in a different language and translate the menu link.
     $edit = [
@@ -335,7 +352,8 @@ class MenuUiNodeTest extends BrowserTestBase {
     ];
     $options = ['language' => $languages[$langcodes[1]]];
     $url = $node->toUrl('edit-form', $options);
-    $this->drupalPostForm($url, $edit, 'Save (this translation)');
+    $this->drupalGet($url);
+    $this->submitForm($edit, 'Save (this translation)');
 
     // Assert that the original link exists in the frontend.
     $this->drupalGet('node/' . $node->id(), ['language' => $languages[$langcodes[0]]]);

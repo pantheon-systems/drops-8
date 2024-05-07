@@ -122,11 +122,7 @@ class ResourceObjectNormalizer extends NormalizerBase {
     }
     // Add links if missing.
     $base = &$normalizer_values[ResourceObjectNormalizationCacher::RESOURCE_CACHE_SUBSET_BASE];
-    $base['links'] = isset($base['links'])
-      ? $base['links']
-      : $this->serializer
-        ->normalize($object->getLinks(), $format, $context)
-        ->omitIfEmpty();
+    $base['links'] = $base['links'] ?? $this->serializer->normalize($object->getLinks(), $format, $context)->omitIfEmpty();
 
     if (!empty($non_cached_requested_fields)) {
       $this->cacher->saveOnTerminate($object, $normalizer_values);
@@ -196,7 +192,7 @@ class ResourceObjectNormalizer extends NormalizerBase {
       // @todo Replace this workaround after https://www.drupal.org/node/3043245
       //   or remove the need for this in https://www.drupal.org/node/2942975.
       //   See \Drupal\layout_builder\Normalizer\LayoutEntityDisplayNormalizer.
-      if ($context['resource_object']->getResourceType()->getDeserializationTargetClass() === 'Drupal\layout_builder\Entity\LayoutBuilderEntityViewDisplay' && $context['resource_object']->getField('third_party_settings') === $field) {
+      if (is_a($context['resource_object']->getResourceType()->getDeserializationTargetClass(), 'Drupal\layout_builder\Entity\LayoutBuilderEntityViewDisplay', TRUE) && $context['resource_object']->getField('third_party_settings') === $field) {
         unset($field['layout_builder']['sections']);
       }
 
@@ -204,6 +200,13 @@ class ResourceObjectNormalizer extends NormalizerBase {
       // to be normalized.
       return CacheableNormalization::permanent($field);
     }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function hasCacheableSupportsMethod(): bool {
+    return TRUE;
   }
 
 }

@@ -632,23 +632,6 @@ td.group-title {
 .views-ui-dialog .views-override > * {
   margin: 0;
 }
-.views-ui-dialog .views-progress-indicator {
-  position: absolute;
-  top: 32px;
-  right: 10px; /* LTR */
-  color: #fff;
-  font-size: 11px;
-}
-[dir="rtl"] .views-ui-dialog .views-progress-indicator {
-  right: auto;
-  left: 10px;
-}
-.views-ui-dialog .views-progress-indicator:before {
-  content: "\003C\00A0";
-}
-.views-ui-dialog .views-progress-indicator:after {
-  content: "\00A0\003E";
-}
 .views-ui-dialog details .item-list {
   padding-left: 2em; /* LTR */
 }
@@ -682,6 +665,7 @@ td.group-title {
 }
 .form-item-options-expose-required,
 .form-item-options-expose-label,
+.form-item-options-expose-field-identifier,
 .form-item-options-expose-description {
   margin-top: 6px;
   margin-bottom: 6px;
@@ -689,6 +673,7 @@ td.group-title {
 }
 [dir="rtl"] .form-item-options-expose-required,
 [dir="rtl"] .form-item-options-expose-label,
+[dir="rtl"] .form-item-options-expose-field-identifier,
 [dir="rtl"] .form-item-options-expose-description {
   margin-right: 18px;
   margin-left: 0;

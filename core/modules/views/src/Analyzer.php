@@ -5,6 +5,8 @@ namespace Drupal\views;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 
 /**
+ * View analyzer plugin manager.
+ *
  * This tool is a small plugin manager to perform analysis on a view and
  * report results to the user. This tool is meant to let modules that
  * provide data to Views also help users properly use that data by
@@ -107,6 +109,7 @@ class Analyzer {
    * for items that are definitely broken are much more useful.
    *
    * @param string $message
+   *   The message.
    * @param string $type
    *   The type of message. This should be "ok", "warning" or "error". Other
    *   values can be used but how they are treated by the output routine

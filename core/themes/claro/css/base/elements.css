@@ -18,13 +18,13 @@ html {
 }
 
 body {
-  color: #222330;
+  color: #232429;
   background: #fff;
 }
 
 a,
 .link {
-  color: #003cc5;
+  color: #003ecc;
 }
 
 a:hover,
@@ -42,7 +42,7 @@ a:hover,
 
 a:active,
 .link:active {
-  color: #00339a;
+  color: #002e9a;
 }
 
 hr {
@@ -115,22 +115,47 @@ p {
 }
 
 dl {
-  margin: 0 0 20px;
+  margin: 0 0 1.25rem;
 }
 
 dl dd,
 dl dl {
-  margin-bottom: 10px;
-  margin-left: 20px; /* LTR */
+  margin-bottom: 0.625rem;
+  margin-left: 1.25rem; /* LTR */
 }
 
 [dir="rtl"] dl dd,
 [dir="rtl"] dl dl {
-  margin-right: 20px;
+  margin-right: 1.25rem;
 }
 
 blockquote {
-  margin: 1em 40px;
+  position: relative;
+  margin: 1.5rem;
+  margin-left: 2.5rem; /* LTR */
+  font-size: 1.125rem;
+}
+
+[dir="rtl"] blockquote {
+  margin-right: 2.5rem;
+}
+
+blockquote::before {
+  position: absolute;
+  left: -2.5rem; /* LTR */
+  content: open-quote;
+  color: #003ecc;
+  font-family: "Times New Roman", times, serif;
+  font-size: 3rem;
+  line-height: 1em;
+}
+
+[dir="rtl"] blockquote::before {
+  right: -2.5rem;
+}
+
+blockquote::after {
+  content: no-close-quote;
 }
 
 address {
@@ -139,7 +164,7 @@ address {
 
 u,
 ins {
-  text-decoration: none;
+  text-decoration: underline;
 }
 
 s,

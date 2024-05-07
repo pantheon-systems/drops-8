@@ -45,7 +45,6 @@ class EntityReferenceSelectionReferenceableTest extends KernelTestBase {
     'system',
     'user',
     'field',
-    'entity_reference',
     'node',
     'entity_test',
   ];
@@ -90,8 +89,9 @@ class EntityReferenceSelectionReferenceableTest extends KernelTestBase {
   }
 
   /**
-   * Tests values returned by SelectionInterface::getReferenceableEntities()
-   * when the target entity type has no 'label' key.
+   * Tests referenceable entities with no target entity type 'label' key.
+   *
+   * @see \Drupal\Core\Entity\EntityReferenceSelection\SelectionInterface::getReferenceableEntities()
    *
    * @param mixed $match
    *   The input text to be checked.
@@ -114,7 +114,7 @@ class EntityReferenceSelectionReferenceableTest extends KernelTestBase {
 
     // Number of returned items.
     if (empty($count_limited)) {
-      $this->assertTrue(empty($referenceables[$this->bundle]));
+      $this->assertArrayNotHasKey($this->bundle, $referenceables);
     }
     else {
       $this->assertCount($count_limited, $referenceables[$this->bundle]);
@@ -186,15 +186,15 @@ class EntityReferenceSelectionReferenceableTest extends KernelTestBase {
       // 'xyabz_', 'foo_', 'bar_', 'baz_', 'șz_', NULL, '<strong>').
       //
       // Note: Even we set the name as NULL, when retrieving the label from the
-      //   entity we'll get an empty string, meaning that this match operator
-      //   will return TRUE every time.
+      // entity we'll get an empty string, meaning that this match operator
+      // will return TRUE every time.
       [NULL, 'IS NOT NULL', 0, 9, static::$labels, 9],
       // Referenceables null, no limit. Expecting 9 items ('abc', 'Xyz_',
       // 'xyabz_', 'foo_', 'bar_', 'baz_', 'șz_', NULL, '<strong>').
       //
       // Note: Even we set the name as NULL, when retrieving the label from the
-      //   entity we'll get an empty string, meaning that this match operator
-      //   will return FALSE every time.
+      // entity we'll get an empty string, meaning that this match operator
+      // will return FALSE every time.
       [NULL, 'IS NULL', 0, 9, static::$labels, 9],
       // Referenceables containing '<strong>' markup, no limit. Expecting 1 item
       // ('<strong>').

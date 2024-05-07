@@ -41,10 +41,10 @@
       // Twist the toggle.
       $toggle.toggleClass('open', switcher);
       // Adjust the toggle text.
-      $toggle
-        .find('.action')
+      $toggle.find('.action').each((index, element) => {
         // Expand Structure, Collapse Structure.
-        .text(switcher ? ui.handleClose : ui.handleOpen);
+        element.textContent = switcher ? ui.handleClose : ui.handleOpen;
+      });
     }
 
     /**
@@ -107,8 +107,9 @@
         const $item = $(element);
         if ($item.children('ul.toolbar-menu').length) {
           const $box = $item.children('.toolbar-box');
+          const $link = $box.find('a');
           options.text = Drupal.t('@label', {
-            '@label': $box.find('a').text(),
+            '@label': $link.length ? $link[0].textContent : '',
           });
           $item
             .children('.toolbar-box')
@@ -165,8 +166,9 @@
 
     // Return the jQuery object.
     return this.each(function (selector) {
-      const $menu = $(this).once('toolbar-menu');
-      if ($menu.length) {
+      const menu = once('toolbar-menu', this);
+      if (menu.length) {
+        const $menu = $(menu);
         // Bind event handlers.
         $menu
           .on('click.toolbar', '.toolbar-box', toggleClickHandler)

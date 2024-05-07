@@ -65,7 +65,7 @@ class RoutePreloaderTest extends UnitTestCase {
     $route_collection->add('test2', new Route('/admin/bar', ['_controller' => 'Drupal\ExampleController']));
     $event->expects($this->once())
       ->method('getRouteCollection')
-      ->will($this->returnValue($route_collection));
+      ->willReturn($route_collection);
 
     $this->state->expects($this->once())
       ->method('set')
@@ -88,7 +88,7 @@ class RoutePreloaderTest extends UnitTestCase {
     $route_collection->add('test4', new Route('/admin', ['_controller' => 'Drupal\ExampleController']));
     $event->expects($this->once())
       ->method('getRouteCollection')
-      ->will($this->returnValue($route_collection));
+      ->willReturn($route_collection);
 
     $this->state->expects($this->once())
       ->method('set')
@@ -108,14 +108,29 @@ class RoutePreloaderTest extends UnitTestCase {
     $route_collection->add('test', new Route('/admin/foo', ['_controller' => 'Drupal\ExampleController']));
     $route_collection->add('test2', new Route('/bar', ['_controller' => 'Drupal\ExampleController']));
     // Non content routes, like ajax callbacks should be ignored.
-    $route_collection->add('test3', new Route('/bar', ['_controller' => 'Drupal\ExampleController']));
+    $route3 = new Route('/bar', ['_controller' => 'Drupal\ExampleController']);
+    $route3->setMethods(['POST']);
+    $route_collection->add('test3', $route3);
+    // Routes with the option _admin_route set to TRUE will be included.
+    $route4 = new Route('/bar', ['_controller' => 'Drupal\ExampleController']);
+    $route4->setOption('_admin_route', TRUE);
+    $route_collection->add('test4', $route4);
+    // Non-HTML routes, like api_json routes should be ignored.
+    $route5 = new Route('/bar', ['_controller' => 'Drupal\ExampleController']);
+    $route5->setRequirement('_format', 'api_json');
+    $route_collection->add('test5', $route5);
+    // Routes which include HTML should be included.
+    $route6 = new Route('/bar', ['_controller' => 'Drupal\ExampleController']);
+    $route6->setRequirement('_format', 'json_api|html');
+    $route_collection->add('test6', $route6);
+
     $event->expects($this->once())
       ->method('getRouteCollection')
-      ->will($this->returnValue($route_collection));
+      ->willReturn($route_collection);
 
     $this->state->expects($this->once())
       ->method('set')
-      ->with('routing.non_admin_routes', ['test2', 'test3']);
+      ->with('routing.non_admin_routes', ['test2', 'test4', 'test6']);
     $this->preloader->onAlterRoutes($event);
     $this->preloader->onFinishedRoutes(new Event());
   }
@@ -131,7 +146,7 @@ class RoutePreloaderTest extends UnitTestCase {
     $request->setRequestFormat('non-html');
     $event->expects($this->any())
       ->method('getRequest')
-      ->will($this->returnValue($request));
+      ->willReturn($request);
 
     $this->routeProvider->expects($this->never())
       ->method('getRoutesByNames');
@@ -152,7 +167,7 @@ class RoutePreloaderTest extends UnitTestCase {
     $request->setRequestFormat('html');
     $event->expects($this->any())
       ->method('getRequest')
-      ->will($this->returnValue($request));
+      ->willReturn($request);
 
     $this->routeProvider->expects($this->once())
       ->method('preLoadRoutes')
@@ -160,7 +175,7 @@ class RoutePreloaderTest extends UnitTestCase {
     $this->state->expects($this->once())
       ->method('get')
       ->with('routing.non_admin_routes')
-      ->will($this->returnValue(['test2']));
+      ->willReturn(['test2']);
 
     $this->preloader->onRequest($event);
   }

@@ -44,19 +44,29 @@ class TextFormatElementFormTest extends KernelTestBase implements FormInterface 
     $this->installEntitySchema('user');
     $this->installSchema('system', ['sequences']);
     $this->installConfig(['filter', 'filter_test']);
-    /* @var \Drupal\Core\Render\ElementInfoManager $manager */
+
+    // Create user 1 so that the user created later in the test has a different
+    // user ID.
+    // @todo Remove in https://www.drupal.org/node/540008.
+    User::create(['uid' => 1, 'name' => 'user1'])->save();
+
+    /** @var \Drupal\Core\Render\ElementInfoManager $manager */
     $manager = \Drupal::service('plugin.manager.element_info');
     $manager->clearCachedDefinitions();
     $manager->getDefinitions();
-    /* @var \Drupal\filter\FilterFormatInterface $filter_test_format */
+    /** @var \Drupal\filter\FilterFormatInterface $filter_test_format */
     $filter_test_format = FilterFormat::load('filter_test');
+    $full_html_format = FilterFormat::load('full_html');
+    $filtered_html_format = FilterFormat::load('filtered_html');
 
-    /* @var \Drupal\user\RoleInterface $role */
+    /** @var \Drupal\user\RoleInterface $role */
     $role = Role::create([
       'id' => 'admin',
       'label' => 'admin',
     ]);
     $role->grantPermission($filter_test_format->getPermissionName());
+    $role->grantPermission($full_html_format->getPermissionName());
+    $role->grantPermission($filtered_html_format->getPermissionName());
     $role->save();
     $this->testUser = User::create([
       'name' => 'foobar',
@@ -110,7 +120,7 @@ class TextFormatElementFormTest extends KernelTestBase implements FormInterface 
    * Tests that values are returned.
    */
   public function testTextFormatElement() {
-    /* @var \Drupal\Core\Form\FormBuilder $form_builder */
+    /** @var \Drupal\Core\Form\FormBuilder $form_builder */
     $form_builder = $this->container->get('form_builder');
     $form = $form_builder->getForm($this);
     $output = $this->render($form);

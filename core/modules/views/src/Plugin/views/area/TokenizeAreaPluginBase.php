@@ -3,6 +3,7 @@
 namespace Drupal\views\Plugin\views\area;
 
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Component\Utility\Xss;
 
 /**
  * Tokenized base class for area handlers.
@@ -47,8 +48,8 @@ abstract class TokenizeAreaPluginBase extends AreaPluginBase {
 
     // Get a list of the available fields and arguments for token replacement.
     $options = [];
-    $optgroup_arguments = (string) t('Arguments');
-    $optgroup_fields = (string) t('Fields');
+    $optgroup_arguments = (string) $this->t('Arguments');
+    $optgroup_fields = (string) $this->t('Fields');
     foreach ($this->view->display_handler->getHandlers('field') as $field => $handler) {
       $options[$optgroup_fields]["{{ $field }}"] = $handler->adminLabel();
     }
@@ -85,6 +86,11 @@ abstract class TokenizeAreaPluginBase extends AreaPluginBase {
           ];
         }
       }
+      $form['tokens']['html_help'] = [
+        '#markup' => '<p>' . $this->t('You may include the following allowed HTML tags with these "Replacement patterns": <code>@tags</code>', [
+          '@tags' => '<' . implode('> <', Xss::getAdminTagList()) . '>',
+        ]) . '</p>',
+      ];
     }
 
     $this->globalTokenForm($form, $form_state);

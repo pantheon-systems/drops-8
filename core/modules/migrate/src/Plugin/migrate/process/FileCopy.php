@@ -81,7 +81,7 @@ class FileCopy extends FileProcessBase implements ContainerFactoryPluginInterfac
    *   The plugin configuration.
    * @param string $plugin_id
    *   The plugin ID.
-   * @param mixed $plugin_definition
+   * @param array $plugin_definition
    *   The plugin definition.
    * @param \Drupal\Core\StreamWrapper\StreamWrapperManagerInterface $stream_wrappers
    *   The stream wrapper manager service.
@@ -123,7 +123,7 @@ class FileCopy extends FileProcessBase implements ContainerFactoryPluginInterfac
     if ($row->isStub()) {
       return NULL;
     }
-    list($source, $destination) = $value;
+    [$source, $destination] = $value;
 
     // If the source path or URI represents a remote resource, delegate to the
     // download plugin.

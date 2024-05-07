@@ -38,11 +38,6 @@ class UpdateScriptTest extends BrowserTestBase {
   protected $defaultTheme = 'stark';
 
   /**
-   * {@inheritdoc}
-   */
-  protected $dumpHeaders = TRUE;
-
-  /**
    * The URL to the status report page.
    *
    * @var \Drupal\Core\Url
@@ -63,6 +58,9 @@ class UpdateScriptTest extends BrowserTestBase {
    */
   private $updateUser;
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp(): void {
     parent::setUp();
     $this->updateUrl = Url::fromRoute('system.db_update');
@@ -129,10 +127,10 @@ class UpdateScriptTest extends BrowserTestBase {
     // go through the update process uninterrupted.
     $this->drupalGet($this->updateUrl, ['external' => TRUE]);
     $this->updateRequirementsProblem();
-    $this->clickLink(t('Continue'));
-    $this->assertText('No pending updates.', 'End of update process was reached.');
+    $this->clickLink('Continue');
+    $this->assertSession()->pageTextContains('No pending updates.');
     // Confirm that all caches were cleared.
-    $this->assertText('hook_cache_flush() invoked for update_script_test.module.', 'Caches were cleared when there were no requirements warnings or errors.');
+    $this->assertSession()->pageTextContains('hook_cache_flush() invoked for update_script_test.module.');
 
     // If there is a requirements warning, we expect it to be initially
     // displayed, but clicking the link to proceed should allow us to go
@@ -142,36 +140,38 @@ class UpdateScriptTest extends BrowserTestBase {
     // successfully.
     $this->drupalLogin($this->updateUser);
     $update_script_test_config->set('requirement_type', REQUIREMENT_WARNING)->save();
-    drupal_set_installed_schema_version('update_script_test', drupal_get_installed_schema_version('update_script_test') - 1);
+    /** @var \Drupal\Core\Update\UpdateHookRegistry $update_registry */
+    $update_registry = \Drupal::service('update.update_hook_registry');
+    $update_registry->setInstalledVersion('update_script_test', $update_registry->getInstalledVersion('update_script_test') - 1);
     $this->drupalGet($this->updateUrl, ['external' => TRUE]);
-    $this->assertText('This is a requirements warning provided by the update_script_test module.');
+    $this->assertSession()->pageTextContains('This is a requirements warning provided by the update_script_test module.');
     $this->clickLink('try again');
-    $this->assertNoText('This is a requirements warning provided by the update_script_test module.');
-    $this->clickLink(t('Continue'));
-    $this->clickLink(t('Apply pending updates'));
+    $this->assertSession()->pageTextNotContains('This is a requirements warning provided by the update_script_test module.');
+    $this->clickLink('Continue');
+    $this->clickLink('Apply pending updates');
     $this->checkForMetaRefresh();
-    $this->assertText('The update_script_test_update_8001() update was executed successfully.', 'End of update process was reached.');
+    $this->assertSession()->pageTextContains('The update_script_test_update_8001() update was executed successfully.');
     // Confirm that all caches were cleared.
-    $this->assertText('hook_cache_flush() invoked for update_script_test.module.', 'Caches were cleared after resolving a requirements warning and applying updates.');
+    $this->assertSession()->pageTextContains('hook_cache_flush() invoked for update_script_test.module.');
 
     // Now try again without pending updates to make sure that works too.
     $this->drupalGet($this->updateUrl, ['external' => TRUE]);
-    $this->assertText('This is a requirements warning provided by the update_script_test module.');
+    $this->assertSession()->pageTextContains('This is a requirements warning provided by the update_script_test module.');
     $this->clickLink('try again');
-    $this->assertNoText('This is a requirements warning provided by the update_script_test module.');
-    $this->clickLink(t('Continue'));
-    $this->assertText('No pending updates.', 'End of update process was reached.');
+    $this->assertSession()->pageTextNotContains('This is a requirements warning provided by the update_script_test module.');
+    $this->clickLink('Continue');
+    $this->assertSession()->pageTextContains('No pending updates.');
     // Confirm that all caches were cleared.
-    $this->assertText('hook_cache_flush() invoked for update_script_test.module.', 'Caches were cleared after applying updates and re-running the script.');
+    $this->assertSession()->pageTextContains('hook_cache_flush() invoked for update_script_test.module.');
 
     // If there is a requirements error, it should be displayed even after
     // clicking the link to proceed (since the problem that triggered the error
     // has not been fixed).
     $update_script_test_config->set('requirement_type', REQUIREMENT_ERROR)->save();
     $this->drupalGet($this->updateUrl, ['external' => TRUE]);
-    $this->assertText('This is a requirements error provided by the update_script_test module.');
+    $this->assertSession()->pageTextContains('This is a requirements error provided by the update_script_test module.');
     $this->clickLink('try again');
-    $this->assertText('This is a requirements error provided by the update_script_test module.');
+    $this->assertSession()->pageTextContains('This is a requirements error provided by the update_script_test module.');
 
     // Ensure that changes to a module's requirements that would cause errors
     // are displayed correctly.
@@ -247,7 +247,7 @@ class UpdateScriptTest extends BrowserTestBase {
     if ($extension_type === 'theme') {
       $base_info['base theme'] = FALSE;
     }
-    $folder_path = \Drupal::service('site.path') . "/{$extension_type}s/$extension_machine_name";
+    $folder_path = \Drupal::getContainer()->getParameter('site.path') . "/{$extension_type}s/$extension_machine_name";
     $file_path = "$folder_path/$extension_machine_name.info.yml";
     mkdir($folder_path, 0777, TRUE);
     file_put_contents($file_path, Yaml::encode($base_info + $correct_info));
@@ -277,7 +277,7 @@ class UpdateScriptTest extends BrowserTestBase {
     return [
       'module: core_version_requirement key incompatible' => [
         [
-          'core_version_requirement' => '^8 || ^9',
+          'core_version_requirement' => '>= 8',
           'type' => 'module',
         ],
         [
@@ -288,7 +288,7 @@ class UpdateScriptTest extends BrowserTestBase {
       ],
       'theme: core_version_requirement key incompatible' => [
         [
-          'core_version_requirement' => '^8 || ^9',
+          'core_version_requirement' => '>= 8',
           'type' => 'theme',
         ],
         [
@@ -299,12 +299,12 @@ class UpdateScriptTest extends BrowserTestBase {
       ],
       'module: php requirement' => [
         [
-          'core_version_requirement' => '^8 || ^9',
+          'core_version_requirement' => '>= 8',
           'type' => 'module',
           'php' => 1,
         ],
         [
-          'core_version_requirement' => '^8 || ^9',
+          'core_version_requirement' => '>= 8',
           'type' => 'module',
           'php' => 1000000000,
         ],
@@ -312,12 +312,12 @@ class UpdateScriptTest extends BrowserTestBase {
       ],
       'theme: php requirement' => [
         [
-          'core_version_requirement' => '^8 || ^9',
+          'core_version_requirement' => '>= 8',
           'type' => 'theme',
           'php' => 1,
         ],
         [
-          'core_version_requirement' => '^8 || ^9',
+          'core_version_requirement' => '>= 8',
           'type' => 'theme',
           'php' => 1000000000,
         ],
@@ -325,7 +325,7 @@ class UpdateScriptTest extends BrowserTestBase {
       ],
       'module: core_version_requirement key missing' => [
         [
-          'core_version_requirement' => '^8 || ^9',
+          'core_version_requirement' => '>= 8',
           'type' => 'module',
         ],
         [
@@ -336,7 +336,7 @@ class UpdateScriptTest extends BrowserTestBase {
       ],
       'theme: core_version_requirement key missing' => [
         [
-          'core_version_requirement' => '^8 || ^9',
+          'core_version_requirement' => '>= 8',
           'type' => 'theme',
         ],
         [
@@ -375,12 +375,12 @@ class UpdateScriptTest extends BrowserTestBase {
     $extension_info = [
       'name' => $extension_name,
       'type' => $extension_type,
-      'core_version_requirement' => '^8 || ^9',
+      'core_version_requirement' => '^8 || ^9 || ^10',
     ];
     if ($extension_type === 'theme') {
       $extension_info['base theme'] = FALSE;
     }
-    $folder_path = \Drupal::service('site.path') . "/{$extension_type}s/$extension_machine_name";
+    $folder_path = \Drupal::getContainer()->getParameter('site.path') . "/{$extension_type}s/$extension_machine_name";
     $file_path = "$folder_path/$extension_machine_name.info.yml";
     mkdir($folder_path, 0777, TRUE);
     file_put_contents($file_path, Yaml::encode($extension_info));
@@ -410,55 +410,42 @@ class UpdateScriptTest extends BrowserTestBase {
     // nonexistent module. This replicates what would happen if you had a module
     // installed and then completely remove it from the filesystem and clear it
     // out of the core.extension config list without uninstalling it cleanly.
-    \Drupal::keyValue('system.schema')->set('my_already_removed_module', 8000);
+    \Drupal::service('update.update_hook_registry')->setInstalledVersion('my_already_removed_module', 8000);
 
     // Visit update.php and make sure we can click through to the 'No pending
     // updates' page without errors.
     $this->drupalGet($this->updateUrl, ['external' => TRUE]);
     $this->updateRequirementsProblem();
-    $this->clickLink(t('Continue'));
+    $this->clickLink('Continue');
     // Make sure there are no pending updates (or uncaught exceptions).
-    $status_messages = $this->xpath('//div[@aria-label="Status message"]');
-    $this->assertCount(1, $status_messages);
-    $this->assertStringContainsString('No pending updates.', $status_messages[0]->getText());
+    $this->assertSession()->elementTextContains('xpath', '//div[@aria-label="Status message"]', 'No pending updates.');
     // Verify that we warn the admin about this situation.
-    $warning_messages = $this->xpath('//div[@aria-label="Warning message"]');
-    $this->assertCount(1, $warning_messages);
-    $this->assertEquals('Warning message Module my_already_removed_module has an entry in the system.schema key/value storage, but is missing from your site. More information about this error.', $warning_messages[0]->getText());
+    $this->assertSession()->elementTextEquals('xpath', '//div[@aria-label="Warning message"]', 'Warning message Module my_already_removed_module has an entry in the system.schema key/value storage, but is missing from your site. More information about this error.');
 
     // Try again with another orphaned entry, this time for a test module that
     // does exist in the filesystem.
-    \Drupal::keyValue('system.schema')->delete('my_already_removed_module');
-    \Drupal::keyValue('system.schema')->set('update_test_0', 8000);
+    \Drupal::service('update.update_hook_registry')->deleteInstalledVersion('my_already_removed_module');
+    \Drupal::service('update.update_hook_registry')->setInstalledVersion('update_test_0', 8000);
     $this->drupalGet($this->updateUrl, ['external' => TRUE]);
     $this->updateRequirementsProblem();
-    $this->clickLink(t('Continue'));
+    $this->clickLink('Continue');
     // There should not be any pending updates.
-    $status_messages = $this->xpath('//div[@aria-label="Status message"]');
-    $this->assertCount(1, $status_messages);
-    $this->assertStringContainsString('No pending updates.', $status_messages[0]->getText());
+    $this->assertSession()->elementTextContains('xpath', '//div[@aria-label="Status message"]', 'No pending updates.');
     // But verify that we warn the admin about this situation.
-    $warning_messages = $this->xpath('//div[@aria-label="Warning message"]');
-    $this->assertCount(1, $warning_messages);
-    $this->assertEquals('Warning message Module update_test_0 has an entry in the system.schema key/value storage, but is not installed. More information about this error.', $warning_messages[0]->getText());
+    $this->assertSession()->elementTextEquals('xpath', '//div[@aria-label="Warning message"]', 'Warning message Module update_test_0 has an entry in the system.schema key/value storage, but is not installed. More information about this error.');
 
     // Finally, try with both kinds of orphans and make sure we get both warnings.
-    \Drupal::keyValue('system.schema')->set('my_already_removed_module', 8000);
+    \Drupal::service('update.update_hook_registry')->setInstalledVersion('my_already_removed_module', 8000);
     $this->drupalGet($this->updateUrl, ['external' => TRUE]);
     $this->updateRequirementsProblem();
-    $this->clickLink(t('Continue'));
+    $this->clickLink('Continue');
     // There still should not be any pending updates.
-    $status_messages = $this->xpath('//div[@aria-label="Status message"]');
-    $this->assertCount(1, $status_messages);
-    $this->assertStringContainsString('No pending updates.', $status_messages[0]->getText());
+    $this->assertSession()->elementTextContains('xpath', '//div[@aria-label="Status message"]', 'No pending updates.');
     // Verify that we warn the admin about both orphaned entries.
-    $warning_messages = $this->xpath('//div[@aria-label="Warning message"]');
-    $this->assertCount(1, $warning_messages);
-    $warning_message_text = $warning_messages[0]->getText();
-    $this->assertStringContainsString('Module update_test_0 has an entry in the system.schema key/value storage, but is not installed. More information about this error.', $warning_message_text);
-    $this->assertStringNotContainsString('Module update_test_0 has an entry in the system.schema key/value storage, but is missing from your site.', $warning_message_text);
-    $this->assertStringContainsString('Module my_already_removed_module has an entry in the system.schema key/value storage, but is missing from your site. More information about this error.', $warning_message_text);
-    $this->assertStringNotContainsString('Module my_already_removed_module has an entry in the system.schema key/value storage, but is not installed.', $warning_message_text);
+    $this->assertSession()->elementTextContains('xpath', '//div[@aria-label="Warning message"]', 'Module update_test_0 has an entry in the system.schema key/value storage, but is not installed. More information about this error.');
+    $this->assertSession()->elementTextNotContains('xpath', '//div[@aria-label="Warning message"]', 'Module update_test_0 has an entry in the system.schema key/value storage, but is missing from your site.');
+    $this->assertSession()->elementTextContains('xpath', '//div[@aria-label="Warning message"]', 'Module my_already_removed_module has an entry in the system.schema key/value storage, but is missing from your site. More information about this error.');
+    $this->assertSession()->elementTextNotContains('xpath', '//div[@aria-label="Warning message"]', 'Module my_already_removed_module has an entry in the system.schema key/value storage, but is not installed.');
   }
 
   /**
@@ -486,7 +473,8 @@ class UpdateScriptTest extends BrowserTestBase {
       $edit = [
         "modules[$extension_machine_name][enable]" => $extension_machine_name,
       ];
-      $this->drupalPostForm('admin/modules', $edit, 'Install');
+      $this->drupalGet('admin/modules');
+      $this->submitForm($edit, 'Install');
     }
     elseif ($extension_type === 'theme') {
       $this->drupalGet('admin/appearance');
@@ -505,7 +493,7 @@ class UpdateScriptTest extends BrowserTestBase {
     $this->drupalLogin($this->updateUser);
     $this->drupalGet($this->updateUrl, ['external' => TRUE]);
     $final_theme_data = $this->config('core.extension')->get('theme');
-    $this->assertEqual($original_theme_data, $final_theme_data, 'Visiting update.php does not alter the information about themes stored in the database.');
+    $this->assertEquals($original_theme_data, $final_theme_data, 'Visiting update.php does not alter the information about themes stored in the database.');
   }
 
   /**
@@ -516,10 +504,10 @@ class UpdateScriptTest extends BrowserTestBase {
     $this->drupalLogin($this->updateUser);
     $this->drupalGet($this->updateUrl, ['external' => TRUE]);
     $this->updateRequirementsProblem();
-    $this->clickLink(t('Continue'));
-    $this->assertText('No pending updates.');
+    $this->clickLink('Continue');
+    $this->assertSession()->pageTextContains('No pending updates.');
     $this->assertSession()->linkNotExists('Administration pages');
-    $this->assertEmpty($this->xpath('//main//a[contains(@href, :href)]', [':href' => 'update.php']));
+    $this->assertSession()->elementNotExists('xpath', '//main//a[contains(@href, "update.php")]');
     $this->clickLink('Front page');
     $this->assertSession()->statusCodeEquals(200);
 
@@ -531,10 +519,10 @@ class UpdateScriptTest extends BrowserTestBase {
     $this->drupalLogin($admin_user);
     $this->drupalGet($this->updateUrl, ['external' => TRUE]);
     $this->updateRequirementsProblem();
-    $this->clickLink(t('Continue'));
-    $this->assertText('No pending updates.');
+    $this->clickLink('Continue');
+    $this->assertSession()->pageTextContains('No pending updates.');
     $this->assertSession()->linkExists('Administration pages');
-    $this->assertEmpty($this->xpath('//main//a[contains(@href, :href)]', [':href' => 'update.php']));
+    $this->assertSession()->elementNotExists('xpath', '//main//a[contains(@href, "update.php")]');
     $this->clickLink('Administration pages');
     $this->assertSession()->statusCodeEquals(200);
   }
@@ -547,16 +535,19 @@ class UpdateScriptTest extends BrowserTestBase {
     $this->assertNull($initial_maintenance_mode, 'Site is not in maintenance mode.');
     $this->runUpdates($initial_maintenance_mode);
     $final_maintenance_mode = $this->container->get('state')->get('system.maintenance_mode');
-    $this->assertEqual($final_maintenance_mode, $initial_maintenance_mode, 'Maintenance mode should not have changed after database updates.');
+    $this->assertEquals($initial_maintenance_mode, $final_maintenance_mode, 'Maintenance mode should not have changed after database updates.');
 
     // Reset the static cache to ensure we have the most current setting.
-    $schema_version = drupal_get_installed_schema_version('update_script_test', TRUE);
-    $this->assertEqual($schema_version, 8001, 'update_script_test schema version is 8001 after updating.');
+    $this->resetAll();
+    /** @var \Drupal\Core\Update\UpdateHookRegistry $update_registry */
+    $update_registry = \Drupal::service('update.update_hook_registry');
+    $schema_version = $update_registry->getInstalledVersion('update_script_test');
+    $this->assertEquals(8001, $schema_version, 'update_script_test schema version is 8001 after updating.');
 
     // Set the installed schema version to one less than the current update.
-    drupal_set_installed_schema_version('update_script_test', $schema_version - 1);
-    $schema_version = drupal_get_installed_schema_version('update_script_test', TRUE);
-    $this->assertEqual($schema_version, 8000, 'update_script_test schema version overridden to 8000.');
+    $update_registry->setInstalledVersion('update_script_test', $schema_version - 1);
+    $schema_version = $update_registry->getInstalledVersion('update_script_test');
+    $this->assertEquals(8000, $schema_version, 'update_script_test schema version overridden to 8000.');
 
     // Click through update.php with 'access administration pages' and
     // 'access site reports' permissions.
@@ -569,13 +560,13 @@ class UpdateScriptTest extends BrowserTestBase {
     $this->drupalLogin($admin_user);
     $this->drupalGet($this->updateUrl, ['external' => TRUE]);
     $this->updateRequirementsProblem();
-    $this->clickLink(t('Continue'));
-    $this->clickLink(t('Apply pending updates'));
+    $this->clickLink('Continue');
+    $this->clickLink('Apply pending updates');
     $this->checkForMetaRefresh();
-    $this->assertText('Updates were attempted.');
+    $this->assertSession()->pageTextContains('Updates were attempted.');
     $this->assertSession()->linkExists('logged');
     $this->assertSession()->linkExists('Administration pages');
-    $this->assertEmpty($this->xpath('//main//a[contains(@href, :href)]', [':href' => 'update.php']));
+    $this->assertSession()->elementNotExists('xpath', '//main//a[contains(@href, "update.php")]');
     $this->clickLink('Administration pages');
     $this->assertSession()->statusCodeEquals(200);
   }
@@ -592,7 +583,7 @@ class UpdateScriptTest extends BrowserTestBase {
     $this->runUpdates($initial_maintenance_mode);
     $final_maintenance_mode = $this->container->get('state')
       ->get('system.maintenance_mode');
-    $this->assertEqual($final_maintenance_mode, $initial_maintenance_mode, 'Maintenance mode should not have changed after database updates.');
+    $this->assertEquals($initial_maintenance_mode, $final_maintenance_mode, 'Maintenance mode should not have changed after database updates.');
   }
 
   /**
@@ -602,9 +593,9 @@ class UpdateScriptTest extends BrowserTestBase {
     // Add some custom languages.
     foreach (['aa', 'bb'] as $language_code) {
       ConfigurableLanguage::create([
-          'id' => $language_code,
-          'label' => $this->randomMachineName(),
-        ])->save();
+        'id' => $language_code,
+        'label' => $this->randomMachineName(),
+      ])->save();
     }
 
     $config = \Drupal::service('config.factory')->getEditable('language.negotiation');
@@ -615,13 +606,15 @@ class UpdateScriptTest extends BrowserTestBase {
     $config->save();
 
     // Reset the static cache to ensure we have the most current setting.
-    $schema_version = drupal_get_installed_schema_version('update_script_test', TRUE);
-    $this->assertEqual($schema_version, 8001, 'update_script_test schema version is 8001 after updating.');
+    /** @var \Drupal\Core\Update\UpdateHookRegistry $update_registry */
+    $update_registry = \Drupal::service('update.update_hook_registry');
+    $schema_version = $update_registry->getInstalledVersion('update_script_test');
+    $this->assertEquals(8001, $schema_version, 'update_script_test schema version is 8001 after updating.');
 
     // Set the installed schema version to one less than the current update.
-    drupal_set_installed_schema_version('update_script_test', $schema_version - 1);
-    $schema_version = drupal_get_installed_schema_version('update_script_test', TRUE);
-    $this->assertEqual($schema_version, 8000, 'update_script_test schema version overridden to 8000.');
+    $update_registry->setInstalledVersion('update_script_test', $schema_version - 1);
+    $schema_version = $update_registry->getInstalledVersion('update_script_test');
+    $this->assertEquals(8000, $schema_version, 'update_script_test schema version overridden to 8000.');
 
     // Create admin user.
     $admin_user = $this->drupalCreateUser([
@@ -643,13 +636,13 @@ class UpdateScriptTest extends BrowserTestBase {
     // 'access site reports' permissions.
     $this->drupalGet($this->updateUrl, ['external' => TRUE]);
     $this->updateRequirementsProblem();
-    $this->clickLink(t('Continue'));
-    $this->clickLink(t('Apply pending updates'));
+    $this->clickLink('Continue');
+    $this->clickLink('Apply pending updates');
     $this->checkForMetaRefresh();
-    $this->assertText('Updates were attempted.');
+    $this->assertSession()->pageTextContains('Updates were attempted.');
     $this->assertSession()->linkExists('logged');
     $this->assertSession()->linkExists('Administration pages');
-    $this->assertEmpty($this->xpath('//main//a[contains(@href, :href)]', [':href' => 'update.php']));
+    $this->assertSession()->elementNotExists('xpath', '//main//a[contains(@href, "update.php")]');
     $this->clickLink('Administration pages');
     $this->assertSession()->statusCodeEquals(200);
   }
@@ -666,6 +659,7 @@ class UpdateScriptTest extends BrowserTestBase {
     $this->drupalLogin($full_admin_user);
     $this->drupalGet($this->updateUrl, ['external' => TRUE]);
     $this->assertSession()->statusCodeEquals(200);
+    $this->updateRequirementsProblem();
     $this->clickLink('maintenance mode');
     $this->assertSession()->statusCodeEquals(200);
     $this->assertSession()->elementContains('css', 'main h1', 'Maintenance mode');
@@ -675,6 +669,7 @@ class UpdateScriptTest extends BrowserTestBase {
     $this->drupalLogin($this->updateUser);
     $this->drupalGet($this->updateUrl, ['external' => TRUE]);
     $this->assertSession()->statusCodeEquals(200);
+    $this->updateRequirementsProblem();
     $this->clickLink('maintenance mode');
     $this->assertSession()->statusCodeEquals(200);
     $this->assertSession()->elementContains('css', 'main h1', 'Maintenance mode');
@@ -684,40 +679,42 @@ class UpdateScriptTest extends BrowserTestBase {
    * Helper function to run updates via the browser.
    */
   protected function runUpdates($maintenance_mode) {
-    $schema_version = drupal_get_installed_schema_version('update_script_test');
-    $this->assertEqual($schema_version, 8001, 'update_script_test is initially installed with schema version 8001.');
+    /** @var \Drupal\Core\Update\UpdateHookRegistry $update_registry */
+    $update_registry = \Drupal::service('update.update_hook_registry');
+    $schema_version = $update_registry->getInstalledVersion('update_script_test');
+    $this->assertEquals(8001, $schema_version, 'update_script_test is initially installed with schema version 8001.');
 
     // Set the installed schema version to one less than the current update.
-    drupal_set_installed_schema_version('update_script_test', $schema_version - 1);
-    $schema_version = drupal_get_installed_schema_version('update_script_test', TRUE);
-    $this->assertEqual($schema_version, 8000, 'update_script_test schema version overridden to 8000.');
+    $update_registry->setInstalledVersion('update_script_test', $schema_version - 1);
+    $schema_version = $update_registry->getInstalledVersion('update_script_test');
+    $this->assertEquals(8000, $schema_version, 'update_script_test schema version overridden to 8000.');
 
     // Click through update.php with 'administer software updates' permission.
     $this->drupalLogin($this->updateUser);
     if ($maintenance_mode) {
-      $this->assertText('Operating in maintenance mode.');
+      $this->assertSession()->pageTextContains('Operating in maintenance mode.');
     }
     else {
-      $this->assertNoText('Operating in maintenance mode.');
+      $this->assertSession()->pageTextNotContains('Operating in maintenance mode.');
     }
     $this->drupalGet($this->updateUrl, ['external' => TRUE]);
     $this->updateRequirementsProblem();
-    $this->clickLink(t('Continue'));
-    $this->clickLink(t('Apply pending updates'));
+    $this->clickLink('Continue');
+    $this->clickLink('Apply pending updates');
     $this->checkForMetaRefresh();
 
     // Verify that updates were completed successfully.
-    $this->assertText('Updates were attempted.');
+    $this->assertSession()->pageTextContains('Updates were attempted.');
     $this->assertSession()->linkExists('site');
-    $this->assertText('The update_script_test_update_8001() update was executed successfully.');
+    $this->assertSession()->pageTextContains('The update_script_test_update_8001() update was executed successfully.');
 
     // Verify that no 7.x updates were run.
-    $this->assertNoText('The update_script_test_update_7200() update was executed successfully.');
-    $this->assertNoText('The update_script_test_update_7201() update was executed successfully.');
+    $this->assertSession()->pageTextNotContains('The update_script_test_update_7200() update was executed successfully.');
+    $this->assertSession()->pageTextNotContains('The update_script_test_update_7201() update was executed successfully.');
 
     // Verify that there are no links to different parts of the workflow.
     $this->assertSession()->linkNotExists('Administration pages');
-    $this->assertEmpty($this->xpath('//main//a[contains(@href, :href)]', [':href' => 'update.php']));
+    $this->assertSession()->elementNotExists('xpath', '//main//a[contains(@href, "update.php")]');
     $this->assertSession()->linkNotExists('logged');
 
     // Verify the front page can be visited following the upgrade.
@@ -806,8 +803,10 @@ class UpdateScriptTest extends BrowserTestBase {
    *   The extension type, either 'module' or 'theme'.
    * @param string $extension_machine_name
    *   The extension machine name.
+   *
+   * @internal
    */
-  protected function assertInstalledExtensionConfig($extension_type, $extension_machine_name) {
+  protected function assertInstalledExtensionConfig(string $extension_type, string $extension_machine_name): void {
     $extension_config = $this->container->get('config.factory')->getEditable('core.extension');
     $this->assertSame(0, $extension_config->get("$extension_type.$extension_machine_name"));
   }
@@ -823,15 +822,17 @@ class UpdateScriptTest extends BrowserTestBase {
    *   The extension machine name.
    *
    * @throws \Behat\Mink\Exception\ResponseTextException
+   *
+   * @internal
    */
-  protected function assertUpdateWithNoError($unexpected_error_text, $extension_type, $extension_machine_name) {
+  protected function assertUpdateWithNoError(string $unexpected_error_text, string $extension_type, string $extension_machine_name): void {
     $assert_session = $this->assertSession();
     $this->drupalGet($this->statusReportUrl);
     $this->assertSession()->pageTextNotContains($unexpected_error_text);
     $this->drupalGet($this->updateUrl, ['external' => TRUE]);
     $this->assertSession()->pageTextNotContains($unexpected_error_text);
     $this->updateRequirementsProblem();
-    $this->clickLink(t('Continue'));
+    $this->clickLink('Continue');
     $assert_session->pageTextContains('No pending updates.');
     $this->assertInstalledExtensionConfig($extension_type, $extension_machine_name);
   }
@@ -848,8 +849,10 @@ class UpdateScriptTest extends BrowserTestBase {
    *
    * @throws \Behat\Mink\Exception\ExpectationException
    * @throws \Behat\Mink\Exception\ResponseTextException
+   *
+   * @internal
    */
-  protected function assertErrorOnUpdate($expected_error_text, $extension_type, $extension_machine_name) {
+  protected function assertErrorOnUpdate(string $expected_error_text, string $extension_type, string $extension_machine_name): void {
     $assert_session = $this->assertSession();
     $this->drupalGet($this->statusReportUrl);
     $this->assertSession()->pageTextContains($expected_error_text);

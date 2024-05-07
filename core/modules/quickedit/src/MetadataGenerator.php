@@ -5,6 +5,7 @@ namespace Drupal\quickedit;
 use Drupal\Component\Plugin\PluginManagerInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Field\FieldItemListInterface;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\quickedit\Access\QuickEditEntityFieldAccessCheckInterface;
 use Drupal\Core\Entity\Entity\EntityViewDisplay;
 
@@ -55,7 +56,10 @@ class MetadataGenerator implements MetadataGeneratorInterface {
    */
   public function generateEntityMetadata(EntityInterface $entity) {
     return [
-      'label' => $entity->label(),
+      'label' => $entity->access('view label') ? $entity->label() : new TranslatableMarkup('@label @id', [
+        '@label' => $entity->getEntityType()->getSingularLabel(),
+        '@id' => $entity->id(),
+      ]),
     ];
   }
 
@@ -68,7 +72,7 @@ class MetadataGenerator implements MetadataGeneratorInterface {
 
     // Early-return if user does not have access.
     $access = $this->accessChecker->accessEditEntityField($entity, $field_name);
-    if (!$access) {
+    if (!$access->isAllowed()) {
       return ['access' => FALSE];
     }
 

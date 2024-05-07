@@ -6,7 +6,8 @@ use Drupal\Core\Database\Connection;
 use Drupal\migrate\Plugin\MigrationInterface;
 use Drupal\migrate\MigrateException;
 use Drupal\migrate\Plugin\migrate\id_map\Sql;
-use Symfony\Component\EventDispatcher\EventDispatcherInterface;
+use Drupal\migrate\Plugin\MigrationPluginManagerInterface;
+use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 /**
  * Defines a SQL ID map for use in tests.
@@ -26,12 +27,14 @@ class TestSqlIdMap extends Sql implements \Iterator {
    *   The configuration for the plugin.
    * @param \Drupal\migrate\Plugin\MigrationInterface $migration
    *   The migration to do.
-   * @param \Symfony\Component\EventDispatcher\EventDispatcherInterface $event_dispatcher
+   * @param \Symfony\Contracts\EventDispatcher\EventDispatcherInterface $event_dispatcher
    *   The event dispatcher service.
+   * @param \Drupal\migrate\Plugin\MigrationPluginManagerInterface $migration_manager
+   *   The migration manager.
    */
-  public function __construct(Connection $database, array $configuration, $plugin_id, $plugin_definition, MigrationInterface $migration, EventDispatcherInterface $event_dispatcher) {
+  public function __construct(Connection $database, array $configuration, $plugin_id, $plugin_definition, MigrationInterface $migration, EventDispatcherInterface $event_dispatcher, MigrationPluginManagerInterface $migration_manager) {
     $this->database = $database;
-    parent::__construct($configuration, $plugin_id, $plugin_definition, $migration, $event_dispatcher);
+    parent::__construct($configuration, $plugin_id, $plugin_definition, $migration, $event_dispatcher, $migration_manager);
   }
 
   /**
@@ -86,6 +89,13 @@ class TestSqlIdMap extends Sql implements \Iterator {
    */
   public function ensureTables() {
     parent::ensureTables();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getMigrationPluginManager() {
+    return parent::getMigrationPluginManager();
   }
 
 }

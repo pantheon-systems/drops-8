@@ -67,7 +67,7 @@ class LinkTest extends UnitTestCase {
       ],
       'same href and same link relation type and same nested target attributes' => [
         new Link(new CacheableMetadata(), Url::fromUri('https://jsonapi.org/foo'), 'self', ['data' => ['foo' => 'bar']]),
-        new Link(new cacheablemetadata(), Url::fromUri('https://jsonapi.org/foo'), 'self', ['data' => ['foo' => 'bar']]),
+        new Link(new CacheableMetadata(), Url::fromUri('https://jsonapi.org/foo'), 'self', ['data' => ['foo' => 'bar']]),
         TRUE,
       ],
       'same href and same link relation type and different nested target attributes' => [
@@ -134,9 +134,9 @@ class LinkTest extends UnitTestCase {
     $url_assembler = $this->getMockBuilder(UnroutedUrlAssemblerInterface::class)
       ->disableOriginalConstructor()
       ->getMock();
-    $url_assembler->method('assemble')->will($this->returnCallback(function ($uri) {
+    $url_assembler->method('assemble')->willReturnCallback(function ($uri) {
       return (new GeneratedUrl())->setGeneratedUrl($uri);
-    }));
+    });
 
     $container = new ContainerBuilder();
     $container->set('unrouted_url_assembler', $url_assembler);

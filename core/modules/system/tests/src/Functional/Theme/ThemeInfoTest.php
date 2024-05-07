@@ -64,23 +64,23 @@ class ThemeInfoTest extends BrowserTestBase {
       ->set('default', 'test_subtheme')
       ->save();
 
-    $base = drupal_get_path('theme', 'test_basetheme');
-    $sub = drupal_get_path('theme', 'test_subtheme') . '/css';
+    $base = $this->getThemePath('test_basetheme');
+    $sub = $this->getThemePath('test_subtheme') . '/css';
 
     // All removals are expected to be based on a file's path and name and
     // should work nevertheless.
     $this->drupalGet('theme-test/info/stylesheets');
 
-    $this->assertCount(1, $this->xpath('//link[contains(@href, :href)]', [':href' => "$base/base-add.css"]), "$base/base-add.css found");
-    $this->assertCount(0, $this->xpath('//link[contains(@href, :href)]', [':href' => "base-remove.css"]), "base-remove.css not found");
+    $this->assertSession()->elementsCount('xpath', '//link[contains(@href, "' . $base . '/base-add.css")]', 1);
+    $this->assertSession()->elementNotExists('xpath', '//link[contains(@href, "base-remove.css")]');
 
-    $this->assertCount(1, $this->xpath('//link[contains(@href, :href)]', [':href' => "$sub/sub-add.css"]), "$sub/sub-add.css found");
-    $this->assertCount(0, $this->xpath('//link[contains(@href, :href)]', [':href' => "sub-remove.css"]), "sub-remove.css not found");
-    $this->assertCount(0, $this->xpath('//link[contains(@href, :href)]', [':href' => "base-add.sub-remove.css"]), "base-add.sub-remove.css not found");
+    $this->assertSession()->elementsCount('xpath', '//link[contains(@href, "' . $sub . '/sub-add.css")]', 1);
+    $this->assertSession()->elementNotExists('xpath', '//link[contains(@href, "sub-remove.css")]');
+    $this->assertSession()->elementNotExists('xpath', '//link[contains(@href, "base-add.sub-remove.css")]');
 
     // Verify that CSS files with the same name are loaded from both the base theme and subtheme.
-    $this->assertCount(1, $this->xpath('//link[contains(@href, :href)]', [':href' => "$base/samename.css"]), "$base/samename.css found");
-    $this->assertCount(1, $this->xpath('//link[contains(@href, :href)]', [':href' => "$sub/samename.css"]), "$sub/samename.css found");
+    $this->assertSession()->elementsCount('xpath', '//link[contains(@href, "' . $base . '/samename.css")]', 1);
+    $this->assertSession()->elementsCount('xpath', '//link[contains(@href, "' . $sub . '/samename.css")]', 1);
 
   }
 
@@ -94,14 +94,14 @@ class ThemeInfoTest extends BrowserTestBase {
 
     $active_theme = $this->themeManager->getActiveTheme();
     // Make sure we are not testing the wrong theme.
-    $this->assertEqual('test_theme', $active_theme->getName());
-    $this->assertEqual(['classy/base', 'classy/messages', 'core/normalize', 'test_theme/global-styling'], $active_theme->getLibraries());
+    $this->assertEquals('test_theme', $active_theme->getName());
+    $this->assertEquals(['starterkit_theme/base', 'starterkit_theme/messages', 'core/normalize', 'test_theme/global-styling'], $active_theme->getLibraries());
 
     // @see theme_test_system_info_alter()
     $this->state->set('theme_test.modify_info_files', TRUE);
-    drupal_flush_all_caches();
+    $this->resetAll();
     $active_theme = $this->themeManager->getActiveTheme();
-    $this->assertEqual(['classy/base', 'classy/messages', 'core/normalize', 'test_theme/global-styling', 'core/backbone'], $active_theme->getLibraries());
+    $this->assertEquals(['starterkit_theme/base', 'starterkit_theme/messages', 'core/normalize', 'test_theme/global-styling', 'core/once'], $active_theme->getLibraries());
   }
 
 }

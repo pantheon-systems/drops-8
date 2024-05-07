@@ -8,9 +8,6 @@ use Symfony\Component\Routing\RequestContext as SymfonyRequestContext;
 
 /**
  * Holds information about the current request.
- *
- * @todo: Remove once the upstream RequestContext provides fromRequestStack():
- * https://github.com/symfony/symfony/issues/12057
  */
 class RequestContext extends SymfonyRequestContext {
 
@@ -35,13 +32,13 @@ class RequestContext extends SymfonyRequestContext {
    * {@inheritdoc}
    */
   public function fromRequest(Request $request) {
-    parent::fromRequest($request);
-
     // @todo Extract the code in DrupalKernel::initializeRequestGlobals.
     //   See https://www.drupal.org/node/2404601
     if (isset($GLOBALS['base_url'])) {
       $this->setCompleteBaseUrl($GLOBALS['base_url']);
     }
+
+    return parent::fromRequest($request);
   }
 
   /**

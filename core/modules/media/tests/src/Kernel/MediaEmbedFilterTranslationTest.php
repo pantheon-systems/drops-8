@@ -33,10 +33,10 @@ class MediaEmbedFilterTranslationTest extends MediaEmbedFilterTestBase {
 
     $this->embeddedEntity->addTranslation('pt-br')
       ->set('field_media_image', [
-      'target_id' => $this->image->id(),
-      'alt' => 'pt-br alt',
-      'title' => 'pt-br title',
-    ])->save();
+        'target_id' => $this->image->id(),
+        'alt' => 'pt-br alt',
+        'title' => 'pt-br title',
+      ])->save();
   }
 
   /**
@@ -62,7 +62,7 @@ class MediaEmbedFilterTranslationTest extends MediaEmbedFilterTestBase {
     // based on the host entity's language, which should require a cache context
     // to be associated. (The host entity's language may itself be selected
     // based on the request context, but that is of no concern to this filter.)
-    $this->assertSame($result->getCacheContexts(), ['timezone', 'user.permissions']);
+    $this->assertEqualsCanonicalizing($result->getCacheContexts(), ['timezone', 'user.permissions']);
   }
 
   /**

@@ -13,7 +13,7 @@ use Symfony\Component\Process\PhpProcess;
 class DrupalLogErrorTest extends UnitTestCase {
 
   /**
-   * Test that fatal errors return a non-zero exit code.
+   * Tests that fatal errors return a non-zero exit code.
    */
   public function testFatalExitCode() {
     $script = <<<'EOT'
@@ -35,6 +35,7 @@ $error = [
   '@backtrace_string' => 'backtrace',
   'severity_level' => 0,
   'backtrace' => [],
+  'exception' => NULL,
 ];
 _drupal_log_error($error, TRUE);
 EOT;

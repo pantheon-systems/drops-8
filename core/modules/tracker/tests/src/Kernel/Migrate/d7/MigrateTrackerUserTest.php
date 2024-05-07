@@ -2,7 +2,6 @@
 
 namespace Drupal\Tests\tracker\Kernel\Migrate\d7;
 
-use Drupal\Tests\migrate_drupal\Kernel\d7\MigrateDrupal7TestBase;
 use Drupal\Core\Database\Database;
 
 /**
@@ -10,7 +9,7 @@ use Drupal\Core\Database\Database;
  *
  * @group tracker
  */
-class MigrateTrackerUserTest extends MigrateDrupal7TestBase {
+class MigrateTrackerUserTest extends MigrateDrupalTestBase {
 
   /**
    * {@inheritdoc}
@@ -52,17 +51,17 @@ class MigrateTrackerUserTest extends MigrateDrupal7TestBase {
       ->countQuery()
       ->execute()
       ->fetchField();
-    $this->assertIdentical('1', $num_rows);
+    $this->assertSame('1', $num_rows);
 
     $tracker_nodes = $connection
       ->select('tracker_user', 'tu')
       ->fields('tu', ['nid', 'uid', 'published', 'changed'])
       ->execute();
     $row = $tracker_nodes->fetchAssoc();
-    $this->assertIdentical('1', $row['nid']);
-    $this->assertIdentical('2', $row['uid']);
-    $this->assertIdentical('1', $row['published']);
-    $this->assertIdentical('1421727536', $row['changed']);
+    $this->assertSame('1', $row['nid']);
+    $this->assertSame('2', $row['uid']);
+    $this->assertSame('1', $row['published']);
+    $this->assertSame('1421727536', $row['changed']);
   }
 
 }

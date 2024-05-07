@@ -4,8 +4,8 @@ namespace Drupal\KernelTests\Core\Database;
 
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Database\Database;
-use Drupal\Core\Database\DatabaseExceptionWrapper;
 use Drupal\Core\Database\Query\Condition;
+use Drupal\Core\Database\StatementWrapper;
 
 /**
  * Tests of the core database system.
@@ -29,7 +29,7 @@ class ConnectionTest extends DatabaseTestBase {
 
     $this->assertNotNull($db1, 'default connection is a real connection object.');
     $this->assertNotNull($db2, 'replica connection is a real connection object.');
-    $this->assertNotIdentical($db1, $db2, 'Each target refers to a different connection.');
+    $this->assertNotSame($db1, $db2, 'Each target refers to a different connection.');
 
     // Try to open those targets another time, that should return the same objects.
     $db1b = Database::getConnection('default', 'default');
@@ -78,7 +78,7 @@ class ConnectionTest extends DatabaseTestBase {
     $db2 = Database::getConnection('default', 'default');
 
     // Opening a connection after closing it should yield an object different than the original.
-    $this->assertNotIdentical($db1, $db2, 'Opening the default connection after it is closed returns a new object.');
+    $this->assertNotSame($db1, $db2, 'Opening the default connection after it is closed returns a new object.');
   }
 
   /**
@@ -93,8 +93,8 @@ class ConnectionTest extends DatabaseTestBase {
 
     // In the MySQL driver, the port can be different, so check individual
     // options.
-    $this->assertEqual($connection_info['default']['driver'], $connectionOptions['driver'], 'The default connection info driver matches the current connection options driver.');
-    $this->assertEqual($connection_info['default']['database'], $connectionOptions['database'], 'The default connection info database matches the current connection options database.');
+    $this->assertEquals($connection_info['default']['driver'], $connectionOptions['driver'], 'The default connection info driver matches the current connection options driver.');
+    $this->assertEquals($connection_info['default']['database'], $connectionOptions['database'], 'The default connection info database matches the current connection options database.');
 
     // Set up identical replica and confirm connection options are identical.
     Database::addConnectionInfo('default', 'replica', $connection_info['default']);
@@ -105,7 +105,7 @@ class ConnectionTest extends DatabaseTestBase {
 
     // Get a fresh copy of the default connection options.
     $connectionOptions = $db->getConnectionOptions();
-    $this->assertIdentical($connectionOptions, $connectionOptions2, 'The default and replica connection options are identical.');
+    $this->assertSame($connectionOptions2, $connectionOptions, 'The default and replica connection options are identical.');
 
     // Set up a new connection with different connection info.
     $test = $connection_info['default'];
@@ -115,7 +115,7 @@ class ConnectionTest extends DatabaseTestBase {
 
     // Get a fresh copy of the default connection options.
     $connectionOptions = $db->getConnectionOptions();
-    $this->assertNotEqual($connection_info['default']['database'], $connectionOptions['database'], 'The test connection info database does not match the current connection options database.');
+    $this->assertNotEquals($connection_info['default']['database'], $connectionOptions['database'], 'The test connection info database does not match the current connection options database.');
   }
 
   /**
@@ -135,30 +135,90 @@ class ConnectionTest extends DatabaseTestBase {
   }
 
   /**
-   * Ensure that you cannot execute multiple statements on MySQL.
+   * Tests the deprecation of passing a statement object to ::query.
+   *
+   * @group legacy
    */
-  public function testMultipleStatementsForNewPhp() {
-    // This just tests mysql, as other PDO integrations don't allow disabling
-    // multiple statements.
-    if (Database::getConnection()->databaseType() !== 'mysql') {
-      $this->markTestSkipped("This test only runs for MySQL");
-    }
-
-    // Disable the protection at the PHP level.
-    $this->expectException(DatabaseExceptionWrapper::class);
-    Database::getConnection('default', 'default')->query('SELECT * FROM {test}; SELECT * FROM {test_people}', [], ['allow_delimiter_in_query' => TRUE]);
+  public function testStatementQueryDeprecation(): void {
+    $this->expectDeprecation('Passing a StatementInterface object as a $query argument to Drupal\Core\Database\Connection::query is deprecated in drupal:9.2.0 and is removed in drupal:10.0.0. Call the execute method from the StatementInterface object directly instead. See https://www.drupal.org/node/3154439');
+    $db = Database::getConnection();
+    $stmt = $db->prepareStatement('SELECT * FROM {test}', []);
+    $this->assertNotNull($db->query($stmt));
   }
 
   /**
-   * Ensure that you cannot execute multiple statements.
+   * Tests the deprecation of passing a PDOStatement object to ::query.
+   *
+   * @group legacy
    */
-  public function testMultipleStatements() {
+  public function testPDOStatementQueryDeprecation(): void {
+    $db = Database::getConnection();
+    $stmt = $db->prepareStatement('SELECT * FROM {test}', []);
+    if (!$stmt instanceof StatementWrapper) {
+      $this->markTestSkipped("This test only runs for db drivers using StatementWrapper.");
+    }
+    if (!$stmt->getClientStatement() instanceof \PDOStatement) {
+      $this->markTestSkipped("This test only runs for PDO-based db drivers.");
+    }
+    $this->expectDeprecation('Passing a \\PDOStatement object as a $query argument to Drupal\Core\Database\Connection::query is deprecated in drupal:9.2.0 and is removed in drupal:10.0.0. Call the execute method from the StatementInterface object directly instead. See https://www.drupal.org/node/3154439');
+    $this->assertNotNull($db->query($stmt->getClientStatement()));
+  }
+
+  /**
+   * Tests per-table prefix connection option.
+   */
+  public function testPerTablePrefixOption() {
+    $connection_info = Database::getConnectionInfo('default');
+    $new_connection_info = $connection_info['default'];
+    $new_connection_info['prefix'] = [
+      'default' => $connection_info['default']['prefix'],
+      'test_table' => $connection_info['default']['prefix'] . '_bar',
+    ];
+    Database::addConnectionInfo('default', 'foo', $new_connection_info);
+    $foo_connection = Database::getConnection('foo', 'default');
+    $this->assertInstanceOf(Connection::class, $foo_connection);
+    $this->assertIsString($foo_connection->getConnectionOptions()['prefix']);
+    $this->assertSame($connection_info['default']['prefix'], $foo_connection->getConnectionOptions()['prefix']);
+    $this->assertSame([
+      'test_table' => $connection_info['default']['prefix'] . '_bar',
+    ], $foo_connection->getConnectionOptions()['extra_prefix']);
+  }
+
+  /**
+   * Tests the prefix connection option in array form.
+   */
+  public function testPrefixArrayOption() {
+    $connection_info = Database::getConnectionInfo('default');
+    $new_connection_info = $connection_info['default'];
+    $new_connection_info['prefix'] = [
+      'default' => $connection_info['default']['prefix'],
+    ];
+    Database::addConnectionInfo('default', 'foo', $new_connection_info);
+    $foo_connection = Database::getConnection('foo', 'default');
+    $this->assertInstanceOf(Connection::class, $foo_connection);
+    $this->assertIsString($foo_connection->getConnectionOptions()['prefix']);
+    $this->assertSame($connection_info['default']['prefix'], $foo_connection->getConnectionOptions()['prefix']);
+    $this->assertArrayNotHasKey('extra_prefix', $foo_connection->getConnectionOptions());
+  }
+
+  /**
+   * Ensure that you cannot execute multiple statements in a query.
+   */
+  public function testMultipleStatementsQuery() {
     $this->expectException(\InvalidArgumentException::class);
     Database::getConnection('default', 'default')->query('SELECT * FROM {test}; SELECT * FROM {test_people}');
   }
 
   /**
-   * Test that the method ::condition() returns a Condition object.
+   * Ensure that you cannot prepare multiple statements.
+   */
+  public function testMultipleStatements() {
+    $this->expectException(\InvalidArgumentException::class);
+    Database::getConnection('default', 'default')->prepareStatement('SELECT * FROM {test}; SELECT * FROM {test_people}', []);
+  }
+
+  /**
+   * Tests that the method ::condition() returns a Condition object.
    */
   public function testCondition() {
     $connection = Database::getConnection('default', 'default');
@@ -168,6 +228,13 @@ class ConnectionTest extends DatabaseTestBase {
     }
     $condition = $connection->condition('AND');
     $this->assertSame($namespace, get_class($condition));
+  }
+
+  /**
+   * Tests that the method ::hasJson() returns TRUE.
+   */
+  public function testHasJson() {
+    $this->assertTrue($this->connection->hasJson());
   }
 
 }

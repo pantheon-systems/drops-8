@@ -4,14 +4,14 @@ namespace Drupal\FunctionalTests\Rest;
 
 use Drupal\Core\Field\Entity\BaseFieldOverride;
 use Drupal\node\Entity\NodeType;
-use Drupal\Tests\rest\Functional\EntityResource\EntityResourceTestBase;
+use Drupal\Tests\rest\Functional\EntityResource\ConfigEntityResourceTestBase;
 
-abstract class BaseFieldOverrideResourceTestBase extends EntityResourceTestBase {
+abstract class BaseFieldOverrideResourceTestBase extends ConfigEntityResourceTestBase {
 
   /**
    * {@inheritdoc}
    */
-  protected static $modules = ['field', 'node'];
+  protected static $modules = ['field', 'field_ui', 'node'];
 
   /**
    * {@inheritdoc}
@@ -86,6 +86,7 @@ abstract class BaseFieldOverrideResourceTestBase extends EntityResourceTestBase 
    */
   protected function getNormalizedPostEntity() {
     // @todo Update in https://www.drupal.org/node/2300677.
+    return [];
   }
 
   /**

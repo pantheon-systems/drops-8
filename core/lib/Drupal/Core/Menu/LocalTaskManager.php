@@ -304,7 +304,7 @@ class LocalTaskManager extends DefaultPluginManager implements LocalTaskManagerI
     }
 
     foreach ($tree as $level => $instances) {
-      /** @var $instances \Drupal\Core\Menu\LocalTaskInterface[] */
+      /** @var \Drupal\Core\Menu\LocalTaskInterface[] $instances */
       foreach ($instances as $plugin_id => $child) {
         $route_name = $child->getRouteName();
         $route_parameters = $child->getRouteParameters($this->routeMatch);
@@ -389,6 +389,7 @@ class LocalTaskManager extends DefaultPluginManager implements LocalTaskManagerI
    * @param string $route_name
    *   The route name of the local task to determine the active status.
    * @param array $route_parameters
+   *   The parameter for the route.
    *
    * @return bool
    *   Returns TRUE if the passed route_name and route_parameters is considered

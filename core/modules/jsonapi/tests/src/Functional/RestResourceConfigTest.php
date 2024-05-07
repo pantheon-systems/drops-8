@@ -10,7 +10,7 @@ use Drupal\rest\Entity\RestResourceConfig;
  *
  * @group jsonapi
  */
-class RestResourceConfigTest extends ResourceTestBase {
+class RestResourceConfigTest extends ConfigEntityResourceTestBase {
 
   /**
    * {@inheritdoc}
@@ -126,6 +126,7 @@ class RestResourceConfigTest extends ResourceTestBase {
    */
   protected function getPostDocument() {
     // @todo Update in https://www.drupal.org/node/2300677.
+    return [];
   }
 
 }

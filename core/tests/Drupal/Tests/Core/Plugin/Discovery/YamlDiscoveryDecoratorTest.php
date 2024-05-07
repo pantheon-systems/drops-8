@@ -33,6 +33,9 @@ class YamlDiscoveryDecoratorTest extends UnitTestCase {
     'decorated_2' => 'decorated_test_2',
   ];
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp(): void {
     parent::setUp();
 
@@ -59,7 +62,7 @@ class YamlDiscoveryDecoratorTest extends UnitTestCase {
     $decorated = $this->createMock('Drupal\Component\Plugin\Discovery\DiscoveryInterface');
     $decorated->expects($this->once())
       ->method('getDefinitions')
-      ->will($this->returnValue($definitions));
+      ->willReturn($definitions);
 
     $this->discoveryDecorator = new YamlDiscoveryDecorator($decorated, 'test', $directories);
   }

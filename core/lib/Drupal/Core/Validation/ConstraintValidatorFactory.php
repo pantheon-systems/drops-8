@@ -5,6 +5,7 @@ namespace Drupal\Core\Validation;
 use Drupal\Core\DependencyInjection\ClassResolverInterface;
 use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\ConstraintValidatorFactory as BaseConstraintValidatorFactory;
+use Symfony\Component\Validator\ConstraintValidatorInterface;
 
 /**
  * Defines a constraint validator factory that works with container injection.
@@ -15,9 +16,15 @@ use Symfony\Component\Validator\ConstraintValidatorFactory as BaseConstraintVali
 class ConstraintValidatorFactory extends BaseConstraintValidatorFactory {
 
   /**
+   * The class resolver.
+   */
+  protected $classResolver;
+
+  /**
    * Constructs a new ConstraintValidatorFactory.
    *
    * @param \Drupal\Core\DependencyInjection\ClassResolverInterface $class_resolver
+   *   The class resolver.
    */
   public function __construct(ClassResolverInterface $class_resolver) {
     $this->classResolver = $class_resolver;
@@ -26,7 +33,7 @@ class ConstraintValidatorFactory extends BaseConstraintValidatorFactory {
   /**
    * {@inheritdoc}
    */
-  public function getInstance(Constraint $constraint) {
+  public function getInstance(Constraint $constraint): ConstraintValidatorInterface {
     $class_name = $constraint->validatedBy();
     // Constraint validator instances should always be initialized newly and
     // never shared, because the current validation context is getting injected

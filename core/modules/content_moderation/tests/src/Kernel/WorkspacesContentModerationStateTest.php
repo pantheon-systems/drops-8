@@ -50,6 +50,18 @@ class WorkspacesContentModerationStateTest extends ContentModerationStateTest {
   }
 
   /**
+   * Tests that the 'workspace' entity type can not be moderated.
+   *
+   * @see \Drupal\workspaces\EntityTypeInfo::entityTypeAlter()
+   */
+  public function testWorkspaceEntityTypeModeration() {
+    /** @var \Drupal\content_moderation\ModerationInformationInterface $moderation_info */
+    $moderation_info = \Drupal::service('content_moderation.moderation_information');
+    $entity_type = \Drupal::entityTypeManager()->getDefinition('workspace');
+    $this->assertFalse($moderation_info->canModerateEntitiesOfEntityType($entity_type));
+  }
+
+  /**
    * Tests the integration between Content Moderation and Workspaces.
    *
    * @see content_moderation_workspace_access()
@@ -241,7 +253,7 @@ class WorkspacesContentModerationStateTest extends ContentModerationStateTest {
   /**
    * {@inheritdoc}
    */
-  protected function assertDefaultRevision(EntityInterface $entity, $revision_id, $published = TRUE) {
+  protected function assertDefaultRevision(EntityInterface $entity, int $revision_id, $published = TRUE): void {
     // In the context of a workspace, the default revision ID is always the
     // latest workspace-specific revision, so we need to adjust the expectation
     // of the parent assertion.

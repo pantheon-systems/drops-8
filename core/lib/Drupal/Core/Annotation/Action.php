@@ -9,11 +9,10 @@ use Drupal\Component\Annotation\Plugin;
  *
  * Plugin Namespace: Plugin\Action
  *
- * For a working example, see \Drupal\node\Plugin\Action\UnpublishNode
- *
  * @see \Drupal\Core\Action\ActionInterface
  * @see \Drupal\Core\Action\ActionManager
  * @see \Drupal\Core\Action\ActionBase
+ * @see \Drupal\Core\Action\Plugin\Action\UnpublishAction
  * @see plugin_api
  *
  * @Annotation
@@ -39,9 +38,11 @@ class Action extends Plugin {
   /**
    * The route name for a confirmation form for this action.
    *
+   * This property is optional and it does not need to be declared.
+   *
    * @todo Provide a more generic way to allow an action to be confirmed first.
    *
-   * @var string (optional)
+   * @var string
    */
   public $confirm_form_route_name = '';
 

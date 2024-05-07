@@ -58,7 +58,7 @@ class SelectLanguageForm extends FormBase {
     }
     asort($select_options);
     $request = Request::createFromGlobals();
-    $browser_langcode = UserAgent::getBestMatchingLangcode($request->server->get('HTTP_ACCEPT_LANGUAGE'), $browser_options);
+    $browser_langcode = UserAgent::getBestMatchingLangcode($request->server->get('HTTP_ACCEPT_LANGUAGE', ''), $browser_options);
     $form['langcode'] = [
       '#type' => 'select',
       '#title' => 'Choose language',
@@ -72,7 +72,7 @@ class SelectLanguageForm extends FormBase {
       '#type' => 'item',
       // #markup is XSS admin filtered which ensures unsafe protocols will be
       // removed from the url.
-      '#markup' => '<p>Translations will be downloaded from the <a href="http://localize.drupal.org">Drupal Translation website</a>. If you do not want this, select <a href="' . $link_to_english . '">English</a>.</p>',
+      '#markup' => '<p>Translations will be downloaded from the <a href="https://localize.drupal.org/download">Drupal Translation website</a>. If you do not want this, select <a href="' . $link_to_english . '">English</a>.</p>',
       '#states' => [
         'invisible' => [
           'select[name="langcode"]' => ['value' => 'en'],

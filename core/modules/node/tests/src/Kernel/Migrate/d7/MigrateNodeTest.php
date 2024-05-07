@@ -25,6 +25,7 @@ class MigrateNodeTest extends MigrateDrupal7TestBase {
     'content_translation',
     'comment',
     'datetime',
+    'datetime_range',
     'image',
     'language',
     'link',
@@ -102,8 +103,10 @@ class MigrateNodeTest extends MigrateDrupal7TestBase {
    *   Whether the node is expected to be promoted to the front page.
    * @param bool $sticky
    *   Whether the node is expected to be sticky.
+   *
+   * @internal
    */
-  protected function assertEntity($id, $type, $langcode, $title, $uid, $status, $created, $changed, $promoted, $sticky) {
+  protected function assertEntity(string $id, string $type, string $langcode, string $title, int $uid, bool $status, int $created, int $changed, bool $promoted, bool $sticky): void {
     /** @var \Drupal\node\NodeInterface $node */
     $node = Node::load($id);
     $this->assertInstanceOf(NodeInterface::class, $node);
@@ -129,12 +132,14 @@ class MigrateNodeTest extends MigrateDrupal7TestBase {
    *   The expected title.
    * @param int $uid
    *   The revision author ID.
-   * @param string $log
+   * @param string|null $log
    *   The revision log message.
    * @param int $timestamp
    *   The revision's time stamp.
+   *
+   * @internal
    */
-  protected function assertRevision($id, $title, $uid, $log, $timestamp) {
+  protected function assertRevision(int $id, string $title, int $uid, ?string $log, int $timestamp): void {
     $revision = \Drupal::entityTypeManager()->getStorage('node')->loadRevision($id);
     $this->assertInstanceOf(NodeInterface::class, $revision);
     $this->assertEquals($title, $revision->getTitle());
@@ -144,13 +149,13 @@ class MigrateNodeTest extends MigrateDrupal7TestBase {
   }
 
   /**
-   * Test node migration from Drupal 7 to 8.
+   * Tests node migration from Drupal 7 to 8.
    */
   public function testNode() {
     // Confirm there are only classic node migration map tables. This shows
     // that only the classic migration ran.
     $results = $this->nodeMigrateMapTableCount('7');
-    $this->assertSame(8, $results['node']);
+    $this->assertSame(9, $results['node']);
     $this->assertSame(0, $results['node_complete']);
 
     $this->assertEntity(1, 'test_content_type', 'en', 'An English Node', '2', TRUE, '1421727515', '1441032132', TRUE, FALSE);
@@ -250,12 +255,7 @@ class MigrateNodeTest extends MigrateDrupal7TestBase {
     $node = $node->getTranslation('is');
     $this->assertSame($value, $node->field_text_plain->value);
 
-  }
-
-  /**
-   * Test node entity translations migration from Drupal 7 to 8.
-   */
-  public function testNodeEntityTranslations() {
+    // Tests node entity translations migration from Drupal 7 to 8.
     $manager = $this->container->get('content_translation.manager');
 
     // Get the node and its translations.

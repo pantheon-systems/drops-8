@@ -24,6 +24,9 @@ class PagerPluginBaseTest extends UnitTestCase {
    */
   protected $pager;
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp(): void {
     $this->pager = $this->getMockBuilder('Drupal\views\Plugin\views\pager\PagerPluginBase')
       ->disableOriginalConstructor()
@@ -210,7 +213,7 @@ class PagerPluginBaseTest extends UnitTestCase {
 
     $statement->expects($this->once())
       ->method('fetchField')
-      ->will($this->returnValue(3));
+      ->willReturn(3);
 
     $query = $this->getMockBuilder('\Drupal\Core\Database\Query\Select')
       ->disableOriginalConstructor()
@@ -218,7 +221,7 @@ class PagerPluginBaseTest extends UnitTestCase {
 
     $query->expects($this->once())
       ->method('execute')
-      ->will($this->returnValue($statement));
+      ->willReturn($statement);
 
     $this->pager->setOffset(0);
     $this->assertEquals(3, $this->pager->executeCountQuery($query));
@@ -234,7 +237,7 @@ class PagerPluginBaseTest extends UnitTestCase {
 
     $statement->expects($this->once())
       ->method('fetchField')
-      ->will($this->returnValue(3));
+      ->willReturn(3);
 
     $query = $this->getMockBuilder('\Drupal\Core\Database\Query\Select')
       ->disableOriginalConstructor()
@@ -242,7 +245,7 @@ class PagerPluginBaseTest extends UnitTestCase {
 
     $query->expects($this->once())
       ->method('execute')
-      ->will($this->returnValue($statement));
+      ->willReturn($statement);
 
     $this->pager->setOffset(2);
     $this->assertEquals(1, $this->pager->executeCountQuery($query));
@@ -258,7 +261,7 @@ class PagerPluginBaseTest extends UnitTestCase {
 
     $statement->expects($this->once())
       ->method('fetchField')
-      ->will($this->returnValue(2));
+      ->willReturn(2);
 
     $query = $this->getMockBuilder(Select::class)
       ->disableOriginalConstructor()
@@ -266,7 +269,7 @@ class PagerPluginBaseTest extends UnitTestCase {
 
     $query->expects($this->once())
       ->method('execute')
-      ->will($this->returnValue($statement));
+      ->willReturn($statement);
 
     $this->pager->setOffset(3);
     $this->assertEquals(0, $this->pager->executeCountQuery($query));
@@ -275,6 +278,8 @@ class PagerPluginBaseTest extends UnitTestCase {
 }
 
 /**
+ * Creates StatementInterface for testing.
+ *
  * As StatementInterface extends \Traversable, which though always needs
  * an additional interface. The Statement class itself can't be mocked because
  * of its __wakeup function.

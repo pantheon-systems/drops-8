@@ -38,12 +38,14 @@ class ImageAdminStylesTest extends ImageFieldTestBase {
     $assert->waitForElementVisible('named', ['button', 'Edit'])->press();
     $assert->waitForElementVisible('named', ['id_or_name', 'name'])->setValue($style_name);
     $page->pressButton('Create new style');
-    $assert->pageTextContains("Style $style_label was created.");
+    $assert->statusMessageContains("Style $style_label was created.", 'status');
 
     // Add two Ajax-enabled test effects.
-    $this->drupalPostForm($style_path, ['new' => 'image_module_test_ajax'], 'Add');
+    $this->drupalGet($style_path);
+    $this->submitForm(['new' => 'image_module_test_ajax'], 'Add');
     $this->submitForm($effect_edit, 'Add effect');
-    $this->drupalPostForm($style_path, ['new' => 'image_module_test_ajax'], 'Add');
+    $this->drupalGet($style_path);
+    $this->submitForm(['new' => 'image_module_test_ajax'], 'Add');
     $this->submitForm($effect_edit, 'Add effect');
 
     // Load the saved image style.
@@ -62,7 +64,7 @@ class ImageAdminStylesTest extends ImageFieldTestBase {
         return (bool) preg_match('/^Ajax value [0-9.]+ [0-9.]+$/', $ajax_value);
       }));
       $page->pressButton('Update effect');
-      $assert->pageTextContains('The image effect was successfully applied.');
+      $assert->statusMessageContains('The image effect was successfully applied.', 'status');
     }
   }
 

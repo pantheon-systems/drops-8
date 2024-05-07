@@ -26,19 +26,29 @@ class Store implements StoreInterface
 {
     protected $root;
     private $keyCache;
-    private $locks;
+    private $locks = [];
+    private $options;
 
     /**
+     * Constructor.
+     *
+     * The available options are:
+     *
+     *   * private_headers  Set of response headers that should not be stored
+     *                      when a response is cached. (default: Set-Cookie)
+     *
      * @throws \RuntimeException
      */
-    public function __construct(string $root)
+    public function __construct(string $root, array $options = [])
     {
         $this->root = $root;
         if (!file_exists($this->root) && !@mkdir($this->root, 0777, true) && !is_dir($this->root)) {
             throw new \RuntimeException(sprintf('Unable to create the store directory (%s).', $this->root));
         }
         $this->keyCache = new \SplObjectStorage();
-        $this->locks = [];
+        $this->options = array_merge([
+            'private_headers' => ['Set-Cookie'],
+        ], $options);
     }
 
     /**
@@ -69,7 +79,7 @@ class Store implements StoreInterface
             if (!file_exists(\dirname($path)) && false === @mkdir(\dirname($path), 0777, true) && !is_dir(\dirname($path))) {
                 return $path;
             }
-            $h = fopen($path, 'cb');
+            $h = fopen($path, 'c');
             if (!flock($h, \LOCK_EX | \LOCK_NB)) {
                 fclose($h);
 
@@ -114,7 +124,7 @@ class Store implements StoreInterface
             return false;
         }
 
-        $h = fopen($path, 'rb');
+        $h = fopen($path, 'r');
         flock($h, \LOCK_EX | \LOCK_NB, $wouldBlock);
         flock($h, \LOCK_UN); // release the lock we just acquired
         fclose($h);
@@ -215,6 +225,10 @@ class Store implements StoreInterface
         $headers = $this->persistResponse($response);
         unset($headers['age']);
 
+        foreach ($this->options['private_headers'] as $h) {
+            unset($headers[strtolower($h)]);
+        }
+
         array_unshift($entries, [$storedEnv, $headers]);
 
         if (!$this->save($key, serialize($entries))) {
@@ -277,8 +291,8 @@ class Store implements StoreInterface
 
         foreach (preg_split('/[\s,]+/', $vary) as $header) {
             $key = str_replace('_', '-', strtolower($header));
-            $v1 = isset($env1[$key]) ? $env1[$key] : null;
-            $v2 = isset($env2[$key]) ? $env2[$key] : null;
+            $v1 = $env1[$key] ?? null;
+            $v2 = $env2[$key] ?? null;
             if ($v1 !== $v2) {
                 return false;
             }
@@ -298,7 +312,7 @@ class Store implements StoreInterface
             return [];
         }
 
-        return unserialize($entries);
+        return unserialize($entries) ?: [];
     }
 
     /**
@@ -349,7 +363,7 @@ class Store implements StoreInterface
     {
         $path = $this->getPath($key);
 
-        return file_exists($path) && false !== ($contents = file_get_contents($path)) ? $contents : null;
+        return file_exists($path) && false !== ($contents = @file_get_contents($path)) ? $contents : null;
     }
 
     /**
@@ -379,7 +393,7 @@ class Store implements StoreInterface
             }
 
             $tmpFile = tempnam(\dirname($path), basename($path));
-            if (false === $fp = @fopen($tmpFile, 'wb')) {
+            if (false === $fp = @fopen($tmpFile, 'w')) {
                 @unlink($tmpFile);
 
                 return false;

@@ -21,6 +21,11 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 class FilterFormatPermission extends ProcessPluginBase implements ContainerFactoryPluginInterface {
 
   /**
+   * The current migration.
+   */
+  protected $migration;
+
+  /**
    * The migrate lookup service.
    *
    * @var \Drupal\migrate\MigrateLookupInterface
@@ -67,7 +72,7 @@ class FilterFormatPermission extends ProcessPluginBase implements ContainerFacto
    */
   public function transform($value, MigrateExecutableInterface $migrate_executable, Row $row, $destination_property) {
     $rid = $row->getSourceProperty('rid');
-    $migration = isset($this->configuration['migration']) ? $this->configuration['migration'] : 'd6_filter_format';
+    $migration = $this->configuration['migration'] ?? 'd6_filter_format';
     if ($formats = $row->getSourceProperty("filter_permissions:$rid")) {
       foreach ($formats as $format) {
         $lookup_result = $this->migrateLookup->lookup($migration, [$format]);

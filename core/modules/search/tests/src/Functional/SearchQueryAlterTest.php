@@ -51,10 +51,11 @@ class SearchQueryAlterTest extends BrowserTestBase {
     $this->container->get('plugin.manager.search')->createInstance('node_search')->updateIndex();
 
     // Search for the body keyword 'pizza'.
-    $this->drupalPostForm('search/node', ['keys' => 'pizza'], 'Search');
+    $this->drupalGet('search/node');
+    $this->submitForm(['keys' => 'pizza'], 'Search');
     // The article should be there but not the page.
-    $this->assertText('article', 'Article is in search results');
-    $this->assertNoText('page', 'Page is not in search results');
+    $this->assertSession()->pageTextContains('article');
+    $this->assertSession()->pageTextNotContains('page');
   }
 
 }

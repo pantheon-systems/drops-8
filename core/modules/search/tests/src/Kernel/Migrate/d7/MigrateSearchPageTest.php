@@ -31,8 +31,10 @@ class MigrateSearchPageTest extends MigrateDrupal7TestBase {
    *   The expected status of the search page.
    * @param array $expected_config
    *   An array of expected configuration for the search page.
+   *
+   * @internal
    */
-  protected function assertEntity($id, $path, $status = FALSE, array $expected_config = NULL) {
+  protected function assertEntity(string $id, string $path, bool $status = FALSE, array $expected_config = NULL): void {
     /** @var \Drupal\search\Entity\SearchPage $search_page */
     $search_page = SearchPage::load($id);
     $this->assertSame($id, $search_page->id());
@@ -76,6 +78,19 @@ class MigrateSearchPageTest extends MigrateDrupal7TestBase {
     $migration->getIdMap()->prepareUpdate();
     $this->executeMigration($migration);
     $configuration['rankings']['comments'] = 4;
+    $this->assertEntity('node_search', 'node', TRUE, $configuration);
+
+    // Test that a configurable search without a configuration imports. Do this
+    // by removing the node rankings from the source database.
+    Database::getConnection('default', 'migrate')
+      ->delete('variable')
+      ->condition('name', 'node_rank_%', 'LIKE')
+      ->execute();
+
+    $migration = $this->getMigration('d7_search_page');
+    $migration->getIdMap()->prepareUpdate();
+    $this->executeMigration($migration);
+    $configuration = ['rankings' => []];
     $this->assertEntity('node_search', 'node', TRUE, $configuration);
   }
 

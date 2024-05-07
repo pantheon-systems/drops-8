@@ -34,8 +34,8 @@ class FieldLanguageTest extends LanguageTestBase {
     ]);
     $this->executeView($view);
 
-    $this->assertEqual($view->field['langcode']->advancedRender($view->result[0]), 'English');
-    $this->assertEqual($view->field['langcode']->advancedRender($view->result[1]), 'Lolspeak');
+    $this->assertEquals('English', $view->field['langcode']->advancedRender($view->result[0]));
+    $this->assertEquals('Lolspeak', $view->field['langcode']->advancedRender($view->result[1]));
   }
 
 }

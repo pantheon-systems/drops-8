@@ -25,6 +25,9 @@ class UniqueFieldValueValidator extends ConstraintValidator {
 
     $query = \Drupal::entityQuery($entity_type_id);
 
+    // @todo Don't check access. http://www.drupal.org/node/3171047
+    $query->accessCheck(TRUE);
+
     $entity_id = $entity->id();
     // Using isset() instead of !empty() as 0 and '0' are valid ID values for
     // entity types using string IDs.
@@ -42,7 +45,7 @@ class UniqueFieldValueValidator extends ConstraintValidator {
       $this->context->addViolation($constraint->message, [
         '%value' => $item->value,
         '@entity_type' => $entity->getEntityType()->getSingularLabel(),
-        '@field_name' => mb_strtolower($items->getFieldDefinition()->getLabel()),
+        '@field_name' => $items->getFieldDefinition()->getLabel(),
       ]);
     }
   }

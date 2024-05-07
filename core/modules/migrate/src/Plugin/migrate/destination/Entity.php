@@ -71,6 +71,11 @@ abstract class Entity extends DestinationBase implements ContainerFactoryPluginI
   protected $storage;
 
   /**
+   * The entity field manager.
+   */
+  protected $entityFieldManager;
+
+  /**
    * The list of the bundles of this entity type.
    *
    * @var array
@@ -129,7 +134,7 @@ abstract class Entity extends DestinationBase implements ContainerFactoryPluginI
    *   The bundle for this row.
    */
   public function getBundle(Row $row) {
-    $default_bundle = isset($this->configuration['default_bundle']) ? $this->configuration['default_bundle'] : '';
+    $default_bundle = $this->configuration['default_bundle'] ?? '';
     $bundle_key = $this->getKey('bundle');
     return $row->getDestinationProperty($bundle_key) ?: $default_bundle;
   }

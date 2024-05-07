@@ -16,7 +16,7 @@ class FieldUninstallValidatorTest extends UnitTestCase {
   protected $fieldUninstallValidator;
 
   /**
-   * The mock field type plugin manager;
+   * The mock field type plugin manager.
    *
    * @var \Drupal\Core\Field\FieldTypePluginManagerInterface|\PHPUnit\Framework\MockObject\MockObject
    */
@@ -29,7 +29,7 @@ class FieldUninstallValidatorTest extends UnitTestCase {
     parent::setUp();
     $this->fieldUninstallValidator = $this->getMockBuilder('Drupal\field\FieldUninstallValidator')
       ->disableOriginalConstructor()
-      ->setMethods(['getFieldStoragesByModule', 'getFieldTypeLabel'])
+      ->onlyMethods(['getFieldStoragesByModule', 'getFieldTypeLabel'])
       ->getMock();
     $this->fieldUninstallValidator->setStringTranslation($this->getStringTranslationStub());
   }

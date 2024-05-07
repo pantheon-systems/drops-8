@@ -14,7 +14,7 @@ use Drupal\Tests\UnitTestCase;
 class CacheFactoryTest extends UnitTestCase {
 
   /**
-   * Test that the cache factory falls back to the built-in default service.
+   * Tests that the cache factory falls back to the built-in default service.
    *
    * @covers ::__construct
    * @covers ::get
@@ -33,14 +33,14 @@ class CacheFactoryTest extends UnitTestCase {
     $builtin_default_backend_factory->expects($this->once())
       ->method('get')
       ->with('render')
-      ->will($this->returnValue($render_bin));
+      ->willReturn($render_bin);
 
     $actual_bin = $cache_factory->get('render');
     $this->assertSame($render_bin, $actual_bin);
   }
 
   /**
-   * Test that the cache factory falls back to customized default service.
+   * Tests that the cache factory falls back to customized default service.
    *
    * @covers ::__construct
    * @covers ::get
@@ -63,14 +63,14 @@ class CacheFactoryTest extends UnitTestCase {
     $custom_default_backend_factory->expects($this->once())
       ->method('get')
       ->with('render')
-      ->will($this->returnValue($render_bin));
+      ->willReturn($render_bin);
 
     $actual_bin = $cache_factory->get('render');
     $this->assertSame($render_bin, $actual_bin);
   }
 
   /**
-   * Test that the cache factory uses the correct default bin backend.
+   * Tests that the cache factory uses the correct default bin backend.
    *
    * @covers ::__construct
    * @covers ::get
@@ -99,14 +99,14 @@ class CacheFactoryTest extends UnitTestCase {
     $custom_default_backend_factory->expects($this->once())
       ->method('get')
       ->with('render')
-      ->will($this->returnValue($render_bin));
+      ->willReturn($render_bin);
 
     $actual_bin = $cache_factory->get('render');
     $this->assertSame($render_bin, $actual_bin);
   }
 
   /**
-   * Test that the cache factory picks the correct per-bin service.
+   * Tests that the cache factory picks the correct per-bin service.
    *
    * @covers ::__construct
    * @covers ::get
@@ -139,7 +139,7 @@ class CacheFactoryTest extends UnitTestCase {
     $custom_render_backend_factory->expects($this->once())
       ->method('get')
       ->with('render')
-      ->will($this->returnValue($render_bin));
+      ->willReturn($render_bin);
 
     $actual_bin = $cache_factory->get('render');
     $this->assertSame($render_bin, $actual_bin);

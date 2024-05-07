@@ -64,7 +64,7 @@ class EntityConstraintViolationList extends ConstraintViolationList implements E
       foreach ($this as $offset => $violation) {
         if ($path = $violation->getPropertyPath()) {
           // An example of $path might be 'title.0.value'.
-          list($field_name) = explode('.', $path, 2);
+          [$field_name] = explode('.', $path, 2);
           if ($this->entity->hasField($field_name)) {
             $this->violationOffsetsByField[$field_name][$offset] = $offset;
           }
@@ -106,7 +106,7 @@ class EntityConstraintViolationList extends ConstraintViolationList implements E
   public function getByFields(array $field_names) {
     $this->groupViolationOffsets();
     $violations = [];
-    foreach (array_intersect_key($this->violationOffsetsByField, array_flip($field_names)) as $field_name => $offsets) {
+    foreach (array_intersect_key($this->violationOffsetsByField, array_flip($field_names)) as $offsets) {
       foreach ($offsets as $offset) {
         $violations[] = $this->get($offset);
       }

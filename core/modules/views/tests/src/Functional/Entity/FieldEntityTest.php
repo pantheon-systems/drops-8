@@ -41,13 +41,13 @@ class FieldEntityTest extends ViewTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp($import_test_views = TRUE): void {
-    parent::setUp(FALSE);
+  protected function setUp($import_test_views = TRUE, $modules = ['views_test_config']): void {
+    parent::setUp(FALSE, $modules);
 
     $this->drupalCreateContentType(['type' => 'page']);
     $this->addDefaultCommentField('node', 'page');
 
-    ViewTestData::createTestViews(static::class, ['views_test_config']);
+    ViewTestData::createTestViews(static::class, $modules);
   }
 
   /**
@@ -83,13 +83,13 @@ class FieldEntityTest extends ViewTestBase {
 
     // Tests entities on the base level.
     $entity = $view->field['cid']->getEntity($row);
-    $this->assertEqual($entity->id(), $comment->id(), 'Make sure the right comment entity got loaded.');
+    $this->assertEquals($comment->id(), $entity->id(), 'Make sure the right comment entity got loaded.');
     // Tests entities as relationship on first level.
     $entity = $view->field['nid']->getEntity($row);
-    $this->assertEqual($entity->id(), $node->id(), 'Make sure the right node entity got loaded.');
+    $this->assertEquals($node->id(), $entity->id(), 'Make sure the right node entity got loaded.');
     // Tests entities as relationships on second level.
     $entity = $view->field['uid']->getEntity($row);
-    $this->assertEqual($entity->id(), $account->id(), 'Make sure the right user entity got loaded.');
+    $this->assertEquals($account->id(), $entity->id(), 'Make sure the right user entity got loaded.');
   }
 
 }

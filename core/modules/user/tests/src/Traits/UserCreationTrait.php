@@ -13,8 +13,7 @@ use Drupal\user\Entity\User;
 use Drupal\user\RoleInterface;
 
 /**
- * Provides methods to create additional test users and switch the currently
- * logged in one.
+ * Provides test methods for user creation and authentication.
  *
  * This trait is meant to be used only by test classes.
  */
@@ -272,10 +271,7 @@ trait UserCreationTrait {
     }
     $result = $role->save();
 
-    $this->assertIdentical($result, SAVED_NEW, new FormattableMarkup('Created role ID @rid with name @name.', [
-      '@name' => var_export($role->label(), TRUE),
-      '@rid' => var_export($role->id(), TRUE),
-    ]), 'Role');
+    $this->assertSame(SAVED_NEW, $result, new FormattableMarkup('Created role ID @rid with name @name.', ['@name' => var_export($role->label(), TRUE), '@rid' => var_export($role->id(), TRUE)]), 'Role');
 
     if ($result === SAVED_NEW) {
       // Grant the specified permissions to the role, if any.

@@ -13,9 +13,12 @@
   Drupal.behaviors.MediaLibrarySelectAll = {
     attach(context) {
       const $view = $(
-        '.js-media-library-view[data-view-display-id="page"]',
-        context,
-      ).once('media-library-select-all');
+        once(
+          'media-library-select-all',
+          '.js-media-library-view[data-view-display-id="page"]',
+          context,
+        ),
+      );
       if ($view.length && $view.find('.js-media-library-item').length) {
         const $checkbox = $(Drupal.theme('checkbox')).on(
           'click',
@@ -36,9 +39,8 @@
             Drupal.announce(announcement);
           },
         );
-        const $label = $(
-          '<label class="media-library-select-all"></label>',
-        ).text(Drupal.t('Select all media'));
+        const $label = $('<label class="media-library-select-all"></label>');
+        $label[0].textContent = Drupal.t('Select all media');
         $label.prepend($checkbox);
         $view.find('.js-media-library-item').first().before($label);
       }

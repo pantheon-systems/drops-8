@@ -4,7 +4,6 @@
 * https://www.drupal.org/node/2815083
 * @preserve
 **/
-
 (function ($, Drupal, drupalSettings) {
   function handleDialogResize(e) {
     var $modal = $(e.currentTarget);
@@ -12,7 +11,6 @@
     var $scroll = $modal.find('[data-drupal-views-scroll]');
     var offset = 0;
     var modalHeight;
-
     if ($scroll.length) {
       $modal.closest('.views-ui-dialog').addClass('views-ui-dialog-scroll');
       $scroll.css({
@@ -29,17 +27,16 @@
       $scroll.css('overflow', 'auto');
     }
   }
-
   Drupal.behaviors.viewsModalContent = {
     attach: function attach(context) {
-      $('body').once('viewsDialog').on('dialogContentResize.viewsDialog', '.ui-dialog-content', handleDialogResize);
-      $(context).find('.scroll').once('detailsUpdate').on('click', 'summary', function (e) {
+      $(once('viewsDialog', 'body')).on('dialogContentResize.viewsDialog', '.ui-dialog-content', handleDialogResize);
+      $(once('detailsUpdate', '.scroll', context)).on('click', 'summary', function (e) {
         $(e.currentTarget).trigger('dialogContentResize');
       });
     },
     detach: function detach(context, settings, trigger) {
       if (trigger === 'unload') {
-        $('body').removeOnce('viewsDialog').off('.viewsDialog');
+        $(once.remove('viewsDialog', 'body')).off('.viewsDialog');
       }
     }
   };

@@ -50,6 +50,11 @@
         // Turn the summary into a clickable link.
         const $summary = this.$node.find('> summary');
 
+        // If this polyfill is in use, the browser does not recognize
+        // <summary> as a focusable element. The tabindex is set to -1 so the
+        // tabbable library does not incorrectly identify it as tabbable.
+        $summary.attr('tabindex', '-1');
+
         $('<span class="details-summary-prefix visually-hidden"></span>')
           .append(this.$node.attr('open') ? Drupal.t('Hide') : Drupal.t('Show'))
           .prependTo($summary)
@@ -112,17 +117,11 @@
       if (Modernizr.details) {
         return;
       }
-      const $collapsibleDetails = $(context)
-        .find('details')
-        .once('collapse')
-        .addClass('collapse-processed');
-      if ($collapsibleDetails.length) {
-        for (let i = 0; i < $collapsibleDetails.length; i++) {
-          CollapsibleDetails.instances.push(
-            new CollapsibleDetails($collapsibleDetails[i]),
-          );
-        }
-      }
+      once('collapse', 'details', context).forEach((detail) => {
+        // This class is used for styling purpose only.
+        detail.classList.add('collapse-processed');
+        CollapsibleDetails.instances.push(new CollapsibleDetails(detail));
+      });
     },
   };
 

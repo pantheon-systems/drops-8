@@ -19,10 +19,13 @@
   Drupal.behaviors.ckeditorAdmin = {
     attach(context) {
       // Process the CKEditor configuration fragment once.
-      const $configurationForm = $(context)
-        .find('.ckeditor-toolbar-configuration')
-        .once('ckeditor-configuration');
-      if ($configurationForm.length) {
+      const configurationForm = once(
+        'ckeditor-configuration',
+        '.ckeditor-toolbar-configuration',
+        context,
+      );
+      if (configurationForm.length) {
+        const $configurationForm = $(configurationForm);
         const $textarea = $configurationForm
           // Hide the textarea that contains the serialized representation of the
           // CKEditor configuration.
@@ -38,7 +41,7 @@
         // Create a configuration model.
         Drupal.ckeditor.models.Model = new Drupal.ckeditor.Model({
           $textarea,
-          activeEditorConfig: JSON.parse($textarea.val()),
+          activeEditorConfig: JSON.parse($textarea[0].value),
           hiddenEditorConfig: drupalSettings.ckeditor.hiddenCKEditorConfig,
         });
 
@@ -66,11 +69,13 @@
       // really means that all CKEditor toolbar buttons have been removed.
       // Hence,all editor features will be removed, so any reactions from
       // filters will be undone.
-      const $configurationForm = $(context)
-        .find('.ckeditor-toolbar-configuration')
-        .findOnce('ckeditor-configuration');
+      const configurationForm = once.filter(
+        'ckeditor-configuration',
+        '.ckeditor-toolbar-configuration',
+        context,
+      );
       if (
-        $configurationForm.length &&
+        configurationForm.length &&
         Drupal.ckeditor.models &&
         Drupal.ckeditor.models.Model
       ) {
@@ -280,7 +285,9 @@
           $group
             .attr('data-drupal-ckeditor-toolbar-group-name', name)
             .children('.ckeditor-toolbar-group-name')
-            .text(name);
+            .each(function () {
+              this.textContent = name;
+            });
         }
 
         // Invoke a user-provided callback and indicate failure.
@@ -417,10 +424,13 @@
   Drupal.behaviors.ckeditorAdminButtonPluginSettings = {
     attach(context) {
       const $context = $(context);
-      const $ckeditorPluginSettings = $context
-        .find('#ckeditor-plugin-settings')
-        .once('ckeditor-plugin-settings');
-      if ($ckeditorPluginSettings.length) {
+      const ckeditorPluginSettings = once(
+        'ckeditor-plugin-settings',
+        '#ckeditor-plugin-settings',
+        context,
+      );
+      if (ckeditorPluginSettings.length) {
+        const $ckeditorPluginSettings = $(ckeditorPluginSettings);
         // Hide all button-dependent plugin settings initially.
         $ckeditorPluginSettings
           .find('[data-ckeditor-buttons]')

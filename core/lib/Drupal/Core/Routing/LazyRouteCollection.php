@@ -9,7 +9,7 @@ class LazyRouteCollection extends RouteCollection {
   /**
    * The route provider for this generator.
    *
-   * @var \Symfony\Component\Routing\RouteProviderInterface
+   * @var \Drupal\Core\Routing\RouteProviderInterface
    */
   protected $provider;
 
@@ -23,7 +23,7 @@ class LazyRouteCollection extends RouteCollection {
   /**
    * {@inheritdoc}
    */
-  public function getIterator() {
+  public function getIterator(): \ArrayIterator {
     return new \ArrayIterator($this->all());
   }
 
@@ -33,6 +33,7 @@ class LazyRouteCollection extends RouteCollection {
    * @return int
    *   The number of routes
    */
+  #[\ReturnTypeWillChange]
   public function count() {
     return count($this->all());
   }

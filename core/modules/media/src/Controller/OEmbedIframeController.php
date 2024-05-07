@@ -5,6 +5,7 @@ namespace Drupal\media\Controller;
 use Drupal\Component\Utility\Crypt;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
+use Drupal\Core\Render\BubbleableMetadata;
 use Drupal\Core\Render\HtmlResponse;
 use Drupal\Core\Render\RenderContext;
 use Drupal\Core\Render\RendererInterface;
@@ -17,7 +18,7 @@ use Drupal\media\OEmbed\UrlResolverInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
 /**
  * Controller which renders an oEmbed resource in a bare page (without blocks).
@@ -114,26 +115,41 @@ class OEmbedIframeController implements ContainerInjectionInterface {
    * @return \Symfony\Component\HttpFoundation\Response
    *   The response object.
    *
-   * @throws \Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException
-   *   Will be thrown if the 'hash' parameter does not match the expected hash
-   *   of the 'url' parameter.
+   * @throws \Symfony\Component\HttpKernel\Exception\BadRequestHttpException
+   *   Will be thrown if either
+   *   - the 'hash' parameter does not match the expected hash of the 'url'
+   *     parameter;
+   *   - the iframe_domain is set in media.settings and does not match the host
+   *     in the request.
    */
   public function render(Request $request) {
+    // @todo Move domain check logic to a separate method.
+    $allowed_domain = \Drupal::config('media.settings')->get('iframe_domain');
+    if ($allowed_domain) {
+      $allowed_host = parse_url($allowed_domain, PHP_URL_HOST);
+      $host = parse_url($request->getSchemeAndHttpHost(), PHP_URL_HOST);
+      if ($allowed_host !== $host) {
+        throw new BadRequestHttpException('This resource is not available');
+      }
+    }
+
     $url = $request->query->get('url');
-    $max_width = $request->query->getInt('max_width', NULL);
-    $max_height = $request->query->getInt('max_height', NULL);
+    $max_width = $request->query->getInt('max_width');
+    $max_height = $request->query->getInt('max_height');
 
     // Hash the URL and max dimensions, and ensure it is equal to the hash
     // parameter passed in the query string.
     $hash = $this->iFrameUrlHelper->getHash($url, $max_width, $max_height);
     if (!hash_equals($hash, $request->query->get('hash', ''))) {
-      throw new AccessDeniedHttpException('This resource is not available');
+      throw new BadRequestHttpException('This resource is not available');
     }
 
     // Return a response instead of a render array so that the frame content
     // will not have all the blocks and page elements normally rendered by
     // Drupal.
-    $response = new HtmlResponse();
+    $response = new HtmlResponse('', HtmlResponse::HTTP_OK, [
+      'Content-Type' => 'text/html; charset=UTF-8',
+    ]);
     $response->addCacheableDependency(Url::createFromRequest($request));
 
     try {
@@ -167,7 +183,8 @@ class OEmbedIframeController implements ContainerInjectionInterface {
         ],
         '#placeholder_token' => $placeholder_token,
       ];
-      $content = $this->renderer->executeInRenderContext(new RenderContext(), function () use ($resource, $element) {
+      $context = new RenderContext();
+      $content = $this->renderer->executeInRenderContext($context, function () use ($element) {
         return $this->renderer->render($element);
       });
       $response
@@ -175,6 +192,18 @@ class OEmbedIframeController implements ContainerInjectionInterface {
         ->setAttachments($element['#attached'])
         ->addCacheableDependency($resource)
         ->addCacheableDependency(CacheableMetadata::createFromRenderArray($element));
+
+      // Modules and themes implementing hook_media_oembed_iframe_preprocess()
+      // can add additional #cache and #attachments to a render array. If this
+      // occurs, the render context won't be empty, and we need to ensure the
+      // added metadata is bubbled up to the response.
+      // @see \Drupal\Core\Theme\ThemeManager::render()
+      if (!$context->isEmpty()) {
+        $bubbleable_metadata = $context->pop();
+        assert($bubbleable_metadata instanceof BubbleableMetadata);
+        $response->addCacheableDependency($bubbleable_metadata);
+        $response->addAttachments($bubbleable_metadata->getAttachments());
+      }
     }
     catch (ResourceException $e) {
       // Prevent the response from being cached.

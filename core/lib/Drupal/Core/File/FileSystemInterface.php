@@ -33,6 +33,20 @@ interface FileSystemInterface {
   const MODIFY_PERMISSIONS = 2;
 
   /**
+   * A list of insecure extensions.
+   *
+   * @see \Drupal\Core\File\FileSystemInterface::INSECURE_EXTENSION_REGEX
+   */
+  public const INSECURE_EXTENSIONS = ['phar', 'php', 'pl', 'py', 'cgi', 'asp', 'js', 'htaccess', 'phtml'];
+
+  /**
+   * The regex pattern used when checking for insecure file types.
+   *
+   * @see \Drupal\Core\File\FileSystemInterface::INSECURE_EXTENSIONS
+   */
+  public const INSECURE_EXTENSION_REGEX = '/\.(phar|php|pl|py|cgi|asp|js|htaccess|phtml)(\.|$)/i';
+
+  /**
    * Moves an uploaded file to a new location.
    *
    * PHP's move_uploaded_file() does not properly support streams if
@@ -159,8 +173,7 @@ interface FileSystemInterface {
   public function basename($uri, $suffix = NULL);
 
   /**
-   * Creates a directory, optionally creating missing components in the path to
-   * the directory.
+   * Creates a directory, optionally creating missing components in the path.
    *
    * When PHP's mkdir() creates a directory, the requested mode is affected by
    * the process's umask. This function overrides the umask and sets the mode
@@ -369,7 +382,7 @@ interface FileSystemInterface {
    * @throws \Drupal\Core\File\Exception\FileException
    *   Implementation may throw FileException or its subtype on failure.
    *
-   * @see file_save_data()
+   * @see \Drupal\file\FileRepositoryInterface::writeData()
    */
   public function saveData($data, $destination, $replace = self::EXISTS_RENAME);
 

@@ -47,8 +47,8 @@ class UsageTest extends FileManagedUnitTestBase {
     $this->assertCount(2, $usage['testing'], 'Returned the correct number of items.');
     $this->assertTrue(isset($usage['testing']['foo'][1]), 'Returned the correct id.');
     $this->assertTrue(isset($usage['testing']['bar'][2]), 'Returned the correct id.');
-    $this->assertEqual($usage['testing']['foo'][1], 1, 'Returned the correct count.');
-    $this->assertEqual($usage['testing']['bar'][2], 2, 'Returned the correct count.');
+    $this->assertEquals(1, $usage['testing']['foo'][1], 'Returned the correct count.');
+    $this->assertEquals(2, $usage['testing']['bar'][2], 'Returned the correct count.');
   }
 
   /**
@@ -69,12 +69,12 @@ class UsageTest extends FileManagedUnitTestBase {
       ->execute()
       ->fetchAllAssoc('id');
     $this->assertCount(2, $usage, 'Created two records');
-    $this->assertEqual($usage[1]->module, 'testing', 'Correct module');
-    $this->assertEqual($usage[2]->module, 'testing', 'Correct module');
-    $this->assertEqual($usage[1]->type, 'foo', 'Correct type');
-    $this->assertEqual($usage[2]->type, 'bar', 'Correct type');
-    $this->assertEqual($usage[1]->count, 1, 'Correct count');
-    $this->assertEqual($usage[2]->count, 2, 'Correct count');
+    $this->assertEquals('testing', $usage[1]->module, 'Correct module');
+    $this->assertEquals('testing', $usage[2]->module, 'Correct module');
+    $this->assertEquals('foo', $usage[1]->type, 'Correct type');
+    $this->assertEquals('bar', $usage[2]->type, 'Correct type');
+    $this->assertEquals(1, $usage[1]->count, 'Correct count');
+    $this->assertEquals(2, $usage[2]->count, 'Correct count');
   }
 
   /**
@@ -124,7 +124,7 @@ class UsageTest extends FileManagedUnitTestBase {
       ->condition('f.fid', $file->id())
       ->execute()
       ->fetchField();
-    $this->assertEqual(2, $count, 'The count was decremented correctly.');
+    $this->assertEquals(2, $count, 'The count was decremented correctly.');
 
     // Multiple decrement and removal.
     $file_usage->delete($file, 'testing', 'bar', 2, 2);
@@ -153,8 +153,12 @@ class UsageTest extends FileManagedUnitTestBase {
    * timestamp.
    */
   public function createTempFiles() {
+    /** @var \Drupal\file\FileRepositoryInterface $fileRepository */
+    $fileRepository = \Drupal::service('file.repository');
+
     // Temporary file that is old.
-    $temp_old = file_save_data('');
+    $destination = "public://";
+    $temp_old = $fileRepository->writeData('', $destination);
     $connection = Database::getConnection();
     $connection->update('file_managed')
       ->fields([
@@ -166,7 +170,7 @@ class UsageTest extends FileManagedUnitTestBase {
     $this->assertFileExists($temp_old->getFileUri());
 
     // Temporary file that is new.
-    $temp_new = file_save_data('');
+    $temp_new = $fileRepository->writeData('', $destination);
     $connection->update('file_managed')
       ->fields(['status' => 0])
       ->condition('fid', $temp_new->id())
@@ -174,7 +178,7 @@ class UsageTest extends FileManagedUnitTestBase {
     $this->assertFileExists($temp_new->getFileUri());
 
     // Permanent file that is old.
-    $perm_old = file_save_data('');
+    $perm_old = $fileRepository->writeData('', $destination);
     $connection->update('file_managed')
       ->fields(['changed' => REQUEST_TIME - $this->config('system.file')->get('temporary_maximum_age') - 1])
       ->condition('fid', $temp_old->id())
@@ -182,7 +186,7 @@ class UsageTest extends FileManagedUnitTestBase {
     $this->assertFileExists($perm_old->getFileUri());
 
     // Permanent file that is new.
-    $perm_new = file_save_data('');
+    $perm_new = $fileRepository->writeData('', $destination);
     $this->assertFileExists($perm_new->getFileUri());
     return [$temp_old, $temp_new, $perm_old, $perm_new];
   }
@@ -191,11 +195,11 @@ class UsageTest extends FileManagedUnitTestBase {
    * Ensure that temporary files are removed by default.
    */
   public function testTempFileCleanupDefault() {
-    list($temp_old, $temp_new, $perm_old, $perm_new) = $this->createTempFiles();
+    [$temp_old, $temp_new, $perm_old, $perm_new] = $this->createTempFiles();
 
     // Run cron and then ensure that only the old, temp file was deleted.
     $this->container->get('cron')->run();
-    $this->assertFileNotExists($temp_old->getFileUri());
+    $this->assertFileDoesNotExist($temp_old->getFileUri());
     $this->assertFileExists($temp_new->getFileUri());
     $this->assertFileExists($perm_old->getFileUri());
     $this->assertFileExists($perm_new->getFileUri());
@@ -205,7 +209,7 @@ class UsageTest extends FileManagedUnitTestBase {
    * Ensure that temporary files are kept as configured.
    */
   public function testTempFileNoCleanup() {
-    list($temp_old, $temp_new, $perm_old, $perm_new) = $this->createTempFiles();
+    [$temp_old, $temp_new, $perm_old, $perm_new] = $this->createTempFiles();
 
     // Set the max age to 0, meaning no temporary files will be deleted.
     $this->config('system.file')
@@ -224,7 +228,7 @@ class UsageTest extends FileManagedUnitTestBase {
    * Ensure that temporary files are kept as configured.
    */
   public function testTempFileCustomCleanup() {
-    list($temp_old, $temp_new, $perm_old, $perm_new) = $this->createTempFiles();
+    [$temp_old, $temp_new, $perm_old, $perm_new] = $this->createTempFiles();
 
     // Set the max age to older than default.
     $this->config('system.file')

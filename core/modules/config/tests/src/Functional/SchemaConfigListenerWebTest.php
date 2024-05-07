@@ -6,7 +6,7 @@ use Drupal\Core\Config\Schema\SchemaIncompleteException;
 use Drupal\Tests\BrowserTestBase;
 
 /**
- * Tests the functionality of ConfigSchemaChecker in WebTestBase tests.
+ * Tests the functionality of ConfigSchemaChecker in BrowserTestBase tests.
  *
  * @group config
  */
@@ -60,7 +60,7 @@ class SchemaConfigListenerWebTest extends BrowserTestBase {
 
     // Test that the config event listener is working in the child site.
     $this->drupalGet('config_test/schema_listener');
-    $this->assertText('No schema for config_schema_test.schemaless');
+    $this->assertSession()->pageTextContains('No schema for config_schema_test.schemaless');
   }
 
 }

@@ -4,12 +4,10 @@
 * https://www.drupal.org/node/2815083
 * @preserve
 **/
-
 (function ($, Drupal) {
   Drupal.theme.progressBar = function (id) {
     return "<div id=\"".concat(id, "\" class=\"progress\" aria-live=\"polite\">") + '<div class="progress__label">&nbsp;</div>' + '<div class="progress__track"><div class="progress__bar"></div></div>' + '<div class="progress__percentage"></div>' + '<div class="progress__description">&nbsp;</div>' + '</div>';
   };
-
   Drupal.ProgressBar = function (id, updateCallback, method, errorCallback) {
     this.id = id;
     this.method = method || 'GET';
@@ -17,17 +15,14 @@
     this.errorCallback = errorCallback;
     this.element = $(Drupal.theme('progressBar', id));
   };
-
   $.extend(Drupal.ProgressBar.prototype, {
     setProgress: function setProgress(percentage, message, label) {
       if (percentage >= 0 && percentage <= 100) {
         $(this.element).find('div.progress__bar').css('width', "".concat(percentage, "%"));
         $(this.element).find('div.progress__percentage').html("".concat(percentage, "%"));
       }
-
       $('div.progress__description', this.element).html(message);
       $('div.progress__label', this.element).html(label);
-
       if (this.updateCallback) {
         this.updateCallback(percentage, message, this);
       }
@@ -45,17 +40,14 @@
       if (this.timer) {
         clearTimeout(this.timer);
       }
-
       if (this.uri) {
         var pb = this;
         var uri = this.uri;
-
         if (uri.indexOf('?') === -1) {
           uri += '?';
         } else {
           uri += '&';
         }
-
         uri += '_format=json';
         $.ajax({
           type: this.method,
@@ -67,7 +59,6 @@
               pb.displayError(progress.data);
               return;
             }
-
             pb.setProgress(progress.percentage, progress.message, progress.label);
             pb.timer = setTimeout(function () {
               pb.sendPing();
@@ -83,7 +74,6 @@
     displayError: function displayError(string) {
       var error = $('<div class="messages messages--error"></div>').html(string);
       $(this.element).before(error).hide();
-
       if (this.errorCallback) {
         this.errorCallback(this);
       }

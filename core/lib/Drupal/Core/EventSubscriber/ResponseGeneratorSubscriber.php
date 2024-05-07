@@ -18,14 +18,14 @@ class ResponseGeneratorSubscriber implements EventSubscriberInterface {
    *   The event to process.
    */
   public function onRespond(ResponseEvent $event) {
-    if (!$event->isMasterRequest()) {
+    if (!$event->isMainRequest()) {
       return;
     }
 
     $response = $event->getResponse();
 
     // Set the generator in the HTTP header.
-    list($version) = explode('.', \Drupal::VERSION, 2);
+    [$version] = explode('.', \Drupal::VERSION, 2);
     $response->headers->set('X-Generator', 'Drupal ' . $version . ' (https://www.drupal.org)');
   }
 

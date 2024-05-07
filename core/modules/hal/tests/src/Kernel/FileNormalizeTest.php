@@ -8,6 +8,7 @@ use Drupal\file\Entity\File;
  * Tests that file entities can be normalized in HAL.
  *
  * @group hal
+ * @group legacy
  */
 class FileNormalizeTest extends NormalizerTestBase {
 
@@ -34,10 +35,10 @@ class FileNormalizeTest extends NormalizerTestBase {
       'filename' => 'test_1.txt',
       'uri' => 'public://test_1.txt',
       'filemime' => 'text/plain',
-      'status' => FILE_STATUS_PERMANENT,
     ];
     // Create a new file entity.
     $file = File::create($file_params);
+    $file->setPermanent();
     file_put_contents($file->getFileUri(), 'hello world');
     $file->save();
 
@@ -51,7 +52,7 @@ class FileNormalizeTest extends NormalizerTestBase {
     ];
 
     $normalized = $this->serializer->normalize($file, $this->format);
-    $this->assertEqual($normalized['uri'], $expected_array['uri'], 'URI is normalized.');
+    $this->assertEquals($expected_array['uri'], $normalized['uri'], 'URI is normalized.');
 
   }
 

@@ -21,6 +21,7 @@ class SettingsTrayBlockFormTest extends SettingsTrayTestBase {
     'node',
     'search',
     'settings_tray_test',
+    'off_canvas_test',
   ];
 
   /**
@@ -99,9 +100,9 @@ class SettingsTrayBlockFormTest extends SettingsTrayTestBase {
         // Confirm "Display Title" is not checked.
         $web_assert->checkboxNotChecked('settings[label_display]');
         // Confirm Title is not visible.
-        $this->assertEquals($this->isLabelInputVisible(), FALSE, 'Label is not visible');
+        $this->assertFalse($this->isLabelInputVisible(), 'Label is not visible');
         $page->checkField('settings[label_display]');
-        $this->assertEquals($this->isLabelInputVisible(), TRUE, 'Label is visible');
+        $this->assertTrue($this->isLabelInputVisible(), 'Label is visible');
         // Fill out form, save the form.
         $page->fillField('settings[label]', $new_page_text);
 
@@ -190,7 +191,7 @@ class SettingsTrayBlockFormTest extends SettingsTrayTestBase {
           'theme' => $theme,
           'block_plugin' => 'search_form_block',
           'new_page_text' => NULL,
-          'element_selector' => '#edit-submit',
+          'element_selector' => '[data-drupal-selector="edit-submit"]',
           'label_selector' => 'h2',
           'button_text' => 'Save Search form',
           'toolbar_item' => NULL,
@@ -262,7 +263,7 @@ class SettingsTrayBlockFormTest extends SettingsTrayTestBase {
   }
 
   /**
-   * Test that validation errors appear in the off-canvas dialog.
+   * Tests that validation errors appear in the off-canvas dialog.
    */
   public function testValidationMessages() {
     $page = $this->getSession()->getPage();
@@ -281,17 +282,6 @@ class SettingsTrayBlockFormTest extends SettingsTrayTestBase {
       $this->disableEditMode();
       $block->delete();
     }
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  protected function getTestThemes() {
-    // Remove 'seven' theme. Setting Tray "Edit Mode" will not work with 'seven'
-    // because it removes all contextual links the off-canvas dialog should.
-    return array_filter(parent::getTestThemes(), function ($theme) {
-      return $theme !== 'seven';
-    });
   }
 
 }

@@ -50,6 +50,15 @@ class InstallerConfigDirectorySetNoDirectoryErrorTest extends InstallerTestBase 
   /**
    * {@inheritdoc}
    */
+  protected function setUpRequirementsProblem() {
+    // The parent method asserts that there are no requirements errors, but
+    // this test expects a requirements error in the test method below.
+    // Therefore, we override this method to suppress the parent's assertions.
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   protected function setUpSite() {
     // This step should not appear as we had a failure prior to the settings
     // screen.
@@ -59,8 +68,8 @@ class InstallerConfigDirectorySetNoDirectoryErrorTest extends InstallerTestBase 
    * Verifies that installation failed.
    */
   public function testError() {
-    $this->assertText("An automated attempt to create the directory {$this->configDirectory}/sync failed, possibly due to a permissions problem.");
-    $this->assertDirectoryNotExists($this->configDirectory . '/sync');
+    $this->assertSession()->pageTextContains("An automated attempt to create the directory {$this->configDirectory}/sync failed, possibly due to a permissions problem.");
+    $this->assertDirectoryDoesNotExist($this->configDirectory . '/sync');
   }
 
 }

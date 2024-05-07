@@ -5,7 +5,12 @@ namespace Drupal\system\Plugin\migrate\source\d7;
 use Drupal\system\Plugin\migrate\source\Menu;
 
 /**
- * Menu translation source from database.
+ * Drupal 7 i18n menu translation source from database.
+ *
+ * For available configuration keys, refer to the parent classes.
+ *
+ * @see \Drupal\migrate\Plugin\migrate\source\SqlBase
+ * @see \Drupal\migrate\Plugin\migrate\source\SourcePluginBase
  *
  * @MigrateSource(
  *   id = "d7_menu_translation",
@@ -42,8 +47,8 @@ class MenuTranslation extends Menu {
       ->isNotNull('lt.lid');
 
     $query->addField('m', 'language', 'm_language');
-    $query->leftJoin('i18n_string', 'i18n', 'i18n.objectid = m.menu_name');
-    $query->leftJoin('locales_target', 'lt', 'lt.lid = i18n.lid');
+    $query->leftJoin('i18n_string', 'i18n', '[i18n].[objectid] = [m].[menu_name]');
+    $query->leftJoin('locales_target', 'lt', '[lt].[lid] = [i18n].[lid]');
 
     return $query;
   }

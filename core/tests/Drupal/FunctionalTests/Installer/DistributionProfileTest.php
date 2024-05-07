@@ -32,7 +32,7 @@ class DistributionProfileTest extends InstallerTestBase {
       'distribution' => [
         'name' => 'My Distribution',
         'install' => [
-          'theme' => 'bartik',
+          'theme' => 'claro',
           'finish_url' => '/root-user',
         ],
       ],
@@ -49,13 +49,13 @@ class DistributionProfileTest extends InstallerTestBase {
    */
   protected function setUpLanguage() {
     // Verify that the distribution name appears.
-    $this->assertRaw($this->info['distribution']['name']);
+    $this->assertSession()->pageTextContains($this->info['distribution']['name']);
     // Verify that the distribution name is used in the site title.
     $this->assertSession()->titleEquals('Choose language | ' . $this->info['distribution']['name']);
     // Verify that the requested theme is used.
-    $this->assertRaw($this->info['distribution']['install']['theme']);
+    $this->assertSession()->responseContains($this->info['distribution']['install']['theme']);
     // Verify that the "Choose profile" step does not appear.
-    $this->assertNoText('profile');
+    $this->assertSession()->pageTextNotContains('profile');
 
     parent::setUpLanguage();
   }
@@ -74,11 +74,11 @@ class DistributionProfileTest extends InstallerTestBase {
     $this->assertSession()->addressEquals('root-user');
     $this->assertSession()->statusCodeEquals(200);
     // Confirm that we are logged-in after installation.
-    $this->assertText($this->rootUser->getAccountName());
+    $this->assertSession()->pageTextContains($this->rootUser->getAccountName());
 
     // Confirm that Drupal recognizes this distribution as the current profile.
-    $this->assertEqual(\Drupal::installProfile(), 'my_distro');
-    $this->assertEqual($this->config('core.extension')->get('profile'), 'my_distro', 'The install profile has been written to core.extension configuration.');
+    $this->assertEquals('my_distro', \Drupal::installProfile());
+    $this->assertEquals('my_distro', $this->config('core.extension')->get('profile'), 'The install profile has been written to core.extension configuration.');
   }
 
 }

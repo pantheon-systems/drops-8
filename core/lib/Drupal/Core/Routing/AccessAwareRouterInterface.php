@@ -22,7 +22,7 @@ interface AccessAwareRouterInterface extends RouterInterface, RequestMatcherInte
    * @throws \Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException
    *   Thrown when access checking failed.
    */
-  public function matchRequest(Request $request);
+  public function matchRequest(Request $request): array;
 
   /**
    * {@inheritdoc}
@@ -30,6 +30,6 @@ interface AccessAwareRouterInterface extends RouterInterface, RequestMatcherInte
    * @throws \Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException
    *   Thrown when $access_check is enabled and access checking failed.
    */
-  public function match($pathinfo);
+  public function match($pathinfo): array;
 
 }

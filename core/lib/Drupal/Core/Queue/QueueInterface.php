@@ -18,7 +18,7 @@ interface QueueInterface {
    * @param $data
    *   Arbitrary data to be associated with the new task in the queue.
    *
-   * @return
+   * @return bool|int|string
    *   A unique ID if the item was successfully created and was (best effort)
    *   added to the queue, otherwise FALSE. We don't guarantee the item was
    *   committed to disk etc, but as far as we know, the item is now in the
@@ -55,14 +55,14 @@ interface QueueInterface {
    *   more rare for a given task to run multiple times in cases of failure,
    *   at the cost of higher latency.
    *
-   * @return
+   * @return bool|object
    *   On success we return an item object. If the queue is unable to claim an
    *   item it returns false. This implies a best effort to retrieve an item
    *   and either the queue is empty or there is some other non-recoverable
    *   problem.
    *
    *   If returned, the object will have at least the following properties:
-   *   - data: the same as what what passed into createItem().
+   *   - data: the same as what passed into createItem().
    *   - item_id: the unique ID returned from createItem().
    *   - created: timestamp when the item was put into the queue.
    */

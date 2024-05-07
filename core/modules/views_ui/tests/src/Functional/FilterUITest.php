@@ -32,8 +32,8 @@ class FilterUITest extends UITestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp($import_test_views = TRUE): void {
-    parent::setUp($import_test_views);
+  protected function setUp($import_test_views = TRUE, $modules = ['views_test_config']): void {
+    parent::setUp($import_test_views, $modules);
     $this->drupalCreateContentType(['type' => 'page']);
   }
 
@@ -56,7 +56,8 @@ class FilterUITest extends UITestBase {
     $edit = [
       'options[expose][reduce]' => TRUE,
     ];
-    $this->drupalPostForm($path, $edit, 'Apply');
+    $this->drupalGet($path);
+    $this->submitForm($edit, 'Apply');
 
     // Verifies that the option was saved as expected.
     $this->drupalGet($path);
@@ -79,7 +80,7 @@ class FilterUITest extends UITestBase {
 
     // Tests that we can create a new filter group from UI.
     $this->drupalGet('admin/structure/views/nojs/rearrange-filter/test_filter_groups/page');
-    $this->assertNoRaw('<span>Group 3</span>');
+    $this->assertSession()->elementNotExists('xpath', '//span[text()="Group 3"]');
 
     // Create 2 new groups.
     $this->submitForm([], 'Create new filter group');
@@ -89,13 +90,13 @@ class FilterUITest extends UITestBase {
     $this->submitForm([], 'Remove group 3');
 
     // Verify that the group 4 is now named as 3.
-    $this->assertRaw('<span>Group 3</span>');
+    $this->assertSession()->responseContains('<span>Group 3</span>');
 
     // Remove the group 3 again.
     $this->submitForm([], 'Remove group 3');
 
     // Group 3 now does not exist.
-    $this->assertNoRaw('<span>Group 3</span>');
+    $this->assertSession()->elementNotExists('xpath', '//span[text()="Group 3"]');
   }
 
   /**
@@ -113,23 +114,26 @@ class FilterUITest extends UITestBase {
     $edit = [
       'options[expose][identifier]' => '',
     ];
-    $this->drupalPostForm($path, $edit, 'Apply');
-    $this->assertText('The identifier is required if the filter is exposed.');
+    $this->drupalGet($path);
+    $this->submitForm($edit, 'Apply');
+    $this->assertSession()->pageTextContains('The identifier is required if the filter is exposed.');
 
     // Set the identifier to 'value'.
     $edit = [
       'options[expose][identifier]' => 'value',
     ];
-    $this->drupalPostForm($path, $edit, 'Apply');
-    $this->assertText('This identifier is not allowed.');
+    $this->drupalGet($path);
+    $this->submitForm($edit, 'Apply');
+    $this->assertSession()->pageTextContains('This identifier is not allowed.');
 
     // Try a few restricted values for the identifier.
     foreach (['value value', 'value^value'] as $identifier) {
       $edit = [
         'options[expose][identifier]' => $identifier,
       ];
-      $this->drupalPostForm($path, $edit, 'Apply');
-      $this->assertText('This identifier has illegal characters.');
+      $this->drupalGet($path);
+      $this->submitForm($edit, 'Apply');
+      $this->assertSession()->pageTextContains('This identifier has illegal characters.');
     }
   }
 

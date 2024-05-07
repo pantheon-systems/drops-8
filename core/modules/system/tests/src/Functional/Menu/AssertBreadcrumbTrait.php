@@ -18,13 +18,13 @@ trait AssertBreadcrumbTrait {
    *
    * @param \Drupal\Core\Url|string $goto
    *   (optional) A path or URL to pass to
-   *   Drupal\simpletest\WebTestBase::drupalGet().
+   *   \Drupal\Tests\UiHelperTrait::drupalGet().
    * @param array $trail
    *   An associative array whose keys are expected breadcrumb link paths and
    *   whose values are expected breadcrumb link texts (not sanitized).
    * @param string $page_title
    *   (optional) A page title to additionally assert via
-   *   Drupal\simpletest\WebTestBase::assertTitle(). Without site name suffix.
+   *   \Drupal\Tests\WebAssert::titleEquals(). Without site name suffix.
    * @param array $tree
    *   (optional) An associative array whose keys are link paths and whose
    *   values are link titles (not sanitized) of an expected active trail in a
@@ -32,8 +32,13 @@ trait AssertBreadcrumbTrait {
    * @param $last_active
    *   (optional) Whether the last link in $tree is expected to be active (TRUE)
    *   or just to be in the active trail (FALSE).
+   * @param string $active_trail_class
+   *   (optional) The class of the active trail. Defaults to
+   *   'menu-item--active-trail'.
+   * @param string $active_class
+   *   (optional) The class of the active element. Defaults to 'is-active'.
    */
-  protected function assertBreadcrumb($goto, array $trail, $page_title = NULL, array $tree = [], $last_active = TRUE) {
+  protected function assertBreadcrumb($goto, array $trail, $page_title = NULL, array $tree = [], $last_active = TRUE, $active_trail_class = 'menu-item--active-trail', $active_class = 'is-active') {
     if (isset($goto)) {
       $this->drupalGet($goto);
     }
@@ -46,7 +51,7 @@ trait AssertBreadcrumbTrait {
 
     // Additionally assert active trail in a menu tree output, if given.
     if ($tree) {
-      $this->assertMenuActiveTrail($tree, $last_active);
+      $this->assertMenuActiveTrail($tree, $last_active, $active_trail_class, $active_class);
     }
   }
 
@@ -100,7 +105,7 @@ trait AssertBreadcrumbTrait {
    */
   protected function getBreadcrumbParts() {
     $parts = [];
-    $elements = $this->xpath('//nav[@class="breadcrumb"]/ol/li/a');
+    $elements = $this->xpath('//nav[@aria-labelledby="system-breadcrumb"]//ol/li/a');
     if (!empty($elements)) {
       foreach ($elements as $element) {
         $parts[] = [

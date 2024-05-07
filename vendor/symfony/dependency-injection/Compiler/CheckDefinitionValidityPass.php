@@ -49,7 +49,7 @@ class CheckDefinitionValidityPass implements CompilerPassInterface
                     throw new RuntimeException(sprintf('Please add the class to service "%s" even if it is constructed by a factory since we might need to add method calls based on compile-time checks.', $id));
                 }
                 if (class_exists($id) || interface_exists($id, false)) {
-                    if (0 === strpos($id, '\\') && 1 < substr_count($id, '\\')) {
+                    if (str_starts_with($id, '\\') && 1 < substr_count($id, '\\')) {
                         throw new RuntimeException(sprintf('The definition for "%s" has no class attribute, and appears to reference a class or interface. Please specify the class attribute explicitly or remove the leading backslash by renaming the service to "%s" to get rid of this error.', $id, substr($id, 1)));
                     }
 
@@ -63,7 +63,7 @@ class CheckDefinitionValidityPass implements CompilerPassInterface
             foreach ($definition->getTags() as $name => $tags) {
                 foreach ($tags as $attributes) {
                     foreach ($attributes as $attribute => $value) {
-                        if (!is_scalar($value) && null !== $value) {
+                        if (!\is_scalar($value) && null !== $value) {
                             throw new RuntimeException(sprintf('A "tags" attribute must be of a scalar-type for service "%s", tag "%s", attribute "%s".', $id, $name, $attribute));
                         }
                     }

@@ -11,6 +11,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\migrate\EntityFieldDefinitionTrait;
 use Drupal\migrate\Plugin\migrate\source\SourcePluginBase;
+use Drupal\migrate\Plugin\MigrateSourceInterface;
 use Drupal\migrate\Plugin\MigrationInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -30,14 +31,24 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  *   of this bundle.
  * - include_translations: (optional) Indicates if the entity translations
  *   should be included, defaults to TRUE.
+ * - add_revision_id: (optional) Indicates if the revision key is added to the
+ *   source IDs, defaults to TRUE.
  *
  * Examples:
  *
- * This will return all nodes, from every bundle and every translation. It does
- * not return all revisions, just the default one.
+ * This will return the default revision for all nodes, from every bundle and
+ * every translation. The revision key is added to the source IDs.
  * @code
  * source:
  *   plugin: content_entity:node
+ * @endcode
+ *
+ * This will return the default revision for all nodes, from every bundle and
+ * every translation. The revision key is not added to the source IDs.
+ * @code
+ * source:
+ *   plugin: content_entity:node
+ *   add_revision_id: false
  * @endcode
  *
  * This will only return nodes of type 'article' in their default language.
@@ -47,6 +58,9 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  *   bundle: article
  *   include_translations: false
  * @endcode
+ *
+ * For additional configuration keys, refer to the parent class:
+ * @see \Drupal\migrate\Plugin\migrate\source\SourcePluginBase
  *
  * @MigrateSource(
  *   id = "content_entity",
@@ -93,6 +107,7 @@ class ContentEntity extends SourcePluginBase implements ContainerFactoryPluginIn
   protected $defaultConfiguration = [
     'bundle' => NULL,
     'include_translations' => TRUE,
+    'add_revision_id' => TRUE,
   ];
 
   /**
@@ -217,12 +232,17 @@ class ContentEntity extends SourcePluginBase implements ContainerFactoryPluginIn
     if (!empty($this->configuration['bundle'])) {
       $query->condition($this->entityType->getKey('bundle'), $this->configuration['bundle']);
     }
+    // Exclude anonymous user account.
+    if ($this->entityType->id() === 'user' && !empty($this->entityType->getKey('id'))) {
+      $query->condition($this->entityType->getKey('id'), 0, '>');
+    }
     return $query;
   }
 
   /**
    * {@inheritdoc}
    */
+  #[\ReturnTypeWillChange]
   public function count($refresh = FALSE) {
     // If no translations are included, then a simple query is possible.
     if (!$this->configuration['include_translations']) {
@@ -230,7 +250,7 @@ class ContentEntity extends SourcePluginBase implements ContainerFactoryPluginIn
     }
     // @TODO: Determine a better way to retrieve a valid count for translations.
     // https://www.drupal.org/project/drupal/issues/2937166
-    return -1;
+    return MigrateSourceInterface::NOT_COUNTABLE;
   }
 
   /**
@@ -265,7 +285,7 @@ class ContentEntity extends SourcePluginBase implements ContainerFactoryPluginIn
   public function getIds() {
     $id_key = $this->entityType->getKey('id');
     $ids[$id_key] = $this->getDefinitionFromEntity($id_key);
-    if ($this->entityType->isRevisionable()) {
+    if ($this->configuration['add_revision_id'] && $this->entityType->isRevisionable()) {
       $revision_key = $this->entityType->getKey('revision');
       $ids[$revision_key] = $this->getDefinitionFromEntity($revision_key);
     }

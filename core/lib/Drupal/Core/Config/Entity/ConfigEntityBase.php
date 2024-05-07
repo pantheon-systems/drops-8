@@ -18,6 +18,7 @@ use Drupal\Core\Plugin\PluginDependencyTrait;
  *
  * @ingroup entity_api
  */
+#[\AllowDynamicProperties]
 abstract class ConfigEntityBase extends EntityBase implements ConfigEntityInterface {
 
   use PluginDependencyTrait {
@@ -91,6 +92,7 @@ abstract class ConfigEntityBase extends EntityBase implements ConfigEntityInterf
    *
    * @var array
    */
+  // phpcs:ignore Drupal.Classes.PropertyDeclaration
   protected $_core = [];
 
   /**
@@ -149,7 +151,7 @@ abstract class ConfigEntityBase extends EntityBase implements ConfigEntityInterf
    * {@inheritdoc}
    */
   public function get($property_name) {
-    return isset($this->{$property_name}) ? $this->{$property_name} : NULL;
+    return $this->{$property_name} ?? NULL;
   }
 
   /**
@@ -227,14 +229,14 @@ abstract class ConfigEntityBase extends EntityBase implements ConfigEntityInterf
    * Helper callback for uasort() to sort configuration entities by weight and label.
    */
   public static function sort(ConfigEntityInterface $a, ConfigEntityInterface $b) {
-    $a_weight = isset($a->weight) ? $a->weight : 0;
-    $b_weight = isset($b->weight) ? $b->weight : 0;
+    $a_weight = $a->weight ?? 0;
+    $b_weight = $b->weight ?? 0;
     if ($a_weight == $b_weight) {
-      $a_label = $a->label();
-      $b_label = $b->label();
+      $a_label = $a->label() ?? '';
+      $b_label = $b->label() ?? '';
       return strnatcasecmp($a_label, $b_label);
     }
-    return ($a_weight < $b_weight) ? -1 : 1;
+    return $a_weight <=> $b_weight;
   }
 
   /**
@@ -248,7 +250,7 @@ abstract class ConfigEntityBase extends EntityBase implements ConfigEntityInterf
     $id_key = $entity_type->getKey('id');
     $property_names = $entity_type->getPropertiesToExport($this->id());
     if (empty($property_names)) {
-      throw new SchemaIncompleteException(sprintf("Entity type '%s' is missing 'config_export' definition in its annotation", get_class($entity_type)));
+      throw new SchemaIncompleteException(sprintf("Entity type '%s' is missing 'config_export' definition in its annotation", $entity_type->getClass()));
     }
     foreach ($property_names as $property_name => $export_name) {
       // Special handling for IDs so that computed compound IDs work.
@@ -316,6 +318,21 @@ abstract class ConfigEntityBase extends EntityBase implements ConfigEntityInterf
       // being written during a configuration synchronization then there is no
       // need to recalculate the dependencies.
       $this->calculateDependencies();
+      // If the data is trusted we need to ensure that the dependencies are
+      // sorted as per their schema. If the save is not trusted then the
+      // configuration will be sorted by StorableConfigBase.
+      if ($this->trustedData) {
+        $mapping = ['config' => 0, 'content' => 1, 'module' => 2, 'theme' => 3, 'enforced' => 4];
+        $dependency_sort = function ($dependencies) use ($mapping) {
+          // Only sort the keys that exist.
+          $mapping_to_replace = array_intersect_key($mapping, $dependencies);
+          return array_replace($mapping_to_replace, $dependencies);
+        };
+        $this->dependencies = $dependency_sort($this->dependencies);
+        if (isset($this->dependencies['enforced'])) {
+          $this->dependencies['enforced'] = $dependency_sort($this->dependencies['enforced']);
+        }
+      }
     }
   }
 
@@ -505,7 +522,7 @@ abstract class ConfigEntityBase extends EntityBase implements ConfigEntityInterf
    * {@inheritdoc}
    */
   public function getThirdPartySettings($module) {
-    return isset($this->third_party_settings[$module]) ? $this->third_party_settings[$module] : [];
+    return $this->third_party_settings[$module] ?? [];
   }
 
   /**

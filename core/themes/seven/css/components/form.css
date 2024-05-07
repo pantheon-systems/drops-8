@@ -11,7 +11,7 @@ form {
  * elements in normalize.css 7.0.0.
  */
 button:not(.button),
-input:not([type="file"],.form-text, .form-textarea) {
+input:not([type="file"]):not(.form-text):not(.form-textarea) {
   line-height: 1.25em;
 }
 textarea,
@@ -125,6 +125,9 @@ label[for] {
 .form-item textarea.error + .cke {
   border-width: 1px;
   border-color: #e62600;
+}
+.form-item textarea.error + .ck-editor > .ck-editor__main {
+  border: 1px solid #e62600;
 }
 .form-item input.error:focus,
 .form-item textarea.error:focus,

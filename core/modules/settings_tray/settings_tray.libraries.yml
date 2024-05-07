@@ -15,5 +15,6 @@ drupal.settings_tray:
   dependencies:
     - core/jquery
     - core/drupal
-    - core/jquery.once
+    - core/once
+    - core/jquery.once.bc
     - core/drupal.ajax

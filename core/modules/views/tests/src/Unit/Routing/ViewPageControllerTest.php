@@ -35,6 +35,9 @@ class ViewPageControllerTest extends UnitTestCase {
     '#view_display_show_admin_links' => NULL,
   ];
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp(): void {
     $this->pageController = new ViewPageController();
   }
@@ -131,7 +134,7 @@ class ViewPageControllerTest extends UnitTestCase {
       '#cache' => [
         'keys' => ['view', 'test_page_view', 'display', 'page_1', 'args', 'test-argument'],
       ],
-      ] + $this->defaultRenderArray;
+    ] + $this->defaultRenderArray;
 
     $this->assertEquals($build, $result);
   }
@@ -170,7 +173,7 @@ class ViewPageControllerTest extends UnitTestCase {
       '#cache' => [
         'keys' => ['view', 'test_page_view', 'display', 'page_1', 'args', 'example_id'],
       ],
-      ] + $this->defaultRenderArray;
+    ] + $this->defaultRenderArray;
 
     $this->assertEquals($build, $result);
   }

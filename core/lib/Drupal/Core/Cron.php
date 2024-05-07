@@ -134,6 +134,10 @@ class Cron implements CronInterface {
     }
     else {
       $this->invokeCronHandlers();
+
+      // Process cron queues.
+      $this->processQueues();
+
       $this->setCronLastTime();
 
       // Release cron lock.
@@ -142,9 +146,6 @@ class Cron implements CronInterface {
       // Return TRUE so other functions can check if it did run successfully
       $return = TRUE;
     }
-
-    // Process cron queues.
-    $this->processQueues();
 
     // Restore the user.
     $this->accountSwitcher->switchBack();
@@ -159,7 +160,7 @@ class Cron implements CronInterface {
     // Record cron time.
     $request_time = $this->time->getRequestTime();
     $this->state->set('system.cron_last', $request_time);
-    $this->logger->notice('Cron run completed.');
+    $this->logger->info('Cron run completed.');
   }
 
   /**
@@ -174,10 +175,10 @@ class Cron implements CronInterface {
         $this->queueFactory->get($queue_name)->createQueue();
 
         $queue_worker = $this->queueManager->createInstance($queue_name);
-        $end = time() + (isset($info['cron']['time']) ? $info['cron']['time'] : 15);
+        $end = $this->time->getCurrentTime() + $info['cron']['time'];
         $queue = $this->queueFactory->get($queue_name);
-        $lease_time = isset($info['cron']['time']) ?: NULL;
-        while (time() < $end && ($item = $queue->claimItem($lease_time))) {
+        $lease_time = $info['cron']['time'];
+        while ($this->time->getCurrentTime() < $end && ($item = $queue->claimItem($lease_time))) {
           try {
             $queue_worker->processItem($item->data);
             $queue->deleteItem($item);
@@ -229,15 +230,14 @@ class Cron implements CronInterface {
     $logger = $time_logging_enabled ? $this->logger : new NullLogger();
 
     // Iterate through the modules calling their cron handlers (if any):
-    foreach ($this->moduleHandler->getImplementations('cron') as $module) {
-
+    $this->moduleHandler->invokeAllWith('cron', function (callable $hook, string $module) use (&$module_previous, $logger) {
       if (!$module_previous) {
-        $logger->notice('Starting execution of @module_cron().', [
+        $logger->info('Starting execution of @module_cron().', [
           '@module' => $module,
         ]);
       }
       else {
-        $logger->notice('Starting execution of @module_cron(), execution of @module_previous_cron() took @time.', [
+        $logger->info('Starting execution of @module_cron(), execution of @module_previous_cron() took @time.', [
           '@module' => $module,
           '@module_previous' => $module_previous,
           '@time' => Timer::read('cron_' . $module_previous) . 'ms',
@@ -247,7 +247,7 @@ class Cron implements CronInterface {
 
       // Do not let an exception thrown by one module disturb another.
       try {
-        $this->moduleHandler->invoke($module, 'cron');
+        $hook();
       }
       catch (\Exception $e) {
         watchdog_exception('cron', $e);
@@ -255,9 +255,9 @@ class Cron implements CronInterface {
 
       Timer::stop('cron_' . $module);
       $module_previous = $module;
-    }
+    });
     if ($module_previous) {
-      $logger->notice('Execution of @module_previous_cron() took @time.', [
+      $logger->info('Execution of @module_previous_cron() took @time.', [
         '@module_previous' => $module_previous,
         '@time' => Timer::read('cron_' . $module_previous) . 'ms',
       ]);

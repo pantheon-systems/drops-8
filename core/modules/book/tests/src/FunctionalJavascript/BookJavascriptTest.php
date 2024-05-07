@@ -70,7 +70,7 @@ class BookJavascriptTest extends WebDriverTestBase {
     $this->assertSession()->pageTextNotContains('You have unsaved changes.');
 
     // Drag and drop the '1st page' row over the '2nd page' row.
-    // @todo: Test also the reverse, '2nd page' over '1st page', when
+    // @todo Test also the reverse, '2nd page' over '1st page', when
     //   https://www.drupal.org/node/2769825 is fixed.
     // @see https://www.drupal.org/node/2769825
     $dragged = $this->xpath("//tr[@data-drupal-selector='edit-table-book-admin-{$page1->id()}']//a[@class='tabledrag-handle']")[0];
@@ -143,9 +143,11 @@ class BookJavascriptTest extends WebDriverTestBase {
    * @throws \Behat\Mink\Exception\ExpectationException
    *   When any of the given string is not found.
    *
+   * @internal
+   *
    * @todo Remove this once https://www.drupal.org/node/2817657 is committed.
    */
-  protected function assertOrderInPage(array $items) {
+  protected function assertOrderInPage(array $items): void {
     $session = $this->getSession();
     $text = $session->getPage()->getHtml();
     $strings = [];

@@ -4,7 +4,6 @@
 * https://www.drupal.org/node/2815083
 * @preserve
 **/
-
 (function ($, Drupal, Backbone, CKEDITOR, _) {
   Drupal.ckeditor.ControllerView = Backbone.View.extend({
     events: {},
@@ -22,7 +21,6 @@
           $(this).find('.ckeditor-toolbar-group').each(function () {
             var $group = $(this);
             var $buttons = $group.find('.ckeditor-button');
-
             if ($buttons.length) {
               var group = {
                 name: $group.attr('data-drupal-ckeditor-toolbar-group-name'),
@@ -34,18 +32,15 @@
               groups.push(group);
             }
           });
-
           if (groups.length) {
             rows.push(groups);
           }
         });
         this.model.set('activeEditorConfig', rows);
         this.model.set('isDirty', false);
-
         if (options.broadcast !== false) {
           var prev = this.getButtonList(currentConfig);
           var next = this.getButtonList(rows);
-
           if (prev.length !== next.length) {
             this.$el.find('.ckeditor-toolbar-active').trigger('CKEditorToolbarChanged', [prev.length < next.length ? 'added' : 'removed', _.difference(_.union(prev, next), _.intersection(prev, next))[0]]);
           }
@@ -56,7 +51,6 @@
       var getProperties = function getProperties(CKEPropertiesList) {
         return _.isObject(CKEPropertiesList) ? _.keys(CKEPropertiesList) : [];
       };
-
       var convertCKERulesToEditorFeature = function convertCKERulesToEditorFeature(feature, CKEFeatureRules) {
         for (var i = 0; i < CKEFeatureRules.length; i++) {
           var CKERule = CKEFeatureRules[i];
@@ -74,22 +68,17 @@
           feature.addHTMLRule(rule);
         }
       };
-
       var hiddenCKEditorID = 'ckeditor-hidden';
-
       if (CKEDITOR.instances[hiddenCKEditorID]) {
         CKEDITOR.instances[hiddenCKEditorID].destroy(true);
       }
-
       var hiddenEditorConfig = this.model.get('hiddenEditorConfig');
-
       if (hiddenEditorConfig.drupalExternalPlugins) {
         var externalPlugins = hiddenEditorConfig.drupalExternalPlugins;
         Object.keys(externalPlugins || {}).forEach(function (pluginName) {
           CKEDITOR.plugins.addExternal(pluginName, externalPlugins[pluginName], '');
         });
       }
-
       CKEDITOR.inline($("#".concat(hiddenCKEditorID)).get(0), CKEditorConfig);
       CKEDITOR.once('instanceReady', function (e) {
         if (e.editor.name === hiddenCKEditorID) {
@@ -97,18 +86,14 @@
           var rules = e.editor.filter.allowedContent;
           var rule;
           var name;
-
           for (var i = 0; i < rules.length; i++) {
             rule = rules[i];
             name = rule.featureName || ':(';
-
             if (!CKEFeatureRulesMap[name]) {
               CKEFeatureRulesMap[name] = [];
             }
-
             CKEFeatureRulesMap[name].push(rule);
           }
-
           var features = {};
           var buttonsToFeatures = {};
           Object.keys(CKEFeatureRulesMap).forEach(function (featureName) {
@@ -116,7 +101,6 @@
             convertCKERulesToEditorFeature(feature, CKEFeatureRulesMap[featureName]);
             features[featureName] = feature;
             var command = e.editor.getCommand(featureName);
-
             if (command) {
               buttonsToFeatures[command.uiItems[0].name] = featureName;
             }
@@ -129,20 +113,15 @@
       if (button === '-') {
         return false;
       }
-
       var featureName = this.model.get('buttonsToFeatures')[button.toLowerCase()];
-
       if (!featureName) {
         featureName = button.toLowerCase();
       }
-
       var featuresMetadata = this.model.get('featuresMetadata');
-
       if (!featuresMetadata[featureName]) {
         featuresMetadata[featureName] = new Drupal.EditorFeature(featureName);
         this.model.set('featuresMetadata', featuresMetadata);
       }
-
       return featuresMetadata[featureName];
     },
     disableFeaturesDisallowedByFilters: function disableFeaturesDisallowedByFilters(features, buttonsToFeatures) {
@@ -150,27 +129,20 @@
       this.model.set('buttonsToFeatures', buttonsToFeatures);
       this.broadcastConfigurationChanges(this.$el);
       var existingButtons = [];
-
       var buttonGroups = _.flatten(this.model.get('activeEditorConfig'));
-
       for (var i = 0; i < buttonGroups.length; i++) {
         var buttons = buttonGroups[i].items;
-
         for (var k = 0; k < buttons.length; k++) {
           existingButtons.push(buttons[k]);
         }
       }
-
       existingButtons = _.unique(existingButtons);
-
       for (var n = 0; n < existingButtons.length; n++) {
         var button = existingButtons[n];
         var feature = this.getFeatureForButton(button);
-
         if (feature === false) {
           continue;
         }
-
         if (Drupal.editorConfiguration.featureIsAllowedByFilters(feature)) {
           this.$el.find('.ckeditor-toolbar-active').trigger('CKEditorToolbarChanged', ['added', existingButtons[n]]);
         } else {
@@ -190,11 +162,9 @@
       var getCKEditorFeatures = this.getCKEditorFeatures.bind(this);
       $ckeditorToolbar.find('.ckeditor-toolbar-active').on('CKEditorToolbarChanged.ckeditorAdmin', function (event, action, button) {
         var feature = getFeatureForButton(button);
-
         if (feature === false) {
           return;
         }
-
         var configEvent = action === 'added' ? 'addedFeature' : 'removedFeature';
         Drupal.editorConfiguration[configEvent](feature);
       }).on('CKEditorPluginSettingsChanged.ckeditorAdmin', function (event, settingsChanges) {
@@ -205,7 +175,6 @@
           var featuresMetadata = view.model.get('featuresMetadata');
           Object.keys(features || {}).forEach(function (name) {
             var feature = features[name];
-
             if (featuresMetadata.hasOwnProperty(name) && !_.isEqual(featuresMetadata[name], feature)) {
               Drupal.editorConfiguration.modifiedFeature(feature);
             }
